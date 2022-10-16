@@ -2,6 +2,8 @@ import psutil
 import time
 import numpy as np
 from subprocess import call
+
+import wmi
 from prettytable import PrettyTable
 from datetime import datetime
 import matplotlib.pyplot as plt
@@ -10,6 +12,7 @@ from multiprocessing import Process
 from threading import Thread
 import time
 import pandas as pd
+
 
 ANTIVIRUS_PROCESS_NAME = "MsMpeng"
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
@@ -69,37 +72,38 @@ def draw_graph(x, y, y_name):
 
 
 def print_battery_stat():
-    # c = wmi.WMI()
-    # t = wmi.WMI(moniker = "//./root/wmi")
-    print("==============================Process Monitor\
-        ======================================")
-
+    # if mobile computer
     # Fetch the battery information
-    # battery = psutil.sensors_battery().percent
-    # print("Battery Available: %d " % (battery,) + "%")
+    battery = psutil.sensors_battery()
+    if battery is None:  # if desktop computer (has no battery)
+        return
+
+    c = wmi.WMI()
+    t = wmi.WMI(moniker = "//./root/wmi")
+
+    print("Battery Available: %d " % (battery.percent,) + "%")
     # battery_available_precent.append([calc_time_interval(), battery])
 
-    # batts1 = c.CIM_Battery(Caption='Portable Battery')
-    # for i, b in enumerate(batts1):
-    #    print('Battery %d Design Capacity: %d mWh' % (i, b.DesignCapacity or 0))
+    batts1 = c.CIM_Battery(Caption='Portable Battery')
+    for i, b in enumerate(batts1):
+        print('Battery %d Design Capacity: %d mWh' % (i, b.DesignCapacity or 0))
 
-    # batts = t.ExecQuery('Select * from BatteryFullChargedCapacity')
-    # for i, b in enumerate(batts):
-    #   print('Battery %d Fully Charged Capacity: %d mWh' %
-    #        (i, b.FullChargedCapacity))
+    batts = t.ExecQuery('Select * from BatteryFullChargedCapacity')
+    for i, b in enumerate(batts):
+        print('Battery %d Fully Charged Capacity: %d mWh' % (i, b.FullChargedCapacity))
 
-    # batts = t.ExecQuery('Select * from BatteryStatus where Voltage > 0')
-    # for i, b in enumerate(batts):
-    #   print('Voltage:           ' + str(b.Voltage))
-    #  print('RemainingCapacity: ' + str(b.RemainingCapacity))
+    batts = t.ExecQuery('Select * from BatteryStatus where Voltage > 0')
+    for i, b in enumerate(batts):
+        print('Voltage:           ' + str(b.Voltage))
+        print('RemainingCapacity: ' + str(b.RemainingCapacity))
 
-    # if b.Charging:
-    #    raise Exception("Unplug charging cable during measurements!")
+        if b.Charging:
+            raise Exception("Unplug charging cable during measurements!")
 
 
 def create_total_memory_table():
     vm = psutil.virtual_memory()
-    memory_df.loc[len(processes_df.index)] = [
+    memory_df.loc[len(memory_df.index)] = [
         calc_time_interval(),
         f'{vm.total / GB:.3f}',
         f'{vm.used / GB:.3f}',
@@ -125,7 +129,7 @@ def create_total_disk_table():
 
 def create_current_disk_io_table(previous_disk_io):
     disk_io_stat = psutil.disk_io_counters()
-    disk_io_each_moment_df.loc[len(processes_df.index)] = [
+    disk_io_each_moment_df.loc[len(disk_io_each_moment_df.index)] = [
         calc_time_interval(),
         disk_io_stat.read_count - previous_disk_io.read_count,
         disk_io_stat.write_count - previous_disk_io.write_count,
@@ -206,12 +210,9 @@ def add_to_processes_dataframe(time_of_sample, top_list):
             pass
 
 
-def main_program():
+def continuously_measure():
     # condition =
     # print(condition)
-
-    # print_battery_stat()
-    create_total_disk_table()
 
     # init PreviousDiskIO by first disk io measurements (before scan)
     prev_disk_io = PreviousDiskIO(psutil.disk_io_counters())
@@ -225,12 +226,15 @@ def main_program():
         # Create a delay
         time.sleep(0.5)
 
-    # print_battery_stat()
+
+def main():
+    global isScanDone
+    print("==============================Process Monitor\
+                ======================================")
+    print_battery_stat()
     create_total_disk_table()
 
-
-if __name__ == '__main__':
-    mainT = Thread(target=main_program, args=())
+    mainT = Thread(target=continuously_measure, args=())
     mainT.start()
 
     if need_scan:
@@ -241,9 +245,14 @@ if __name__ == '__main__':
             raise Exception("An error occurred while anti virus scan: %s", result.stderr)
 
     mainT.join()
+
+    print_battery_stat()
+    create_total_disk_table()
+
     processes_df.to_csv('processes_data.csv')
     memory_df.to_csv('total_memory.csv')
     disk_io_each_moment_df.to_csv('disk_io_each_moment.csv')
+
     print("finished scanning")
 
     """print("done waiting")
@@ -255,3 +264,7 @@ if __name__ == '__main__':
     x, y = split_to_xy(used_total_cpu)
     draw_graph(x, y, "used cpu")
 """
+
+
+if __name__ == '__main__':
+    main()
