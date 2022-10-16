@@ -9,6 +9,7 @@ import subprocess
 from multiprocessing import Process
 from threading import Thread
 import time
+import pandas as pd
 
 ANTIVIRUS_PROCESS_NAME = "MsMpeng"
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
@@ -22,16 +23,14 @@ isScanDone = not need_scan
 SCAN_TIME = 1 * 60  # 10 minutes
 starting_time = time.time()
 
-"""battery_available_precent = []
-used_total_memory = []
-used_memory_by_antivirus = []
-used_total_cpu = []
-used_cpu_by_antivirus = []
-used_total_disk = []
-used_disk_by_antivirus = []
-used_total_IO = []
-used_IO_by_antivirus = []
-"""
+# TODO: maybe its better to calculate MEMORY(%) in the end of scan in order to reduce calculations during scanning
+processes_df = pd.DataFrame(columns=['Time(sec)', 'PID', 'PNAME', 'CPU(%)', 'NUM THREADS', 'MEMORY(MB)', 'MEMORY(%)',
+                                     'read_count', 'write_count', 'read_bytes', 'write_bytes'])
+
+memory_df = pd.DataFrame(columns=['Time(sec)', 'Total(GB)', 'Used(GB)', 'Available(GB)', 'Percentage'])
+
+disk_io_each_moment_df = pd.DataFrame(columns=['Time(sec)', "READ(#)", "WRITE(#)", "READ(KB)", "WRITE(KB)"])
+
 
 class PreviousDiskIO:
     def __init__(self, disk_io):
@@ -39,10 +38,6 @@ class PreviousDiskIO:
         self.write_count = disk_io.write_count
         self.read_bytes = disk_io.read_bytes
         self.write_bytes = disk_io.write_bytes
-
-
-def run_antivirus():
-    return subprocess.run(["powershell", "-Command", "Start-MpScan -ScanType QuickScan"], capture_output=True)
 
 
 def calc_time_interval():
@@ -103,21 +98,14 @@ def print_battery_stat():
 
 
 def create_total_memory_table():
-    print("----Memory----")
-    memory_table = PrettyTable(["Total(GB)", "Used(GB)",
-                                "Available(GB)", "Percentage"])
     vm = psutil.virtual_memory()
-    memory_table.add_row([
+    memory_df.loc[len(processes_df.index)] = [
+        calc_time_interval(),
         f'{vm.total / GB:.3f}',
         f'{vm.used / GB:.3f}',
         f'{vm.available / GB:.3f}',
         vm.percent
-    ])
-
-    """used_total_memory.append([calc_time_interval(), f'{vm.used / GB:.3f}'])
-    print("added value: ")
-    print(used_total_memory[-1])"""
-    print(memory_table)
+    ]
 
 
 def create_total_disk_table():
@@ -135,32 +123,26 @@ def create_total_disk_table():
     print(disk_table)
 
 
-# TODO: i/o data is cumulative. maybe we should subtract that from initial i/o data (when the python program starts)
 def create_current_disk_io_table(previous_disk_io):
-    print("----Disk I/O----")
-    disk_table = PrettyTable(["READ(#)", "WRITE(#)",
-                              "READ(KB)", "WRITE(KB)"])
     disk_io_stat = psutil.disk_io_counters()
-    disk_table.add_row([
+    disk_io_each_moment_df.loc[len(processes_df.index)] = [
+        calc_time_interval(),
         disk_io_stat.read_count - previous_disk_io.read_count,
         disk_io_stat.write_count - previous_disk_io.write_count,
         f'{(disk_io_stat.read_bytes - previous_disk_io.read_bytes) / KB:.3f}',
         f'{(disk_io_stat.write_bytes - previous_disk_io.write_bytes) / KB:.3f}'
-    ])
+    ]
 
-    print(disk_table)
     return disk_io_stat
 
 
 def create_process_table():
-    print("----Processes----")
-    process_table = PrettyTable(['PID', 'PNAME',
-                                 'CPU', 'NUM THREADS', 'MEMORY(MB)', 'MEMORY(%)', 'read_count', 'write_count',
-                                 'read_bytes', 'write_bytes'])
-
     proc = []
     system_idle_process = psutil.Process(SYSTEM_IDLE_PID)
     system_idle_process.cpu_percent()
+
+    time_of_sample = calc_time_interval()
+
     for p in psutil.process_iter():
         try:
             if p.pid == SYSTEM_IDLE_PID:  # ignore System Idle Process
@@ -169,7 +151,7 @@ def create_process_table():
             p.cpu_percent()
             proc.append(p)
 
-        except Exception as e:
+        except Exception:
             pass
 
     # sort by cpu_percent
@@ -182,12 +164,15 @@ def create_process_table():
         except psutil.NoSuchProcess:
             pass
 
-    top_list = sorted(top.items(), key=lambda x: x[1])
-    top10 = top_list[-20:]
-    top10.append((system_idle_process, system_idle_process.cpu_percent() / psutil.cpu_count()))
-    top10.reverse()
+    top_list = sorted(top.items(), key=lambda x: x[1])[-20:]
+    top_list.append((system_idle_process, system_idle_process.cpu_percent() / psutil.cpu_count()))
+    top_list.reverse()
 
-    for p, cpu_percent in top10:
+    add_to_processes_dataframe(time_of_sample, top_list)
+
+
+def add_to_processes_dataframe(time_of_sample, top_list):
+    for p, cpu_percent in top_list:
 
         # While fetching the processes, some subprocesses may exit
         # Hence we need to put this code in try-except block
@@ -202,11 +187,12 @@ def create_process_table():
                 disk_io = p.io_counters()
 
                 # TODO - is io_counters what we are looking for (only disk reads)
-                # TODO: caculate all values for total(include memory, read, write, etc...)
-                process_table.add_row([
-                    str(p.pid),
+                # TODO: calculate all values for total(include memory, read, write, etc...)
+                processes_df.loc[len(processes_df.index)] = [
+                    time_of_sample,
+                    p.pid,
                     p.name() if p.pid != SYSTEM_IDLE_PID else "Total",
-                    f'{cpu_percent if p.pid != SYSTEM_IDLE_PID else 100 - cpu_percent:.2f}' + "%",
+                    f'{(cpu_percent if p.pid != SYSTEM_IDLE_PID else 100 - cpu_percent):.2f}',
                     p.num_threads(),
                     f'{p.memory_info().rss / MB:.3f}',  # TODO: maybe should use uss instead rss?
                     round(p.memory_percent(), 2),
@@ -214,11 +200,10 @@ def create_process_table():
                     disk_io.write_count,
                     disk_io.read_bytes,
                     disk_io.write_bytes
-                ])
+                ]
 
         except Exception:
             pass
-    print(process_table)
 
 
 def main_program():
@@ -256,7 +241,11 @@ if __name__ == '__main__':
             raise Exception("An error occurred while anti virus scan: %s", result.stderr)
 
     mainT.join()
+    processes_df.to_csv('processes_data.csv')
+    memory_df.to_csv('total_memory.csv')
+    disk_io_each_moment_df.to_csv('disk_io_each_moment.csv')
     print("finished scanning")
+
     """print("done waiting")
     print("Time: " + str(time.time() - starting_time))
     print("memory data: ")
