@@ -97,8 +97,8 @@ def print_battery_stat():
         print('Voltage:           ' + str(b.Voltage))
         print('RemainingCapacity: ' + str(b.RemainingCapacity))
 
-        if b.Charging:
-            raise Exception("Unplug charging cable during measurements!")
+    if battery.power_plugged:
+        raise Exception("Unplug charging cable during measurements!")
 
 
 def create_total_memory_table():
