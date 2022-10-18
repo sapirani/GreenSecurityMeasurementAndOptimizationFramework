@@ -3,6 +3,7 @@ import time
 import numpy as np
 from subprocess import call
 
+import pythoncom
 import wmi
 from prettytable import PrettyTable
 from datetime import datetime
@@ -33,6 +34,8 @@ processes_df = pd.DataFrame(columns=['Time(sec)', 'PID', 'PNAME', 'CPU(%)', 'NUM
 memory_df = pd.DataFrame(columns=['Time(sec)', 'Total(GB)', 'Used(GB)', 'Available(GB)', 'Percentage'])
 
 disk_io_each_moment_df = pd.DataFrame(columns=['Time(sec)', "READ(#)", "WRITE(#)", "READ(KB)", "WRITE(KB)"])
+
+battery_df = pd.DataFrame(columns=['Time(sec)', "REMAINING BATTERY(%)", "REMAINING CAPACITY(mWh)", "Voltage(mV)"])
 
 
 class PreviousDiskIO:
@@ -71,31 +74,32 @@ def draw_graph(x, y, y_name):
     plt.show()
 
 
-def print_battery_stat():
+def save_battery_stat():
     # if mobile computer
     # Fetch the battery information
     battery = psutil.sensors_battery()
     if battery is None:  # if desktop computer (has no battery)
         return
 
-    c = wmi.WMI()
     t = wmi.WMI(moniker = "//./root/wmi")
 
-    print("Battery Available: %d " % (battery.percent,) + "%")
-    # battery_available_precent.append([calc_time_interval(), battery])
+    new_row_index = len(battery_df.index)
 
-    batts1 = c.CIM_Battery(Caption='Portable Battery')
+    """ batts1 = c.CIM_Battery(Caption='Portable Battery')
     for i, b in enumerate(batts1):
         print('Battery %d Design Capacity: %d mWh' % (i, b.DesignCapacity or 0))
 
     batts = t.ExecQuery('Select * from BatteryFullChargedCapacity')
     for i, b in enumerate(batts):
-        print('Battery %d Fully Charged Capacity: %d mWh' % (i, b.FullChargedCapacity))
+        print('Battery %d Fully Charged Capacity: %d mWh' % (i, b.FullChargedCapacity))"""
 
-    batts = t.ExecQuery('Select * from BatteryStatus where Voltage > 0')
-    for i, b in enumerate(batts):
-        print('Voltage:           ' + str(b.Voltage))
-        print('RemainingCapacity: ' + str(b.RemainingCapacity))
+    for i, b in enumerate(t.ExecQuery('Select * from BatteryStatus where Voltage > 0')):
+        battery_df.loc[new_row_index + i] = [
+            calc_time_interval(),
+            battery.percent,
+            b.RemainingCapacity,
+            b.Voltage
+        ]
 
     if battery.power_plugged:
         raise Exception("Unplug charging cable during measurements!")
@@ -211,14 +215,14 @@ def add_to_processes_dataframe(time_of_sample, top_list):
 
 
 def continuously_measure():
-    # condition =
-    # print(condition)
+    pythoncom.CoInitialize()
 
     # init PreviousDiskIO by first disk io measurements (before scan)
     prev_disk_io = PreviousDiskIO(psutil.disk_io_counters())
 
     # TODO: think if total tables should be printed only once
     while not isScanDone if need_scan else (SCAN_TIME + starting_time >= time.time()):
+        save_battery_stat()
         create_process_table()
         create_total_memory_table()
         prev_disk_io = create_current_disk_io_table(prev_disk_io)
@@ -227,12 +231,48 @@ def continuously_measure():
         time.sleep(0.5)
 
 
+def save_general_battery(f):
+    f.write("----Battery----\n")
+    c = wmi.WMI()
+    t = wmi.WMI(moniker="//./root/wmi")
+    batts1 = c.CIM_Battery(Caption='Portable Battery')
+    for i, b in enumerate(batts1):
+        f.write('Battery %d Design Capacity: %d mWh\n' % (i, b.DesignCapacity or 0))
+
+    batts = t.ExecQuery('Select * from BatteryFullChargedCapacity')
+    for i, b in enumerate(batts):
+        f.write('Battery %d Fully Charged Capacity: %d mWh\n' % (i, b.FullChargedCapacity))
+
+
+def save_general_disk(f):
+    f.write("----Disk----\n")
+    disk_table = PrettyTable(["Total(GB)", "Used(GB)",
+                              "Available(GB)", "Percentage"])
+    disk_stat = psutil.disk_usage('/')
+    disk_table.add_row([
+        f'{disk_stat.total / GB:.3f}',
+        f'{disk_stat.used / GB:.3f}',
+        f'{disk_stat.free / GB:.3f}',
+        disk_stat.percent
+    ])
+    # used_total_disk.append([calc_time_interval(), f'{disk_stat.used / GB:.3f}'])
+    f.write(str(disk_table))
+    f.write('\n')
+
+
+def save_general_information():
+    with open("general_information.txt", 'w') as f:
+        save_general_battery(f)
+        f.write('\n')
+        save_general_disk(f)
+
+
 def main():
     global isScanDone
     print("==============================Process Monitor\
                 ======================================")
-    print_battery_stat()
-    create_total_disk_table()
+    # print_battery_stat()
+    save_general_information()
 
     mainT = Thread(target=continuously_measure, args=())
     mainT.start()
@@ -246,12 +286,13 @@ def main():
 
     mainT.join()
 
-    print_battery_stat()
-    create_total_disk_table()
+    # print_battery_stat()
+    # create_total_disk_table()
 
     processes_df.to_csv('processes_data.csv')
     memory_df.to_csv('total_memory.csv')
     disk_io_each_moment_df.to_csv('disk_io_each_moment.csv')
+    battery_df.to_csv('battery_status.csv')
 
     print("finished scanning")
 
