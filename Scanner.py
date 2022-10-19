@@ -7,6 +7,8 @@ from threading import Thread
 import time
 import pandas as pd
 from enum import Enum
+import os.path
+from pathlib import Path
 
 
 class ScanOption(Enum):
@@ -23,13 +25,17 @@ class PreviousDiskIO:
         self.write_bytes = disk_io.write_bytes
 
 
-PROCESSES_CSV = 'processes_data.csv'
-TOTAL_MEMORY_EACH_MOMENT_CSV = 'total_memory_each_moment.csv'
-DISK_IO_EACH_MOMENT = 'disk_io_each_moment.csv'
-BATTERY_STATUS_CSV = 'battery_status.csv'
-GENERAL_INFORMATION_FILE = 'general_information.txt'
+def calc_dir():
+    if scan_option == ScanOption.NO_SCAN:
+        return 'no_scan'
+    elif scan_option == ScanOption.ONE_SCAN:
+        return os.path.join('one_scan', scan_type)
+    else:
+        return os.path.join('continuous_scan', scan_type)
 
-SCAN_TYPE = "QuickScan"
+
+# ======= Constants =======
+MINUTE = 60
 ANTIVIRUS_PROCESS_NAME = "MsMpeng"
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
 SYSTEM_IDLE_PID = 0
@@ -38,13 +44,27 @@ GB = 2**30
 MB = 2**20
 KB = 2**10
 
-MINUTE = 60
+done_scanning = False
+starting_time = time.time()
+
+
+# ======= Program Parameters =======
+scan_option = ScanOption.CONTINUOUS_SCAN
+scan_type = "QuickScan"
 MINIMUM_DELTA_CAPACITY = 20
 MINIMUM_SCAN_TIME = 1 * MINUTE
 
-scan_option = ScanOption.CONTINUOUS_SCAN
-done_scanning = False
-starting_time = time.time()
+
+# ======= Result Data Paths =======
+results_dir = calc_dir()
+Path(results_dir).mkdir(parents=True, exist_ok=True)
+
+PROCESSES_CSV = os.path.join(results_dir, 'processes_data.csv')
+TOTAL_MEMORY_EACH_MOMENT_CSV = os.path.join(results_dir, 'total_memory_each_moment.csv')
+DISK_IO_EACH_MOMENT = os.path.join(results_dir, 'disk_io_each_moment.csv')
+BATTERY_STATUS_CSV = os.path.join(results_dir, 'battery_status.csv')
+GENERAL_INFORMATION_FILE = os.path.join(results_dir, 'general_information.txt')
+
 
 # TODO: maybe its better to calculate MEMORY(%) in the end of scan in order to reduce calculations during scanning
 processes_df = pd.DataFrame(columns=['Time(sec)', 'PID', 'PNAME', 'CPU(%)', 'NUM THREADS', 'MEMORY(MB)', 'MEMORY(%)',
@@ -274,7 +294,7 @@ def main():
 
     while not scan_option == ScanOption.NO_SCAN and not done_scanning:
         # TODO check about capture_output
-        result = subprocess.run(["powershell", "-Command", "Start-MpScan -ScanType " + SCAN_TYPE], capture_output=True)
+        result = subprocess.run(["powershell", "-Command", "Start-MpScan -ScanType " + scan_type], capture_output=True)
         finished_scanning_time.append(calc_time_interval())
         if scan_option == ScanOption.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
             done_scanning = True
