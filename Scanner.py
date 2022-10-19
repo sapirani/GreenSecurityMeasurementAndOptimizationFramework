@@ -15,6 +15,7 @@ import time
 import pandas as pd
 
 
+SCAN_TYPE = "QuickScan"
 ANTIVIRUS_PROCESS_NAME = "MsMpeng"
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
 SYSTEM_IDLE_PID = 0
@@ -24,14 +25,14 @@ KB = 2**10
 
 need_scan = True
 isScanDone = not need_scan
-SCAN_TIME = 1 * 60  # 10 minutes
+SCAN_TIME = 1 * 60  # 1 minute
 starting_time = time.time()
 
 # TODO: maybe its better to calculate MEMORY(%) in the end of scan in order to reduce calculations during scanning
 processes_df = pd.DataFrame(columns=['Time(sec)', 'PID', 'PNAME', 'CPU(%)', 'NUM THREADS', 'MEMORY(MB)', 'MEMORY(%)',
                                      'read_count', 'write_count', 'read_bytes', 'write_bytes'])
 
-memory_df = pd.DataFrame(columns=['Time(sec)', 'Total(GB)', 'Used(GB)', 'Available(GB)', 'Percentage'])
+memory_df = pd.DataFrame(columns=['Time(sec)', 'Used(GB)', 'Percentage'])
 
 disk_io_each_moment_df = pd.DataFrame(columns=['Time(sec)', "READ(#)", "WRITE(#)", "READ(KB)", "WRITE(KB)"])
 
@@ -109,9 +110,7 @@ def create_total_memory_table():
     vm = psutil.virtual_memory()
     memory_df.loc[len(memory_df.index)] = [
         calc_time_interval(),
-        f'{vm.total / GB:.3f}',
         f'{vm.used / GB:.3f}',
-        f'{vm.available / GB:.3f}',
         vm.percent
     ]
 
@@ -279,7 +278,7 @@ def main():
 
     if need_scan:
         # TODO check about capture_output
-        result = subprocess.run(["powershell", "-Command", "Start-MpScan -ScanType QuickScan"], capture_output=True)
+        result = subprocess.run(["powershell", "-Command", "Start-MpScan -ScanType " + SCAN_TYPE], capture_output=True)
         isScanDone = True
         if result.returncode != 0:
             raise Exception("An error occurred while anti virus scan: %s", result.stderr)
