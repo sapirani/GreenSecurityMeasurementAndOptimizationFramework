@@ -6,6 +6,22 @@ import subprocess
 from threading import Thread
 import time
 import pandas as pd
+from enum import Enum
+
+
+class ScanOption(Enum):
+    NO_SCAN = 1
+    ONE_SCAN = 2
+    CONTINUOUS_SCAN = 3
+
+
+class PreviousDiskIO:
+    def __init__(self, disk_io):
+        self.read_count = disk_io.read_count
+        self.write_count = disk_io.write_count
+        self.read_bytes = disk_io.read_bytes
+        self.write_bytes = disk_io.write_bytes
+
 
 PROCESSES_CSV = 'processes_data.csv'
 TOTAL_MEMORY_EACH_MOMENT_CSV = 'total_memory_each_moment.csv'
@@ -22,9 +38,12 @@ GB = 2**30
 MB = 2**20
 KB = 2**10
 
-need_scan = True
-isScanDone = not need_scan
-SCAN_TIME = 1 * 60  # 1 minute
+MINUTE = 60
+MINIMUM_DELTA_CAPACITY = 20
+MINIMUM_SCAN_TIME = 1 * MINUTE
+
+scan_option = ScanOption.CONTINUOUS_SCAN
+done_scanning = False
 starting_time = time.time()
 
 # TODO: maybe its better to calculate MEMORY(%) in the end of scan in order to reduce calculations during scanning
@@ -35,15 +54,10 @@ memory_df = pd.DataFrame(columns=['Time(sec)', 'Used(GB)', 'Percentage'])
 
 disk_io_each_moment_df = pd.DataFrame(columns=['Time(sec)', "READ(#)", "WRITE(#)", "READ(KB)", "WRITE(KB)"])
 
-battery_df = pd.DataFrame(columns=['Time(sec)', "REMAINING BATTERY(%)", "REMAINING CAPACITY(mWh)", "Voltage(mV)"])
+REMAINING_CAPACITY_MWH = "REMAINING CAPACITY(mWh)"
+battery_df = pd.DataFrame(columns=['Time(sec)', "REMAINING BATTERY(%)", REMAINING_CAPACITY_MWH, "Voltage(mV)"])
 
-
-class PreviousDiskIO:
-    def __init__(self, disk_io):
-        self.read_count = disk_io.read_count
-        self.write_count = disk_io.write_count
-        self.read_bytes = disk_io.read_bytes
-        self.write_bytes = disk_io.write_bytes
+finished_scanning_time = []
 
 
 def calc_time_interval():
@@ -159,6 +173,14 @@ def add_to_processes_dataframe(time_of_sample, top_list):
             pass
 
 
+def min_scan_time_passed():
+    return time.time() - starting_time >= MINIMUM_SCAN_TIME
+
+
+def should_scan():
+    return scan_option != ScanOption.NO_SCAN and not done_scanning
+
+
 def continuously_measure():
     pythoncom.CoInitialize()
 
@@ -166,7 +188,7 @@ def continuously_measure():
     prev_disk_io = PreviousDiskIO(psutil.disk_io_counters())
 
     # TODO: think if total tables should be printed only once
-    while not isScanDone if need_scan else (SCAN_TIME + starting_time >= time.time()):
+    while should_scan() or not min_scan_time_passed():
         save_battery_stat()
         save_current_processes_statistics()
         save_current_total_memory()
@@ -218,6 +240,12 @@ def save_general_information_after_scanning():
         f.write('======After Scanning======\n')
         save_general_disk(f)
 
+        f.write('\n======Scanning Times======\n')
+        f.write(f'Scan number 1, finished at: {finished_scanning_time[0]}\n')
+        for i, scan_time in enumerate(finished_scanning_time[1:]):
+            f.write(f'Scan number {i + 2}, finished at: {scan_time}.'
+                    f' Duration of Scanning: {scan_time - finished_scanning_time[i]}\n')
+
 
 def save_to_files():
     save_general_information_after_scanning()
@@ -227,8 +255,16 @@ def save_to_files():
     battery_df.to_csv(BATTERY_STATUS_CSV)
 
 
+def is_delta_capacity_achieved():
+    if battery_df.empty:
+        return False
+    before_scanning_capacity = battery_df.iloc[0].at[REMAINING_CAPACITY_MWH]
+    current_capacity = battery_df.iloc[len(battery_df) - 1].at[REMAINING_CAPACITY_MWH]
+    return before_scanning_capacity - current_capacity >= MINIMUM_DELTA_CAPACITY
+
+
 def main():
-    global isScanDone
+    global done_scanning
     print("======== Process Monitor ========")
 
     save_general_information_before_scanning()
@@ -236,10 +272,12 @@ def main():
     measurements_thread = Thread(target=continuously_measure, args=())
     measurements_thread.start()
 
-    if need_scan:
+    while not scan_option == ScanOption.NO_SCAN and not done_scanning:
         # TODO check about capture_output
         result = subprocess.run(["powershell", "-Command", "Start-MpScan -ScanType " + SCAN_TYPE], capture_output=True)
-        isScanDone = True
+        finished_scanning_time.append(calc_time_interval())
+        if scan_option == ScanOption.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
+            done_scanning = True
         if result.returncode != 0:
             raise Exception("An error occurred while anti virus scan: %s", result.stderr)
 
