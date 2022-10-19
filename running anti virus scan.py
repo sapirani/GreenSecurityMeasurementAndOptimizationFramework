@@ -71,7 +71,7 @@ def save_battery_stat():
         ]
 
 
-def save_total_memory():
+def save_current_total_memory():
     vm = psutil.virtual_memory()
     memory_df.loc[len(memory_df.index)] = [
         calc_time_interval(),
@@ -95,7 +95,7 @@ def save_current_disk_io(previous_disk_io):
     return disk_io_stat
 
 
-def save_processes_statistics():
+def save_current_processes_statistics():
     proc = []
     system_idle_process = psutil.Process(SYSTEM_IDLE_PID)
     system_idle_process.cpu_percent()
@@ -169,8 +169,8 @@ def continuously_measure():
     # TODO: think if total tables should be printed only once
     while not isScanDone if need_scan else (SCAN_TIME + starting_time >= time.time()):
         save_battery_stat()
-        save_processes_statistics()
-        save_total_memory()
+        save_current_processes_statistics()
+        save_current_total_memory()
         prev_disk_io = save_current_disk_io(prev_disk_io)
 
         # Create a delay
