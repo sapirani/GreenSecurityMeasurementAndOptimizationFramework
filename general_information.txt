@@ -1,3 +1,12 @@
+======System Information======
+System: Windows
+Node Name: MININT-THP4S6N
+Release: 10
+Version: 10.0.19043
+Machine: AMD64
+Processor: Intel64 Family 6 Model 140 Stepping 1, GenuineIntel
+
+======Before Scanning======
 ----Battery----
 Battery 0 Design Capacity: 61970 mWh
 Battery 0 Fully Charged Capacity: 61970 mWh
@@ -6,5 +15,7 @@ Battery 0 Fully Charged Capacity: 61970 mWh
 +-----------+----------+---------------+------------+
 | Total(GB) | Used(GB) | Available(GB) | Percentage |
 +-----------+----------+---------------+------------+
-|  466.561  | 158.833  |    307.727    |    34.0    |
+|  466.561  | 159.313  |    307.248    |    34.1    |
 +-----------+----------+---------------+------------+
+
+

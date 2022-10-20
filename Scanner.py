@@ -166,6 +166,7 @@ def save_current_processes_statistics(prev_io_per_process):
 
 def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
     for p, cpu_percent in top_list:
+
         # While fetching the processes, some subprocesses may exit
         # Hence we need to put this code in try-except block
         try:
@@ -296,10 +297,10 @@ def save_general_information_after_scanning():
 
 def save_to_files():
     save_general_information_after_scanning()
-    processes_df.to_csv(PROCESSES_CSV, index=False)
-    memory_df.to_csv(TOTAL_MEMORY_EACH_MOMENT_CSV, index=False)
-    disk_io_each_moment_df.to_csv(DISK_IO_EACH_MOMENT, index=False)
-    battery_df.to_csv(BATTERY_STATUS_CSV, index=False)
+    processes_df.iloc[:-1, :].to_csv(PROCESSES_CSV, index=False)
+    memory_df.iloc[:-1, :].to_csv(TOTAL_MEMORY_EACH_MOMENT_CSV, index=False)
+    disk_io_each_moment_df.iloc[:-1, :].to_csv(DISK_IO_EACH_MOMENT, index=False)
+    battery_df.iloc[:-1, :].to_csv(BATTERY_STATUS_CSV, index=False)
 
 
 def calc_delta_capacity():
