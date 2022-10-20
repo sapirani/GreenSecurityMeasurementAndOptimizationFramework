@@ -9,6 +9,7 @@ import pandas as pd
 from enum import Enum
 import os.path
 from pathlib import Path
+import platform
 
 
 class ScanOption(Enum):
@@ -246,9 +247,23 @@ def save_general_disk(f):
     f.write('\n')
 
 
+def save_general_system_information(f):
+    f.write("======System Information======\n")
+    my_system = platform.uname()
+
+    f.write(f"System: {my_system.system}\n")
+    f.write(f"Node Name: {my_system.node}\n")
+    f.write(f"Release: {my_system.release}\n")
+    f.write(f"Version: {my_system.version}\n")
+    f.write(f"Machine: {my_system.machine}\n")
+    f.write(f"Processor: {my_system.processor}\n")
+
+
 def save_general_information_before_scanning():
     with open(GENERAL_INFORMATION_FILE, 'w') as f:
-        f.write('======Before Scanning======\n')
+        save_general_system_information(f)
+
+        f.write('\n======Before Scanning======\n')
         save_general_battery(f)
         f.write('\n')
         save_general_disk(f)
@@ -260,7 +275,10 @@ def save_general_information_after_scanning():
         f.write('======After Scanning======\n')
         save_general_disk(f)
 
-        f.write('\n======Scanning Times======\n')
+        f.write('\n------Battery------\n')
+        f.write('Amount of Battery Drop: %d mWh\n' % calc_delta_capacity())
+
+        f.write('\n------Scanning Times------\n')
         f.write(f'Scan number 1, finished at: {finished_scanning_time[0]}\n')
         for i, scan_time in enumerate(finished_scanning_time[1:]):
             f.write(f'Scan number {i + 2}, finished at: {scan_time}.'
@@ -275,12 +293,16 @@ def save_to_files():
     battery_df.to_csv(BATTERY_STATUS_CSV)
 
 
-def is_delta_capacity_achieved():
+def calc_delta_capacity():
     if battery_df.empty:
-        return False
+        return 0
     before_scanning_capacity = battery_df.iloc[0].at[REMAINING_CAPACITY_MWH]
     current_capacity = battery_df.iloc[len(battery_df) - 1].at[REMAINING_CAPACITY_MWH]
-    return before_scanning_capacity - current_capacity >= MINIMUM_DELTA_CAPACITY
+    return before_scanning_capacity - current_capacity
+
+
+def is_delta_capacity_achieved():
+    return calc_delta_capacity() >= MINIMUM_DELTA_CAPACITY
 
 
 def main():

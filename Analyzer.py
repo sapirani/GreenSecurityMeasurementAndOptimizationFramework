@@ -1,16 +1,5 @@
-import psutil
-import time
-import numpy as np
-from subprocess import call
 
-import wmi
-from prettytable import PrettyTable
-from datetime import datetime
 import matplotlib.pyplot as plt
-import subprocess
-from multiprocessing import Process
-from threading import Thread
-import time
 import pandas as pd
 
 DISK_FILE = "disk_io_each_moment.csv"
