@@ -70,17 +70,6 @@ COMBINED_GRAPH = 2
 DEFAULT_Y_LABLE = "DEFAULT"
 
 
-def read_file_to_dataframe(path):
-    df = pd.read_csv(path)
-
-    # if len(columns_names) == 0:
-    #     return df
-    #
-    # df_new = df[columns_names]
-    # df_new.plot()
-    return df
-
-
 def draw_graph(df, graph_name, x_info, y_info, should_define_y=True, display_legend=False):
 
     if should_define_y: # if there is only one y-axis
