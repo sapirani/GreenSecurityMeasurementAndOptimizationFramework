@@ -1,7 +1,26 @@
 from datetime import timedelta
 from enum import Enum
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+
+
+class AxisInfo:
+    def __init__(self, label, unit, axis):
+        self.axis = axis
+        self.label = label
+        self.unit = unit
+
+
+class Units(Enum):
+    TIME = "Seconds"
+    PERCENT = "% out of 100"
+    CAPACITY = "mWatt/hour"
+    VOLTAGE = "mVolt"
+    COUNT = "#"
+    MEMORY_TOTAL = "GB"
+    MEMORY_PROCESS = "MB"
+    DISK_TOTAL = "KB"
 
 
 class BatteryColumns(Enum):
@@ -62,55 +81,67 @@ def read_file_to_dataframe(path):
     return df
 
 
-def draw_graph(df, x_col, y_cols, x_name, graph_name, should_define_y=True, y_name=DEFAULT_Y_LABLE, display_legend=False):
-    # define the x, y-axis and remove the legend from display
+def draw_graph(df, graph_name, x_info, y_info, should_define_y=True, display_legend=False):
 
-    if should_define_y:
-        y_cols = [col.value for col in y_cols]
-        df.plot(x=x_col.value, y=y_cols, legend=display_legend)
+    if should_define_y: # if there is only one y-axis
+        y_cols = [col.value for col in y_info.axis]
+        df.plot(x=x_info.axis.value, y=y_cols, legend=display_legend)
+        plt.ylabel(y_info.label) # naming the y-axis
     else:
-        df.plot(x=x_col.value, legend=display_legend)
+        df.plot(x=x_info.axis.value, legend=display_legend)
 
     # naming the x-axis
-    plt.xlabel(x_name)
-    # naming the y-axis
-    if y_name != DEFAULT_Y_LABLE:
-        plt.ylabel(y_name)
+    plt.xlabel({x_info.label, })
 
-    # giving a title to my graph
+    # giving a title to the graph
     plt.title(graph_name)
 
     # change x to display time
-    #plt.autofmt_xdate()
-    #plt.set_xlim(0, timedelta(seconds=100))
+    # plt.autofmt_xdate()
+    # plt.set_xlim(0, timedelta(seconds=100))
 
     # save graph as picture
     plt.savefig(graph_name)
+
+    # design graph
 
     # function to show the plot
     plt.show()
 
 
 def display_battery_graphs():
-    battery_df = read_file_to_dataframe(BATTERY_FILE)
-    draw_graph(battery_df, BatteryColumns.TIME, [BatteryColumns.CAPACITY], "Time (sec)", "Battery drop (mWh)",
-               y_name="Remaining Capacity (mWh)")
-    draw_graph(battery_df, BatteryColumns.TIME, [BatteryColumns.VOLTAGE], "Time (sec)", "Battery drop (mV)",
-               y_name="Voltage (mV)")
+    battery_df = pd.read_csv(BATTERY_FILE)
+
+    # display capacity drain
+    x_info_capacity = AxisInfo("Time ", Units.TIME, BatteryColumns.TIME)
+    y_info_capacity = AxisInfo("Remaining Capacity ", Units.CAPACITY, [BatteryColumns.CAPACITY])
+    draw_graph(battery_df, "Battery drop (mWh)", x_info_capacity, y_info_capacity)
+
+    # display voltage drain
+    x_info_voltage = AxisInfo("Time ", Units.TIME, BatteryColumns.TIME)
+    y_info_voltage = AxisInfo("Voltage ", Units.VOLTAGE, [BatteryColumns.VOLTAGE])
+    draw_graph(battery_df, "Battery drop (mV)", x_info_voltage, y_info_voltage)
 
 
 def display_memory_graphs():
-    memory_df = read_file_to_dataframe(MEMORY_FILE)
-    draw_graph(memory_df, MemoryColumns.TIME, [MemoryColumns.USED_MEMORY], "Time (sec)", "Total Memory Consumption",
-               y_name="Used Memory (GB)")
+    memory_df = pd.read_csv(MEMORY_FILE)
+    x_info = AxisInfo("Time ", Units.TIME, MemoryColumns.TIME)
+    y_info = AxisInfo("Used Memory ", Units.MEMORY_TOTAL, [MemoryColumns.USED_MEMORY])
+    draw_graph(memory_df, "Total Memory Consumption", x_info, y_info)
 
 
 def display_disk_io_graphs():
-    disk_io_df = read_file_to_dataframe(DISK_FILE)
-    draw_graph(disk_io_df, DiskIOColumns.TIME, [DiskIOColumns.READ_COUNT, DiskIOColumns.WRITE_COUNT], "Time (sec)",
-               "Count of Disk IO actions", "Number of Accesses", display_legend=True)
-    draw_graph(disk_io_df, DiskIOColumns.TIME, [DiskIOColumns.READ_BYTES, DiskIOColumns.WRITE_BYTES], "Time (sec)",
-               "Number of bytes of Disk IO actions", y_name="Number of Bytes (KB)", display_legend=True)
+    disk_io_df = pd.read_csv(DISK_FILE)
+
+    # display number of io reads and writes
+    x_info_count = AxisInfo("Time ", Units.TIME, DiskIOColumns.TIME)
+    y_info_count = AxisInfo("Number of Accesses ", Units.COUNT, [DiskIOColumns.READ_COUNT, DiskIOColumns.WRITE_COUNT])
+    draw_graph(disk_io_df, "Count of Disk IO actions", x_info_count, y_info_count, display_legend=True)
+
+    # display number of bytes in io reads and writes
+    x_info_bytes = AxisInfo("Time ", Units.TIME, DiskIOColumns.TIME)
+    y_info_bytes = AxisInfo("Number of Bytes ", Units.DISK_TOTAL, [DiskIOColumns.READ_BYTES, DiskIOColumns.WRITE_BYTES])
+    draw_graph(disk_io_df, "Number of bytes of Disk IO actions", x_info_bytes, y_info_bytes, display_legend=True)
 
 
 def group_highest_processes(df, grouped_df, sort_by):
@@ -122,18 +153,27 @@ def group_highest_processes(df, grouped_df, sort_by):
 
 
 def display_processes_graphs():
-    processes_df = read_file_to_dataframe(PROCESSES_FILE)
+    processes_df = pd.read_csv(PROCESSES_FILE)
     processes_df_grouped = processes_df.groupby(ProcessesColumns.PROCESS_NAME.value)
 
     # display CPU consumption
-    all_top_processes_grouped_cpu = group_highest_processes(processes_df, processes_df_grouped, ProcessesColumns.CPU_CONSUMPTION)
-    draw_graph(all_top_processes_grouped_cpu[ProcessesColumns.CPU_CONSUMPTION.value], ProcessesColumns.TIME, [],
-               "Time (sec)", "CPU consumption per process", False, "CPU Consumption", True)
+    all_top_processes_grouped_cpu = group_highest_processes(processes_df, processes_df_grouped,
+                                                            ProcessesColumns.CPU_CONSUMPTION)
+
+    x_info_cpu = AxisInfo("Time ", Units.TIME, ProcessesColumns.TIME)
+    y_info_cpu = AxisInfo("CPU consumption ", Units.PERCENT, [])
+    draw_graph(all_top_processes_grouped_cpu[ProcessesColumns.CPU_CONSUMPTION.value], "CPU consumption per process",
+               x_info_cpu, y_info_cpu, should_define_y=False, display_legend=True)
 
     # display Memory
-    all_top_processes_grouped_memory = group_highest_processes(processes_df, processes_df_grouped, ProcessesColumns.USED_MEMORY)
-    draw_graph(all_top_processes_grouped_memory[ProcessesColumns.USED_MEMORY.value], ProcessesColumns.TIME, [],
-               "Time (sec)", "Memory consumption per process", False, "Memory Consumption", True)
+    all_top_processes_grouped_memory = group_highest_processes(processes_df, processes_df_grouped,
+                                                               ProcessesColumns.USED_MEMORY)
+
+    x_info_memory = AxisInfo("Time ", Units.TIME, ProcessesColumns.TIME)
+    y_info_memory = AxisInfo("Memory consumption ", Units.MEMORY_PROCESS,
+                             [DiskIOColumns.READ_COUNT, DiskIOColumns.WRITE_COUNT])
+    draw_graph(all_top_processes_grouped_memory[ProcessesColumns.USED_MEMORY.value], "Memory consumption per process",
+               x_info_memory, y_info_memory, should_define_y=False, display_legend=True)
 
 
 def main():
