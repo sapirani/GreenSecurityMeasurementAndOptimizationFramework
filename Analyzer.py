@@ -113,39 +113,38 @@ def display_disk_io_graphs():
                "Number of bytes of Disk IO actions", y_name="Number of Bytes (KB)", display_legend=True)
 
 
+def group_highest_processes(df, grouped_df, sort_by):
+    sorted_mean_values = grouped_df.mean().sort_values(by=sort_by.value)
+    top_processes = sorted_mean_values[-10:]
+    all_top_processes = df.loc[df[ProcessesColumns.PROCESS_NAME.value].isin(top_processes.index)]
+    all_top_processes_grouped = all_top_processes.groupby(ProcessesColumns.PROCESS_NAME.value)
+    return all_top_processes_grouped
+
+
 def display_processes_graphs():
     processes_df = read_file_to_dataframe(PROCESSES_FILE)
     processes_df_grouped = processes_df.groupby(ProcessesColumns.PROCESS_NAME.value)
 
     # display CPU consumption
-    """sorted_mean_values = processes_df_grouped.agg({ProcessesColumns.CPU_CONSUMPTION.value: ['mean']}).sort_values(
-        by=('CPU(%)', 'mean'))
-    top_processes = sorted_mean_values[-10:]
-    print(list(top_processes.columns))
-    #top_processes = processes_df.loc[processes_df[ProcessesColumns.PROCESS_NAME.value].isin(top_processes)]
-    grouped_top = top_processes.groupby(ProcessesColumns.PROCESS_NAME.value)
-    print("remove_list:")
-    print(top_processes)
-    #draw_graph(processes_df[ProcessesColumns.CPU_CONSUMPTION.value], ProcessesColumns.TIME, [], "Time (sec)",
-     #          "CPU consumption per process", False, "CPU consumption", True)
-    """
-    processes_df_grouped[ProcessesColumns.CPU_CONSUMPTION.value].plot(x=ProcessesColumns.TIME.value, legend=True)
-    # plt.xlabel("Time (sec)")
-    # plt.ylabel("CPU consumption")
-    # plt.title("CPU consumption per process")
-    # plt.savefig("CPU consumption per process")
-    plt.show()
+    all_top_processes_grouped_cpu = group_highest_processes(processes_df, processes_df_grouped, ProcessesColumns.CPU_CONSUMPTION)
+    draw_graph(all_top_processes_grouped_cpu[ProcessesColumns.CPU_CONSUMPTION.value], ProcessesColumns.TIME, [],
+               "Time (sec)", "CPU consumption per process", False, "CPU Consumption", True)
+
+    # display Memory
+    all_top_processes_grouped_memory = group_highest_processes(processes_df, processes_df_grouped, ProcessesColumns.USED_MEMORY)
+    draw_graph(all_top_processes_grouped_memory[ProcessesColumns.USED_MEMORY.value], ProcessesColumns.TIME, [],
+               "Time (sec)", "Memory consumption per process", False, "Memory Consumption", True)
 
 
 def main():
     # battery table
-    #display_battery_graphs()
+    display_battery_graphs()
 
     # total memory table
-    #display_memory_graphs()
+    display_memory_graphs()
 
     # total disk io table
-    #display_disk_io_graphs()
+    display_disk_io_graphs()
 
     # processes table
     display_processes_graphs()
