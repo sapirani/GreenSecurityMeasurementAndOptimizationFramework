@@ -287,10 +287,10 @@ def save_general_information_after_scanning():
 
 def save_to_files():
     save_general_information_after_scanning()
-    processes_df.to_csv(PROCESSES_CSV)
-    memory_df.to_csv(TOTAL_MEMORY_EACH_MOMENT_CSV)
-    disk_io_each_moment_df.to_csv(DISK_IO_EACH_MOMENT)
-    battery_df.to_csv(BATTERY_STATUS_CSV)
+    processes_df.iloc[:-1, :].to_csv(PROCESSES_CSV)
+    memory_df.iloc[:-1, :].to_csv(TOTAL_MEMORY_EACH_MOMENT_CSV)
+    disk_io_each_moment_df.iloc[:-1, :].to_csv(DISK_IO_EACH_MOMENT)
+    battery_df.iloc[:-1, :].to_csv(BATTERY_STATUS_CSV)
 
 
 def calc_delta_capacity():
