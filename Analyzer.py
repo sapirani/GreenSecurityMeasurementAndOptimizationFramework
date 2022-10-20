@@ -20,7 +20,7 @@ class Units(Enum):
     COUNT = "#"
     MEMORY_TOTAL = "GB"
     MEMORY_PROCESS = "MB"
-    DISK_TOTAL = "KB"
+    IO_BYTES = "KB"
 
 
 class BatteryColumns(Enum):
@@ -71,11 +71,10 @@ DEFAULT_Y_LABLE = "DEFAULT"
 
 
 def draw_graph(df, graph_name, x_info, y_info, should_define_y=True, display_legend=False):
-
-    if should_define_y: # if there is only one y-axis
+    if should_define_y:  # if there is only one y-axis
         y_cols = [col.value for col in y_info.axis]
         df.plot(x=x_info.axis.value, y=y_cols, legend=display_legend)
-        plt.ylabel(y_info.label) # naming the y-axis
+        plt.ylabel(y_info.label)  # naming the y-axis
     else:
         df.plot(x=x_info.axis.value, legend=display_legend)
 
@@ -129,7 +128,7 @@ def display_disk_io_graphs():
 
     # display number of bytes in io reads and writes
     x_info_bytes = AxisInfo("Time ", Units.TIME, DiskIOColumns.TIME)
-    y_info_bytes = AxisInfo("Number of Bytes ", Units.DISK_TOTAL, [DiskIOColumns.READ_BYTES, DiskIOColumns.WRITE_BYTES])
+    y_info_bytes = AxisInfo("Number of Bytes ", Units.IO_BYTES, [DiskIOColumns.READ_BYTES, DiskIOColumns.WRITE_BYTES])
     draw_graph(disk_io_df, "Number of bytes of Disk IO actions", x_info_bytes, y_info_bytes, display_legend=True)
 
 
@@ -159,10 +158,27 @@ def display_processes_graphs():
                                                                ProcessesColumns.USED_MEMORY)
 
     x_info_memory = AxisInfo("Time ", Units.TIME, ProcessesColumns.TIME)
-    y_info_memory = AxisInfo("Memory consumption ", Units.MEMORY_PROCESS,
-                             [DiskIOColumns.READ_COUNT, DiskIOColumns.WRITE_COUNT])
+    y_info_memory = AxisInfo("Memory consumption ", Units.MEMORY_PROCESS, [])
     draw_graph(all_top_processes_grouped_memory[ProcessesColumns.USED_MEMORY.value], "Memory consumption per process",
                x_info_memory, y_info_memory, should_define_y=False, display_legend=True)
+
+    # display IO read bytes
+    all_top_processes_grouped_read = group_highest_processes(processes_df, processes_df_grouped,
+                                                             ProcessesColumns.READ_BYTES)
+
+    x_info_read = AxisInfo("Time ", Units.TIME, ProcessesColumns.TIME)
+    y_info_read = AxisInfo("IO Read bytes ", Units.IO_BYTES, [])
+    draw_graph(all_top_processes_grouped_read[ProcessesColumns.READ_BYTES.value], "IO read bytes per process",
+               x_info_read, y_info_read, should_define_y=False, display_legend=True)
+
+    # display IO write bytes
+    all_top_processes_grouped_write = group_highest_processes(processes_df, processes_df_grouped,
+                                                              ProcessesColumns.WRITE_BYTES)
+
+    x_info_write = AxisInfo("Time ", Units.TIME, ProcessesColumns.TIME)
+    y_info_write = AxisInfo("IO Write bytes ", Units.IO_BYTES, [])
+    draw_graph(all_top_processes_grouped_write[ProcessesColumns.WRITE_BYTES.value], "IO write bytes per process",
+               x_info_write, y_info_write, should_define_y=False, display_legend=True)
 
 
 def main():
