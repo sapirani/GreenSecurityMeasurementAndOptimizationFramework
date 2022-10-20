@@ -69,7 +69,7 @@ GENERAL_INFORMATION_FILE = os.path.join(results_dir, 'general_information.txt')
 
 # TODO: maybe its better to calculate MEMORY(%) in the end of scan in order to reduce calculations during scanning
 processes_df = pd.DataFrame(columns=['Time(sec)', 'PID', 'PNAME', 'CPU(%)', 'NUM THREADS', 'MEMORY(MB)', 'MEMORY(%)',
-                                     'read_count', 'write_count', 'read_bytes', 'write_bytes'])
+                                     "READ_IO(#)", "WRITE_IO(#)", "READ_IO(KB)", "WRITE_IO(KB)"])
 
 memory_df = pd.DataFrame(columns=['Time(sec)', 'Used(GB)', 'Percentage'])
 
@@ -129,7 +129,7 @@ def save_current_disk_io(previous_disk_io):
     return disk_io_stat
 
 
-def save_current_processes_statistics():
+def save_current_processes_statistics(prev_io_per_process):
     proc = []
     system_idle_process = psutil.Process(SYSTEM_IDLE_PID)
     system_idle_process.cpu_percent()
@@ -161,10 +161,10 @@ def save_current_processes_statistics():
     top_list.append((system_idle_process, system_idle_process.cpu_percent() / psutil.cpu_count()))
     top_list.reverse()
 
-    add_to_processes_dataframe(time_of_sample, top_list)
+    return add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process)
 
 
-def add_to_processes_dataframe(time_of_sample, top_list):
+def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
     for p, cpu_percent in top_list:
 
         # While fetching the processes, some subprocesses may exit
@@ -172,7 +172,12 @@ def add_to_processes_dataframe(time_of_sample, top_list):
         try:
             # oneshot to improve info retrieve efficiency
             with p.oneshot():
-                disk_io = p.io_counters()
+                io_stat = p.io_counters()
+
+                if p.pid not in prev_io_per_process:
+                    prev_io_per_process[p.pid] = PreviousDiskIO(io_stat)
+
+                prev_io = prev_io_per_process[p.pid]
 
                 # TODO - is io_counters what we are looking for (only disk reads)
                 # TODO: calculate all values for total(include memory, read, write, etc...)
@@ -184,14 +189,18 @@ def add_to_processes_dataframe(time_of_sample, top_list):
                     p.num_threads(),
                     f'{p.memory_info().rss / MB:.3f}',  # TODO: maybe should use uss instead rss?
                     round(p.memory_percent(), 2),
-                    disk_io.read_count,
-                    disk_io.write_count,
-                    disk_io.read_bytes,
-                    disk_io.write_bytes
+                    io_stat.read_count - prev_io.read_count,
+                    io_stat.write_count - prev_io.write_count,
+                    f'{(io_stat.read_bytes - prev_io.read_bytes) / KB:.3f}',
+                    f'{(io_stat.write_bytes - prev_io.write_bytes) / KB:.3f}',
                 ]
+
+                prev_io_per_process[p.pid] = PreviousDiskIO(io_stat)
 
         except Exception:
             pass
+
+    return prev_io_per_process
 
 
 def min_scan_time_passed():
@@ -207,11 +216,12 @@ def continuously_measure():
 
     # init PreviousDiskIO by first disk io measurements (before scan)
     prev_disk_io = PreviousDiskIO(psutil.disk_io_counters())
+    prev_io_per_process = {}
 
     # TODO: think if total tables should be printed only once
     while should_scan() or not min_scan_time_passed():
         save_battery_stat()
-        save_current_processes_statistics()
+        prev_io_per_process = save_current_processes_statistics(prev_io_per_process)
         save_current_total_memory()
         prev_disk_io = save_current_disk_io(prev_disk_io)
 
@@ -287,10 +297,10 @@ def save_general_information_after_scanning():
 
 def save_to_files():
     save_general_information_after_scanning()
-    processes_df.iloc[:-1, :].to_csv(PROCESSES_CSV)
-    memory_df.iloc[:-1, :].to_csv(TOTAL_MEMORY_EACH_MOMENT_CSV)
-    disk_io_each_moment_df.iloc[:-1, :].to_csv(DISK_IO_EACH_MOMENT)
-    battery_df.iloc[:-1, :].to_csv(BATTERY_STATUS_CSV)
+    processes_df.iloc[:-1, :].to_csv(PROCESSES_CSV, index=False)
+    memory_df.iloc[:-1, :].to_csv(TOTAL_MEMORY_EACH_MOMENT_CSV, index=False)
+    disk_io_each_moment_df.iloc[:-1, :].to_csv(DISK_IO_EACH_MOMENT, index=False)
+    battery_df.iloc[:-1, :].to_csv(BATTERY_STATUS_CSV, index=False)
 
 
 def calc_delta_capacity():
@@ -302,6 +312,9 @@ def calc_delta_capacity():
 
 
 def is_delta_capacity_achieved():
+    if psutil.sensors_battery() is None:  # if desktop computer (has no battery)
+        return True
+
     return calc_delta_capacity() >= MINIMUM_DELTA_CAPACITY
 
 
