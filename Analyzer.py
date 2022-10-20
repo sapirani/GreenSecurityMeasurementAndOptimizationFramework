@@ -1,3 +1,4 @@
+from datetime import timedelta
 from enum import Enum
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -61,10 +62,14 @@ def read_file_to_dataframe(path):
     return df
 
 
-def draw_graph(df, x_col, y_cols, x_name, graph_name, y_name=DEFAULT_Y_LABLE, display_legend=False):
+def draw_graph(df, x_col, y_cols, x_name, graph_name, should_define_y=True, y_name=DEFAULT_Y_LABLE, display_legend=False):
     # define the x, y-axis and remove the legend from display
-    y_cols = [col.value for col in y_cols]
-    df.plot(x=x_col.value, y=y_cols, legend=display_legend)
+
+    if should_define_y:
+        y_cols = [col.value for col in y_cols]
+        df.plot(x=x_col.value, y=y_cols, legend=display_legend)
+    else:
+        df.plot(x=x_col.value, legend=display_legend)
 
     # naming the x-axis
     plt.xlabel(x_name)
@@ -74,6 +79,10 @@ def draw_graph(df, x_col, y_cols, x_name, graph_name, y_name=DEFAULT_Y_LABLE, di
 
     # giving a title to my graph
     plt.title(graph_name)
+
+    # change x to display time
+    #plt.autofmt_xdate()
+    #plt.set_xlim(0, timedelta(seconds=100))
 
     # save graph as picture
     plt.savefig(graph_name)
@@ -85,23 +94,47 @@ def draw_graph(df, x_col, y_cols, x_name, graph_name, y_name=DEFAULT_Y_LABLE, di
 def display_battery_graphs():
     battery_df = read_file_to_dataframe(BATTERY_FILE)
     draw_graph(battery_df, BatteryColumns.TIME, [BatteryColumns.CAPACITY], "Time (sec)", "Battery drop (mWh)",
-               "Remaining Capacity (mWh)")
+               y_name="Remaining Capacity (mWh)")
     draw_graph(battery_df, BatteryColumns.TIME, [BatteryColumns.VOLTAGE], "Time (sec)", "Battery drop (mV)",
-               "Voltage (mV)")
+               y_name="Voltage (mV)")
 
 
 def display_memory_graphs():
     memory_df = read_file_to_dataframe(MEMORY_FILE)
     draw_graph(memory_df, MemoryColumns.TIME, [MemoryColumns.USED_MEMORY], "Time (sec)", "Total Memory Consumption",
-               "Used Memory (GB)")
+               y_name="Used Memory (GB)")
 
 
 def display_disk_io_graphs():
     disk_io_df = read_file_to_dataframe(DISK_FILE)
     draw_graph(disk_io_df, DiskIOColumns.TIME, [DiskIOColumns.READ_COUNT, DiskIOColumns.WRITE_COUNT], "Time (sec)",
-               "Count of Disk IO actions", "Number of Accesses", True)
+               "Count of Disk IO actions", "Number of Accesses", display_legend=True)
     draw_graph(disk_io_df, DiskIOColumns.TIME, [DiskIOColumns.READ_BYTES, DiskIOColumns.WRITE_BYTES], "Time (sec)",
-               "Number of bytes of Disk IO actions", "Number of Bytes (KB)", True)
+               "Number of bytes of Disk IO actions", y_name="Number of Bytes (KB)", display_legend=True)
+
+
+def display_processes_graphs():
+    processes_df = read_file_to_dataframe(PROCESSES_FILE)
+    processes_df_grouped = processes_df.groupby(ProcessesColumns.PROCESS_NAME.value)
+
+    # display CPU consumption
+    """sorted_mean_values = processes_df_grouped.agg({ProcessesColumns.CPU_CONSUMPTION.value: ['mean']}).sort_values(
+        by=('CPU(%)', 'mean'))
+    top_processes = sorted_mean_values[-10:]
+    print(list(top_processes.columns))
+    #top_processes = processes_df.loc[processes_df[ProcessesColumns.PROCESS_NAME.value].isin(top_processes)]
+    grouped_top = top_processes.groupby(ProcessesColumns.PROCESS_NAME.value)
+    print("remove_list:")
+    print(top_processes)
+    #draw_graph(processes_df[ProcessesColumns.CPU_CONSUMPTION.value], ProcessesColumns.TIME, [], "Time (sec)",
+     #          "CPU consumption per process", False, "CPU consumption", True)
+    """
+    processes_df_grouped[ProcessesColumns.CPU_CONSUMPTION.value].plot(x=ProcessesColumns.TIME.value, legend=True)
+    # plt.xlabel("Time (sec)")
+    # plt.ylabel("CPU consumption")
+    # plt.title("CPU consumption per process")
+    # plt.savefig("CPU consumption per process")
+    plt.show()
 
 
 def main():
@@ -112,16 +145,10 @@ def main():
     #display_memory_graphs()
 
     # total disk io table
-    display_disk_io_graphs()
-    """# processes table
-    processes_df = read_file_to_dataframe(PROCESSES_FILE, ["Time(sec)", "PNAME", "CPU(%)"])
+    #display_disk_io_graphs()
 
-    draw_graph(processes_df, "Time(sec)", "CPU(%)", "Time (sec)", "Total CPU use", "CPU consumption of all processes "
-                                                                                   "in the system")
-
-    memory_df = read_file_to_dataframe(MEMORY_FILE, ['Time(sec)', 'Used(GB)'])
-    draw_graph(memory_df, "Time(sec)", "Used(GB)", "Time (sec)", "Total Memory Use", "Memory consumption of the system")
-"""
+    # processes table
+    display_processes_graphs()
 
 
 if __name__ == '__main__':
