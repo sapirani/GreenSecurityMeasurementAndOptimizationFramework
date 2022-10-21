@@ -6,16 +6,17 @@ import subprocess
 from threading import Thread
 import time
 import pandas as pd
-from enum import Enum
-import os.path
-from pathlib import Path
+#from enum import Enum
+#import os.path
+#from pathlib import Path
 import platform
+from configurations import *
 
 
-class ScanOption(Enum):
+"""class ScanOption(Enum):
     NO_SCAN = 1
     ONE_SCAN = 2
-    CONTINUOUS_SCAN = 3
+    CONTINUOUS_SCAN = 3"""
 
 
 class PreviousDiskIO:
@@ -26,17 +27,17 @@ class PreviousDiskIO:
         self.write_bytes = disk_io.write_bytes
 
 
-def calc_dir():
+"""def calc_dir():
     if scan_option == ScanOption.NO_SCAN:
         return 'no_scan'
     elif scan_option == ScanOption.ONE_SCAN:
         return os.path.join('one_scan', scan_type)
     else:
-        return os.path.join('continuous_scan', scan_type)
+        return os.path.join('continuous_scan', scan_type)"""
 
 
 # ======= Constants =======
-MINUTE = 60
+#MINUTE = 60
 ANTIVIRUS_PROCESS_NAME = "MsMpeng"
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
 SYSTEM_IDLE_PID = 0
@@ -50,13 +51,13 @@ starting_time = time.time()
 
 
 # ======= Program Parameters =======
-scan_option = ScanOption.CONTINUOUS_SCAN
+"""scan_option = ScanOption.CONTINUOUS_SCAN
 scan_type = "QuickScan"
 MINIMUM_DELTA_CAPACITY = 20
-MINIMUM_SCAN_TIME = 1 * MINUTE
+MINIMUM_SCAN_TIME = 1 * MINUTE"""
 
 
-# ======= Result Data Paths =======
+"""# ======= Result Data Paths =======
 results_dir = calc_dir()
 Path(results_dir).mkdir(parents=True, exist_ok=True)
 
@@ -64,19 +65,18 @@ PROCESSES_CSV = os.path.join(results_dir, 'processes_data.csv')
 TOTAL_MEMORY_EACH_MOMENT_CSV = os.path.join(results_dir, 'total_memory_each_moment.csv')
 DISK_IO_EACH_MOMENT = os.path.join(results_dir, 'disk_io_each_moment.csv')
 BATTERY_STATUS_CSV = os.path.join(results_dir, 'battery_status.csv')
-GENERAL_INFORMATION_FILE = os.path.join(results_dir, 'general_information.txt')
+GENERAL_INFORMATION_FILE = os.path.join(results_dir, 'general_information.txt')"""
 
 
 # TODO: maybe its better to calculate MEMORY(%) in the end of scan in order to reduce calculations during scanning
-processes_df = pd.DataFrame(columns=['Time(sec)', 'PID', 'PNAME', 'CPU(%)', 'NUM THREADS', 'MEMORY(MB)', 'MEMORY(%)',
-                                     "READ_IO(#)", "WRITE_IO(#)", "READ_IO(KB)", "WRITE_IO(KB)"])
+processes_df = pd.DataFrame(columns=processes_columns_list)
 
-memory_df = pd.DataFrame(columns=['Time(sec)', 'Used(GB)', 'Percentage'])
+memory_df = pd.DataFrame(columns=memory_columns_list)
 
-disk_io_each_moment_df = pd.DataFrame(columns=['Time(sec)', "READ(#)", "WRITE(#)", "READ(KB)", "WRITE(KB)"])
+disk_io_each_moment_df = pd.DataFrame(columns=disk_io_columns_list)
 
-REMAINING_CAPACITY_MWH = "REMAINING CAPACITY(mWh)"
-battery_df = pd.DataFrame(columns=['Time(sec)', "REMAINING BATTERY(%)", REMAINING_CAPACITY_MWH, "Voltage(mV)"])
+#REMAINING_CAPACITY_MWH = "REMAINING CAPACITY(mWh)"
+battery_df = pd.DataFrame(columns=battery_columns_list)
 
 finished_scanning_time = []
 
@@ -306,8 +306,8 @@ def save_to_files():
 def calc_delta_capacity():
     if battery_df.empty:
         return 0
-    before_scanning_capacity = battery_df.iloc[0].at[REMAINING_CAPACITY_MWH]
-    current_capacity = battery_df.iloc[len(battery_df) - 1].at[REMAINING_CAPACITY_MWH]
+    before_scanning_capacity = battery_df.iloc[0].at[BatteryColumns.CAPACITY]
+    current_capacity = battery_df.iloc[len(battery_df) - 1].at[BatteryColumns.CAPACITY]
     return before_scanning_capacity - current_capacity
 
 
