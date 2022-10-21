@@ -72,8 +72,8 @@ DEFAULT_Y_LABLE = "DEFAULT"
 
 
 def draw_graph(df, graph_name, x_info, y_info):
-    y_cols = [col for col in y_info.axis]
-    df.columns.intersection(y_cols).plot(x=x_info.axis, y=y_cols, legend=len(y_cols) > 1)
+    # y_cols = y_info.axis
+    df[y_info.axis].plot(legend=True)
     # naming the y-axis
     plt.ylabel(y_info.label + " (in " + y_info.unit + ")", color='crimson', labelpad=10,
                fontname="Comic Sans MS")  # naming the y-axis
@@ -112,7 +112,7 @@ def draw_graph(df, graph_name, x_info, y_info):
 
 
 def display_battery_graphs():
-    battery_df = pd.read_csv(BATTERY_STATUS_CSV)
+    battery_df = pd.read_csv(BATTERY_STATUS_CSV, index_col=BatteryColumns.TIME)
 
     # display capacity drain
     x_info_capacity = AxisInfo("Time", Units.TIME, BatteryColumns.TIME)
@@ -126,7 +126,7 @@ def display_battery_graphs():
 
 
 def display_memory_graphs():
-    memory_df = pd.read_csv(TOTAL_MEMORY_EACH_MOMENT_CSV)
+    memory_df = pd.read_csv(TOTAL_MEMORY_EACH_MOMENT_CSV, index_col=MemoryColumns.TIME)
     x_info = AxisInfo("Time", Units.TIME, MemoryColumns.TIME)
     y_info = AxisInfo("Used Memory", Units.MEMORY_TOTAL, [MemoryColumns.USED_MEMORY])
     draw_graph(memory_df, "Total Memory Consumption", x_info, y_info)
@@ -164,7 +164,7 @@ def display_processes_graphs():
                                                             ProcessesColumns.PROCESS_ID)
 
     x_info_cpu = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
-    y_info_cpu = AxisInfo("CPU consumption", Units.PERCENT, [ProcessesColumns.CPU_CONSUMPTION])
+    y_info_cpu = AxisInfo("CPU consumption", Units.PERCENT, ProcessesColumns.CPU_CONSUMPTION)
     draw_graph(all_top_processes_grouped_cpu, "CPU consumption per process",
                x_info_cpu, y_info_cpu)
 
@@ -174,8 +174,8 @@ def display_processes_graphs():
                                                                ProcessesColumns.PROCESS_ID)
 
     x_info_memory = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
-    y_info_memory = AxisInfo("Memory consumption", Units.MEMORY_PROCESS, [])
-    draw_graph(all_top_processes_grouped_memory[ProcessesColumns.USED_MEMORY], "Memory consumption per process",
+    y_info_memory = AxisInfo("Memory consumption", Units.MEMORY_PROCESS, ProcessesColumns.USED_MEMORY)
+    draw_graph(all_top_processes_grouped_memory, "Memory consumption per process",
                x_info_memory, y_info_memory)
 
     # display IO read bytes
@@ -184,8 +184,8 @@ def display_processes_graphs():
                                                              ProcessesColumns.PROCESS_ID)
 
     x_info_read = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
-    y_info_read = AxisInfo("IO Read bytes", Units.IO_BYTES, [])
-    draw_graph(all_top_processes_grouped_read[ProcessesColumns.READ_BYTES], "IO read bytes per process",
+    y_info_read = AxisInfo("IO Read bytes", Units.IO_BYTES, ProcessesColumns.READ_BYTES)
+    draw_graph(all_top_processes_grouped_read, "IO read bytes per process",
                x_info_read, y_info_read)
 
     # display IO write bytes
@@ -194,8 +194,8 @@ def display_processes_graphs():
                                                               ProcessesColumns.PROCESS_ID)
 
     x_info_write = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
-    y_info_write = AxisInfo("IO Write bytes", Units.IO_BYTES, [])
-    draw_graph(all_top_processes_grouped_write[ProcessesColumns.WRITE_BYTES], "IO write bytes per process",
+    y_info_write = AxisInfo("IO Write bytes", Units.IO_BYTES, ProcessesColumns.WRITE_BYTES)
+    draw_graph(all_top_processes_grouped_write, "IO write bytes per process",
                x_info_write, y_info_write)
 
     # display io read count
@@ -204,8 +204,8 @@ def display_processes_graphs():
                                                                     ProcessesColumns.PROCESS_ID)
 
     x_info_read_count = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
-    y_info_read_count = AxisInfo("IO Read count", Units.COUNT, [])
-    draw_graph(all_top_processes_grouped_num_of_read[ProcessesColumns.READ_COUNT], "IO read count per process",
+    y_info_read_count = AxisInfo("IO Read count", Units.COUNT, ProcessesColumns.READ_COUNT)
+    draw_graph(all_top_processes_grouped_num_of_read, "IO read count per process",
                x_info_read_count, y_info_read_count)
 
     # display io write count
@@ -214,20 +214,20 @@ def display_processes_graphs():
                                                                      ProcessesColumns.PROCESS_ID)
 
     x_info_write_count = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
-    y_info_write_count = AxisInfo("IO Write count", Units.COUNT, [])
-    draw_graph(all_top_processes_grouped_num_of_write[ProcessesColumns.WRITE_COUNT], "IO write count per process",
+    y_info_write_count = AxisInfo("IO Write count", Units.COUNT, ProcessesColumns.WRITE_COUNT)
+    draw_graph(all_top_processes_grouped_num_of_write, "IO write count per process",
                x_info_write_count, y_info_write_count)
 
 
 def main():
     # battery table
-    # display_battery_graphs()
+    display_battery_graphs()
 
     # total memory table
-    # display_memory_graphs()
+    display_memory_graphs()
 
     # total disk io table
-    #display_disk_io_graphs()
+    display_disk_io_graphs()
 
     # processes table
     display_processes_graphs()
