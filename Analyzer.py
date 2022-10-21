@@ -2,6 +2,7 @@
 # from enum import Enum
 import matplotlib.pyplot as plt
 # import numpy as np
+import numpy as np
 import pandas as pd
 from configurations import *
 
@@ -72,8 +73,7 @@ DEFAULT_Y_LABLE = "DEFAULT"
 
 
 def draw_graph(df, graph_name, x_info, y_info):
-    # y_cols = y_info.axis
-    df[y_info.axis].plot(legend=True)
+    df[y_info.axis].plot(legend=len(y_info.axis) > 1 or type(df) is pd.core.groupby.generic.DataFrameGroupBy)
     # naming the y-axis
     plt.ylabel(y_info.label + " (in " + y_info.unit + ")", color='crimson', labelpad=10,
                fontname="Comic Sans MS")  # naming the y-axis
