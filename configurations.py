@@ -38,6 +38,7 @@ TOTAL_MEMORY_EACH_MOMENT_CSV = os.path.join(results_dir, 'total_memory_each_mome
 DISK_IO_EACH_MOMENT = os.path.join(results_dir, 'disk_io_each_moment.csv')
 BATTERY_STATUS_CSV = os.path.join(results_dir, 'battery_status.csv')
 GENERAL_INFORMATION_FILE = os.path.join(results_dir, 'general_information.txt')
+TOTAL_CPU_CSV = os.path.join(results_dir, 'total_cpu.csv')
 
 
 # ======= Table Column Names =======
@@ -58,6 +59,14 @@ class MemoryColumns:
 
 
 memory_columns_list = [MemoryColumns.TIME, MemoryColumns.USED_MEMORY, MemoryColumns.USED_PERCENT]
+
+
+class CPUColumns:
+    TIME = "Time(sec)"
+    USED_PERCENT = "Percentage"
+
+
+cpu_columns_list = [CPUColumns.TIME, CPUColumns.USED_PERCENT]
 
 
 class DiskIOColumns:

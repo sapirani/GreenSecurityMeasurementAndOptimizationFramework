@@ -13,12 +13,6 @@ import platform
 from configurations import *
 
 
-"""class ScanOption(Enum):
-    NO_SCAN = 1
-    ONE_SCAN = 2
-    CONTINUOUS_SCAN = 3"""
-
-
 class PreviousDiskIO:
     def __init__(self, disk_io):
         self.read_count = disk_io.read_count
@@ -27,17 +21,7 @@ class PreviousDiskIO:
         self.write_bytes = disk_io.write_bytes
 
 
-"""def calc_dir():
-    if scan_option == ScanOption.NO_SCAN:
-        return 'no_scan'
-    elif scan_option == ScanOption.ONE_SCAN:
-        return os.path.join('one_scan', scan_type)
-    else:
-        return os.path.join('continuous_scan', scan_type)"""
-
-
 # ======= Constants =======
-#MINUTE = 60
 ANTIVIRUS_PROCESS_NAME = "MsMpeng"
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
 SYSTEM_IDLE_PID = 0
@@ -50,24 +34,6 @@ done_scanning = False
 starting_time = time.time()
 
 
-# ======= Program Parameters =======
-"""scan_option = ScanOption.CONTINUOUS_SCAN
-scan_type = "QuickScan"
-MINIMUM_DELTA_CAPACITY = 20
-MINIMUM_SCAN_TIME = 1 * MINUTE"""
-
-
-"""# ======= Result Data Paths =======
-results_dir = calc_dir()
-Path(results_dir).mkdir(parents=True, exist_ok=True)
-
-PROCESSES_CSV = os.path.join(results_dir, 'processes_data.csv')
-TOTAL_MEMORY_EACH_MOMENT_CSV = os.path.join(results_dir, 'total_memory_each_moment.csv')
-DISK_IO_EACH_MOMENT = os.path.join(results_dir, 'disk_io_each_moment.csv')
-BATTERY_STATUS_CSV = os.path.join(results_dir, 'battery_status.csv')
-GENERAL_INFORMATION_FILE = os.path.join(results_dir, 'general_information.txt')"""
-
-
 # TODO: maybe its better to calculate MEMORY(%) in the end of scan in order to reduce calculations during scanning
 processes_df = pd.DataFrame(columns=processes_columns_list)
 
@@ -75,8 +41,9 @@ memory_df = pd.DataFrame(columns=memory_columns_list)
 
 disk_io_each_moment_df = pd.DataFrame(columns=disk_io_columns_list)
 
-#REMAINING_CAPACITY_MWH = "REMAINING CAPACITY(mWh)"
 battery_df = pd.DataFrame(columns=battery_columns_list)
+
+cpu_df = pd.DataFrame(columns=cpu_columns_list)
 
 finished_scanning_time = []
 
@@ -131,8 +98,8 @@ def save_current_disk_io(previous_disk_io):
 
 def save_current_processes_statistics(prev_io_per_process):
     proc = []
-    system_idle_process = psutil.Process(SYSTEM_IDLE_PID)
-    system_idle_process.cpu_percent()
+    #system_idle_process = psutil.Process(SYSTEM_IDLE_PID)
+    #system_idle_process.cpu_percent()
 
     time_of_sample = calc_time_interval()
 
@@ -158,7 +125,7 @@ def save_current_processes_statistics(prev_io_per_process):
             pass
 
     top_list = sorted(top.items(), key=lambda x: x[1])[-20:]
-    top_list.append((system_idle_process, system_idle_process.cpu_percent() / psutil.cpu_count()))
+    # top_list.append((system_idle_process, system_idle_process.cpu_percent() / psutil.cpu_count()))
     top_list.reverse()
 
     return add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process)
@@ -184,8 +151,8 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
                 processes_df.loc[len(processes_df.index)] = [
                     time_of_sample,
                     p.pid,
-                    p.name() if p.pid != SYSTEM_IDLE_PID else "Total",
-                    f'{(cpu_percent if p.pid != SYSTEM_IDLE_PID else 100 - cpu_percent):.2f}',
+                    p.name(),
+                    f'{cpu_percent:.2f}',
                     p.num_threads(),
                     f'{p.memory_info().rss / MB:.3f}',  # TODO: maybe should use uss instead rss?
                     round(p.memory_percent(), 2),
@@ -211,6 +178,13 @@ def should_scan():
     return scan_option != ScanOption.NO_SCAN and not done_scanning
 
 
+def save_current_total_cpu():
+    cpu_df.loc[len(cpu_df.index)] = [
+        calc_time_interval(),
+        psutil.cpu_percent()
+    ]
+
+
 def continuously_measure():
     pythoncom.CoInitialize()
 
@@ -222,6 +196,7 @@ def continuously_measure():
     while should_scan() or not min_scan_time_passed():
         save_battery_stat()
         prev_io_per_process = save_current_processes_statistics(prev_io_per_process)
+        save_current_total_cpu()
         save_current_total_memory()
         prev_disk_io = save_current_disk_io(prev_disk_io)
 
@@ -301,6 +276,7 @@ def save_to_files():
     memory_df.iloc[:-1, :].to_csv(TOTAL_MEMORY_EACH_MOMENT_CSV, index=False)
     disk_io_each_moment_df.iloc[:-1, :].to_csv(DISK_IO_EACH_MOMENT, index=False)
     battery_df.iloc[:-1, :].to_csv(BATTERY_STATUS_CSV, index=False)
+    cpu_df.iloc[:-1, :].to_csv(TOTAL_CPU_CSV, index=False)
 
 
 def calc_delta_capacity():
@@ -321,6 +297,8 @@ def is_delta_capacity_achieved():
 def main():
     global done_scanning
     print("======== Process Monitor ========")
+
+    psutil.cpu_percent()    # first call is meaningless
 
     save_general_information_before_scanning()
 
