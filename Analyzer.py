@@ -1,8 +1,4 @@
-# from datetime import timedelta
-# from enum import Enum
 import matplotlib.pyplot as plt
-# import numpy as np
-import numpy as np
 import pandas as pd
 from configurations import *
 
@@ -25,45 +21,6 @@ class Units:
     IO_BYTES = "KB"
 
 
-"""class BatteryColumns(Enum):
-    TIME = "Time(sec)"
-    BATTERY = "REMAINING BATTERY(%)"
-    CAPACITY = "REMAINING CAPACITY(mWh)"
-    VOLTAGE = "Voltage(mV)"
-
-
-class MemoryColumns(Enum):
-    TIME = "Time(sec)"
-    USED_MEMORY = "Used(GB)"
-    USED_PERCENT = "Percentage"
-
-
-class DiskIOColumns(Enum):
-    TIME = "Time(sec)"
-    READ_COUNT = "READ(#)"
-    WRITE_COUNT = "WRITE(#)"
-    READ_BYTES = "READ(KB)"
-    WRITE_BYTES = "WRITE(KB)"
-
-
-class ProcessesColumns(Enum):
-    TIME = "Time(sec)"
-    PROCESS_ID = "PID"
-    PROCESS_NAME = "PNAME"
-    CPU_CONSUMPTION = "CPU(%)"
-    NUMBER_OF_THREADS = "NUM THREADS"
-    USED_MEMORY = "MEMORY(MB)"
-    MEMORY_PERCENT = "MEMORY(%)"
-    READ_COUNT = "read_count"
-    WRITE_COUNT = "write_count"
-    READ_BYTES = "read_bytes"
-    WRITE_BYTES = "write_bytes"
-"""
-
-"""DISK_FILE = "disk_io_each_moment.csv"
-MEMORY_FILE = "total_memory_each_moment.csv"
-PROCESSES_FILE = "processes_data.csv"
-BATTERY_FILE = "battery_status.csv"""
 GB = 2 ** 30
 MB = 2 ** 20
 KB = 2 ** 10

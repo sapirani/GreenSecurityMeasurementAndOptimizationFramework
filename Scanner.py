@@ -6,9 +6,6 @@ import subprocess
 from threading import Thread
 import time
 import pandas as pd
-#from enum import Enum
-#import os.path
-#from pathlib import Path
 import platform
 from configurations import *
 
@@ -98,8 +95,6 @@ def save_current_disk_io(previous_disk_io):
 
 def save_current_processes_statistics(prev_io_per_process):
     proc = []
-    #system_idle_process = psutil.Process(SYSTEM_IDLE_PID)
-    #system_idle_process.cpu_percent()
 
     time_of_sample = calc_time_interval()
 
@@ -125,7 +120,6 @@ def save_current_processes_statistics(prev_io_per_process):
             pass
 
     top_list = sorted(top.items(), key=lambda x: x[1])[-20:]
-    # top_list.append((system_idle_process, system_idle_process.cpu_percent() / psutil.cpu_count()))
     top_list.reverse()
 
     return add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process)
