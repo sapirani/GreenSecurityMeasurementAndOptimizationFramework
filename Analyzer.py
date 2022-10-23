@@ -21,6 +21,7 @@ class Units:
     IO_BYTES = "KB"
 
 
+DEFAULT = "default"
 GB = 2 ** 30
 MB = 2 ** 20
 KB = 2 ** 10
@@ -29,8 +30,21 @@ COMBINED_GRAPH = 2
 DEFAULT_Y_LABLE = "DEFAULT"
 
 
-def draw_graph(df, graph_name, x_info, y_info):
-    df[y_info.axis].plot(legend=len(y_info.axis) > 1 or type(df) is pd.core.groupby.generic.DataFrameGroupBy)
+def draw_graph(df, graph_name, x_info, y_info, total_path=DEFAULT, total_index=DEFAULT, total_column=DEFAULT):
+
+    if total_path != DEFAULT:
+        df_total = pd.read_csv(total_path, index_col=total_index)
+
+        if total_column != DEFAULT:
+            df_total = df_total[total_column]
+            print(df_total)
+
+        ax = df_total.plot(color='black', label="Total Consumption")
+        df[y_info.axis].plot(legend=True, ax=ax)
+
+    else:
+        df[y_info.axis].plot(legend=len(y_info.axis) > 1 or type(df) is pd.core.groupby.generic.DataFrameGroupBy)
+
     # naming the y-axis
     plt.ylabel(y_info.label + " (in " + y_info.unit + ")", color='crimson', labelpad=10,
                fontname="Comic Sans MS")  # naming the y-axis
@@ -44,10 +58,6 @@ def draw_graph(df, graph_name, x_info, y_info):
     # changing legend to display processes names if necessary
     # if not is_total_table:  # meaning, processes table
     #   plt.legend(df.index.values(), fancybox=True, framealpha=1, shadow=True, borderpad=1)
-
-    # change x to display time
-    # plt.autofmt_xdate()
-    # plt.set_xlim(0, timedelta(seconds=100))
 
     # design graph
     plt.rc('axes', labelsize=12)  # Set the axes labels font size
@@ -125,7 +135,7 @@ def display_processes_graphs():
     x_info_cpu = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_cpu = AxisInfo("CPU consumption", Units.PERCENT, ProcessesColumns.CPU_CONSUMPTION)
     draw_graph(all_top_processes_grouped_cpu, "CPU consumption per process",
-               x_info_cpu, y_info_cpu)
+               x_info_cpu, y_info_cpu, TOTAL_CPU_CSV, CPUColumns.TIME)
 
     # display Memory
     all_top_processes_grouped_memory = group_highest_processes(processes_df, processes_df_grouped,
@@ -135,7 +145,7 @@ def display_processes_graphs():
     x_info_memory = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_memory = AxisInfo("Memory consumption", Units.MEMORY_PROCESS, ProcessesColumns.USED_MEMORY)
     draw_graph(all_top_processes_grouped_memory, "Memory consumption per process",
-               x_info_memory, y_info_memory)
+               x_info_memory, y_info_memory, TOTAL_MEMORY_EACH_MOMENT_CSV, MemoryColumns.TIME, MemoryColumns.USED_MEMORY)
 
     # display IO read bytes
     all_top_processes_grouped_read = group_highest_processes(processes_df, processes_df_grouped,
