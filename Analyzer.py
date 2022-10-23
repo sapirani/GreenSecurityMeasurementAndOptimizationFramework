@@ -54,8 +54,7 @@ def draw_graph(df, graph_name, x_info, y_info):
     plt.rc('legend', fontsize=6)  # Set the legend font size
     plt.xticks(fontsize=8, color='darkgray')  # change x ticks color
     plt.yticks(fontsize=8, color='darkgray')  # change y ticks color
-    plt.subplots_adjust(left=0.1, right=0.90, top=0.93, bottom=0.2)
-    plt.rcParams["figure.figsize"] = (25, 5)  # change figure size
+    plt.rcParams["figure.figsize"] = (10, 5)  # change figure size
 
     # save graph as picture
     plt.savefig(os.path.join(GRAPHS_DIR, graph_name))
