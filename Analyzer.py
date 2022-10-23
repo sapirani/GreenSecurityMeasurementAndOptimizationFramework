@@ -41,8 +41,6 @@ def draw_graph(df, graph_name, x_info, y_info):
     # giving a title to the graph, changing it's font, size and color
     plt.title(graph_name, color="darkblue", fontsize=20, fontname="Times New Roman", fontweight="bold")  # Set the
 
-
-
     # changing legend to display processes names if necessary
     # if not is_total_table:  # meaning, processes table
     #   plt.legend(df.index.values(), fancybox=True, framealpha=1, shadow=True, borderpad=1)
@@ -62,8 +60,6 @@ def draw_graph(df, graph_name, x_info, y_info):
     # save graph as picture
     plt.savefig(os.path.join(GRAPHS_DIR, graph_name))
 
-    # design graph
-
     # function to show the plot
     plt.show()
 
@@ -80,6 +76,13 @@ def display_battery_graphs():
     x_info_voltage = AxisInfo("Time", Units.TIME, BatteryColumns.TIME)
     y_info_voltage = AxisInfo("Voltage", Units.VOLTAGE, [BatteryColumns.VOLTAGE])
     draw_graph(battery_df, "Battery drop (mV)", x_info_voltage, y_info_voltage)
+
+
+def display_cpu_graphs():
+    memory_df = pd.read_csv(TOTAL_CPU_CSV, index_col=CPUColumns.TIME)
+    x_info = AxisInfo("Time", Units.TIME, CPUColumns.TIME)
+    y_info = AxisInfo("Used CPU", Units.PERCENT, [CPUColumns.USED_PERCENT])
+    draw_graph(memory_df, "Total CPU Consumption", x_info, y_info)
 
 
 def display_memory_graphs():
@@ -179,6 +182,9 @@ def display_processes_graphs():
 def main():
     # battery table
     display_battery_graphs()
+
+    # total cpu table
+    display_cpu_graphs()
 
     # total memory table
     display_memory_graphs()
