@@ -29,27 +29,16 @@ COMBINED_GRAPH = 2
 DEFAULT_Y_LABLE = "DEFAULT"
 
 
-def draw_graph(df, graph_name, x_info, y_info):
-    df[y_info.axis].plot(legend=len(y_info.axis) > 1 or type(df) is pd.core.groupby.generic.DataFrameGroupBy)
+def design_and_plot(x_info, y_info, graph_name):
+    # naming the x-axis
+    plt.xlabel(x_info.label + " (in " + x_info.unit + ")", color='crimson', labelpad=10, fontname="Comic Sans MS")
+
     # naming the y-axis
     plt.ylabel(y_info.label + " (in " + y_info.unit + ")", color='crimson', labelpad=10,
                fontname="Comic Sans MS")  # naming the y-axis
 
-    # naming the x-axis
-    plt.xlabel(x_info.label + " (in " + x_info.unit + ")", color='crimson', labelpad=10, fontname="Comic Sans MS")
-
     # giving a title to the graph, changing it's font, size and color
-    plt.title(graph_name, color="darkblue", fontsize=20, fontname="Times New Roman", fontweight="bold")  # Set the
-
-
-
-    # changing legend to display processes names if necessary
-    # if not is_total_table:  # meaning, processes table
-    #   plt.legend(df.index.values(), fancybox=True, framealpha=1, shadow=True, borderpad=1)
-
-    # change x to display time
-    # plt.autofmt_xdate()
-    # plt.set_xlim(0, timedelta(seconds=100))
+    plt.title(graph_name, color="darkblue", fontsize=20, fontname="Times New Roman", fontweight="bold")
 
     # design graph
     plt.rc('axes', labelsize=12)  # Set the axes labels font size
@@ -62,10 +51,21 @@ def draw_graph(df, graph_name, x_info, y_info):
     # save graph as picture
     plt.savefig(os.path.join(GRAPHS_DIR, graph_name))
 
-    # design graph
-
     # function to show the plot
     plt.show()
+
+
+def draw_grouped_dataframe(df, graph_name, x_info, y_info):
+    fig, ax = plt.subplots(figsize=(18, 6))
+    for group_name, group in df:
+        group.plot(y=y_info.axis, ax=ax, label=group_name[1])
+
+    design_and_plot(x_info, y_info, graph_name)
+
+
+def draw_dataframe(df, graph_name, x_info, y_info):
+    df[y_info.axis].plot(legend=len(y_info.axis) > 1)
+    design_and_plot(x_info, y_info, graph_name)
 
 
 def display_battery_graphs():
@@ -74,19 +74,19 @@ def display_battery_graphs():
     # display capacity drain
     x_info_capacity = AxisInfo("Time", Units.TIME, BatteryColumns.TIME)
     y_info_capacity = AxisInfo("Remaining Capacity", Units.CAPACITY, [BatteryColumns.CAPACITY])
-    draw_graph(battery_df, "Battery drop (mWh)", x_info_capacity, y_info_capacity)
+    draw_dataframe(battery_df, "Battery drop (mWh)", x_info_capacity, y_info_capacity)
 
     # display voltage drain
     x_info_voltage = AxisInfo("Time", Units.TIME, BatteryColumns.TIME)
     y_info_voltage = AxisInfo("Voltage", Units.VOLTAGE, [BatteryColumns.VOLTAGE])
-    draw_graph(battery_df, "Battery drop (mV)", x_info_voltage, y_info_voltage)
+    draw_dataframe(battery_df, "Battery drop (mV)", x_info_voltage, y_info_voltage)
 
 
 def display_memory_graphs():
     memory_df = pd.read_csv(TOTAL_MEMORY_EACH_MOMENT_CSV, index_col=MemoryColumns.TIME)
     x_info = AxisInfo("Time", Units.TIME, MemoryColumns.TIME)
     y_info = AxisInfo("Used Memory", Units.MEMORY_TOTAL, [MemoryColumns.USED_MEMORY])
-    draw_graph(memory_df, "Total Memory Consumption", x_info, y_info)
+    draw_dataframe(memory_df, "Total Memory Consumption", x_info, y_info)
 
 
 def display_disk_io_graphs():
@@ -95,18 +95,18 @@ def display_disk_io_graphs():
     # display number of io reads and writes
     x_info_count = AxisInfo("Time", Units.TIME, DiskIOColumns.TIME)
     y_info_count = AxisInfo("Number of Accesses", Units.COUNT, [DiskIOColumns.READ_COUNT, DiskIOColumns.WRITE_COUNT])
-    draw_graph(disk_io_df, "Count of Disk IO actions", x_info_count, y_info_count)
+    draw_dataframe(disk_io_df, "Count of Disk IO actions", x_info_count, y_info_count)
 
     # display number of bytes in io reads and writes
     x_info_bytes = AxisInfo("Time", Units.TIME, DiskIOColumns.TIME)
     y_info_bytes = AxisInfo("Number of Bytes", Units.IO_BYTES, [DiskIOColumns.READ_BYTES, DiskIOColumns.WRITE_BYTES])
-    draw_graph(disk_io_df, "Number of bytes of Disk IO actions", x_info_bytes, y_info_bytes)
+    draw_dataframe(disk_io_df, "Number of bytes of Disk IO actions", x_info_bytes, y_info_bytes)
 
 
 def group_highest_processes(df, grouped_df, sort_by, group_by):
     sorted_mean_values = grouped_df.mean().sort_values(by=sort_by)
     top_processes = sorted_mean_values[-10:]
-    all_top_processes = df.loc[df[group_by].isin(top_processes.index)]
+    all_top_processes = df.loc[df[group_by[0]].isin(top_processes.index)]
     all_top_processes_grouped = all_top_processes.groupby(group_by)
     return all_top_processes_grouped
 
@@ -118,62 +118,62 @@ def display_processes_graphs():
     # display CPU consumption
     all_top_processes_grouped_cpu = group_highest_processes(processes_df, processes_df_grouped,
                                                             ProcessesColumns.CPU_CONSUMPTION,
-                                                            ProcessesColumns.PROCESS_ID)
+                                                        [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME])
 
     x_info_cpu = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_cpu = AxisInfo("CPU consumption", Units.PERCENT, ProcessesColumns.CPU_CONSUMPTION)
-    draw_graph(all_top_processes_grouped_cpu, "CPU consumption per process",
-               x_info_cpu, y_info_cpu)
+    draw_grouped_dataframe(all_top_processes_grouped_cpu, "CPU consumption per process",
+                           x_info_cpu, y_info_cpu)
 
     # display Memory
     all_top_processes_grouped_memory = group_highest_processes(processes_df, processes_df_grouped,
                                                                ProcessesColumns.USED_MEMORY,
-                                                               ProcessesColumns.PROCESS_ID)
+                                                        [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME])
 
     x_info_memory = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_memory = AxisInfo("Memory consumption", Units.MEMORY_PROCESS, ProcessesColumns.USED_MEMORY)
-    draw_graph(all_top_processes_grouped_memory, "Memory consumption per process",
-               x_info_memory, y_info_memory)
+    draw_grouped_dataframe(all_top_processes_grouped_memory, "Memory consumption per process",
+                           x_info_memory, y_info_memory)
 
     # display IO read bytes
     all_top_processes_grouped_read = group_highest_processes(processes_df, processes_df_grouped,
                                                              ProcessesColumns.READ_BYTES,
-                                                             ProcessesColumns.PROCESS_ID)
+                                                        [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME])
 
     x_info_read = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_read = AxisInfo("IO Read bytes", Units.IO_BYTES, ProcessesColumns.READ_BYTES)
-    draw_graph(all_top_processes_grouped_read, "IO read bytes per process",
-               x_info_read, y_info_read)
+    draw_grouped_dataframe(all_top_processes_grouped_read, "IO read bytes per process",
+                           x_info_read, y_info_read)
 
     # display IO write bytes
     all_top_processes_grouped_write = group_highest_processes(processes_df, processes_df_grouped,
                                                               ProcessesColumns.WRITE_BYTES,
-                                                              ProcessesColumns.PROCESS_ID)
+                                                        [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME])
 
     x_info_write = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_write = AxisInfo("IO Write bytes", Units.IO_BYTES, ProcessesColumns.WRITE_BYTES)
-    draw_graph(all_top_processes_grouped_write, "IO write bytes per process",
-               x_info_write, y_info_write)
+    draw_grouped_dataframe(all_top_processes_grouped_write, "IO write bytes per process",
+                           x_info_write, y_info_write)
 
     # display io read count
     all_top_processes_grouped_num_of_read = group_highest_processes(processes_df, processes_df_grouped,
                                                                     ProcessesColumns.READ_COUNT,
-                                                                    ProcessesColumns.PROCESS_ID)
+                                                        [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME])
 
     x_info_read_count = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_read_count = AxisInfo("IO Read count", Units.COUNT, ProcessesColumns.READ_COUNT)
-    draw_graph(all_top_processes_grouped_num_of_read, "IO read count per process",
-               x_info_read_count, y_info_read_count)
+    draw_grouped_dataframe(all_top_processes_grouped_num_of_read, "IO read count per process",
+                           x_info_read_count, y_info_read_count)
 
     # display io write count
     all_top_processes_grouped_num_of_write = group_highest_processes(processes_df, processes_df_grouped,
                                                                      ProcessesColumns.WRITE_COUNT,
-                                                                     ProcessesColumns.PROCESS_ID)
+                                                                     [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME])
 
     x_info_write_count = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_write_count = AxisInfo("IO Write count", Units.COUNT, ProcessesColumns.WRITE_COUNT)
-    draw_graph(all_top_processes_grouped_num_of_write, "IO write count per process",
-               x_info_write_count, y_info_write_count)
+    draw_grouped_dataframe(all_top_processes_grouped_num_of_write, "IO write count per process",
+                           x_info_write_count, y_info_write_count)
 
 
 def main():
