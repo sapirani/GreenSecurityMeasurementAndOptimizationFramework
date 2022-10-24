@@ -21,6 +21,7 @@ class Units:
     IO_BYTES = "KB"
 
 
+DEFAULT = "default"
 GB = 2 ** 30
 MB = 2 ** 20
 KB = 2 ** 10
@@ -29,7 +30,7 @@ COMBINED_GRAPH = 2
 DEFAULT_Y_LABLE = "DEFAULT"
 
 
-def design_and_plot(x_info, y_info, graph_name):
+def design_and_plot(x_info, y_info, graph_name, total_path=DEFAULT, total_index=DEFAULT, total_column=DEFAULT):
     # naming the x-axis
     plt.xlabel(x_info.label + " (in " + x_info.unit + ")", color='crimson', labelpad=10, fontname="Comic Sans MS")
 
@@ -45,8 +46,7 @@ def design_and_plot(x_info, y_info, graph_name):
     plt.rc('legend', fontsize=6)  # Set the legend font size
     plt.xticks(fontsize=8, color='darkgray')  # change x ticks color
     plt.yticks(fontsize=8, color='darkgray')  # change y ticks color
-    plt.subplots_adjust(left=0.1, right=0.90, top=0.93, bottom=0.2)
-    plt.rcParams["figure.figsize"] = (25, 5)  # change figure size
+    plt.rcParams["figure.figsize"] = (10, 5)  # change figure size
 
     # save graph as picture
     plt.savefig(os.path.join(GRAPHS_DIR, graph_name))
@@ -63,7 +63,20 @@ def draw_grouped_dataframe(df, graph_name, x_info, y_info):
     design_and_plot(x_info, y_info, graph_name)
 
 
-def draw_dataframe(df, graph_name, x_info, y_info):
+def draw_dataframe(df, graph_name, x_info, y_info, total_path=DEFAULT, total_index=DEFAULT, total_column=DEFAULT):
+    if total_path != DEFAULT:
+        df_total = pd.read_csv(total_path, index_col=total_index)
+
+        if total_column != DEFAULT:
+            df_total = df_total[total_column]
+            print(df_total)
+
+        ax = df_total.plot(color='black', label="Total Consumption")
+        df[y_info.axis].plot(legend=True, ax=ax)
+
+    else:
+        df[y_info.axis].plot(legend=len(y_info.axis) > 1 or type(df) is pd.core.groupby.generic.DataFrameGroupBy)
+
     df[y_info.axis].plot(legend=len(y_info.axis) > 1)
     design_and_plot(x_info, y_info, graph_name)
 
@@ -80,6 +93,13 @@ def display_battery_graphs():
     x_info_voltage = AxisInfo("Time", Units.TIME, BatteryColumns.TIME)
     y_info_voltage = AxisInfo("Voltage", Units.VOLTAGE, [BatteryColumns.VOLTAGE])
     draw_dataframe(battery_df, "Battery drop (mV)", x_info_voltage, y_info_voltage)
+
+
+def display_cpu_graphs():
+    memory_df = pd.read_csv(TOTAL_CPU_CSV, index_col=CPUColumns.TIME)
+    x_info = AxisInfo("Time", Units.TIME, CPUColumns.TIME)
+    y_info = AxisInfo("Used CPU", Units.PERCENT, [CPUColumns.USED_PERCENT])
+    draw_dataframe(memory_df, "Total CPU Consumption", x_info, y_info)
 
 
 def display_memory_graphs():
@@ -123,7 +143,7 @@ def display_processes_graphs():
     x_info_cpu = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_cpu = AxisInfo("CPU consumption", Units.PERCENT, ProcessesColumns.CPU_CONSUMPTION)
     draw_grouped_dataframe(all_top_processes_grouped_cpu, "CPU consumption per process",
-                           x_info_cpu, y_info_cpu)
+               x_info_cpu, y_info_cpu, TOTAL_CPU_CSV, CPUColumns.TIME)
 
     # display Memory
     all_top_processes_grouped_memory = group_highest_processes(processes_df, processes_df_grouped,
@@ -133,7 +153,7 @@ def display_processes_graphs():
     x_info_memory = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_memory = AxisInfo("Memory consumption", Units.MEMORY_PROCESS, ProcessesColumns.USED_MEMORY)
     draw_grouped_dataframe(all_top_processes_grouped_memory, "Memory consumption per process",
-                           x_info_memory, y_info_memory)
+               x_info_memory, y_info_memory, TOTAL_MEMORY_EACH_MOMENT_CSV, MemoryColumns.TIME, MemoryColumns.USED_MEMORY)
 
     # display IO read bytes
     all_top_processes_grouped_read = group_highest_processes(processes_df, processes_df_grouped,
@@ -179,6 +199,9 @@ def display_processes_graphs():
 def main():
     # battery table
     display_battery_graphs()
+
+    # total cpu table
+    display_cpu_graphs()
 
     # total memory table
     display_memory_graphs()
