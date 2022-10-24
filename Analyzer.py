@@ -55,15 +55,7 @@ def design_and_plot(x_info, y_info, graph_name, total_path=DEFAULT, total_index=
     plt.show()
 
 
-def draw_grouped_dataframe(df, graph_name, x_info, y_info):
-    fig, ax = plt.subplots(figsize=(18, 6))
-    for group_name, group in df:
-        group.plot(y=y_info.axis, ax=ax, label=group_name[1])
-
-    design_and_plot(x_info, y_info, graph_name)
-
-
-def draw_dataframe(df, graph_name, x_info, y_info, total_path=DEFAULT, total_index=DEFAULT, total_column=DEFAULT):
+def check_plot(ax, total_path=DEFAULT, total_index=DEFAULT, total_column=DEFAULT):
     if total_path != DEFAULT:
         df_total = pd.read_csv(total_path, index_col=total_index)
 
@@ -71,12 +63,22 @@ def draw_dataframe(df, graph_name, x_info, y_info, total_path=DEFAULT, total_ind
             df_total = df_total[total_column]
             print(df_total)
 
-        ax = df_total.plot(color='black', label="Total Consumption")
-        df[y_info.axis].plot(legend=True, ax=ax)
+        df_total.plot(color='black', ax=ax).legend(labels=["Total Consumption"])
 
-    else:
-        df[y_info.axis].plot(legend=len(y_info.axis) > 1 or type(df) is pd.core.groupby.generic.DataFrameGroupBy)
 
+def draw_grouped_dataframe(df, graph_name, x_info, y_info, total_path=DEFAULT, total_index=DEFAULT,
+                           total_column=DEFAULT):
+    fig, ax = plt.subplots(figsize=(18, 6))
+
+    check_plot(ax, total_path, total_index, total_column)
+
+    for group_name, group in df:
+        group.plot(y=y_info.axis, ax=ax, label=group_name[1])
+
+    design_and_plot(x_info, y_info, graph_name)
+
+
+def draw_dataframe(df, graph_name, x_info, y_info):
     df[y_info.axis].plot(legend=len(y_info.axis) > 1)
     design_and_plot(x_info, y_info, graph_name)
 
@@ -138,27 +140,31 @@ def display_processes_graphs():
     # display CPU consumption
     all_top_processes_grouped_cpu = group_highest_processes(processes_df, processes_df_grouped,
                                                             ProcessesColumns.CPU_CONSUMPTION,
-                                                        [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME])
+                                                            [ProcessesColumns.PROCESS_ID,
+                                                             ProcessesColumns.PROCESS_NAME])
 
     x_info_cpu = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_cpu = AxisInfo("CPU consumption", Units.PERCENT, ProcessesColumns.CPU_CONSUMPTION)
     draw_grouped_dataframe(all_top_processes_grouped_cpu, "CPU consumption per process",
-               x_info_cpu, y_info_cpu, TOTAL_CPU_CSV, CPUColumns.TIME)
+                           x_info_cpu, y_info_cpu, TOTAL_CPU_CSV, CPUColumns.TIME)
 
     # display Memory
     all_top_processes_grouped_memory = group_highest_processes(processes_df, processes_df_grouped,
                                                                ProcessesColumns.USED_MEMORY,
-                                                        [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME])
+                                                               [ProcessesColumns.PROCESS_ID,
+                                                                ProcessesColumns.PROCESS_NAME])
 
     x_info_memory = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_memory = AxisInfo("Memory consumption", Units.MEMORY_PROCESS, ProcessesColumns.USED_MEMORY)
     draw_grouped_dataframe(all_top_processes_grouped_memory, "Memory consumption per process",
-               x_info_memory, y_info_memory, TOTAL_MEMORY_EACH_MOMENT_CSV, MemoryColumns.TIME, MemoryColumns.USED_MEMORY)
+                           x_info_memory, y_info_memory, TOTAL_MEMORY_EACH_MOMENT_CSV, MemoryColumns.TIME,
+                           MemoryColumns.USED_MEMORY)
 
     # display IO read bytes
     all_top_processes_grouped_read = group_highest_processes(processes_df, processes_df_grouped,
                                                              ProcessesColumns.READ_BYTES,
-                                                        [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME])
+                                                             [ProcessesColumns.PROCESS_ID,
+                                                              ProcessesColumns.PROCESS_NAME])
 
     x_info_read = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_read = AxisInfo("IO Read bytes", Units.IO_BYTES, ProcessesColumns.READ_BYTES)
@@ -168,7 +174,8 @@ def display_processes_graphs():
     # display IO write bytes
     all_top_processes_grouped_write = group_highest_processes(processes_df, processes_df_grouped,
                                                               ProcessesColumns.WRITE_BYTES,
-                                                        [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME])
+                                                              [ProcessesColumns.PROCESS_ID,
+                                                               ProcessesColumns.PROCESS_NAME])
 
     x_info_write = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_write = AxisInfo("IO Write bytes", Units.IO_BYTES, ProcessesColumns.WRITE_BYTES)
@@ -178,7 +185,8 @@ def display_processes_graphs():
     # display io read count
     all_top_processes_grouped_num_of_read = group_highest_processes(processes_df, processes_df_grouped,
                                                                     ProcessesColumns.READ_COUNT,
-                                                        [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME])
+                                                                    [ProcessesColumns.PROCESS_ID,
+                                                                     ProcessesColumns.PROCESS_NAME])
 
     x_info_read_count = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_read_count = AxisInfo("IO Read count", Units.COUNT, ProcessesColumns.READ_COUNT)
@@ -188,7 +196,8 @@ def display_processes_graphs():
     # display io write count
     all_top_processes_grouped_num_of_write = group_highest_processes(processes_df, processes_df_grouped,
                                                                      ProcessesColumns.WRITE_COUNT,
-                                                                     [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME])
+                                                                     [ProcessesColumns.PROCESS_ID,
+                                                                      ProcessesColumns.PROCESS_NAME])
 
     x_info_write_count = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_write_count = AxisInfo("IO Write count", Units.COUNT, ProcessesColumns.WRITE_COUNT)
