@@ -19,14 +19,10 @@ class PreviousDiskIO:
 
 
 # ======= Constants =======
-ANTIVIRUS_PROCESS_NAME = "MsMpeng"
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
 SYSTEM_IDLE_PID = 0
 
-GB = 2**30
-MB = 2**20
-KB = 2**10
-
+# ======= Program Global Parameters =======
 done_scanning = False
 starting_time = time.time()
 

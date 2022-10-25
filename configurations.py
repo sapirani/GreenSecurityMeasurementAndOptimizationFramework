@@ -100,3 +100,11 @@ processes_columns_list = [
     ProcessesColumns.NUMBER_OF_THREADS, ProcessesColumns.USED_MEMORY, ProcessesColumns.MEMORY_PERCENT,
     ProcessesColumns.READ_COUNT, ProcessesColumns.WRITE_COUNT, ProcessesColumns.READ_BYTES, ProcessesColumns.WRITE_BYTES
 ]
+
+
+# ======= Constants =======
+GB = 2**30
+MB = 2**20
+KB = 2**10
+ANTIVIRUS_PROCESS_NAME = "MsMpeng"
+
