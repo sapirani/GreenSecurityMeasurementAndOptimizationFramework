@@ -106,5 +106,4 @@ processes_columns_list = [
 GB = 2**30
 MB = 2**20
 KB = 2**10
-ANTIVIRUS_PROCESS_NAME = "MsMpeng"
 

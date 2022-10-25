@@ -22,9 +22,7 @@ class Units:
 
 
 DEFAULT = "default"
-ONE_GRAPH = 1
-COMBINED_GRAPH = 2
-DEFAULT_Y_LABLE = "DEFAULT"
+ANTIVIRUS_PROCESS_NAME = "MsMpEng.exe"
 
 
 def design_and_plot(x_info, y_info, graph_name, total_path=DEFAULT, total_index=DEFAULT, total_column=DEFAULT):
@@ -70,7 +68,9 @@ def draw_grouped_dataframe(df, graph_name, x_info, y_info, total_path=DEFAULT, t
     check_plot(ax, total_path, total_index, total_column)
 
     for group_name, group in df:
-        group.plot(y=y_info.axis, ax=ax, label=group_name[1])
+        proc_name = group_name[1]
+        group.plot(y=y_info.axis, ax=ax, label=proc_name, linewidth=(5 if proc_name == ANTIVIRUS_PROCESS_NAME
+                                                                         else 2))
 
     design_and_plot(x_info, y_info, graph_name)
 
