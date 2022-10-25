@@ -9,23 +9,35 @@ class ScanOption(Enum):
     CONTINUOUS_SCAN = 3
 
 
+class PowerPlans:
+    BALANCED = ("Balanced Plan", "381b4222-f694-41f0-9685-ff5bb260df2e")
+    POWER_SAVER = ("Power Saver Plan", "a1841308-3541-4fab-bc81-f71556f20b4a")
+    HIGH_PERFORMANCE = ("High Performance Plan", "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c")
+
+
 MINUTE = 60
 
 # ======= Program Parameters =======
+power_plan = PowerPlans.BALANCED
 scan_option = ScanOption.CONTINUOUS_SCAN
 scan_type = "QuickScan"
 MINIMUM_DELTA_CAPACITY = 20
 MINIMUM_SCAN_TIME = 1 * MINUTE
 
 
+# ======= Power Plan Name and GUID (do not change) =======
+power_plan_name = power_plan[0]
+power_plan_guid = power_plan[1]
+
+
 # ======= Result Data Paths =======
 def calc_dir():
     if scan_option == ScanOption.NO_SCAN:
-        return 'no_scan'
+        return os.path.join(power_plan_name, 'No Scan', scan_type)
     elif scan_option == ScanOption.ONE_SCAN:
-        return os.path.join('one_scan', scan_type)
+        return os.path.join(power_plan_name, 'One Scan', scan_type)
     else:
-        return os.path.join('continuous_scan', scan_type)
+        return os.path.join(power_plan_name, 'Continuous Scan', scan_type)
 
 
 results_dir = calc_dir()

@@ -284,9 +284,16 @@ def is_delta_capacity_achieved():
     return calc_delta_capacity() >= MINIMUM_DELTA_CAPACITY
 
 
+def change_power_plan():
+    result = subprocess.run(["powershell", "-Command", "powercfg /s " + power_plan_guid], capture_output=True)
+    if result.returncode != 0:
+        raise Exception(f'An error occurred while switching to the power plan: {power_plan_name}', result.stderr)
+
+
 def main():
     global done_scanning
     print("======== Process Monitor ========")
+    change_power_plan()
 
     psutil.cpu_percent()    # first call is meaningless
 
