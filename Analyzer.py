@@ -22,9 +22,6 @@ class Units:
 
 
 DEFAULT = "default"
-GB = 2 ** 30
-MB = 2 ** 20
-KB = 2 ** 10
 ONE_GRAPH = 1
 COMBINED_GRAPH = 2
 DEFAULT_Y_LABLE = "DEFAULT"
