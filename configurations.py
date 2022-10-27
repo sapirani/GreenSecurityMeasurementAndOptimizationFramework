@@ -15,12 +15,19 @@ class PowerPlans:
     HIGH_PERFORMANCE = ("High Performance Plan", "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c")
 
 
+class ScanType:
+    FULL_SCAN = "FullScan"
+    QUICK_SCAN = "QuickScan"
+    CUSTOM_SCAN = "CustomScan"
+
+
 MINUTE = 60
 
 # ======= Program Parameters =======
 power_plan = PowerPlans.BALANCED
-scan_option = ScanOption.CONTINUOUS_SCAN
-scan_type = "QuickScan"
+scan_option = ScanOption.ONE_SCAN
+scan_type = ScanType.QUICK_SCAN
+custom_scan_path = r""   # relevant only for custom scans. On other types, must be empty
 MINIMUM_DELTA_CAPACITY = 20
 MINIMUM_SCAN_TIME = 1 * MINUTE
 
@@ -28,6 +35,14 @@ MINIMUM_SCAN_TIME = 1 * MINUTE
 # ======= Power Plan Name and GUID (do not change) =======
 power_plan_name = power_plan[0]
 power_plan_guid = power_plan[1]
+
+# ======= Custom Scan Query (do not change) =======
+custom_scan_query = ""
+if scan_type != ScanType.CUSTOM_SCAN and custom_scan_path != "":
+    raise Exception("scan_type must be empty when running scans other than custom scan")
+
+if scan_type == ScanType.CUSTOM_SCAN:
+    custom_scan_query = f" -ScanPath {custom_scan_path}"
 
 
 # ======= Result Data Paths =======
@@ -113,9 +128,8 @@ processes_columns_list = [
     ProcessesColumns.READ_COUNT, ProcessesColumns.WRITE_COUNT, ProcessesColumns.READ_BYTES, ProcessesColumns.WRITE_BYTES
 ]
 
-
 # ======= Constants =======
-GB = 2**30
-MB = 2**20
-KB = 2**10
+GB = 2 ** 30
+MB = 2 ** 20
+KB = 2 ** 10
 
