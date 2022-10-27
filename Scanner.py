@@ -165,11 +165,11 @@ def min_scan_time_passed():
 
 
 def should_scan():
-    if scan_option == ScanOption.NO_SCAN:
+    if scan_option == ScanMode.NO_SCAN:
         return not min_scan_time_passed()
-    elif scan_option == ScanOption.ONE_SCAN:
+    elif scan_option == ScanMode.ONE_SCAN:
         return not done_scanning
-    elif scan_option == ScanOption.CONTINUOUS_SCAN:
+    elif scan_option == ScanMode.CONTINUOUS_SCAN:
         return not min_scan_time_passed() and not is_delta_capacity_achieved()
 
 
@@ -307,12 +307,12 @@ def main():
     measurements_thread = Thread(target=continuously_measure, args=())
     measurements_thread.start()
 
-    while not scan_option == ScanOption.NO_SCAN and not done_scanning:
+    while not scan_option == ScanMode.NO_SCAN and not done_scanning:
         # TODO check about capture_output
         result = subprocess.run(["powershell", "-Command", f"Start-MpScan -ScanType {scan_type}" + custom_scan_query],
                                 capture_output=True)
         finished_scanning_time.append(calc_time_interval())
-        if scan_option == ScanOption.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
+        if scan_option == ScanMode.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
             done_scanning = True
         if result.returncode != 0:
             raise Exception("An error occurred while anti virus scan: %s", result.stderr)

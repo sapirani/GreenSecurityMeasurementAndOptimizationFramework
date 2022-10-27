@@ -3,13 +3,13 @@ import os.path
 from pathlib import Path
 
 
-class ScanOption(Enum):
+class ScanMode(Enum):
     NO_SCAN = 1
     ONE_SCAN = 2
     CONTINUOUS_SCAN = 3
 
 
-class PowerPlans:
+class PowerPlan:
     BALANCED = ("Balanced Plan", "381b4222-f694-41f0-9685-ff5bb260df2e")
     POWER_SAVER = ("Power Saver Plan", "a1841308-3541-4fab-bc81-f71556f20b4a")
     HIGH_PERFORMANCE = ("High Performance Plan", "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c")
@@ -24,8 +24,8 @@ class ScanType:
 MINUTE = 60
 
 # ======= Program Parameters =======
-power_plan = PowerPlans.BALANCED
-scan_option = ScanOption.ONE_SCAN
+power_plan = PowerPlan.BALANCED
+scan_option = ScanMode.ONE_SCAN
 scan_type = ScanType.QUICK_SCAN
 custom_scan_path = r""   # relevant only for custom scans. On other types, must be empty
 MINIMUM_DELTA_CAPACITY = 20
@@ -47,9 +47,9 @@ if scan_type == ScanType.CUSTOM_SCAN:
 
 # ======= Result Data Paths =======
 def calc_dir():
-    if scan_option == ScanOption.NO_SCAN:
+    if scan_option == ScanMode.NO_SCAN:
         return os.path.join(power_plan_name, 'No Scan', scan_type)
-    elif scan_option == ScanOption.ONE_SCAN:
+    elif scan_option == ScanMode.ONE_SCAN:
         return os.path.join(power_plan_name, 'One Scan', scan_type)
     else:
         return os.path.join(power_plan_name, 'Continuous Scan', scan_type)
