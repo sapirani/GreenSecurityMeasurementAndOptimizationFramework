@@ -238,6 +238,13 @@ def save_general_system_information(f):
     f.write(f"Machine: {my_system.machine}\n")
     f.write(f"Processor: {my_system.processor}\n")
 
+    f.write("\n----CPU Information----\n")
+    f.write(f"Physical cores: {psutil.cpu_count(logical=False)}\n")
+    f.write(f"Total cores: {psutil.cpu_count(logical=True)}\n")
+    cpufreq = psutil.cpu_freq()
+    f.write(f"Max Frequency: {cpufreq.max:.2f}MHz\n")
+    f.write(f"Min Frequency: {cpufreq.min:.2f}MHz\n")
+
 
 def save_general_information_before_scanning():
     with open(GENERAL_INFORMATION_FILE, 'w') as f:
@@ -265,7 +272,7 @@ def save_general_information_after_scanning():
                     f' Duration of Scanning: {scan_time - finished_scanning_time[i]}\n')
 
 
-def save_to_files():
+def save_results_to_files():
     save_general_information_after_scanning()
     processes_df.iloc[:-1, :].to_csv(PROCESSES_CSV, index=False)
     memory_df.iloc[:-1, :].to_csv(TOTAL_MEMORY_EACH_MOMENT_CSV, index=False)
@@ -295,15 +302,8 @@ def change_power_plan():
         raise Exception(f'An error occurred while switching to the power plan: {power_plan_name}', result.stderr)
 
 
-def main():
+def scan_and_measure():
     global done_scanning
-    print("======== Process Monitor ========")
-    change_power_plan()
-
-    psutil.cpu_percent()    # first call is meaningless
-
-    save_general_information_before_scanning()
-
     measurements_thread = Thread(target=continuously_measure, args=())
     measurements_thread.start()
 
@@ -319,7 +319,18 @@ def main():
 
     measurements_thread.join()
 
-    save_to_files()
+
+def main():
+    print("======== Process Monitor ========")
+    change_power_plan()
+
+    psutil.cpu_percent()    # first call is meaningless
+
+    save_general_information_before_scanning()
+
+    scan_and_measure()
+
+    save_results_to_files()
 
     print("finished scanning")
 
