@@ -17,10 +17,17 @@ The results are saved in the relevant folders. the raw resource usage data is sa
 2. Quick scan - looks at all the locations where there could be malware registered to start with the system, such as registry keys and known Windows startup folders. Provides strong protection against malware that starts with the system and kernel-level malware. May take a few seconds or minutes.
 3. Custom scan - enables to scan exactly the files and folders that you select.
 
+### Power plans
+It is possible to configure the computer's power plan during measurements. The available plans:
+1. High Performance
+2. Balanced
+3. Power Saver
+
 ### Code components
 The main components of the code:
 1. Scanner - responsible to record the raw data in each mode and save it in the relevant csv and txt files
 2. Analyzer - responsible to create graphs from raw data saved by the scanner. The graphs are saved as pdf files.
+3. Configurations - responsible to easily configure power plan, scan mode, scan type, results path, minmum time and battary drain (for Continuous scan only), path of dir to scan (for Custom scan only)
 
 
 ### Program parameters
