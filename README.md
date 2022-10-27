@@ -30,8 +30,10 @@ The main components of the code:
 3. Configurations - responsible to easily configure power plan, scan mode, scan type, results path, minmum time and battary drain (for Continuous scan only), path of dir to scan (for Custom scan only)
 
 
-### Program parameters
-1. scan_option - enables to choose the mode of execution (No scan, One scan, Continuous scan)
-2. scan_type - enables to choose the type of antivirus scan (full scan, quick scan.....)
-3. MINIMUM_DELTA_CAPACITY - enables to define the minimum battery drop required before the code ends. Relevant only in continuous scan mode.
-4. MINIMUM_SCAN_TIME - enables to define the minimum time required for antivirus scans before the code ends. Relevant only in continuous scan mode.
+### Program parameters (can easily be modified in Configurations file)
+1. power_plan - enables to choose the the comuter's power plan (High Performance, Balanced, Power Saver)
+2. scan_option - enables to choose the mode of execution (No scan, One scan, Continuous scan)
+3. scan_type - enables to choose the type of antivirus scan (full scan, quick scan.....)
+4. custom_scan_path - enables to choose the directory / file to scan (for Custom scan only)
+5. MINIMUM_DELTA_CAPACITY - enables to define the minimum battery drop required before the code ends. Relevant only in continuous scan mode.
+6. MINIMUM_SCAN_TIME - enables to define the minimum time required for antivirus scans before the code ends. Relevant only in continuous scan mode.
