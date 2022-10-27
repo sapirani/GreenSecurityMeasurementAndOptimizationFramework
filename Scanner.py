@@ -165,7 +165,12 @@ def min_scan_time_passed():
 
 
 def should_scan():
-    return scan_option != ScanOption.NO_SCAN and not done_scanning
+    if scan_option == ScanOption.NO_SCAN:
+        return not min_scan_time_passed()
+    elif scan_option == ScanOption.ONE_SCAN:
+        return not done_scanning
+    elif scan_option == ScanOption.CONTINUOUS_SCAN:
+        return not min_scan_time_passed() and not is_delta_capacity_achieved()
 
 
 def save_current_total_cpu():
@@ -183,7 +188,7 @@ def continuously_measure():
     prev_io_per_process = {}
 
     # TODO: think if total tables should be printed only once
-    while should_scan() or not min_scan_time_passed():
+    while should_scan():
         save_battery_stat()
         prev_io_per_process = save_current_processes_statistics(prev_io_per_process)
         save_current_total_cpu()
@@ -304,7 +309,8 @@ def main():
 
     while not scan_option == ScanOption.NO_SCAN and not done_scanning:
         # TODO check about capture_output
-        result = subprocess.run(["powershell", "-Command", "Start-MpScan -ScanType " + scan_type], capture_output=True)
+        result = subprocess.run(["powershell", "-Command", f"Start-MpScan -ScanType {scan_type}" + custom_scan_query],
+                                capture_output=True)
         finished_scanning_time.append(calc_time_interval())
         if scan_option == ScanOption.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
             done_scanning = True
