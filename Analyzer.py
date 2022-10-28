@@ -56,21 +56,21 @@ def check_plot(ax, total_path=DEFAULT, total_index=DEFAULT, total_column=DEFAULT
 
         if total_column != DEFAULT:
             df_total = df_total[total_column]
-            print(df_total)
+            df_total = df_total * KB
 
         df_total.plot(color='black', ax=ax).legend(labels=["Total Consumption"])
 
 
 def draw_grouped_dataframe(df, graph_name, x_info, y_info, total_path=DEFAULT, total_index=DEFAULT,
                            total_column=DEFAULT):
-    fig, ax = plt.subplots(figsize=(18, 6))
+    fig, ax = plt.subplots(figsize=(15, 6))
 
     check_plot(ax, total_path, total_index, total_column)
 
     for group_name, group in df:
         proc_name = group_name[1]
         group.plot(y=y_info.axis, ax=ax, label=proc_name, linewidth=(5 if proc_name == ANTIVIRUS_PROCESS_NAME
-                                                                         else 2))
+                                                                     else 2))
 
     design_and_plot(x_info, y_info, graph_name)
 
@@ -130,93 +130,104 @@ def group_highest_processes(df, grouped_df, sort_by, group_by):
     return all_top_processes_grouped
 
 
+def display_specific_processes_graph(df, grouped_df, sort_by_col, group_by, x, y, title,
+                                     total_path=DEFAULT, total_index=DEFAULT, total_col=DEFAULT):
+    all_top_processes_grouped_cpu = group_highest_processes(df, grouped_df, sort_by_col, group_by)
+    draw_grouped_dataframe(all_top_processes_grouped_cpu, title, x, y, total_path, total_index, total_col)
+
+
 def display_processes_graphs():
     processes_df = pd.read_csv(PROCESSES_CSV, index_col=ProcessesColumns.TIME)
     processes_df_grouped = processes_df.groupby(ProcessesColumns.PROCESS_ID)
 
     # display CPU consumption
-    all_top_processes_grouped_cpu = group_highest_processes(processes_df, processes_df_grouped,
-                                                            ProcessesColumns.CPU_CONSUMPTION,
-                                                            [ProcessesColumns.PROCESS_ID,
-                                                             ProcessesColumns.PROCESS_NAME])
-
     x_info_cpu = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_cpu = AxisInfo("CPU consumption", Units.PERCENT, ProcessesColumns.CPU_CONSUMPTION)
-    draw_grouped_dataframe(all_top_processes_grouped_cpu, "CPU consumption per process",
-                           x_info_cpu, y_info_cpu, TOTAL_CPU_CSV, CPUColumns.TIME)
+    display_specific_processes_graph(processes_df, processes_df_grouped, ProcessesColumns.CPU_CONSUMPTION,
+                                     [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME],
+                                     x_info_cpu, y_info_cpu, "CPU consumption per process", TOTAL_CPU_CSV,
+                                     CPUColumns.TIME)
+
+    # display Total CPU consumption and Antivirus CPU consumption
+    display_antivirus_and_total_cpu(x_info_cpu, y_info_cpu,
+                                    processes_df.loc[processes_df[ProcessesColumns.PROCESS_NAME] == ANTIVIRUS_PROCESS_NAME])
 
     # display Memory
-    all_top_processes_grouped_memory = group_highest_processes(processes_df, processes_df_grouped,
-                                                               ProcessesColumns.USED_MEMORY,
-                                                               [ProcessesColumns.PROCESS_ID,
-                                                                ProcessesColumns.PROCESS_NAME])
-
     x_info_memory = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_memory = AxisInfo("Memory consumption", Units.MEMORY_PROCESS, ProcessesColumns.USED_MEMORY)
-    draw_grouped_dataframe(all_top_processes_grouped_memory, "Memory consumption per process",
-                           x_info_memory, y_info_memory, TOTAL_MEMORY_EACH_MOMENT_CSV, MemoryColumns.TIME,
-                           MemoryColumns.USED_MEMORY)
+    display_specific_processes_graph(processes_df, processes_df_grouped, ProcessesColumns.USED_MEMORY,
+                                     [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME],
+                                     x_info_memory, y_info_memory, "Memory consumption per process",
+                                     TOTAL_MEMORY_EACH_MOMENT_CSV, MemoryColumns.TIME, MemoryColumns.USED_MEMORY)
+
+    # display Total memory consumption and Antivirus memory consumption
+    display_antivirus_and_total_memory(x_info_memory, y_info_memory,
+                                    processes_df.loc[processes_df[ProcessesColumns.PROCESS_NAME] == ANTIVIRUS_PROCESS_NAME])
 
     # display IO read bytes
-    all_top_processes_grouped_read = group_highest_processes(processes_df, processes_df_grouped,
-                                                             ProcessesColumns.READ_BYTES,
-                                                             [ProcessesColumns.PROCESS_ID,
-                                                              ProcessesColumns.PROCESS_NAME])
-
     x_info_read = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_read = AxisInfo("IO Read bytes", Units.IO_BYTES, ProcessesColumns.READ_BYTES)
-    draw_grouped_dataframe(all_top_processes_grouped_read, "IO read bytes per process",
-                           x_info_read, y_info_read)
+    display_specific_processes_graph(processes_df, processes_df_grouped, ProcessesColumns.READ_BYTES,
+                                     [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME],
+                                     x_info_read, y_info_read, "IO read bytes per process")
 
     # display IO write bytes
-    all_top_processes_grouped_write = group_highest_processes(processes_df, processes_df_grouped,
-                                                              ProcessesColumns.WRITE_BYTES,
-                                                              [ProcessesColumns.PROCESS_ID,
-                                                               ProcessesColumns.PROCESS_NAME])
-
     x_info_write = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_write = AxisInfo("IO Write bytes", Units.IO_BYTES, ProcessesColumns.WRITE_BYTES)
-    draw_grouped_dataframe(all_top_processes_grouped_write, "IO write bytes per process",
-                           x_info_write, y_info_write)
+    display_specific_processes_graph(processes_df, processes_df_grouped, ProcessesColumns.WRITE_BYTES,
+                                     [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME],
+                                     x_info_write, y_info_write, "IO write bytes per process")
 
     # display io read count
-    all_top_processes_grouped_num_of_read = group_highest_processes(processes_df, processes_df_grouped,
-                                                                    ProcessesColumns.READ_COUNT,
-                                                                    [ProcessesColumns.PROCESS_ID,
-                                                                     ProcessesColumns.PROCESS_NAME])
-
     x_info_read_count = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_read_count = AxisInfo("IO Read count", Units.COUNT, ProcessesColumns.READ_COUNT)
-    draw_grouped_dataframe(all_top_processes_grouped_num_of_read, "IO read count per process",
-                           x_info_read_count, y_info_read_count)
+    display_specific_processes_graph(processes_df, processes_df_grouped, ProcessesColumns.READ_COUNT,
+                                     [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME],
+                                     x_info_read_count, y_info_read_count, "IO read count per process")
 
     # display io write count
-    all_top_processes_grouped_num_of_write = group_highest_processes(processes_df, processes_df_grouped,
-                                                                     ProcessesColumns.WRITE_COUNT,
-                                                                     [ProcessesColumns.PROCESS_ID,
-                                                                      ProcessesColumns.PROCESS_NAME])
-
     x_info_write_count = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
     y_info_write_count = AxisInfo("IO Write count", Units.COUNT, ProcessesColumns.WRITE_COUNT)
-    draw_grouped_dataframe(all_top_processes_grouped_num_of_write, "IO write count per process",
-                           x_info_write_count, y_info_write_count)
+    display_specific_processes_graph(processes_df, processes_df_grouped, ProcessesColumns.WRITE_COUNT,
+                                     [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME],
+                                     x_info_write_count, y_info_write_count, "IO write count per process")
+
+
+def draw_antivirus_and_total(total, antivirus, x, y, title):
+    fig, ax = plt.subplots(figsize=(15, 6))
+    total.plot(color='black', ax=ax).legend(labels=["Total Consumption"])
+    antivirus.plot(y=y.axis, ax=ax, label="Antivirus", color="r")
+    design_and_plot(x, y, title)
+
+
+def display_antivirus_and_total_cpu(x, y, antivirus_df):
+    total_df = pd.read_csv(TOTAL_CPU_CSV, index_col=CPUColumns.TIME)
+    draw_antivirus_and_total(total_df, antivirus_df, x, y, "CPU consumption - comparison")
+
+
+def display_antivirus_and_total_memory(x, y, antivirus_df):
+    total_df = pd.read_csv(TOTAL_MEMORY_EACH_MOMENT_CSV, index_col=MemoryColumns.TIME)
+    total_df = total_df[MemoryColumns.USED_MEMORY] * KB
+    draw_antivirus_and_total(total_df, antivirus_df, x, y, "Memory consumption - comparison")
 
 
 def main():
     # battery table
-    display_battery_graphs()
+    #display_battery_graphs()
 
     # total cpu table
-    display_cpu_graphs()
+    #display_cpu_graphs()
 
     # total memory table
-    display_memory_graphs()
+    #display_memory_graphs()
 
     # total disk io table
-    display_disk_io_graphs()
+    #display_disk_io_graphs()
 
     # processes table
     display_processes_graphs()
+
+    #display_antivirus_and_memory()
 
 
 if __name__ == '__main__':
