@@ -58,8 +58,6 @@ def calc_dir():
 results_dir = calc_dir()
 GRAPHS_DIR = os.path.join(results_dir, "graphs")
 
-Path(GRAPHS_DIR).mkdir(parents=True, exist_ok=True)
-
 PROCESSES_CSV = os.path.join(results_dir, 'processes_data.csv')
 TOTAL_MEMORY_EACH_MOMENT_CSV = os.path.join(results_dir, 'total_memory_each_moment.csv')
 DISK_IO_EACH_MOMENT = os.path.join(results_dir, 'disk_io_each_moment.csv')

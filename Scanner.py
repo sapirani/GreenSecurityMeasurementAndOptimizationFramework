@@ -8,6 +8,7 @@ import time
 import pandas as pd
 import platform
 from configurations import *
+import ctypes
 
 
 class PreviousDiskIO:
@@ -22,10 +23,12 @@ class PreviousDiskIO:
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
 SYSTEM_IDLE_PID = 0
 
+YES_BUTTON = 6
+NO_BUTTON = 7
+
 # ======= Program Global Parameters =======
 done_scanning = False
 starting_time = time.time()
-
 
 # TODO: maybe its better to calculate MEMORY(%) in the end of scan in order to reduce calculations during scanning
 processes_df = pd.DataFrame(columns=processes_columns_list)
@@ -39,6 +42,10 @@ battery_df = pd.DataFrame(columns=battery_columns_list)
 cpu_df = pd.DataFrame(columns=cpu_columns_list)
 
 finished_scanning_time = []
+
+
+def message_box(title, text, style):
+    return ctypes.windll.user32.MessageBoxW(0, text, title, style)
 
 
 def calc_time_interval():
@@ -259,9 +266,9 @@ def save_general_information_before_scanning():
 def convert_mwh_to_other_metrics(amount_of_mwh):
     kwh_to_mwh = 1e6
     # link: https://www.epa.gov/energy/greenhouse-gases-equivalencies-calculator-calculations-and-references
-    co2 = (0.709 * amount_of_mwh) / kwh_to_mwh                            # 1 kwh = 0.709 kg co2
-    coal_burned = (0.453592 * 0.784 * amount_of_mwh) / kwh_to_mwh         # 1 kwh = 0.784 pound coal
-    number_of_smartphones_charged = (86.2 * amount_of_mwh) / kwh_to_mwh   # 1 kwh = 86.2 smartphones
+    co2 = (0.709 * amount_of_mwh) / kwh_to_mwh  # 1 kwh = 0.709 kg co2
+    coal_burned = (0.453592 * 0.784 * amount_of_mwh) / kwh_to_mwh  # 1 kwh = 0.784 pound coal
+    number_of_smartphones_charged = (86.2 * amount_of_mwh) / kwh_to_mwh  # 1 kwh = 86.2 smartphones
 
     # the following are pretty much the same. Maybe should consider utilization when converting from heat to electricity
     # link: https://www.cs.mcgill.ca/~rwest/wikispeedia/wpcd/wp/w/Wood_fuel.htm
@@ -342,11 +349,32 @@ def scan_and_measure():
     measurements_thread.join()
 
 
+def can_proceed_towards_measurements():
+    if os.path.exists(results_dir):
+
+        button_selected = message_box("Deleting Previous Results",
+                                      "Running the program will override the results of the previous measurement.\n\n"
+                                      "Are you sure you want to continue?", 4)
+
+        if button_selected == YES_BUTTON:
+            return True
+        else:
+            return False
+    else:
+        Path(GRAPHS_DIR).mkdir(parents=True, exist_ok=True)
+        return True
+
+
 def main():
     print("======== Process Monitor ========")
+
+    if not can_proceed_towards_measurements():
+        print("Exiting program")
+        return
+
     change_power_plan()
 
-    psutil.cpu_percent()    # first call is meaningless
+    psutil.cpu_percent()  # first call is meaningless
 
     save_general_information_before_scanning()
 
@@ -354,7 +382,7 @@ def main():
 
     save_results_to_files()
 
-    print("finished scanning")
+    print("Finished scanning")
 
 
 if __name__ == '__main__':
