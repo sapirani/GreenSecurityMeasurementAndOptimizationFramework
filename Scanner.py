@@ -136,15 +136,14 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
 
                 prev_io = prev_io_per_process[p.pid]
 
-                # TODO - is io_counters what we are looking for (only disk reads)
-                # TODO: calculate all values for total(include memory, read, write, etc...)
+                # TODO - does io_counters return only disk operations or all io operations (include network etc..)
                 processes_df.loc[len(processes_df.index)] = [
                     time_of_sample,
                     p.pid,
                     p.name(),
                     f'{cpu_percent:.2f}',
                     p.num_threads(),
-                    f'{p.memory_info().rss / MB:.3f}',  # TODO: maybe should use uss instead rss?
+                    f'{p.memory_info().rss / MB:.3f}',  # TODO: maybe should use uss/pss instead rss?
                     round(p.memory_percent(), 2),
                     io_stat.read_count - prev_io.read_count,
                     io_stat.write_count - prev_io.write_count,
