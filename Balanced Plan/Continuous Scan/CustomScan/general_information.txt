@@ -1,0 +1,109 @@
+======System Information======
+System: Windows
+Node Name: DESKTOP-0PD67NE
+Release: 10
+Version: 10.0.22000
+Machine: AMD64
+Processor: Intel64 Family 6 Model 140 Stepping 1, GenuineIntel
+
+======Before Scanning======
+----Battery----
+Battery 0 Design Capacity: 0 mWh
+Battery 0 Fully Charged Capacity: 72450 mWh
+
+----Disk----
++-----------+----------+---------------+------------+
+| Total(GB) | Used(GB) | Available(GB) | Percentage |
++-----------+----------+---------------+------------+
+|  952.622  | 176.166  |    776.456    |    18.5    |
++-----------+----------+---------------+------------+
+
+
+======After Scanning======
+----Disk----
++-----------+----------+---------------+------------+
+| Total(GB) | Used(GB) | Available(GB) | Percentage |
++-----------+----------+---------------+------------+
+|  952.622  | 176.171  |    776.451    |    18.5    |
++-----------+----------+---------------+------------+
+
+------Battery------
+Amount of Battery Drop: 240 mWh
+
+------Scanning Times------
+Scan number 1, finished at: 1.2253520488739014
+Scan number 2, finished at: 2.0268516540527344. Duration of Scanning: 0.801499605178833
+Scan number 3, finished at: 2.7718183994293213. Duration of Scanning: 0.7449667453765869
+Scan number 4, finished at: 3.517240285873413. Duration of Scanning: 0.7454218864440918
+Scan number 5, finished at: 4.38076639175415. Duration of Scanning: 0.8635261058807373
+Scan number 6, finished at: 5.233784914016724. Duration of Scanning: 0.8530185222625732
+Scan number 7, finished at: 6.101054430007935. Duration of Scanning: 0.8672695159912109
+Scan number 8, finished at: 6.981314420700073. Duration of Scanning: 0.8802599906921387
+Scan number 9, finished at: 7.801825046539307. Duration of Scanning: 0.8205106258392334
+Scan number 10, finished at: 8.65474557876587. Duration of Scanning: 0.8529205322265625
+Scan number 11, finished at: 9.396520614624023. Duration of Scanning: 0.7417750358581543
+Scan number 12, finished at: 10.176178693771362. Duration of Scanning: 0.7796580791473389
+Scan number 13, finished at: 10.961385250091553. Duration of Scanning: 0.7852065563201904
+Scan number 14, finished at: 11.732157945632935. Duration of Scanning: 0.7707726955413818
+Scan number 15, finished at: 12.415590524673462. Duration of Scanning: 0.6834325790405273
+Scan number 16, finished at: 13.209795713424683. Duration of Scanning: 0.7942051887512207
+Scan number 17, finished at: 14.031583070755005. Duration of Scanning: 0.8217873573303223
+Scan number 18, finished at: 14.816727638244629. Duration of Scanning: 0.785144567489624
+Scan number 19, finished at: 15.654205560684204. Duration of Scanning: 0.8374779224395752
+Scan number 20, finished at: 16.404943704605103. Duration of Scanning: 0.7507381439208984
+Scan number 21, finished at: 17.11883854866028. Duration of Scanning: 0.7138948440551758
+Scan number 22, finished at: 17.870901346206665. Duration of Scanning: 0.7520627975463867
+Scan number 23, finished at: 18.714730501174927. Duration of Scanning: 0.8438291549682617
+Scan number 24, finished at: 19.504090309143066. Duration of Scanning: 0.7893598079681396
+Scan number 25, finished at: 20.244318962097168. Duration of Scanning: 0.7402286529541016
+Scan number 26, finished at: 21.057029247283936. Duration of Scanning: 0.8127102851867676
+Scan number 27, finished at: 21.903379201889038. Duration of Scanning: 0.8463499546051025
+Scan number 28, finished at: 22.65165686607361. Duration of Scanning: 0.7482776641845703
+Scan number 29, finished at: 23.356444597244263. Duration of Scanning: 0.7047877311706543
+Scan number 30, finished at: 24.147895574569702. Duration of Scanning: 0.7914509773254395
+Scan number 31, finished at: 24.949891328811646. Duration of Scanning: 0.8019957542419434
+Scan number 32, finished at: 25.708597660064697. Duration of Scanning: 0.7587063312530518
+Scan number 33, finished at: 26.483487606048584. Duration of Scanning: 0.7748899459838867
+Scan number 34, finished at: 27.288668632507324. Duration of Scanning: 0.8051810264587402
+Scan number 35, finished at: 28.023478746414185. Duration of Scanning: 0.7348101139068604
+Scan number 36, finished at: 28.740762948989868. Duration of Scanning: 0.7172842025756836
+Scan number 37, finished at: 29.623106002807617. Duration of Scanning: 0.882343053817749
+Scan number 38, finished at: 30.44195032119751. Duration of Scanning: 0.8188443183898926
+Scan number 39, finished at: 31.23728632926941. Duration of Scanning: 0.7953360080718994
+Scan number 40, finished at: 32.0384840965271. Duration of Scanning: 0.8011977672576904
+Scan number 41, finished at: 32.80249905586243. Duration of Scanning: 0.7640149593353271
+Scan number 42, finished at: 33.597411155700684. Duration of Scanning: 0.7949120998382568
+Scan number 43, finished at: 34.29811978340149. Duration of Scanning: 0.7007086277008057
+Scan number 44, finished at: 35.095537424087524. Duration of Scanning: 0.7974176406860352
+Scan number 45, finished at: 35.88676738739014. Duration of Scanning: 0.7912299633026123
+Scan number 46, finished at: 36.738821506500244. Duration of Scanning: 0.8520541191101074
+Scan number 47, finished at: 37.6268265247345. Duration of Scanning: 0.8880050182342529
+Scan number 48, finished at: 38.49513864517212. Duration of Scanning: 0.8683121204376221
+Scan number 49, finished at: 39.29751944541931. Duration of Scanning: 0.8023808002471924
+Scan number 50, finished at: 40.066356897354126. Duration of Scanning: 0.7688374519348145
+Scan number 51, finished at: 40.901771783828735. Duration of Scanning: 0.8354148864746094
+Scan number 52, finished at: 41.67877125740051. Duration of Scanning: 0.7769994735717773
+Scan number 53, finished at: 42.38565278053284. Duration of Scanning: 0.7068815231323242
+Scan number 54, finished at: 43.1274573802948. Duration of Scanning: 0.7418045997619629
+Scan number 55, finished at: 43.939576387405396. Duration of Scanning: 0.8121190071105957
+Scan number 56, finished at: 44.714754581451416. Duration of Scanning: 0.7751781940460205
+Scan number 57, finished at: 45.46954035758972. Duration of Scanning: 0.7547857761383057
+Scan number 58, finished at: 46.281514406204224. Duration of Scanning: 0.811974048614502
+Scan number 59, finished at: 47.10409092903137. Duration of Scanning: 0.8225765228271484
+Scan number 60, finished at: 47.86555218696594. Duration of Scanning: 0.7614612579345703
+Scan number 61, finished at: 48.66018462181091. Duration of Scanning: 0.7946324348449707
+Scan number 62, finished at: 49.48441243171692. Duration of Scanning: 0.8242278099060059
+Scan number 63, finished at: 50.254239559173584. Duration of Scanning: 0.769827127456665
+Scan number 64, finished at: 50.9956316947937. Duration of Scanning: 0.7413921356201172
+Scan number 65, finished at: 51.78341221809387. Duration of Scanning: 0.7877805233001709
+Scan number 66, finished at: 52.535438776016235. Duration of Scanning: 0.7520265579223633
+Scan number 67, finished at: 53.2916841506958. Duration of Scanning: 0.7562453746795654
+Scan number 68, finished at: 54.08910608291626. Duration of Scanning: 0.797421932220459
+Scan number 69, finished at: 54.840129375457764. Duration of Scanning: 0.7510232925415039
+Scan number 70, finished at: 55.6215546131134. Duration of Scanning: 0.7814252376556396
+Scan number 71, finished at: 56.371564626693726. Duration of Scanning: 0.7500100135803223
+Scan number 72, finished at: 57.17294907569885. Duration of Scanning: 0.801384449005127
+Scan number 73, finished at: 57.921895027160645. Duration of Scanning: 0.748945951461792
+Scan number 74, finished at: 58.65685224533081. Duration of Scanning: 0.734957218170166
+Scan number 75, finished at: 59.47175168991089. Duration of Scanning: 0.8148994445800781
+Scan number 76, finished at: 60.315521240234375. Duration of Scanning: 0.8437695503234863
