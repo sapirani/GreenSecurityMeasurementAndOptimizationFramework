@@ -256,13 +256,36 @@ def save_general_information_before_scanning():
         f.write('\n\n')
 
 
+def convert_mwh_to_other_metrics(amount_of_mwh):
+    kwh_to_mwh = 1e6
+    # link: https://www.epa.gov/energy/greenhouse-gases-equivalencies-calculator-calculations-and-references
+    co2 = (0.709 * amount_of_mwh) / kwh_to_mwh                            # 1 kwh = 0.709 kg co2
+    coal_burned = (0.453592 * 0.784 * amount_of_mwh) / kwh_to_mwh         # 1 kwh = 0.784 pound coal
+    number_of_smartphones_charged = (86.2 * amount_of_mwh) / kwh_to_mwh   # 1 kwh = 86.2 smartphones
+
+    # the following are pretty much the same. Maybe should consider utilization when converting from heat to electricity
+    # link: https://www.cs.mcgill.ca/~rwest/wikispeedia/wpcd/wp/w/Wood_fuel.htm
+    # link: https://www3.uwsp.edu/cnr-ap/KEEP/Documents/Activities/Energy%20Fact%20Sheets/FactsAboutWood.pdf
+    # link: https://stwww1.weizmann.ac.il/energy/%D7%AA%D7%9B%D7%95%D7%9C%D7%AA-%D7%94%D7%90%D7%A0%D7%A8%D7%92%D7%99%D7%94-%D7%A9%D7%9C-%D7%93%D7%9C%D7%A7%D7%99%D7%9D/
+    kg_of_woods_burned = amount_of_mwh / (3.5 * kwh_to_mwh)
+
+    return co2, coal_burned, number_of_smartphones_charged, kg_of_woods_burned
+
+
 def save_general_information_after_scanning():
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
         f.write('======After Scanning======\n')
         save_general_disk(f)
 
         f.write('\n------Battery------\n')
-        f.write('Amount of Battery Drop: %d mWh\n' % calc_delta_capacity())
+        battery_drop = calc_delta_capacity()
+        f.write(f'Amount of Battery Drop: {battery_drop} mWh\n')
+        f.write('Approximately equivalent to -\n')
+        conversions = convert_mwh_to_other_metrics(battery_drop)
+        f.write(f'  CO2 emission: {conversions[0]} kg\n')
+        f.write(f'  Coal burned: {conversions[1]} kg\n')
+        f.write(f'  Number of smartphone charged: {conversions[2]}\n')
+        f.write(f'  Kilograms of wood burned: {conversions[3]}\n')
 
         f.write('\n------Scanning Times------\n')
         f.write(f'Scan number 1, finished at: {finished_scanning_time[0]}\n')
