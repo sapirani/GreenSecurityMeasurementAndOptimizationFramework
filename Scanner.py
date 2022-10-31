@@ -290,15 +290,16 @@ def save_general_information_after_scanning():
         f.write('======After Scanning======\n')
         save_general_disk(f)
 
-        f.write('\n------Battery------\n')
-        battery_drop = calc_delta_capacity()
-        f.write(f'Amount of Battery Drop: {battery_drop} mWh\n')
-        f.write('Approximately equivalent to -\n')
-        conversions = convert_mwh_to_other_metrics(battery_drop)
-        f.write(f'  CO2 emission: {conversions[0]} kg\n')
-        f.write(f'  Coal burned: {conversions[1]} kg\n')
-        f.write(f'  Number of smartphone charged: {conversions[2]}\n')
-        f.write(f'  Kilograms of wood burned: {conversions[3]}\n')
+        if not battery_df.empty:
+            f.write('\n------Battery------\n')
+            battery_drop = calc_delta_capacity()
+            f.write(f'Amount of Battery Drop: {battery_drop} mWh\n')
+            f.write('Approximately equivalent to -\n')
+            conversions = convert_mwh_to_other_metrics(battery_drop)
+            f.write(f'  CO2 emission: {conversions[0]} kg\n')
+            f.write(f'  Coal burned: {conversions[1]} kg\n')
+            f.write(f'  Number of smartphone charged: {conversions[2]}\n')
+            f.write(f'  Kilograms of wood burned: {conversions[3]}\n')
 
         if not scan_option == ScanMode.NO_SCAN:
             f.write('\n------Scanning Times------\n')
