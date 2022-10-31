@@ -25,7 +25,7 @@ MINUTE = 60
 
 # ======= Program Parameters =======
 power_plan = PowerPlan.BALANCED
-scan_option = ScanMode.NO_SCAN
+scan_option = ScanMode.ONE_SCAN
 scan_type = ScanType.QUICK_SCAN
 custom_scan_path = r""   # relevant only for custom scans. On other types, must be empty
 MINIMUM_DELTA_CAPACITY = 20

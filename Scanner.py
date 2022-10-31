@@ -302,10 +302,12 @@ def save_general_information_after_scanning():
 
         if not scan_option == ScanMode.NO_SCAN:
             f.write('\n------Scanning Times------\n')
-            f.write(f'Scan number 1, finished at: {finished_scanning_time[0]}\n')
+            f.write(f'Scan number 1, finished at: {finished_scanning_time[0]} seconds, '
+                    f'{finished_scanning_time[0] / 60} minutes\n')
             for i, scan_time in enumerate(finished_scanning_time[1:]):
                 f.write(f'Scan number {i + 2}, finished at: {scan_time}.'
-                        f' Duration of Scanning: {scan_time - finished_scanning_time[i]}\n')
+                        f' Duration of Scanning: {scan_time - finished_scanning_time[i]} seconds, '
+                        f'{(scan_time - finished_scanning_time[i]) / 60} minutes\n')
 
 
 def save_results_to_files():
@@ -313,7 +315,8 @@ def save_results_to_files():
     processes_df.iloc[:-1, :].to_csv(PROCESSES_CSV, index=False)
     memory_df.iloc[:-1, :].to_csv(TOTAL_MEMORY_EACH_MOMENT_CSV, index=False)
     disk_io_each_moment_df.iloc[:-1, :].to_csv(DISK_IO_EACH_MOMENT, index=False)
-    battery_df.iloc[:-1, :].to_csv(BATTERY_STATUS_CSV, index=False)
+    if not battery_df.empty:
+        battery_df.iloc[:-1, :].to_csv(BATTERY_STATUS_CSV, index=False)
     cpu_df.iloc[:-1, :].to_csv(TOTAL_CPU_CSV, index=False)
 
 
