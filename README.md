@@ -2,7 +2,14 @@
 
 The main goal of this project is to understand the energy consumption of different anti virus scans, on each of the hardware components separately.
 This project measures various metrics of computer resource usage (such as: CPU usage, memory, disk and battery) while running anti virus scans. 
-We measure the resource usage of the whole system, and of each process separately.
+We measure the resource usage of the whole system, and of each process separately. It is possible to easily configure program parameters inside the configuration file as detailed below.
+
+## To get optimal results, make sure that:
+1. any unnecessary program is closed (including backgroud procceses)
+2. all result files are closed
+3. auto brightness disabled
+4. computer does not go to sleep after an interval of time
+5. reboot computer after each measurement 
 
 ### Modes of execution
 There are 3 modes of execution:

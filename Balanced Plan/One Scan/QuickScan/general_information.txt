@@ -1,0 +1,45 @@
+======System Information======
+System: Windows
+Node Name: DESKTOP-0PD67NE
+Release: 10
+Version: 10.0.22000
+Machine: AMD64
+Processor: Intel64 Family 6 Model 140 Stepping 1, GenuineIntel
+
+----CPU Information----
+Physical cores: 4
+Total cores: 8
+Max Frequency: 2803.00MHz
+Min Frequency: 0.00MHz
+
+======Before Scanning======
+----Battery----
+Battery 0 Design Capacity: 0 mWh
+Battery 0 Fully Charged Capacity: 72450 mWh
+
+----Disk----
++-----------+----------+---------------+------------+
+| Total(GB) | Used(GB) | Available(GB) | Percentage |
++-----------+----------+---------------+------------+
+|  952.622  | 178.506  |    774.116    |    18.7    |
++-----------+----------+---------------+------------+
+
+
+======After Scanning======
+----Disk----
++-----------+----------+---------------+------------+
+| Total(GB) | Used(GB) | Available(GB) | Percentage |
++-----------+----------+---------------+------------+
+|  952.622  | 178.507  |    774.115    |    18.7    |
++-----------+----------+---------------+------------+
+
+------Battery------
+Amount of Battery Drop: 150.0 mWh
+Approximately equivalent to -
+  CO2 emission: 0.00010635 kg
+  Coal burned: 5.33424192e-05 kg
+  Number of smartphone charged: 0.01293
+  Kilograms of wood burned: 4.2857142857142856e-05
+
+------Scanning Times------
+Scan number 1, finished at: 55.134730100631714

@@ -206,6 +206,13 @@ def continuously_measure():
 
 
 def save_general_battery(f):
+    battery = psutil.sensors_battery()
+    if battery is None:  # if desktop computer (has no battery)
+        return
+
+    if battery.power_plugged:
+        raise Exception("Unplug charging cable during measurements!")
+
     f.write("----Battery----\n")
     c = wmi.WMI()
     t = wmi.WMI(moniker="//./root/wmi")
@@ -371,6 +378,10 @@ def main():
     if not can_proceed_towards_measurements():
         print("Exiting program")
         return
+
+    battery = psutil.sensors_battery()
+    if battery is not None and battery.power_plugged:  # ensure that charging cable is unplugged in laptop
+        raise Exception("Unplug charging cable during measurements!")
 
     change_power_plan()
 
