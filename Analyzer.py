@@ -69,7 +69,7 @@ def draw_grouped_dataframe(df, graph_name, x_info, y_info, total_path=DEFAULT, t
 
     for group_name, group in df:
         proc_name = group_name[1]
-        group.plot(y=y_info.axis, ax=ax, label=proc_name, linewidth=(5 if proc_name == ANTIVIRUS_PROCESS_NAME or
+        group.plot(y=y_info.axis, ax=ax, label=proc_name, linewidth=(5 if proc_name == ANTIVIRUS_PROCESS_NAME and
                                                                           scan_option != ScanMode.NO_SCAN
                                                                      else 2))
 
