@@ -122,10 +122,9 @@ def save_current_processes_statistics(prev_io_per_process):
         except psutil.NoSuchProcess:
             pass
 
-    top_list = sorted(top.items(), key=lambda x: x[1])[-20:]
-    top_list.reverse()
+    sorted_list = sorted(top.items(), key=lambda x: x[1], reverse=True)
 
-    return add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process)
+    return add_to_processes_dataframe(time_of_sample, sorted_list, prev_io_per_process)
 
 
 def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
