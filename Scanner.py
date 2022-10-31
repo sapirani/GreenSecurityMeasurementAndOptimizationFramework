@@ -301,7 +301,12 @@ def save_general_information_after_scanning():
             f.write(f'  Number of smartphone charged: {conversions[2]}\n')
             f.write(f'  Kilograms of wood burned: {conversions[3]}\n')
 
-        if not scan_option == ScanMode.NO_SCAN:
+        if scan_option == ScanMode.NO_SCAN:
+            measurement_time = calc_time_interval()
+            f.write(f'Measurement duration: {measurement_time} seconds, '
+                    f'{measurement_time / 60} minutes\n')
+
+        else:
             f.write('\n------Scanning Times------\n')
             f.write(f'Scan number 1, finished at: {finished_scanning_time[0]} seconds, '
                     f'{finished_scanning_time[0] / 60} minutes\n')
@@ -309,6 +314,7 @@ def save_general_information_after_scanning():
                 f.write(f'Scan number {i + 2}, finished at: {scan_time}.'
                         f' Duration of Scanning: {scan_time - finished_scanning_time[i]} seconds, '
                         f'{(scan_time - finished_scanning_time[i]) / 60} minutes\n')
+
 
 
 def save_results_to_files():
