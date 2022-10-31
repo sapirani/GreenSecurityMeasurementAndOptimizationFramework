@@ -24,7 +24,7 @@ class ScanType:
 MINUTE = 60
 
 # ======= Program Parameters =======
-power_plan = PowerPlan.BALANCED
+power_plan = PowerPlan.HIGH_PERFORMANCE
 scan_option = ScanMode.ONE_SCAN
 scan_type = ScanType.QUICK_SCAN
 custom_scan_path = r""   # relevant only for custom scans. On other types, must be empty

@@ -379,6 +379,16 @@ def can_proceed_towards_measurements():
         return True
 
 
+def disable_sleep_and_turning_off_screen():
+    result_screen = subprocess.run(["powershell", "-Command", "powercfg /Change monitor-timeout-dc 0"], capture_output=True)
+    if result_screen.returncode != 0:
+        raise Exception(f'An error occurred while changing turning off the screen to never', result_screen.stderr)
+
+    result_sleep_mode = subprocess.run(["powershell", "-Command", "powercfg /Change standby-timeout-dc 0"],
+                                       capture_output=True)
+    if result_sleep_mode.returncode != 0:
+        raise Exception(f'An error occurred while disabling sleep mode', result_sleep_mode.stderr)
+
 def main():
     print("======== Process Monitor ========")
 
@@ -391,6 +401,8 @@ def main():
         raise Exception("Unplug charging cable during measurements!")
 
     change_power_plan()
+    
+    disable_sleep_and_turning_off_screen()
 
     psutil.cpu_percent()  # first call is meaningless
 
