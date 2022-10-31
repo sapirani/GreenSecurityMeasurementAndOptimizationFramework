@@ -303,7 +303,7 @@ def save_general_information_after_scanning():
 
         if scan_option == ScanMode.NO_SCAN:
             measurement_time = calc_time_interval()
-            f.write(f'Measurement duration: {measurement_time} seconds, '
+            f.write(f'\nMeasurement duration: {measurement_time} seconds, '
                     f'{measurement_time / 60} minutes\n')
 
         else:
