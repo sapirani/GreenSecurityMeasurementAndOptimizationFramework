@@ -41,7 +41,7 @@ def design_and_plot(x_info, y_info, graph_name, total_path=DEFAULT, total_index=
     plt.rc('legend', fontsize=6)  # Set the legend font size
     plt.xticks(fontsize=8, color='darkgray')  # change x ticks color
     plt.yticks(fontsize=8, color='darkgray')  # change y ticks color
-    plt.rcParams["figure.figsize"] = (10, 5)  # change figure size
+    plt.rcParams["figure.figsize"] = (9, 5)  # change figure size
 
     # save graph as picture
     plt.savefig(os.path.join(GRAPHS_DIR, graph_name))
@@ -63,7 +63,7 @@ def check_plot(ax, total_path=DEFAULT, total_index=DEFAULT, total_column=DEFAULT
 
 def draw_grouped_dataframe(df, graph_name, x_info, y_info, total_path=DEFAULT, total_index=DEFAULT,
                            total_column=DEFAULT):
-    fig, ax = plt.subplots(figsize=(15, 6))
+    fig, ax = plt.subplots(figsize=(9, 5))
 
     check_plot(ax, total_path, total_index, total_column)
 
@@ -213,21 +213,19 @@ def display_antivirus_and_total_memory(x, y, antivirus_df):
 
 def main():
     # battery table
-    #display_battery_graphs()
+    display_battery_graphs()
 
     # total cpu table
-    #display_cpu_graphs()
+    display_cpu_graphs()
 
     # total memory table
-    #display_memory_graphs()
+    display_memory_graphs()
 
     # total disk io table
-    #display_disk_io_graphs()
+    display_disk_io_graphs()
 
     # processes table
     display_processes_graphs()
-
-    #display_antivirus_and_memory()
 
 
 if __name__ == '__main__':
