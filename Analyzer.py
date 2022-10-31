@@ -213,7 +213,8 @@ def display_antivirus_and_total_memory(x, y, antivirus_df):
 
 def main():
     # battery table
-    display_battery_graphs()
+    if os.path.exists(BATTERY_STATUS_CSV):
+        display_battery_graphs()
 
     # total cpu table
     display_cpu_graphs()
