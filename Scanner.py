@@ -293,9 +293,9 @@ def save_general_information_after_scanning():
         if not battery_df.empty:
             f.write('\n------Battery------\n')
             battery_drop = calc_delta_capacity()
-            f.write(f'Amount of Battery Drop: {battery_drop} mWh\n')
+            f.write(f'Amount of Battery Drop: {battery_drop[0]} mWh, {battery_drop[1]}%\n')
             f.write('Approximately equivalent to -\n')
-            conversions = convert_mwh_to_other_metrics(battery_drop)
+            conversions = convert_mwh_to_other_metrics(battery_drop[0])
             f.write(f'  CO2 emission: {conversions[0]} kg\n')
             f.write(f'  Coal burned: {conversions[1]} kg\n')
             f.write(f'  Number of smartphone charged: {conversions[2]}\n')
@@ -326,14 +326,17 @@ def calc_delta_capacity():
         return 0
     before_scanning_capacity = battery_df.iloc[0].at[BatteryColumns.CAPACITY]
     current_capacity = battery_df.iloc[len(battery_df) - 1].at[BatteryColumns.CAPACITY]
-    return before_scanning_capacity - current_capacity
+
+    before_scanning_percent = battery_df.iloc[0].at[BatteryColumns.PERCENTS]
+    current_capacity_percent = battery_df.iloc[len(battery_df) - 1].at[BatteryColumns.PERCENTS]
+    return before_scanning_capacity - current_capacity, before_scanning_percent - current_capacity_percent
 
 
 def is_delta_capacity_achieved():
     if psutil.sensors_battery() is None:  # if desktop computer (has no battery)
         return True
 
-    return calc_delta_capacity() >= MINIMUM_DELTA_CAPACITY
+    return calc_delta_capacity()[0] >= MINIMUM_DELTA_CAPACITY
 
 
 def change_power_plan():
