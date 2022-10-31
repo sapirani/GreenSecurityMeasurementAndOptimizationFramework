@@ -48,7 +48,7 @@ if scan_type == ScanType.CUSTOM_SCAN:
 # ======= Result Data Paths =======
 def calc_dir():
     if scan_option == ScanMode.NO_SCAN:
-        return os.path.join(power_plan_name, 'No Scan', scan_type)
+        return os.path.join(power_plan_name, 'No Scan')
     elif scan_option == ScanMode.ONE_SCAN:
         return os.path.join(power_plan_name, 'One Scan', scan_type)
     else:
