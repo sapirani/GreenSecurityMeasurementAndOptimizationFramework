@@ -301,11 +301,12 @@ def save_general_information_after_scanning():
         f.write(f'  Number of smartphone charged: {conversions[2]}\n')
         f.write(f'  Kilograms of wood burned: {conversions[3]}\n')
 
-        f.write('\n------Scanning Times------\n')
-        f.write(f'Scan number 1, finished at: {finished_scanning_time[0]}\n')
-        for i, scan_time in enumerate(finished_scanning_time[1:]):
-            f.write(f'Scan number {i + 2}, finished at: {scan_time}.'
-                    f' Duration of Scanning: {scan_time - finished_scanning_time[i]}\n')
+        if not scan_option == ScanMode.NO_SCAN:
+            f.write('\n------Scanning Times------\n')
+            f.write(f'Scan number 1, finished at: {finished_scanning_time[0]}\n')
+            for i, scan_time in enumerate(finished_scanning_time[1:]):
+                f.write(f'Scan number {i + 2}, finished at: {scan_time}.'
+                        f' Duration of Scanning: {scan_time - finished_scanning_time[i]}\n')
 
 
 def save_results_to_files():
