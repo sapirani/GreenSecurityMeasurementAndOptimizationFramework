@@ -27,6 +27,9 @@ SYSTEM_IDLE_PID = 0
 YES_BUTTON = 6
 NO_BUTTON = 7
 
+NEVER_TURN_SCREEN_OFF = 0
+NEVER_GO_TO_SLEEP_MODE = 0
+
 # ======= Program Global Parameters =======
 done_scanning = False
 starting_time = time.time()
@@ -320,7 +323,6 @@ def save_general_information_after_scanning():
                         f'{(scan_time - finished_scanning_time[i]) / 60} minutes\n')
 
 
-
 def save_results_to_files():
     save_general_information_after_scanning()
     processes_df.iloc[:-1, :].to_csv(PROCESSES_CSV, index=False)
@@ -349,10 +351,10 @@ def is_delta_capacity_achieved():
     return calc_delta_capacity()[0] >= MINIMUM_DELTA_CAPACITY
 
 
-def change_power_plan():
-    result = subprocess.run(["powershell", "-Command", "powercfg /s " + power_plan_guid], capture_output=True)
+def change_power_plan(name=balanced_power_plan_name, guid=balanced_power_plan_guid):
+    result = subprocess.run(["powershell", "-Command", "powercfg /s " + guid], capture_output=True)
     if result.returncode != 0:
-        raise Exception(f'An error occurred while switching to the power plan: {power_plan_name}', result.stderr)
+        raise Exception(f'An error occurred while switching to the power plan: {name}', result.stderr)
 
 
 def scan_and_measure():
@@ -389,15 +391,18 @@ def can_proceed_towards_measurements():
         return True
 
 
-def disable_sleep_and_turning_off_screen():
-    result_screen = subprocess.run(["powershell", "-Command", "powercfg /Change monitor-timeout-dc 0"], capture_output=True)
+def change_sleep_and_turning_screen_off_settings(screen_time=DEFAULT_SCREEN_TURNS_OFF_TIME,
+                                                 sleep_time=DEFAULT_TIME_BEFORE_SLEEP_MODE):
+    result_screen = subprocess.run(["powershell", "-Command", f"powercfg /Change monitor-timeout-dc {screen_time}"],
+                                   capture_output=True)
     if result_screen.returncode != 0:
         raise Exception(f'An error occurred while changing turning off the screen to never', result_screen.stderr)
 
-    result_sleep_mode = subprocess.run(["powershell", "-Command", "powercfg /Change standby-timeout-dc 0"],
+    result_sleep_mode = subprocess.run(["powershell", "-Command", f"powercfg /Change standby-timeout-dc {sleep_time}"],
                                        capture_output=True)
     if result_sleep_mode.returncode != 0:
         raise Exception(f'An error occurred while disabling sleep mode', result_sleep_mode.stderr)
+
 
 def main():
     print("======== Process Monitor ========")
@@ -410,9 +415,9 @@ def main():
     if battery is not None and battery.power_plugged:  # ensure that charging cable is unplugged in laptop
         raise Exception("Unplug charging cable during measurements!")
 
-    change_power_plan()
+    change_power_plan(chosen_power_plan_name, chosen_power_plan_guid)
     
-    disable_sleep_and_turning_off_screen()
+    change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
 
     psutil.cpu_percent()  # first call is meaningless
 
@@ -421,6 +426,10 @@ def main():
     scan_and_measure()
 
     save_results_to_files()
+
+    change_power_plan()     # return to balanced
+
+    change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
 
     print("Finished scanning")
 

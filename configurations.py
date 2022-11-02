@@ -24,17 +24,23 @@ class ScanType:
 MINUTE = 60
 
 # ======= Program Parameters =======
-power_plan = PowerPlan.BALANCED
+power_plan = PowerPlan.HIGH_PERFORMANCE
 scan_option = ScanMode.NO_SCAN
-scan_type = ScanType.FULL_SCAN
+scan_type = ScanType.FULL_SCAN  # relevant only for one scan or continuous scan
 custom_scan_path = r""   # relevant only for custom scans. On other types, must be empty
 MINIMUM_DELTA_CAPACITY = 20
 MINIMUM_SCAN_TIME = 1 * MINUTE
 
+# return to default settings (can be costumed)
+DEFAULT_SCREEN_TURNS_OFF_TIME = 4
+DEFAULT_TIME_BEFORE_SLEEP_MODE = 4
 
 # ======= Power Plan Name and GUID (do not change) =======
-power_plan_name = power_plan[0]
-power_plan_guid = power_plan[1]
+chosen_power_plan_name = power_plan[0]
+chosen_power_plan_guid = power_plan[1]
+
+balanced_power_plan_name = PowerPlan.BALANCED[0]
+balanced_power_plan_guid = PowerPlan.BALANCED[1]
 
 # ======= Custom Scan Query (do not change) =======
 custom_scan_query = ""
@@ -48,11 +54,11 @@ if scan_type == ScanType.CUSTOM_SCAN:
 # ======= Result Data Paths =======
 def calc_dir():
     if scan_option == ScanMode.NO_SCAN:
-        return os.path.join(power_plan_name, 'No Scan')
+        return os.path.join(chosen_power_plan_name, 'No Scan')
     elif scan_option == ScanMode.ONE_SCAN:
-        return os.path.join(power_plan_name, 'One Scan', scan_type)
+        return os.path.join(chosen_power_plan_name, 'One Scan', scan_type)
     else:
-        return os.path.join(power_plan_name, 'Continuous Scan', scan_type)
+        return os.path.join(chosen_power_plan_name, 'Continuous Scan', scan_type)
 
 
 results_dir = calc_dir()
