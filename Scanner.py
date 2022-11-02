@@ -9,6 +9,7 @@ import pandas as pd
 import platform
 from configurations import *
 import ctypes
+from datetime import date
 
 
 class PreviousDiskIO:
@@ -249,6 +250,7 @@ def save_general_system_information(f):
     f.write(f"Version: {my_system.version}\n")
     f.write(f"Machine: {my_system.machine}\n")
     f.write(f"Processor: {my_system.processor}\n")
+    f.write(f"Total RAM: {psutil.virtual_memory().total / GB}\n")
 
     f.write("\n----CPU Information----\n")
     f.write(f"Physical cores: {psutil.cpu_count(logical=False)}\n")
@@ -260,6 +262,8 @@ def save_general_system_information(f):
 
 def save_general_information_before_scanning():
     with open(GENERAL_INFORMATION_FILE, 'w') as f:
+        # dd/mm/YY
+        f.write(f'Date: {date.today().strftime("%d/%m/%Y")}\n\n')
         save_general_system_information(f)
 
         f.write('\n======Before Scanning======\n')
