@@ -1,3 +1,5 @@
+import shutil
+
 import psutil
 import pythoncom
 import wmi
@@ -10,6 +12,7 @@ import platform
 from configurations import *
 import ctypes
 from datetime import date
+from pathlib import Path
 
 
 class PreviousDiskIO:
@@ -29,6 +32,9 @@ NO_BUTTON = 7
 
 NEVER_TURN_SCREEN_OFF = 0
 NEVER_GO_TO_SLEEP_MODE = 0
+
+base_dir, GRAPHS_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
+BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV = result_paths()
 
 # ======= Program Global Parameters =======
 done_scanning = False
@@ -376,13 +382,15 @@ def scan_and_measure():
 
 
 def can_proceed_towards_measurements():
-    if os.path.exists(results_dir):
+    if os.path.exists(base_dir):
 
         button_selected = message_box("Deleting Previous Results",
                                       "Running the program will override the results of the previous measurement.\n\n"
                                       "Are you sure you want to continue?", 4)
 
         if button_selected == YES_BUTTON:
+            shutil.rmtree(GRAPHS_DIR)
+            Path(GRAPHS_DIR).mkdir(parents=True, exist_ok=True)
             return True
         else:
             return False
@@ -407,16 +415,16 @@ def change_sleep_and_turning_screen_off_settings(screen_time=DEFAULT_SCREEN_TURN
 def main():
     print("======== Process Monitor ========")
 
-    if not can_proceed_towards_measurements():
-        print("Exiting program")
-        return
-
     battery = psutil.sensors_battery()
     if battery is not None and battery.power_plugged:  # ensure that charging cable is unplugged in laptop
         raise Exception("Unplug charging cable during measurements!")
 
+    if not can_proceed_towards_measurements():
+        print("Exiting program")
+        return
+
     change_power_plan(chosen_power_plan_name, chosen_power_plan_guid)
-    
+
     change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
 
     psutil.cpu_percent()  # first call is meaningless
@@ -427,7 +435,7 @@ def main():
 
     save_results_to_files()
 
-    change_power_plan()     # return to balanced
+    change_power_plan()  # return to balanced
 
     change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
 

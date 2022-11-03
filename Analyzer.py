@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from configurations import *
 
+base_dir, GRAPHS_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
+BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV = result_paths(scanner=False)
+
 
 class AxisInfo:
     def __init__(self, label, unit, axis):

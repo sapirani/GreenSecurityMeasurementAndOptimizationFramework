@@ -1,6 +1,13 @@
 from enum import Enum
 import os.path
-from pathlib import Path
+
+
+# ======= Constants =======
+GB = 2 ** 30
+MB = 2 ** 20
+KB = 2 ** 10
+NEW_MEASUREMENT = -1
+MEASUREMENT_NAME_DIR = "Measurement"
 
 
 class ScanMode(Enum):
@@ -23,13 +30,15 @@ class ScanType:
 
 MINUTE = 60
 
-# ======= Program Parameters =======
-power_plan = PowerPlan.BALANCED
+# ======= Scanner Parameters =======
+power_plan = PowerPlan.HIGH_PERFORMANCE
 scan_option = ScanMode.NO_SCAN
 scan_type = ScanType.FULL_SCAN  # relevant only for one scan or continuous scan
-custom_scan_path = r""   # relevant only for custom scans. On other types, must be empty
+custom_scan_path = r""  # relevant only for custom scans. On other types, must be empty
 MINIMUM_DELTA_CAPACITY = 20
-MINIMUM_SCAN_TIME = 20 * MINUTE
+MINIMUM_SCAN_TIME = 0.5 * MINUTE
+
+measurement_number = NEW_MEASUREMENT    # write number between 1->inf or type NEW_MEASUREMENT
 
 # return to default settings (can be costumed)
 DEFAULT_SCREEN_TURNS_OFF_TIME = 4
@@ -52,7 +61,7 @@ if scan_type == ScanType.CUSTOM_SCAN:
 
 
 # ======= Result Data Paths =======
-def calc_dir():
+def calc_base_dir():
     if scan_option == ScanMode.NO_SCAN:
         return os.path.join(chosen_power_plan_name, 'No Scan')
     elif scan_option == ScanMode.ONE_SCAN:
@@ -61,15 +70,29 @@ def calc_dir():
         return os.path.join(chosen_power_plan_name, 'Continuous Scan', scan_type)
 
 
-results_dir = calc_dir()
-GRAPHS_DIR = os.path.join(results_dir, "graphs")
+base_dir = calc_base_dir()
 
-PROCESSES_CSV = os.path.join(results_dir, 'processes_data.csv')
-TOTAL_MEMORY_EACH_MOMENT_CSV = os.path.join(results_dir, 'total_memory_each_moment.csv')
-DISK_IO_EACH_MOMENT = os.path.join(results_dir, 'disk_io_each_moment.csv')
-BATTERY_STATUS_CSV = os.path.join(results_dir, 'battery_status.csv')
-GENERAL_INFORMATION_FILE = os.path.join(results_dir, 'general_information.txt')
-TOTAL_CPU_CSV = os.path.join(results_dir, 'total_cpu.csv')
+
+def calc_measurement_number(scanner=True):
+    if measurement_number != NEW_MEASUREMENT:
+        return measurement_number
+
+    max_number = max(map(lambda dir_name: int(dir_name[len(MEASUREMENT_NAME_DIR) + 1:]), os.listdir(base_dir)))
+    return max_number + 1 if scanner else max_number
+
+
+def result_paths(scanner=True):
+    measurements_dir = os.path.join(base_dir, f"{MEASUREMENT_NAME_DIR} {calc_measurement_number(scanner)}")
+    graphs_dir = os.path.join(measurements_dir, "graphs")
+
+    processes_csv = os.path.join(measurements_dir, 'processes_data.csv')
+    total_memory_each_moment_csv = os.path.join(measurements_dir, 'total_memory_each_moment.csv')
+    disk_io_each_moment = os.path.join(measurements_dir, 'disk_io_each_moment.csv')
+    battery_status_csv = os.path.join(measurements_dir, 'battery_status.csv')
+    general_information_file = os.path.join(measurements_dir, 'general_information.txt')
+    total_cpu_csv = os.path.join(measurements_dir, 'total_cpu.csv')
+    return measurements_dir, graphs_dir, processes_csv, total_memory_each_moment_csv, disk_io_each_moment, battery_status_csv, \
+           general_information_file, total_cpu_csv
 
 
 # ======= Table Column Names =======
@@ -131,9 +154,3 @@ processes_columns_list = [
     ProcessesColumns.NUMBER_OF_THREADS, ProcessesColumns.USED_MEMORY, ProcessesColumns.MEMORY_PERCENT,
     ProcessesColumns.READ_COUNT, ProcessesColumns.WRITE_COUNT, ProcessesColumns.READ_BYTES, ProcessesColumns.WRITE_BYTES
 ]
-
-# ======= Constants =======
-GB = 2 ** 30
-MB = 2 ** 20
-KB = 2 ** 10
-
