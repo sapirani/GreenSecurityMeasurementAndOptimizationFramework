@@ -24,12 +24,12 @@ class ScanType:
 MINUTE = 60
 
 # ======= Program Parameters =======
-power_plan = PowerPlan.HIGH_PERFORMANCE
+power_plan = PowerPlan.BALANCED
 scan_option = ScanMode.NO_SCAN
 scan_type = ScanType.FULL_SCAN  # relevant only for one scan or continuous scan
 custom_scan_path = r""   # relevant only for custom scans. On other types, must be empty
 MINIMUM_DELTA_CAPACITY = 20
-MINIMUM_SCAN_TIME = 1 * MINUTE
+MINIMUM_SCAN_TIME = 20 * MINUTE
 
 # return to default settings (can be costumed)
 DEFAULT_SCREEN_TURNS_OFF_TIME = 4

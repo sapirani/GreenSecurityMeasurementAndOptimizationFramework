@@ -41,7 +41,7 @@ def design_and_plot(x_info, y_info, graph_name, total_path=DEFAULT, total_index=
     plt.rc('legend', fontsize=6)  # Set the legend font size
     plt.xticks(fontsize=8, color='darkgray')  # change x ticks color
     plt.yticks(fontsize=8, color='darkgray')  # change y ticks color
-    plt.rcParams["figure.figsize"] = (9, 5)  # change figure size
+    plt.rcParams["figure.figsize"] = (10, 5)  # change figure size
 
     # save graph as picture
     plt.savefig(os.path.join(GRAPHS_DIR, graph_name))
@@ -58,12 +58,12 @@ def check_plot(ax, total_path=DEFAULT, total_index=DEFAULT, total_column=DEFAULT
             df_total = df_total[total_column]
             df_total = df_total * KB
 
-        df_total.plot(color='black', ax=ax).legend(labels=["Total Consumption"])
+        df_total.plot(color='black', ax=ax, linewidth=1).legend(labels=["Total Consumption"])
 
 
 def draw_grouped_dataframe(df, graph_name, x_info, y_info, total_path=DEFAULT, total_index=DEFAULT,
                            total_column=DEFAULT):
-    fig, ax = plt.subplots(figsize=(9, 5))
+    fig, ax = plt.subplots(figsize=(10, 5))
 
     check_plot(ax, total_path, total_index, total_column)
 
@@ -71,7 +71,7 @@ def draw_grouped_dataframe(df, graph_name, x_info, y_info, total_path=DEFAULT, t
         proc_name = group_name[1]
         group.plot(y=y_info.axis, ax=ax, label=proc_name, linewidth=(5 if proc_name == ANTIVIRUS_PROCESS_NAME and
                                                                           scan_option != ScanMode.NO_SCAN
-                                                                     else 2))
+                                                                     else 1))
 
     design_and_plot(x_info, y_info, graph_name)
 
