@@ -1,5 +1,4 @@
 import shutil
-
 import psutil
 import pythoncom
 import wmi
@@ -293,7 +292,7 @@ def convert_mwh_to_other_metrics(amount_of_mwh):
     # link: https://www.cs.mcgill.ca/~rwest/wikispeedia/wpcd/wp/w/Wood_fuel.htm
     # link: https://www3.uwsp.edu/cnr-ap/KEEP/Documents/Activities/Energy%20Fact%20Sheets/FactsAboutWood.pdf
     # link: https://stwww1.weizmann.ac.il/energy/%D7%AA%D7%9B%D7%95%D7%9C%D7%AA-%D7%94%D7%90%D7%A0%D7%A8%D7%92%D7%99%D7%94-%D7%A9%D7%9C-%D7%93%D7%9C%D7%A7%D7%99%D7%9D/
-    kg_of_woods_burned = amount_of_mwh / (3.5 * kwh_to_mwh)
+    kg_of_woods_burned = amount_of_mwh / (3.5 * kwh_to_mwh)     # 3.5 kwh = 1 kg of wood
 
     return co2, coal_burned, number_of_smartphones_charged, kg_of_woods_burned
 

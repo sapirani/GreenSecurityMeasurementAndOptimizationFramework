@@ -32,7 +32,7 @@ MINUTE = 60
 
 # ======= Scanner Parameters =======
 power_plan = PowerPlan.HIGH_PERFORMANCE
-scan_option = ScanMode.NO_SCAN
+scan_option = ScanMode.ONE_SCAN
 scan_type = ScanType.FULL_SCAN  # relevant only for one scan or continuous scan
 custom_scan_path = r""  # relevant only for custom scans. On other types, must be empty
 MINIMUM_DELTA_CAPACITY = 20
@@ -73,16 +73,19 @@ def calc_base_dir():
 base_dir = calc_base_dir()
 
 
-def calc_measurement_number(scanner=True):
+def calc_measurement_number(is_scanner=True):
     if measurement_number != NEW_MEASUREMENT:
         return measurement_number
 
+    if not os.path.exists(base_dir):
+        return 1
+
     max_number = max(map(lambda dir_name: int(dir_name[len(MEASUREMENT_NAME_DIR) + 1:]), os.listdir(base_dir)))
-    return max_number + 1 if scanner else max_number
+    return max_number + 1 if is_scanner else max_number
 
 
-def result_paths(scanner=True):
-    measurements_dir = os.path.join(base_dir, f"{MEASUREMENT_NAME_DIR} {calc_measurement_number(scanner)}")
+def result_paths(is_scanner=True):
+    measurements_dir = os.path.join(base_dir, f"{MEASUREMENT_NAME_DIR} {calc_measurement_number(is_scanner)}")
     graphs_dir = os.path.join(measurements_dir, "graphs")
 
     processes_csv = os.path.join(measurements_dir, 'processes_data.csv')
