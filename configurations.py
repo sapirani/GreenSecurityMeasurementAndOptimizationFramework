@@ -31,14 +31,17 @@ class ScanType:
 MINUTE = 60
 
 # ======= Scanner Parameters =======
-power_plan = PowerPlan.HIGH_PERFORMANCE
-scan_option = ScanMode.ONE_SCAN
+power_plan = PowerPlan.BALANCED
+scan_option = ScanMode.NO_SCAN
 scan_type = ScanType.FULL_SCAN  # relevant only for one scan or continuous scan
 custom_scan_path = r""  # relevant only for custom scans. On other types, must be empty
 MINIMUM_DELTA_CAPACITY = 20
 MINIMUM_SCAN_TIME = 0.5 * MINUTE
 
 measurement_number = NEW_MEASUREMENT    # write number between 1->inf or type NEW_MEASUREMENT
+
+# MUST disable tamper protection manually for this feature to work
+disable_real_time_protection_during_measurement = True  # must use administrator permissions
 
 # return to default settings (can be costumed)
 DEFAULT_SCREEN_TURNS_OFF_TIME = 4

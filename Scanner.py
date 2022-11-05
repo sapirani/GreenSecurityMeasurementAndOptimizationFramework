@@ -258,14 +258,14 @@ def save_general_system_information(f):
     f.write(f"Version: {my_system.version}\n")
     f.write(f"Machine: {my_system.machine}\n")
     f.write(f"Processor: {my_system.processor}\n")
-    f.write(f"Total RAM: {psutil.virtual_memory().total / GB}\n")
+    f.write(f"Total RAM: {psutil.virtual_memory().total / GB} GB\n")
 
     f.write("\n----CPU Information----\n")
     f.write(f"Physical cores: {psutil.cpu_count(logical=False)}\n")
     f.write(f"Total cores: {psutil.cpu_count(logical=True)}\n")
     cpufreq = psutil.cpu_freq()
-    f.write(f"Max Frequency: {cpufreq.max:.2f}MHz\n")
-    f.write(f"Min Frequency: {cpufreq.min:.2f}MHz\n")
+    f.write(f"Max Frequency: {cpufreq.max:.2f} MHz\n")
+    f.write(f"Min Frequency: {cpufreq.min:.2f} MHz\n")
 
 
 def save_general_information_before_scanning():
@@ -411,6 +411,15 @@ def change_sleep_and_turning_screen_off_settings(screen_time=DEFAULT_SCREEN_TURN
         raise Exception(f'An error occurred while disabling sleep mode', result_sleep_mode.stderr)
 
 
+def change_real_time_protection(should_disable=True):
+    protection_mode = "1" if should_disable else "0"
+    result = subprocess.run(["powershell", "-Command",
+                             f'Start-Process powershell -ArgumentList("Set-MpPreference -DisableRealTimeMonitoring {protection_mode}") -Verb runAs -WindowStyle hidden'],
+                            capture_output=True)
+    if result.returncode != 0:
+        raise Exception("Could not change real time protection", result.stderr)
+
+
 def main():
     print("======== Process Monitor ========")
 
@@ -423,6 +432,9 @@ def main():
         return
 
     change_power_plan(chosen_power_plan_name, chosen_power_plan_guid)
+
+    if disable_real_time_protection_during_measurement:
+        change_real_time_protection()
 
     change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
 
@@ -437,6 +449,9 @@ def main():
     change_power_plan()  # return to balanced
 
     change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
+
+    if disable_real_time_protection_during_measurement:
+        change_real_time_protection(should_disable=False)
 
     print("Finished scanning")
 
