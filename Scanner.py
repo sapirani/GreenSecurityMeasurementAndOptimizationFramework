@@ -12,6 +12,7 @@ from configurations import *
 import ctypes
 from datetime import date
 from pathlib import Path
+import re
 
 
 class PreviousDiskIO:
@@ -292,7 +293,7 @@ def convert_mwh_to_other_metrics(amount_of_mwh):
     # link: https://www.cs.mcgill.ca/~rwest/wikispeedia/wpcd/wp/w/Wood_fuel.htm
     # link: https://www3.uwsp.edu/cnr-ap/KEEP/Documents/Activities/Energy%20Fact%20Sheets/FactsAboutWood.pdf
     # link: https://stwww1.weizmann.ac.il/energy/%D7%AA%D7%9B%D7%95%D7%9C%D7%AA-%D7%94%D7%90%D7%A0%D7%A8%D7%92%D7%99%D7%94-%D7%A9%D7%9C-%D7%93%D7%9C%D7%A7%D7%99%D7%9D/
-    kg_of_woods_burned = amount_of_mwh / (3.5 * kwh_to_mwh)     # 3.5 kwh = 1 kg of wood
+    kg_of_woods_burned = amount_of_mwh / (3.5 * kwh_to_mwh)  # 3.5 kwh = 1 kg of wood
 
     return co2, coal_burned, number_of_smartphones_charged, kg_of_woods_burned
 
@@ -388,13 +389,11 @@ def can_proceed_towards_measurements():
                                       "Are you sure you want to continue?", 4)
 
         if button_selected == YES_BUTTON:
-            shutil.rmtree(GRAPHS_DIR)
-            Path(GRAPHS_DIR).mkdir(parents=True, exist_ok=True)
+            shutil.rmtree(base_dir)       # remove previous data
             return True
         else:
             return False
     else:
-        Path(GRAPHS_DIR).mkdir(parents=True, exist_ok=True)
         return True
 
 
@@ -420,12 +419,24 @@ def change_real_time_protection(should_disable=True):
         raise Exception("Could not change real time protection", result.stderr)
 
 
+def is_tamper_protection_enabled():
+    result = subprocess.run(["powershell", "-Command", "Get-MpComputerStatus"], capture_output=True)
+    if result.returncode != 0:
+        raise Exception("Could not check if tamper protection enabled", result.stderr)
+
+    return bool(re.search("IsTamperProtected\s*:\sTrue", str(result.stdout)))
+
+
 def main():
     print("======== Process Monitor ========")
 
     battery = psutil.sensors_battery()
     if battery is not None and battery.power_plugged:  # ensure that charging cable is unplugged in laptop
         raise Exception("Unplug charging cable during measurements!")
+
+    if is_tamper_protection_enabled() and disable_real_time_protection_during_measurement:
+        raise Exception("You must disable Tamper Protection manually so that the program could control real "
+                        "time Protection")
 
     if not can_proceed_towards_measurements():
         print("Exiting program")
@@ -439,6 +450,8 @@ def main():
     change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
 
     psutil.cpu_percent()  # first call is meaningless
+
+    Path(GRAPHS_DIR).mkdir(parents=True, exist_ok=True)     # create empty dirs
 
     save_general_information_before_scanning()
 
