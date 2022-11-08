@@ -41,7 +41,7 @@ MINIMUM_SCAN_TIME = 0.5 * MINUTE
 measurement_number = 2000    # write number between 1->inf or type NEW_MEASUREMENT
 
 # MUST disable tamper protection manually for this feature to work
-disable_real_time_protection_during_measurement = False  # must use administrator permissions
+disable_real_time_protection_during_measurement = True  # must use administrator permissions
 
 screen_brightness_level = 75    # A number between 0 and 100
 
