@@ -44,3 +44,23 @@ The main components of the code:
 4. custom_scan_path - enables to choose the directory / file to scan (for Custom scan only)
 5. MINIMUM_DELTA_CAPACITY - enables to define the minimum battery drop required before the code ends. Relevant only in continuous scan mode.
 6. MINIMUM_SCAN_TIME - enables to define the minimum time required for antivirus scans before the code ends. Relevant only in continuous scan mode.
+7. measurement_number - if equals to NEW_MEASUREMENT, result will be saved in new folder. It is possible to define specific number
+8. disable_real_time_protection_during_measurement - if True, code will disable defender's real time protection during measurements and turn it on before ending. IMPORTANT - in this case, Tamper Protection MUST be turned off manually, and Scanner.py must run in admin mode
+9. screen_brightness_level - enables to define the brightness of screen - a value between 0 to 100
+
+
+## Experiment process:
+1. Disable auto brightness of the device
+2. Disable Tamper Protection (can be done once before all experiments)
+3. Change configuration.py parameters according to the experiment that you want to perform
+4. Before each measurement, restart the device
+5. Make sure that the device is connected to the internet
+6. Disconnect charging cable (code will verfiy that)
+7. Run scanner.py in admin mode (in order to permit code to disable real time protection before each measurement. The code turns it on before ending)
+8. Code will change power plan according to configuration file
+9. Code will disable real time protection
+10. Code will prevent device from sleeping and turnning off screen
+11. Code will set screen brightness according to configuration file
+12. Code will start defender scan and measure the device's resource consumption 
+13. Code will save results into files
+14. Code will back to default settings
