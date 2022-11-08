@@ -13,6 +13,7 @@ import ctypes
 from datetime import date
 from pathlib import Path
 import re
+import screen_brightness_control as sbc
 
 
 class PreviousDiskIO:
@@ -448,6 +449,8 @@ def main():
         change_real_time_protection()
 
     change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
+
+    sbc.set_brightness(screen_brightness_level)
 
     psutil.cpu_percent()  # first call is meaningless
 
