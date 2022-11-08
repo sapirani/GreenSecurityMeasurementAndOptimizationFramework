@@ -49,7 +49,7 @@ The main components of the code:
 9. screen_brightness_level - enables to define the brightness of screen - a value between 0 to 100
 
 
-## Experiment process:
+## Experiment process
 1. Disable auto brightness of the device
 2. Disable Tamper Protection (can be done once before all experiments)
 3. Change configuration.py parameters according to the experiment that you want to perform
