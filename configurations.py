@@ -38,7 +38,7 @@ custom_scan_path = r""  # relevant only for custom scans. On other types, must b
 MINIMUM_DELTA_CAPACITY = 20
 MINIMUM_SCAN_TIME = 0.5 * MINUTE
 
-measurement_number = 2000    # write number between 1->inf or type NEW_MEASUREMENT
+measurement_number = NEW_MEASUREMENT    # write number between 1->inf or type NEW_MEASUREMENT
 
 # MUST disable tamper protection manually for this feature to work
 disable_real_time_protection_during_measurement = True  # must use administrator permissions
