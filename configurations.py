@@ -1,5 +1,6 @@
 from enum import Enum
 import os.path
+import psutil
 
 
 # ======= Constants =======
@@ -8,6 +9,7 @@ MB = 2 ** 20
 KB = 2 ** 10
 NEW_MEASUREMENT = -1
 MEASUREMENT_NAME_DIR = "Measurement"
+NUMBER_OF_CORES = psutil.cpu_count()
 
 
 class ScanMode(Enum):
@@ -31,17 +33,17 @@ class ScanType:
 MINUTE = 60
 
 # ======= Scanner Parameters =======
-power_plan = PowerPlan.HIGH_PERFORMANCE
+power_plan = PowerPlan.BALANCED
 scan_option = ScanMode.NO_SCAN
 scan_type = ScanType.FULL_SCAN  # relevant only for one scan or continuous scan
 custom_scan_path = r""  # relevant only for custom scans. On other types, must be empty
 MINIMUM_DELTA_CAPACITY = 20
 MINIMUM_SCAN_TIME = 0.5 * MINUTE
 
-measurement_number = NEW_MEASUREMENT    # write number between 1->inf or type NEW_MEASUREMENT
+measurement_number = 8000    # write number between 1->inf or type NEW_MEASUREMENT
 
 # MUST disable tamper protection manually for this feature to work
-disable_real_time_protection_during_measurement = True  # must use administrator permissions
+disable_real_time_protection_during_measurement = False  # must use administrator permissions
 
 screen_brightness_level = 75    # A number between 0 and 100
 
@@ -125,10 +127,13 @@ memory_columns_list = [MemoryColumns.TIME, MemoryColumns.USED_MEMORY, MemoryColu
 
 class CPUColumns:
     TIME = "Time(sec)"
-    USED_PERCENT = "Percentage"
+    USED_PERCENT = "Total CPU(%)"
+    CORE = "Core"
 
 
-cpu_columns_list = [CPUColumns.TIME, CPUColumns.USED_PERCENT]
+cores_names_list = [f"{CPUColumns.CORE} {i}(%)" for i in range(1, NUMBER_OF_CORES + 1)]
+
+cpu_columns_list = [CPUColumns.TIME, CPUColumns.USED_PERCENT] + cores_names_list
 
 
 class DiskIOColumns:

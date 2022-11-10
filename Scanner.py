@@ -1,7 +1,7 @@
 import shutil
-import psutil
 import pythoncom
 import wmi
+from statistics import mean
 from prettytable import PrettyTable
 import subprocess
 from threading import Thread
@@ -116,26 +116,17 @@ def save_current_processes_statistics(prev_io_per_process):
         try:
             if p.pid == SYSTEM_IDLE_PID:  # ignore System Idle Process
                 continue
-            # trigger cpu_percent() the first time which leads to return of 0.0
-            p.cpu_percent()
-            proc.append(p)
+
+            # trigger cpu_percent() the first time will lead to return of 0.0
+            cpu_percent = p.cpu_percent() / NUMBER_OF_CORES
+            proc.append((p, cpu_percent))
 
         except Exception:
             pass
 
-    # sort by cpu_percent
-    top = {}
-    time.sleep(0.1)
-    for p in proc:
-        # trigger cpu_percent() the second time for measurement
-        try:
-            top[p] = p.cpu_percent() / psutil.cpu_count()
-        except psutil.NoSuchProcess:
-            pass
+    proc = sorted(proc, key=lambda x: x[1], reverse=True)
 
-    sorted_list = sorted(top.items(), key=lambda x: x[1], reverse=True)
-
-    return add_to_processes_dataframe(time_of_sample, sorted_list, prev_io_per_process)
+    return add_to_processes_dataframe(time_of_sample, proc, prev_io_per_process)
 
 
 def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
@@ -148,10 +139,11 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
             with p.oneshot():
                 io_stat = p.io_counters()
 
-                if p.pid not in prev_io_per_process:
-                    prev_io_per_process[p.pid] = PreviousDiskIO(io_stat)
+                if (p.pid, p.name) not in prev_io_per_process:
+                    prev_io_per_process[(p.pid, p.name)] = PreviousDiskIO(io_stat)
+                    continue    # remove first sample of process (because cpu_percent is meaningless 0)
 
-                prev_io = prev_io_per_process[p.pid]
+                prev_io = prev_io_per_process[(p.pid, p.name)]
 
                 # TODO - does io_counters return only disk operations or all io operations (include network etc..)
                 processes_df.loc[len(processes_df.index)] = [
@@ -168,7 +160,7 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
                     f'{(io_stat.write_bytes - prev_io.write_bytes) / KB:.3f}',
                 ]
 
-                prev_io_per_process[p.pid] = PreviousDiskIO(io_stat)
+                prev_io_per_process[(p.pid, p.name)] = PreviousDiskIO(io_stat)
 
         except Exception:
             pass
@@ -190,10 +182,8 @@ def should_scan():
 
 
 def save_current_total_cpu():
-    cpu_df.loc[len(cpu_df.index)] = [
-        calc_time_interval(),
-        psutil.cpu_percent()
-    ]
+    total_cpu = psutil.cpu_percent(percpu=True)
+    cpu_df.loc[len(cpu_df.index)] = [calc_time_interval(), mean(total_cpu)] + total_cpu
 
 
 def continuously_measure():
@@ -264,7 +254,7 @@ def save_general_system_information(f):
 
     f.write("\n----CPU Information----\n")
     f.write(f"Physical cores: {psutil.cpu_count(logical=False)}\n")
-    f.write(f"Total cores: {psutil.cpu_count(logical=True)}\n")
+    f.write(f"Total cores: {NUMBER_OF_CORES}\n")
     cpufreq = psutil.cpu_freq()
     f.write(f"Max Frequency: {cpufreq.max:.2f} MHz\n")
     f.write(f"Min Frequency: {cpufreq.min:.2f} MHz\n")
