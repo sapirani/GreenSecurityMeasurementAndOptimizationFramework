@@ -4,7 +4,7 @@ from general_consts import *
 scan_command = ScanCommand.antivirus
 
 power_plan = PowerPlan.BALANCED
-scan_option = ScanMode.NO_SCAN
+scan_option = ScanMode.ONE_SCAN
 scan_type = ScanType.QUICK_SCAN  # relevant only for one scan or continuous scan
 custom_scan_path = r""  # relevant only for custom scans. On other types, must be empty
 

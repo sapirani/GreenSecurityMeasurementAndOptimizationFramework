@@ -81,15 +81,15 @@ def draw_grouped_dataframe(df, graph_name, x_info, y_info, total_path=DEFAULT, t
     design_and_plot(x_info, y_info, graph_name)
 
 
-def draw_dataframe(df, graph_name, x_info, y_info, column_to_emphasis=None):
-    if column_to_emphasis is not None:
-        y_info.axis.remove(column_to_emphasis)
+def draw_dataframe(df, graph_name, x_info, y_info, column_to_emphasis=None, do_subplots=False):
 
     fig, ax = plt.subplots(figsize=(10, 5))
-    df[y_info.axis].plot(ax=ax, legend=len(y_info.axis) > 1)
 
     if column_to_emphasis is not None:
-        df[column_to_emphasis].plot(ax=ax, legend=True, linewidth=5)
+        y_info.axis.remove(column_to_emphasis)
+        df[column_to_emphasis].plot(ax=ax, legend=True, linewidth=5, subplots=do_subplots, layout=(3, 3))
+
+    df[y_info.axis].plot(ax=ax, legend=len(y_info.axis) > 1, subplots=do_subplots, layout=(3, 3))
 
     design_and_plot(x_info, y_info, graph_name)
 
@@ -112,6 +112,7 @@ def display_cpu_graphs():
     cpu_df = pd.read_csv(TOTAL_CPU_CSV, index_col=CPUColumns.TIME)
     x_info = AxisInfo("Time", Units.TIME, CPUColumns.TIME)
     y_info = AxisInfo("Used CPU", Units.PERCENT, cpu_df.columns.tolist())
+    draw_dataframe(cpu_df, "Total CPU Consumption", x_info, y_info, do_subplots=True)
     draw_dataframe(cpu_df, "Total CPU Consumption", x_info, y_info, column_to_emphasis=CPUColumns.USED_PERCENT)
 
 
