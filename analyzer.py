@@ -220,6 +220,7 @@ def draw_antivirus_and_total(total, antivirus, x, y, title):
 
 def display_antivirus_and_total_cpu(x, y, antivirus_df):
     total_df = pd.read_csv(TOTAL_CPU_CSV, index_col=CPUColumns.TIME)
+    total_df = total_df[CPUColumns.USED_PERCENT]
     draw_antivirus_and_total(total_df, antivirus_df, x, y, "CPU consumption - comparison")
 
 
