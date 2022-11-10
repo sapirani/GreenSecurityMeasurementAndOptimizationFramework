@@ -64,3 +64,7 @@ The main components of the code:
 12. Code will start defender scan and measure the device's resource consumption 
 13. Code will save results into files
 14. Code will back to default settings
+
+### For Developers:
+* use "git update-index --skip-worktree program_parameters.py" command to ignore changes in this file.
+* use "git update-index --no-skip-worktree program_parameters.py" command to resume tracking changes
