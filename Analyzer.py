@@ -59,6 +59,8 @@ def check_plot(ax, total_path=DEFAULT, total_index=DEFAULT, total_column=DEFAULT
 
         if total_column != DEFAULT:
             df_total = df_total[total_column]
+
+        if total_path is TOTAL_MEMORY_EACH_MOMENT_CSV:
             df_total = df_total * KB
 
         df_total.plot(color='black', ax=ax, linewidth=1).legend(labels=["Total Consumption"])
@@ -79,8 +81,17 @@ def draw_grouped_dataframe(df, graph_name, x_info, y_info, total_path=DEFAULT, t
     design_and_plot(x_info, y_info, graph_name)
 
 
-def draw_dataframe(df, graph_name, x_info, y_info):
-    df[y_info.axis].plot(legend=len(y_info.axis) > 1)
+def draw_dataframe(df, graph_name, x_info, y_info, column_to_emphasis=None):
+    cols = y_info.axis
+    if column_to_emphasis is not None:
+        y_info.axis.remove(column_to_emphasis)
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    df[y_info.axis].plot(ax=ax, legend=len(y_info.axis) > 1)
+
+    if column_to_emphasis is not None:
+        df[column_to_emphasis].plot(ax=ax, legend=True, linewidth=5)
+
     design_and_plot(x_info, y_info, graph_name)
 
 
@@ -99,10 +110,10 @@ def display_battery_graphs():
 
 
 def display_cpu_graphs():
-    memory_df = pd.read_csv(TOTAL_CPU_CSV, index_col=CPUColumns.TIME)
+    cpu_df = pd.read_csv(TOTAL_CPU_CSV, index_col=CPUColumns.TIME)
     x_info = AxisInfo("Time", Units.TIME, CPUColumns.TIME)
-    y_info = AxisInfo("Used CPU", Units.PERCENT, [CPUColumns.USED_PERCENT])
-    draw_dataframe(memory_df, "Total CPU Consumption", x_info, y_info)
+    y_info = AxisInfo("Used CPU", Units.PERCENT, cpu_df.columns.tolist())
+    draw_dataframe(cpu_df, "Total CPU Consumption", x_info, y_info, column_to_emphasis=CPUColumns.USED_PERCENT)
 
 
 def display_memory_graphs():
@@ -150,7 +161,7 @@ def display_processes_graphs():
     display_specific_processes_graph(processes_df, processes_df_grouped, ProcessesColumns.CPU_CONSUMPTION,
                                      [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME],
                                      x_info_cpu, y_info_cpu, "CPU consumption per process", TOTAL_CPU_CSV,
-                                     CPUColumns.TIME)
+                                     CPUColumns.TIME, CPUColumns.USED_PERCENT)
 
     # display Total CPU consumption and Antivirus CPU consumption
     if not scan_option == ScanMode.NO_SCAN:
