@@ -8,7 +8,7 @@ from threading import Thread
 import time
 import pandas as pd
 import platform
-from configurations import *
+from environment import *
 import ctypes
 from datetime import date
 from pathlib import Path

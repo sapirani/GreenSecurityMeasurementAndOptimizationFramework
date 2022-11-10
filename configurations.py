@@ -30,25 +30,6 @@ class ScanType:
 
 MINUTE = 60
 
-# ======= Scanner Parameters =======
-power_plan = PowerPlan.HIGH_PERFORMANCE
-scan_option = ScanMode.NO_SCAN
-scan_type = ScanType.FULL_SCAN  # relevant only for one scan or continuous scan
-custom_scan_path = r""  # relevant only for custom scans. On other types, must be empty
-MINIMUM_DELTA_CAPACITY = 20
-MINIMUM_SCAN_TIME = 0.5 * MINUTE
-
-measurement_number = NEW_MEASUREMENT    # write number between 1->inf or type NEW_MEASUREMENT
-
-# MUST disable tamper protection manually for this feature to work
-disable_real_time_protection_during_measurement = True  # must use administrator permissions
-
-screen_brightness_level = 75    # A number between 0 and 100
-
-# return to default settings (can be costumed)
-DEFAULT_SCREEN_TURNS_OFF_TIME = 4
-DEFAULT_TIME_BEFORE_SLEEP_MODE = 4
-
 # ======= Power Plan Name and GUID (do not change) =======
 chosen_power_plan_name = power_plan[0]
 chosen_power_plan_guid = power_plan[1]
