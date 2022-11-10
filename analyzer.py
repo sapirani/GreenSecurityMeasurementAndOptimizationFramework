@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-from configurations import *
+from initialization_helper import *
 
 base_dir, GRAPHS_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
-BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV = result_paths(is_scanner=False)
+    BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV = result_paths(is_scanner=False)
 
 
 class AxisInfo:
@@ -28,7 +28,7 @@ DEFAULT = "default"
 ANTIVIRUS_PROCESS_NAME = "MsMpEng.exe"
 
 
-def design_and_plot(x_info, y_info, graph_name, total_path=DEFAULT, total_index=DEFAULT, total_column=DEFAULT):
+def design_and_plot(x_info, y_info, graph_name):
     # naming the x-axis
     plt.xlabel(x_info.label + " (in " + x_info.unit + ")", color='crimson', labelpad=10, fontname="Comic Sans MS")
 
@@ -36,7 +36,7 @@ def design_and_plot(x_info, y_info, graph_name, total_path=DEFAULT, total_index=
     plt.ylabel(y_info.label + " (in " + y_info.unit + ")", color='crimson', labelpad=10,
                fontname="Comic Sans MS")  # naming the y-axis
 
-    # giving a title to the graph, changing it's font, size and color
+    # giving a title to the graph, changing its font, size and color
     plt.title(graph_name, color="darkblue", fontsize=20, fontname="Times New Roman", fontweight="bold")
 
     # design graph
@@ -75,14 +75,13 @@ def draw_grouped_dataframe(df, graph_name, x_info, y_info, total_path=DEFAULT, t
     for group_name, group in df:
         proc_name = group_name[1]
         group.plot(y=y_info.axis, ax=ax, label=proc_name, linewidth=(5 if proc_name == ANTIVIRUS_PROCESS_NAME and
-                                                                          scan_option != ScanMode.NO_SCAN
+                                                                     scan_option != ScanMode.NO_SCAN
                                                                      else 1))
 
     design_and_plot(x_info, y_info, graph_name)
 
 
 def draw_dataframe(df, graph_name, x_info, y_info, column_to_emphasis=None):
-    cols = y_info.axis
     if column_to_emphasis is not None:
         y_info.axis.remove(column_to_emphasis)
 

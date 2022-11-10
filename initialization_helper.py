@@ -1,36 +1,5 @@
-from enum import Enum
 import os.path
-import psutil
-
-
-# ======= Constants =======
-GB = 2 ** 30
-MB = 2 ** 20
-KB = 2 ** 10
-NEW_MEASUREMENT = -1
-MEASUREMENT_NAME_DIR = "Measurement"
-NUMBER_OF_CORES = psutil.cpu_count()
-
-
-class ScanMode(Enum):
-    NO_SCAN = 1
-    ONE_SCAN = 2
-    CONTINUOUS_SCAN = 3
-
-
-class PowerPlan:
-    BALANCED = ("Balanced Plan", "381b4222-f694-41f0-9685-ff5bb260df2e")
-    POWER_SAVER = ("Power Saver Plan", "a1841308-3541-4fab-bc81-f71556f20b4a")
-    HIGH_PERFORMANCE = ("High Performance Plan", "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c")
-
-
-class ScanType:
-    FULL_SCAN = "FullScan"
-    QUICK_SCAN = "QuickScan"
-    CUSTOM_SCAN = "CustomScan"
-
-
-MINUTE = 60
+from program_parameters import *
 
 # ======= Power Plan Name and GUID (do not change) =======
 chosen_power_plan_name = power_plan[0]
@@ -38,14 +7,6 @@ chosen_power_plan_guid = power_plan[1]
 
 balanced_power_plan_name = PowerPlan.BALANCED[0]
 balanced_power_plan_guid = PowerPlan.BALANCED[1]
-
-# ======= Custom Scan Query (do not change) =======
-custom_scan_query = ""
-if scan_type != ScanType.CUSTOM_SCAN and custom_scan_path != "":
-    raise Exception("scan_type must be empty when running scans other than custom scan")
-
-if scan_type == ScanType.CUSTOM_SCAN:
-    custom_scan_query = f" -ScanPath {custom_scan_path}"
 
 
 # ======= Result Data Paths =======
@@ -82,66 +43,34 @@ def result_paths(is_scanner=True):
     battery_status_csv = os.path.join(measurements_dir, 'battery_status.csv')
     general_information_file = os.path.join(measurements_dir, 'general_information.txt')
     total_cpu_csv = os.path.join(measurements_dir, 'total_cpu.csv')
-    return measurements_dir, graphs_dir, processes_csv, total_memory_each_moment_csv, disk_io_each_moment, battery_status_csv, \
-           general_information_file, total_cpu_csv
+    return measurements_dir, graphs_dir, processes_csv, total_memory_each_moment_csv, disk_io_each_moment,\
+        battery_status_csv, general_information_file, total_cpu_csv
 
 
-# ======= Table Column Names =======
-class BatteryColumns:
-    TIME = "Time(sec)"
-    PERCENTS = "REMAINING BATTERY(%)"
-    CAPACITY = "REMAINING CAPACITY(mWh)"
-    VOLTAGE = "Voltage(mV)"
+def scan_command_factory(command):
+    if command is ScanCommand.antivirus:
+        return command(scan_type, custom_scan_path)
+
+    return command
+
+
+# ======= Custom Scan Query (do not change) =======
+if scan_type != ScanType.CUSTOM_SCAN and custom_scan_path != "":
+    raise Exception("scan_type must be empty when running scans other than custom scan")
+
+scan_command = scan_command_factory(scan_command)
 
 
 battery_columns_list = [BatteryColumns.TIME, BatteryColumns.PERCENTS, BatteryColumns.CAPACITY, BatteryColumns.VOLTAGE]
 
-
-class MemoryColumns:
-    TIME = "Time(sec)"
-    USED_MEMORY = "Used(GB)"
-    USED_PERCENT = "Percentage"
-
-
 memory_columns_list = [MemoryColumns.TIME, MemoryColumns.USED_MEMORY, MemoryColumns.USED_PERCENT]
-
-
-class CPUColumns:
-    TIME = "Time(sec)"
-    USED_PERCENT = "Total CPU(%)"
-    CORE = "Core"
-
 
 cores_names_list = [f"{CPUColumns.CORE} {i}(%)" for i in range(1, NUMBER_OF_CORES + 1)]
 
 cpu_columns_list = [CPUColumns.TIME, CPUColumns.USED_PERCENT] + cores_names_list
 
-
-class DiskIOColumns:
-    TIME = "Time(sec)"
-    READ_COUNT = "READ(#)"
-    WRITE_COUNT = "WRITE(#)"
-    READ_BYTES = "READ(KB)"
-    WRITE_BYTES = "WRITE(KB)"
-
-
 disk_io_columns_list = [DiskIOColumns.TIME, DiskIOColumns.READ_COUNT, DiskIOColumns.WRITE_COUNT,
                         DiskIOColumns.READ_BYTES, DiskIOColumns.WRITE_BYTES]
-
-
-class ProcessesColumns:
-    TIME = "Time(sec)"
-    PROCESS_ID = "PID"
-    PROCESS_NAME = "PNAME"
-    CPU_CONSUMPTION = "CPU(%)"
-    NUMBER_OF_THREADS = "NUM THREADS"
-    USED_MEMORY = "MEMORY(MB)"
-    MEMORY_PERCENT = "MEMORY(%)"
-    READ_COUNT = "READ_IO(#)"
-    WRITE_COUNT = "WRITE_IO(#)"
-    READ_BYTES = "READ_IO(KB)"
-    WRITE_BYTES = "WRITE_IO(KB)"
-
 
 processes_columns_list = [
     ProcessesColumns.TIME, ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME, ProcessesColumns.CPU_CONSUMPTION,

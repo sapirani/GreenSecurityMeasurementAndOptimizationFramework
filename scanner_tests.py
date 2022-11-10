@@ -1,6 +1,6 @@
 import unittest
 
-from Scanner import convert_mwh_to_other_metrics
+from scanner import convert_mwh_to_other_metrics
 
 
 class Convert_Mwh(unittest.TestCase):
