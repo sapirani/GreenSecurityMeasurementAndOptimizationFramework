@@ -1,13 +1,11 @@
 import shutil
 import pythoncom
-import wmi
 from statistics import mean
 from prettytable import PrettyTable
 import subprocess
 from threading import Thread
 import time
 import pandas as pd
-import platform
 from initialization_helper import *
 import ctypes
 from datetime import date
@@ -241,23 +239,34 @@ def save_general_disk(f):
 
 
 def save_general_system_information(f):
-    f.write("======System Information======\n")
-    my_system = platform.uname()
+    platform_system = platform.uname()
+    c = wmi.WMI()
+    wmi_system = c.Win32_ComputerSystem()[0]
 
-    f.write(f"System: {my_system.system}\n")
-    f.write(f"Node Name: {my_system.node}\n")
-    f.write(f"Release: {my_system.release}\n")
-    f.write(f"Version: {my_system.version}\n")
-    f.write(f"Machine: {my_system.machine}\n")
-    f.write(f"Processor: {my_system.processor}\n")
-    f.write(f"Total RAM: {psutil.virtual_memory().total / GB} GB\n")
+    f.write("======System Information======\n")
+
+    f.write(f"PC Type: {pc_types[wmi_system.PCSystemType]}\n")
+    f.write(f"Manufacturer: {wmi_system.Manufacturer}\n")
+    f.write(f"System Family: {wmi_system.SystemFamily}\n")
+    f.write(f"Model: {wmi_system.Model}\n")
+    f.write(f"Machine Type: {platform_system.machine}\n")
+    f.write(f"Device Name: {platform_system.node}\n")
+
+    f.write("\n----Operating System Information----\n")
+    f.write(f"Operating System: {platform_system.system}\n")
+    f.write(f"Release: {platform_system.release}\n")
+    f.write(f"Version: {platform_system.version}\n")
 
     f.write("\n----CPU Information----\n")
+    f.write(f"Processor: {platform_system.processor}\n")
     f.write(f"Physical cores: {psutil.cpu_count(logical=False)}\n")
     f.write(f"Total cores: {NUMBER_OF_CORES}\n")
     cpufreq = psutil.cpu_freq()
     f.write(f"Max Frequency: {cpufreq.max:.2f} MHz\n")
     f.write(f"Min Frequency: {cpufreq.min:.2f} MHz\n")
+
+    f.write("\n----RAM Information----\n")
+    f.write(f"Total RAM: {psutil.virtual_memory().total / GB} GB\n")
 
 
 def save_general_information_before_scanning():

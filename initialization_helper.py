@@ -1,5 +1,7 @@
 import os.path
 from program_parameters import *
+import wmi
+import platform
 
 # ======= Power Plan Name and GUID (do not change) =======
 chosen_power_plan_name = power_plan[0]
@@ -11,12 +13,18 @@ balanced_power_plan_guid = PowerPlan.BALANCED[1]
 
 # ======= Result Data Paths =======
 def calc_base_dir():
+    c = wmi.WMI()
+    wmi_system = c.Win32_ComputerSystem()[0]
+
+    computer_info = f"{wmi_system.Manufacturer} {wmi_system.SystemFamily} {wmi_system.Model} " \
+                    f"{platform.system()} {platform.release()}"
+
     if scan_option == ScanMode.NO_SCAN:
-        return os.path.join(chosen_power_plan_name, 'No Scan')
+        return os.path.join(computer_info, chosen_power_plan_name, 'No Scan')
     elif scan_option == ScanMode.ONE_SCAN:
-        return os.path.join(chosen_power_plan_name, 'One Scan', scan_type)
+        return os.path.join(computer_info, chosen_power_plan_name, 'One Scan', scan_type)
     else:
-        return os.path.join(chosen_power_plan_name, 'Continuous Scan', scan_type)
+        return os.path.join(computer_info, chosen_power_plan_name, 'Continuous Scan', scan_type)
 
 
 base_dir = calc_base_dir()

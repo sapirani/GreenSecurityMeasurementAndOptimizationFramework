@@ -11,6 +11,9 @@ NUMBER_OF_CORES = psutil.cpu_count()
 
 MINUTE = 60
 
+pc_types = ["Unspecified", "Desktop", "Mobile Device", "Workstation",
+                "EnterpriseServer", "SOHOServer", "AppliancePC", "PerformanceServer"]
+
 
 class ScanCommand:
     @staticmethod
