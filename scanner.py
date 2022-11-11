@@ -238,6 +238,63 @@ def save_general_disk(f):
     f.write('\n')
 
 
+def get_powershell_result_list_format(result: bytes):
+    lines_list = str(result).split("\\r\\n")[2:-4]
+    specific_item_dict = {}
+    items_list = []
+    for line in lines_list:
+        if line == "":
+            items_list.append(specific_item_dict)
+            specific_item_dict = {}
+            continue
+
+        split_line = line.split(":")
+        specific_item_dict[split_line[0].strip()] = split_line[1].strip()
+
+    items_list.append(specific_item_dict)
+    return items_list
+
+
+def save_disk_info(f, c):
+    wmi_logical_disks = c.Win32_LogicalDisk()
+    result = subprocess.run(["powershell", "-Command",
+                             "Get-Disk | Select FriendlyName, Manufacturer, Model,  PartitionStyle, NumberOfPartitions,"
+                             " PhysicalSectorSize, LogicalSectorSize, BusType | Format-List"], capture_output=True)
+    if result.returncode != 0:
+        raise Exception(f'An error occurred while getting disk information', result.stderr)
+
+    logical_disks_info = get_powershell_result_list_format(result.stdout)
+
+    result = subprocess.run(["powershell", "-Command",
+                             "Get-PhysicalDisk | Select FriendlyName, Manufacturer, Model, FirmwareVersion, MediaType"
+                             " | Format-List"], capture_output=True)
+    if result.returncode != 0:
+        raise Exception(f'An error occurred while getting disk information', result.stderr)
+
+    physical_disks_info = get_powershell_result_list_format(result.stdout)
+
+    f.write("\n----Physical Disk Information----\n")
+    for physical_disk_info in physical_disks_info:
+        f.write(f"\nName: {physical_disk_info['FriendlyName']}\n")
+        f.write(f"Manufacturer: {physical_disk_info['Manufacturer']}\n")
+        f.write(f"Model: {physical_disk_info['Model']}\n")
+        f.write(f"Media Type: {physical_disk_info['MediaType']}\n")
+        f.write(f"Disk Firmware Version: {physical_disk_info['FirmwareVersion']}\n")
+
+    f.write("\n----Logical Disk Information----\n")
+    for index, logical_disk_info in enumerate(logical_disks_info):
+        f.write(f"\nName: {logical_disk_info['FriendlyName']}\n")
+        f.write(f"Manufacturer: {logical_disk_info['Manufacturer']}\n")
+        f.write(f"Model: {logical_disk_info['Model']}\n")
+        f.write(f"Disk Type: {disk_types[wmi_logical_disks[index].DriveType]}\n")
+        f.write(f"Partition Style: {logical_disk_info['PartitionStyle']}\n")
+        f.write(f"Number Of Partitions: {logical_disk_info['NumberOfPartitions']}\n")
+        f.write(f"Physical Sector Size: {logical_disk_info['PhysicalSectorSize']} bytes\n")
+        f.write(f"Logical Sector Size: {logical_disk_info['LogicalSectorSize']}  bytes\n")
+        f.write(f"Bus Type: {logical_disk_info['BusType']}\n")
+        f.write(f"FileSystem: {wmi_logical_disks[index].FileSystem}\n")
+
+
 def save_general_system_information(f):
     platform_system = platform.uname()
     c = wmi.WMI()
@@ -270,12 +327,12 @@ def save_general_system_information(f):
     f.write(f"Total RAM: {psutil.virtual_memory().total / GB} GB\n")
 
     for physical_memory in wmi_physical_memory:
-        f.write(f"\n--{physical_memory.Tag}--\n")
+        f.write(f"\nName: {physical_memory.Tag}\n")
         f.write(f"Manufacturer: {physical_memory.Manufacturer}\n")
         f.write(f"Memory Type: {physical_memory_types[physical_memory.SMBIOSMemoryType]}\n")
         f.write(f"Speed: {physical_memory.Speed} MHz\n")
 
-    # TODO Complete disk information
+    save_disk_info(f, c)
 
 
 def save_general_information_before_scanning():
@@ -429,11 +486,13 @@ def change_real_time_protection(should_disable=True):
 
 
 def is_tamper_protection_enabled():
-    result = subprocess.run(["powershell", "-Command", "Get-MpComputerStatus"], capture_output=True)
+    result = subprocess.run(["powershell", "-Command", "Get-MpComputerStatus | Select IsTamperProtected | Format-List"],
+                            capture_output=True)
     if result.returncode != 0:
         raise Exception("Could not check if tamper protection enabled", result.stderr)
 
-    return bool(re.search("IsTamperProtected\s*:\sTrue", str(result.stdout)))
+    # return bool(re.search("IsTamperProtected\s*:\sTrue", str(result.stdout)))
+    return bool(get_powershell_result_list_format(result.stdout)[0]["IsTamperProtected"])
 
 
 def main():

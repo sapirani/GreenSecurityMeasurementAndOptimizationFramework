@@ -20,6 +20,9 @@ physical_memory_types = ["Unknown", "Other", "DRAM", "Synchronous DRAM", "Cache 
                          "SGRAM", "RDRAM", "DDR", "DDR2", "DDR2 FB-DIMM", "Unknown", "DDR3", "FBD2", "DDR4"]
 
 
+disk_types = ["Unknown", "NoRootDirectory", "Removable", "Fixed", "Network", "CDRom", "RAM disk"]
+
+
 class ScanCommand:
     @staticmethod
     def antivirus(scan_type, custom_scan_path=None):
