@@ -492,7 +492,7 @@ def is_tamper_protection_enabled():
         raise Exception("Could not check if tamper protection enabled", result.stderr)
 
     # return bool(re.search("IsTamperProtected\s*:\sTrue", str(result.stdout)))
-    return bool(get_powershell_result_list_format(result.stdout)[0]["IsTamperProtected"])
+    return get_powershell_result_list_format(result.stdout)[0]["IsTamperProtected"] == "True"
 
 
 def main():
