@@ -14,6 +14,11 @@ MINUTE = 60
 pc_types = ["Unspecified", "Desktop", "Mobile Device", "Workstation",
                 "EnterpriseServer", "SOHOServer", "AppliancePC", "PerformanceServer"]
 
+# TODO: check if the list is correct
+physical_memory_types = ["Unknown", "Other", "DRAM", "Synchronous DRAM", "Cache DRAM", "EDO", "EDRAM", "VRAM",
+                         "SRAM", "RAM", "ROM", "Flash", "EEPROM", "FEPROM", "EPROM", "CDRAM", "3DRAM", "SDRAM",
+                         "SGRAM", "RDRAM", "DDR", "DDR2", "DDR2 FB-DIMM", "Unknown", "DDR3", "FBD2", "DDR4"]
+
 
 class ScanCommand:
     @staticmethod

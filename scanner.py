@@ -242,6 +242,7 @@ def save_general_system_information(f):
     platform_system = platform.uname()
     c = wmi.WMI()
     wmi_system = c.Win32_ComputerSystem()[0]
+    wmi_physical_memory = c.Win32_PhysicalMemory()
 
     f.write("======System Information======\n")
 
@@ -267,6 +268,14 @@ def save_general_system_information(f):
 
     f.write("\n----RAM Information----\n")
     f.write(f"Total RAM: {psutil.virtual_memory().total / GB} GB\n")
+
+    for physical_memory in wmi_physical_memory:
+        f.write(f"\n--{physical_memory.Tag}--\n")
+        f.write(f"Manufacturer: {physical_memory.Manufacturer}\n")
+        f.write(f"Memory Type: {physical_memory_types[physical_memory.SMBIOSMemoryType]}\n")
+        f.write(f"Speed: {physical_memory.Speed} MHz\n")
+
+    # TODO Complete disk information
 
 
 def save_general_information_before_scanning():
