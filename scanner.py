@@ -340,6 +340,10 @@ def save_general_information_before_scanning():
     with open(GENERAL_INFORMATION_FILE, 'w') as f:
         # dd/mm/YY
         f.write(f'Date: {date.today().strftime("%d/%m/%Y")}\n\n')
+
+        if scan_type == ScanType.CUSTOM_SCAN:
+            f.write(f'Scan Path: {custom_scan_path}\n\n')
+
         save_general_system_information(f)
 
         f.write('\n======Before Scanning======\n')
