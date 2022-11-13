@@ -96,9 +96,9 @@ def draw_subplots(df, x_info, y_info, title):
             ax[i][j].plot(df[y_info.axis[i+j]])
             ax[i][j].set_title(y_info.axis[i*cols+j])
 
-    fig.suptitle(title, color="darkblue", fontsize=40, fontname="Times New Roman", fontweight="bold")
-    fig.supxlabel(x_info.label, fontsize=30, color='crimson')
-    fig.supylabel(y_info.label, fontsize=30, color='crimson')
+    fig.suptitle(title, color="darkblue", fontsize=30, fontname="Times New Roman", fontweight="bold")
+    fig.supxlabel(x_info.label, fontsize=20, color='crimson')
+    fig.supylabel(y_info.label, fontsize=20, color='crimson')
     fig.tight_layout(pad=3.0)
 
     # save graph as picture
@@ -138,8 +138,7 @@ def display_cpu_graphs():
     cpu_df = pd.read_csv(TOTAL_CPU_CSV, index_col=CPUColumns.TIME)
     x_info = AxisInfo("Time", Units.TIME, CPUColumns.TIME)
     y_info = AxisInfo("Used CPU", Units.PERCENT, cpu_df.columns.tolist())
-    draw_subplots(cpu_df, x_info, y_info, "hello world")
-    #draw_dataframe(cpu_df, "Total CPU Consumption", x_info, y_info, do_subplots=True)
+    draw_subplots(cpu_df, x_info, y_info, "Total CPU Consumption per core")
     draw_dataframe(cpu_df, "Total CPU Consumption", x_info, y_info, column_to_emphasis=CPUColumns.USED_PERCENT)
 
 
