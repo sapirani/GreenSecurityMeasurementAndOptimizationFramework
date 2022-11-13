@@ -329,6 +329,7 @@ def save_general_system_information(f):
     for physical_memory in wmi_physical_memory:
         f.write(f"\nName: {physical_memory.Tag}\n")
         f.write(f"Manufacturer: {physical_memory.Manufacturer}\n")
+        f.write(f"Capacity: {int(physical_memory.Capacity) / GB}\n")
         f.write(f"Memory Type: {physical_memory_types[physical_memory.SMBIOSMemoryType]}\n")
         f.write(f"Speed: {physical_memory.Speed} MHz\n")
 
