@@ -1,3 +1,5 @@
+import math
+
 import matplotlib.pyplot as plt
 import pandas as pd
 from initialization_helper import *
@@ -37,7 +39,7 @@ def design_and_plot(x_info, y_info, graph_name):
                fontname="Comic Sans MS")  # naming the y-axis
 
     # giving a title to the graph, changing its font, size and color
-    plt.title(graph_name, color="darkblue", fontsize=20, fontname="Times New Roman", fontweight="bold")
+    plt.suptitle(graph_name, color="darkblue", fontsize=20, fontname="Times New Roman", fontweight="bold")
 
     # design graph
     plt.rc('axes', labelsize=12)  # Set the axes labels font size
@@ -81,16 +83,40 @@ def draw_grouped_dataframe(df, graph_name, x_info, y_info, total_path=DEFAULT, t
     design_and_plot(x_info, y_info, graph_name)
 
 
+def draw_subplots(df, x_info, y_info, title):
+    number_of_cols_to_plot = len(y_info.axis)
+    cols = round(math.sqrt(number_of_cols_to_plot))
+    rows = cols
+
+    fig, ax = plt.subplots(rows, cols, figsize=(18, 10))
+    for i in range(rows):
+        for j in range(cols):
+            if i*cols + j >= number_of_cols_to_plot:
+                break
+            ax[i][j].plot(df[y_info.axis[i+j]])
+            ax[i][j].set_title(y_info.axis[i*cols+j])
+
+    fig.suptitle(title, color="darkblue", fontsize=40, fontname="Times New Roman", fontweight="bold")
+    fig.supxlabel(x_info.label, fontsize=30, color='crimson')
+    fig.supylabel(y_info.label, fontsize=30, color='crimson')
+    fig.tight_layout(pad=3.0)
+
+    # save graph as picture
+    plt.savefig(os.path.join(GRAPHS_DIR, title))
+
+    # function to show the plot
+    plt.show()
+
+
 def draw_dataframe(df, graph_name, x_info, y_info, column_to_emphasis=None, do_subplots=False):
 
     fig, ax = plt.subplots(figsize=(10, 5))
 
     if column_to_emphasis is not None:
         y_info.axis.remove(column_to_emphasis)
-        df[column_to_emphasis].plot(ax=ax, legend=True, linewidth=5, subplots=do_subplots, layout=(3, 3))
+        df[column_to_emphasis].plot(ax=ax, legend=True, linewidth=5, subplots=do_subplots)
 
-    df[y_info.axis].plot(ax=ax, legend=len(y_info.axis) > 1, subplots=do_subplots, layout=(3, 3))
-
+    df[y_info.axis].plot(ax=ax, legend=len(y_info.axis) > 1)
     design_and_plot(x_info, y_info, graph_name)
 
 
@@ -112,7 +138,8 @@ def display_cpu_graphs():
     cpu_df = pd.read_csv(TOTAL_CPU_CSV, index_col=CPUColumns.TIME)
     x_info = AxisInfo("Time", Units.TIME, CPUColumns.TIME)
     y_info = AxisInfo("Used CPU", Units.PERCENT, cpu_df.columns.tolist())
-    draw_dataframe(cpu_df, "Total CPU Consumption", x_info, y_info, do_subplots=True)
+    draw_subplots(cpu_df, x_info, y_info, "hello world")
+    #draw_dataframe(cpu_df, "Total CPU Consumption", x_info, y_info, do_subplots=True)
     draw_dataframe(cpu_df, "Total CPU Consumption", x_info, y_info, column_to_emphasis=CPUColumns.USED_PERCENT)
 
 
