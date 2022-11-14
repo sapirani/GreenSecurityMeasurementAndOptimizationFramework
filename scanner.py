@@ -10,7 +10,6 @@ from initialization_helper import *
 import ctypes
 from datetime import date
 from pathlib import Path
-import re
 import screen_brightness_control as sbc
 
 
@@ -37,7 +36,7 @@ BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV = result_paths()
 
 # ======= Program Global Parameters =======
 done_scanning = False
-starting_time = time.time()
+starting_time = 0
 
 # TODO: maybe its better to calculate MEMORY(%) in the end of scan in order to reduce calculations during scanning
 processes_df = pd.DataFrame(columns=processes_columns_list)
@@ -436,6 +435,9 @@ def change_power_plan(name=balanced_power_plan_name, guid=balanced_power_plan_gu
 
 def scan_and_measure():
     global done_scanning
+    global starting_time
+    starting_time = time.time()
+
     measurements_thread = Thread(target=continuously_measure, args=())
     measurements_thread.start()
 
