@@ -15,10 +15,21 @@ pc_types = ["Unspecified", "Desktop", "Mobile Device", "Workstation",
                 "EnterpriseServer", "SOHOServer", "AppliancePC", "PerformanceServer"]
 
 # TODO: check if the list is correct
-physical_memory_types = ["Unknown", "Other", "DRAM", "Synchronous DRAM", "Cache DRAM", "EDO", "EDRAM", "VRAM",
-                         "SRAM", "RAM", "ROM", "Flash", "EEPROM", "FEPROM", "EPROM", "CDRAM", "3DRAM", "SDRAM",
-                         "SGRAM", "RDRAM", "DDR", "DDR2", "DDR2 FB-DIMM", "Unknown", "DDR3", "FBD2", "DDR4"]
+#physical_memory_types = ["Unknown", "Other", "DRAM", "Synchronous DRAM", "Cache DRAM", "EDO", "EDRAM", "VRAM",
+#                         "SRAM", "RAM", "ROM", "Flash", "EEPROM", "FEPROM", "EPROM", "CDRAM", "3DRAM", "SDRAM",
+#                         "SGRAM", "RDRAM", "DDR", "DDR2", "DDR2 FB-DIMM", "Unknown", "DDR3", "FBD2", "DDR4"]
 
+physical_memory_types = ['Invalid', 'Other', 'Unknown', 'DRAM', # 00-03h
+                         'EDRAM', 'VRAM', 'SRAM', 'RAM', # 04-07h
+                         'ROM', 'FLASH', 'EEPROM', 'FEPROM', # 08-0Bh
+                         'EPROM', 'CDRAM', '3DRAM', 'SDRAM', # 0C-0Fh
+                         'SGRAM', 'RDRAM', 'DDR', 'DDR2', # 10-13h
+                         'DDR2 FB-DIMM', 'Reserved', 'Reserved', 'Reserved', # 14-17h
+                         'DDR3', 'FBD2', 'DDR4', 'LPDDR', # 18-1Bh
+                         'LPDDR2', 'LPDDR3', 'LPDDR4', 'Logical non-volatile device' # 1C-1Fh
+                         'HBM (High Bandwidth Memory)', 'HBM2 (High Bandwidth Memory Generation 2)',
+                         'DDR5', 'LPDDR5' # 20-23h
+                         ]
 
 disk_types = ["Unknown", "NoRootDirectory", "Removable", "Fixed", "Network", "CDRom", "RAM disk"]
 
