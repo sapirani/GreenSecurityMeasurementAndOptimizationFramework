@@ -5,6 +5,7 @@ import random
 import string
 from docx import Document
 from pptx import Presentation
+from pptx.dml.color import RGBColor
 
 DIR_NAME = "Generated Files"
 JPG_NAME = "jpg files"
@@ -37,7 +38,7 @@ def generate_jpg(full_dir):
 def generate_document(full_dir):
     document = Document()
     document.add_heading(rand_letters(20), 0)
-    document.add_picture(f'{DIR_NAME}\\{JPG_NAME}\\pic{random.randint(0, NUMBER_OF_FILES - 1)}.jpg')
+    document.add_picture(get_random_jpg_file())
     document.add_paragraph(rand_letters(KB))
     document.save(full_dir)
 
@@ -45,10 +46,13 @@ def generate_document(full_dir):
 def generate_powerpoint(full_dir):
     power_point = Presentation()
 
-    first_slide = power_point.slides.add_slide(power_point.slide_layouts[0])
+    # for i in range(20):
+    slide = power_point.slides.add_slide(power_point.slide_layouts[0])
+    slide.shapes.title.text = rand_letters(random.randint(15, 25))
+    slide.placeholders[1].text = rand_letters(random.randint(100, 180))
 
-    first_slide.shapes.title.text = rand_letters(20)
-    first_slide.placeholders[1].text = rand_letters(20)
+    slide = power_point.slides.add_slide(power_point.slide_layouts[0])
+    slide.shapes.add_picture(get_random_jpg_file(), 0, 0)
 
     power_point.save(full_dir)
 
@@ -57,10 +61,14 @@ def rand_letters(size):
     return ''.join([random.choice(string.ascii_letters) for i in range(size)])
 
 
+def get_random_jpg_file():
+    return f'{DIR_NAME}\\{JPG_NAME}\\pic{random.randint(0, NUMBER_OF_FILES - 1)}.jpg'
+
+
 def main():
     #generator(generate_text, TEXT_DIR_NAME, 'file', 'txt')
     #generator(generate_document, DOC_DIR_NAME, 'file', 'doc')
-    generator(generate_document, POWERPOINT_NAME, 'presentation', 'pptx')
+    generator(generate_powerpoint, POWERPOINT_NAME, 'presentation', 'pptx')
     # generator(generate_jpg, JPG_NAME, 'pic', 'jpg')
 
 
