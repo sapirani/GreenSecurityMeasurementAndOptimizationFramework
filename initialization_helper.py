@@ -58,7 +58,8 @@ def result_paths(is_scanner=True):
 def scan_command_factory(command):
     if command is ScanCommand.antivirus:
         return command(scan_type, custom_scan_path)
-
+    if command is ScanCommand.ids:
+        return command(ids_type, interface_name, log_dir)
     return command
 
 
