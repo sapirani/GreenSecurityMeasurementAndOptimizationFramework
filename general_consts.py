@@ -29,6 +29,9 @@ class ScanCommand:
         custom_scan_query = "" if custom_scan_path == "" or custom_scan_path is None \
                                else f" -ScanPath {custom_scan_path}"
         return f"Start-MpScan -ScanType {scan_type}" + custom_scan_query
+    @staticmethod
+    def ids(ids_type, interface_name, log_dir, installation_dir="C:\Program Files"):
+        return rf"& '{installation_dir}\{ids_type}\{ids_type.lower()}.exe' -i {interface_name} -l '{installation_dir}\{ids_type}\{log_dir}'"  
 
 
 # ======= Static Classes =======
@@ -36,7 +39,7 @@ class ScanMode(Enum):
     NO_SCAN = 1
     ONE_SCAN = 2
     CONTINUOUS_SCAN = 3
-
+    
 
 class PowerPlan:
     BALANCED = ("Balanced Plan", "381b4222-f694-41f0-9685-ff5bb260df2e")
@@ -48,6 +51,11 @@ class ScanType:
     FULL_SCAN = "FullScan"
     QUICK_SCAN = "QuickScan"
     CUSTOM_SCAN = "CustomScan"
+    
+    
+class IdsType:
+    SURICATA = "Suricata"
+    SNORT = "Snort"
 
 
 # ======= Tables Column Names =======
