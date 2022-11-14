@@ -281,17 +281,20 @@ def save_disk_info(f, c):
         f.write(f"Disk Firmware Version: {physical_disk_info['FirmwareVersion']}\n")
 
     f.write("\n----Logical Disk Information----\n")
-    for index, logical_disk_info in enumerate(logical_disks_info):
-        f.write(f"\nName: {logical_disk_info['FriendlyName']}\n")
-        f.write(f"Manufacturer: {logical_disk_info['Manufacturer']}\n")
-        f.write(f"Model: {logical_disk_info['Model']}\n")
-        f.write(f"Disk Type: {disk_types[wmi_logical_disks[index].DriveType]}\n")
-        f.write(f"Partition Style: {logical_disk_info['PartitionStyle']}\n")
-        f.write(f"Number Of Partitions: {logical_disk_info['NumberOfPartitions']}\n")
-        f.write(f"Physical Sector Size: {logical_disk_info['PhysicalSectorSize']} bytes\n")
-        f.write(f"Logical Sector Size: {logical_disk_info['LogicalSectorSize']}  bytes\n")
-        f.write(f"Bus Type: {logical_disk_info['BusType']}\n")
-        f.write(f"FileSystem: {wmi_logical_disks[index].FileSystem}\n")
+    try:
+        for index, logical_disk_info in enumerate(logical_disks_info):
+            f.write(f"\nName: {logical_disk_info['FriendlyName']}\n")
+            f.write(f"Manufacturer: {logical_disk_info['Manufacturer']}\n")
+            f.write(f"Model: {logical_disk_info['Model']}\n")
+            f.write(f"Disk Type: {disk_types[wmi_logical_disks[index].DriveType]}\n")
+            f.write(f"Partition Style: {logical_disk_info['PartitionStyle']}\n")
+            f.write(f"Number Of Partitions: {logical_disk_info['NumberOfPartitions']}\n")
+            f.write(f"Physical Sector Size: {logical_disk_info['PhysicalSectorSize']} bytes\n")
+            f.write(f"Logical Sector Size: {logical_disk_info['LogicalSectorSize']}  bytes\n")
+            f.write(f"Bus Type: {logical_disk_info['BusType']}\n")
+            f.write(f"FileSystem: {wmi_logical_disks[index].FileSystem}\n")
+    except Exception:
+        pass
 
 
 def save_general_system_information(f):
