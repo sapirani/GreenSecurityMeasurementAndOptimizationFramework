@@ -58,7 +58,7 @@ The main components of the code:
 7. Run scanner.py in admin mode (in order to permit code to disable real time protection before each measurement. The code turns it on before ending)
 8. Code will change power plan according to configuration file
 9. Code will disable real time protection
-10. Code will prevent device from sleeping and turnning off screen
+10. Code will prevent device from sleeping and turning off screen
 11. Code will set screen brightness according to configuration file
 12. Code will start defender scan and measure the device's resource consumption 
 13. Code will save results into files
