@@ -19,7 +19,7 @@ There are 3 modes of execution:
 The results are saved in the relevant folders. the raw resource usage data is saved in csv and txt files. graphs are saved in png files.
 
 ### Scan types
-1. Full scan - scans every file and program on the computer. May take few hours or daysto complete, depending on the amount and type of data that needs to be scanned.
+1. Full scan - scans every file and program on the computer. May take few hours or days to complete, depending on the amount and type of data that needs to be scanned.
 2. Quick scan - looks at all the locations where there could be malware registered to start with the system, such as registry keys and known Windows startup folders. Provides strong protection against malware that starts with the system and kernel-level malware. May take a few seconds or minutes.
 3. Custom scan - enables to scan exactly the files and folders that you select.
 
