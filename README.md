@@ -8,8 +8,7 @@ We measure the resource usage of the whole system, and of each process separatel
 1. any unnecessary program is closed (including backgroud procceses)
 2. all result files are closed
 3. auto brightness disabled
-4. computer does not go to sleep after an interval of time
-5. reboot computer after each measurement 
+4. reboot computer after each measurement 
 
 ### Modes of execution
 There are 3 modes of execution:
