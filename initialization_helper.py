@@ -51,8 +51,9 @@ def result_paths(is_scanner=True):
     battery_status_csv = os.path.join(measurements_dir, 'battery_status.csv')
     general_information_file = os.path.join(measurements_dir, 'general_information.txt')
     total_cpu_csv = os.path.join(measurements_dir, 'total_cpu.csv')
+    summary_csv = os.path.join(measurements_dir, 'summary.csv')
     return measurements_dir, graphs_dir, processes_csv, total_memory_each_moment_csv, disk_io_each_moment,\
-        battery_status_csv, general_information_file, total_cpu_csv
+        battery_status_csv, general_information_file, total_cpu_csv, summary_csv
 
 
 def scan_command_factory(command):
@@ -77,7 +78,7 @@ battery_columns_list = [BatteryColumns.TIME, BatteryColumns.PERCENTS, BatteryCol
 
 memory_columns_list = [MemoryColumns.TIME, MemoryColumns.USED_MEMORY, MemoryColumns.USED_PERCENT]
 
-cores_names_list = [f"{CPUColumns.CORE} {i}(%)" for i in range(1, NUMBER_OF_CORES + 1)]
+cores_names_list = [get_core_name(i) for i in range(1, NUMBER_OF_CORES + 1)]
 
 cpu_columns_list = [CPUColumns.TIME, CPUColumns.USED_PERCENT] + cores_names_list
 

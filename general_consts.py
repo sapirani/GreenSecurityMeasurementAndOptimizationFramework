@@ -2,6 +2,7 @@ from enum import Enum
 import psutil
 
 # ======= Constants =======
+ANTIVIRUS_PROCESS_NAME = "MsMpEng.exe"
 GB = 2 ** 30
 MB = 2 ** 20
 KB = 2 ** 10
@@ -114,3 +115,7 @@ class ProcessesColumns:
     WRITE_COUNT = "WRITE_IO(#)"
     READ_BYTES = "READ_IO(KB)"
     WRITE_BYTES = "WRITE_IO(KB)"
+
+
+def get_core_name(core_number):
+    return f"{CPUColumns.CORE} {core_number}(%)"

@@ -5,7 +5,7 @@ import pandas as pd
 from initialization_helper import *
 
 base_dir, GRAPHS_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
-    BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV = result_paths(is_scanner=False)
+    BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, SUMMARY_CSV = result_paths(is_scanner=False)
 
 
 class AxisInfo:
@@ -27,7 +27,7 @@ class Units:
 
 
 DEFAULT = "default"
-ANTIVIRUS_PROCESS_NAME = "MsMpEng.exe"
+
 
 
 def design_and_plot(x_info, y_info, graph_name):

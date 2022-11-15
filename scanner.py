@@ -32,11 +32,12 @@ NEVER_TURN_SCREEN_OFF = 0
 NEVER_GO_TO_SLEEP_MODE = 0
 
 base_dir, GRAPHS_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
-BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV = result_paths()
+BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, SUMMARY_CSV = result_paths()
 
 # ======= Program Global Parameters =======
 done_scanning = False
 starting_time = 0
+finishing_time = 0
 
 # TODO: maybe its better to calculate MEMORY(%) in the end of scan in order to reduce calculations during scanning
 processes_df = pd.DataFrame(columns=processes_columns_list)
@@ -192,14 +193,14 @@ def continuously_measure():
 
     # TODO: think if total tables should be printed only once
     while should_scan():
+        # Create a delay
+        time.sleep(0.5)
+
         save_battery_stat()
         prev_io_per_process = save_current_processes_statistics(prev_io_per_process)
         save_current_total_cpu()
         save_current_total_memory()
         prev_disk_io = save_current_disk_io(prev_disk_io)
-
-        # Create a delay
-        time.sleep(0.5)
 
 
 def save_general_battery(f):
@@ -388,7 +389,7 @@ def save_general_information_after_scanning():
             f.write(f'  Kilograms of wood burned: {conversions[3]}\n')
 
         if scan_option == ScanMode.NO_SCAN:
-            measurement_time = calc_time_interval()
+            measurement_time = finishing_time
             f.write(f'\nMeasurement duration: {measurement_time} seconds, '
                     f'{measurement_time / 60} minutes\n')
 
@@ -402,6 +403,61 @@ def save_general_information_after_scanning():
                         f'{(scan_time - finished_scanning_time[i]) / 60} minutes\n')
 
 
+def slice_df(df, percent):
+    num = int(len(df.index)*(percent/100))
+    return df[num: len(df.index) - num]
+
+
+def prepare_summary_csv():
+    sub_cpu_df = slice_df(cpu_df, 5).astype(float)
+    sub_memory_df = slice_df(memory_df, 5).astype(float)
+    sub_disk_df = slice_df(disk_io_each_moment_df, 5).astype(float)
+
+    sub_process_df = slice_df(processes_df[processes_df[ProcessesColumns.PROCESS_NAME] == ANTIVIRUS_PROCESS_NAME], 5)
+
+    summary_df = pd.DataFrame(columns=["Metric", "Value"])
+    summary_df.loc[len(summary_df.index)] = ["Duration", finishing_time]
+
+    cpu_process = pd.to_numeric(sub_process_df[ProcessesColumns.CPU_CONSUMPTION]).mean()
+    cpu_total = sub_cpu_df[CPUColumns.USED_PERCENT].mean()
+    summary_df.loc[len(summary_df.index)] = ["CPU Process", cpu_process]
+    summary_df.loc[len(summary_df.index)] = ["CPU Total", cpu_total]
+    summary_df.loc[len(summary_df.index)] = ["CPU Process / CPU Total", cpu_process / cpu_total]
+
+    for index, core_name in enumerate(cores_names_list):
+        summary_df.loc[len(summary_df.index)] = [f"CPU core {index + 1} (%)", sub_cpu_df[core_name].mean()]
+
+    summary_df.loc[len(summary_df.index)] = ["Min CPU Process",
+                                             pd.to_numeric(sub_process_df[ProcessesColumns.CPU_CONSUMPTION]).min()]
+    summary_df.loc[len(summary_df.index)] = ["Max CPU Process",
+                                             pd.to_numeric(sub_process_df[ProcessesColumns.CPU_CONSUMPTION]).max()]
+    summary_df.loc[len(summary_df.index)] = ["Min CPU Total", sub_cpu_df[CPUColumns.USED_PERCENT].min()]
+    summary_df.loc[len(summary_df.index)] = ["Max CPU Total", sub_cpu_df[CPUColumns.USED_PERCENT].max()]
+
+    process_memory = pd.to_numeric(sub_process_df[ProcessesColumns.USED_MEMORY]).mean()
+    total_memory = sub_memory_df[MemoryColumns.USED_MEMORY].mean() * KB
+    summary_df.loc[len(summary_df.index)] = ["Memory Process (KB)", process_memory]
+    summary_df.loc[len(summary_df.index)] = ["Memory Total (KB)", total_memory]
+    summary_df.loc[len(summary_df.index)] = ["Process Memory / Memory Total", process_memory / total_memory]
+
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Process (KB)", pd.to_numeric(sub_process_df[ProcessesColumns.READ_BYTES]).mean()]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB)", sub_disk_df[DiskIOColumns.READ_BYTES].mean()]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Process (KB)", pd.to_numeric(sub_process_df[ProcessesColumns.WRITE_BYTES]).mean()]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB)", sub_disk_df[DiskIOColumns.WRITE_BYTES].mean()]
+
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count (#)", pd.to_numeric(sub_process_df[ProcessesColumns.READ_BYTES]).mean()]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count (#)", sub_disk_df[DiskIOColumns.READ_BYTES].mean()]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Process Count (#)", pd.to_numeric(sub_process_df[ProcessesColumns.WRITE_BYTES]).mean()]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total Count (#)", sub_disk_df[DiskIOColumns.WRITE_BYTES].mean()]
+
+    battery_drop = calc_delta_capacity()
+    summary_df.loc[len(summary_df.index)] = ["Energy consumption - total energy(mwh)", battery_drop[0]]
+    summary_df.loc[len(summary_df.index)] = ["Battery Drop( %)", battery_drop[1]]
+    summary_df.loc[len(summary_df.index)] = ["Trees (KG)", convert_mwh_to_other_metrics(battery_drop[0])[3]]
+
+    summary_df.to_csv(SUMMARY_CSV, index=False)
+
+
 def save_results_to_files():
     save_general_information_after_scanning()
     processes_df.iloc[:-1, :].to_csv(PROCESSES_CSV, index=False)
@@ -410,6 +466,7 @@ def save_results_to_files():
     if not battery_df.empty:
         battery_df.iloc[:-1, :].to_csv(BATTERY_STATUS_CSV, index=False)
     cpu_df.iloc[:-1, :].to_csv(TOTAL_CPU_CSV, index=False)
+    prepare_summary_csv()
 
 
 def calc_delta_capacity():
@@ -439,6 +496,7 @@ def change_power_plan(name=balanced_power_plan_name, guid=balanced_power_plan_gu
 def scan_and_measure():
     global done_scanning
     global starting_time
+    global finishing_time
     starting_time = time.time()
 
     measurements_thread = Thread(target=continuously_measure, args=())
@@ -455,6 +513,7 @@ def scan_and_measure():
             raise Exception("An error occurred while scanning: %s", result.stderr)
 
     measurements_thread.join()
+    finishing_time = calc_time_interval()
 
 
 def can_proceed_towards_measurements():
