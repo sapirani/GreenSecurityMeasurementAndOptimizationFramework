@@ -452,7 +452,7 @@ def scan_and_measure():
         if scan_option == ScanMode.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
             done_scanning = True
         if result.returncode != 0:
-            raise Exception("An error occurred while anti virus scan: %s", result.stderr)
+            raise Exception("An error occurred while scanning: %s", result.stderr)
 
     measurements_thread.join()
 

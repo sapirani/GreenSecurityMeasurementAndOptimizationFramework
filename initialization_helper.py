@@ -60,12 +60,14 @@ def scan_command_factory(command):
         return command(scan_type, custom_scan_path)
     if command is ScanCommand.ids:
         return command(ids_type, interface_name, log_dir)
+    if command is ScanCommand.dummy_antivirus:
+        return command(custom_scan_path)
 
     return command
 
 
 # ======= Custom Scan Query (do not change) =======
-if scan_type != ScanType.CUSTOM_SCAN and custom_scan_path != "":
+if scan_command is ScanCommand.antivirus and scan_type != ScanType.CUSTOM_SCAN and custom_scan_path != "":
     raise Exception("scan_type must be empty when running scans other than custom scan")
 
 scan_command = scan_command_factory(scan_command)

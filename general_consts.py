@@ -42,8 +42,8 @@ class ScanCommand:
         return f"Start-MpScan -ScanType {scan_type}" + custom_scan_query
 
     @staticmethod
-    def dummy_antivirus():
-        return "python FilesReader.py"
+    def dummy_antivirus(path):
+        return f"python FilesReader.py {path}"
 
     @staticmethod
     def ids(ids_type, interface_name, log_dir, installation_dir="C:\Program Files"):
