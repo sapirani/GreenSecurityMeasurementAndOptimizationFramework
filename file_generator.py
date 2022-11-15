@@ -66,9 +66,9 @@ def get_random_jpg_file():
 
 
 def main():
-    #generator(generate_text, TEXT_DIR_NAME, 'file', 'txt')
+    generator(generate_text, TEXT_DIR_NAME, 'file', 'txt')
     #generator(generate_document, DOC_DIR_NAME, 'file', 'doc')
-    generator(generate_powerpoint, POWERPOINT_NAME, 'presentation', 'pptx')
+    #generator(generate_powerpoint, POWERPOINT_NAME, 'presentation', 'pptx')
     # generator(generate_jpg, JPG_NAME, 'pic', 'jpg')
 
 

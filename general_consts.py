@@ -40,6 +40,11 @@ class ScanCommand:
         custom_scan_query = "" if custom_scan_path == "" or custom_scan_path is None \
                                else f" -ScanPath {custom_scan_path}"
         return f"Start-MpScan -ScanType {scan_type}" + custom_scan_query
+
+    @staticmethod
+    def dummy_antivirus():
+        return "python FilesReader.py"
+
     @staticmethod
     def ids(ids_type, interface_name, log_dir, installation_dir="C:\Program Files"):
         return rf"& '{installation_dir}\{ids_type}\{ids_type.lower()}.exe' -i {interface_name} -l '{installation_dir}\{ids_type}\{log_dir}'"  

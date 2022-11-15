@@ -4,10 +4,10 @@ from pathlib import Path
 import random
 
 should_change_content = True
-path_of_directory_to_copy = r"C:\Users\sagib\OneDrive\Desktop\green security\Duplicates\csv files"
-path_of_file_to_duplicate = r"C:\Users\sagib\OneDrive\Desktop\green security\LENOVO Yoga 7 15ITL5 82BJ Windows 10\Balanced Plan\No Scan\Measurement 1\total_memory_each_moment.csv"
+path_of_directory_to_copy = r"C:\Users\Administrator\Desktop\University\Green Security Project\GreenSecurity-FirstExperiment\Data\Duplicated Changed Files\power point files"
+path_of_file_to_duplicate = r"C:\Users\Administrator\Desktop\University\Green Security Project\GreenSecurity-FirstExperiment\Data\Files To Duplicate\pptx file.pptx"
 
-DUPLICATE_NUMBER = 1
+DUPLICATE_NUMBER = 10000
 MAX_DATA_SIZE = 100
 copied_file_name = "Copy"
 
