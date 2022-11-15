@@ -35,23 +35,71 @@ physical_memory_types = ['Invalid', 'Other', 'Unknown', 'DRAM', # 00-03h
 disk_types = ["Unknown", "NoRootDirectory", "Removable", "Fixed", "Network", "CDRom", "RAM disk"]
 
 
-class ScanCommand:
-    @staticmethod
-    def antivirus(scan_type, custom_scan_path=None):
-        custom_scan_query = "" if custom_scan_path == "" or custom_scan_path is None \
-                               else f" -ScanPath {custom_scan_path}"
-        return f"Start-MpScan -ScanType {scan_type}" + custom_scan_query
-
-    @staticmethod
-    def dummy_antivirus(path):
-        return f"python FilesReader.py {path}"
-
-    @staticmethod
-    def ids(ids_type, interface_name, log_dir, installation_dir="C:\Program Files"):
-        return rf"& '{installation_dir}\{ids_type}\{ids_type.lower()}.exe' -i {interface_name} -l '{installation_dir}\{ids_type}\{log_dir}'"  
-
-
 # ======= Static Classes =======
+class ProgramInterface:
+    def get_program_name(self) -> str:
+        pass
+
+    def get_process_name(self) -> str:
+        pass
+
+    def get_command(self) -> str:
+        pass
+
+    def path_adjustments(self) -> str:
+        return ""
+
+
+class AntivirusProgram(ProgramInterface):
+    def __init__(self, scan_type, custom_scan_path):
+        if custom_scan_path == "" or custom_scan_path == '""':
+            self.custom_scan_path = None
+        else:
+            self.custom_scan_path = custom_scan_path
+        self.scan_type = scan_type
+
+    def get_program_name(self):
+        return "Windows Defender"
+
+    def get_command(self) -> str:
+        custom_scan_query = "" if self.custom_scan_path is None else f" -ScanPath {self.custom_scan_path}"
+        return f"Start-MpScan -ScanType {self.scan_type}" + custom_scan_query
+
+    def path_adjustments(self):
+        return self.scan_type
+
+
+class DummyAntivirusProgram(ProgramInterface):
+    def __init__(self, scan_path):
+        self.scan_path = scan_path
+
+    def get_program_name(self):
+        return "Dummy Antivirus"
+
+    def get_command(self) -> str:
+        return f"python FilesReader.py {self.scan_path}"
+
+
+class IDSProgram(ProgramInterface):
+    def __init__(self, ids_type, interface_name, log_dir, installation_dir="C:\Program Files"):
+        self.ids_type = ids_type
+        self.interface_name = interface_name
+        self.log_dir = log_dir
+        self.installation_dir = installation_dir
+
+    def get_program_name(self):
+        return "IDS"
+
+    def get_command(self):
+        return rf"& '{self.installation_dir}\{self.ids_type}\{self.ids_type.lower()}.exe' -i {self.interface_name} -l '{self.installation_dir}\{self.ids_type}\{self.log_dir}'"
+
+
+class ProgramToScan(Enum):
+    ANTIVIRUS = 0
+    DummyANTIVIRUS = 1
+    IDS = 2
+
+
 class ScanMode(Enum):
     NO_SCAN = 1
     ONE_SCAN = 2

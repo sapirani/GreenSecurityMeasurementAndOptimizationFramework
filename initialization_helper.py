@@ -12,6 +12,20 @@ balanced_power_plan_guid = PowerPlan.BALANCED[1]
 
 
 # ======= Result Data Paths =======
+def program_to_scan_factory():
+    if program_to_scan == ProgramToScan.ANTIVIRUS:
+        return AntivirusProgram(scan_type, custom_scan_path)
+    if program_to_scan == ProgramToScan.IDS:
+        return IDSProgram(ids_type, interface_name, log_dir)
+    if program_to_scan == ProgramToScan.DummyANTIVIRUS:
+        return DummyAntivirusProgram(custom_scan_path)
+
+    raise Exception("choose program to scan from ProgramToScan enum")
+
+
+program = program_to_scan_factory()
+
+
 def calc_base_dir():
     c = wmi.WMI()
     wmi_system = c.Win32_ComputerSystem()[0]
@@ -20,11 +34,11 @@ def calc_base_dir():
                     f"{platform.system()} {platform.release()}"
 
     if scan_option == ScanMode.NO_SCAN:
-        return os.path.join(computer_info, chosen_power_plan_name, 'No Scan')
+        return os.path.join(computer_info, 'No Scan', chosen_power_plan_name)
     elif scan_option == ScanMode.ONE_SCAN:
-        return os.path.join(computer_info, chosen_power_plan_name, 'One Scan', scan_type)
+        return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name, 'One Scan', program.path_adjustments())
     else:
-        return os.path.join(computer_info, chosen_power_plan_name, 'Continuous Scan', scan_type)
+        return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name, 'Continuous Scan', program.path_adjustments())
 
 
 base_dir = calc_base_dir()
@@ -56,22 +70,10 @@ def result_paths(is_scanner=True):
         battery_status_csv, general_information_file, total_cpu_csv, summary_csv
 
 
-def scan_command_factory(command):
-    if command is ScanCommand.antivirus:
-        return command(scan_type, custom_scan_path)
-    if command is ScanCommand.ids:
-        return command(ids_type, interface_name, log_dir)
-    if command is ScanCommand.dummy_antivirus:
-        return command(custom_scan_path)
-
-    return command
-
-
 # ======= Custom Scan Query (do not change) =======
-if scan_command is ScanCommand.antivirus and scan_type != ScanType.CUSTOM_SCAN and custom_scan_path != "":
-    raise Exception("scan_type must be empty when running scans other than custom scan")
-
-scan_command = scan_command_factory(scan_command)
+# TODO: is it necessary?
+#if program_to_scan == ProgramToScan.ANTIVIRUS and scan_type != ScanType.CUSTOM_SCAN and custom_scan_path != '""':
+#    raise Exception("custom_scan_path must be empty when running scans other than custom scan")
 
 
 battery_columns_list = [BatteryColumns.TIME, BatteryColumns.PERCENTS, BatteryColumns.CAPACITY, BatteryColumns.VOLTAGE]

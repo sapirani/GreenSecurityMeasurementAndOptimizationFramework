@@ -504,7 +504,7 @@ def scan_and_measure():
 
     while not scan_option == ScanMode.NO_SCAN and not done_scanning:
         # TODO check about capture_output
-        result = subprocess.run(["powershell", "-Command", scan_command],
+        result = subprocess.run(["powershell", "-Command", program.get_command()],
                                 capture_output=True)
         finished_scanning_time.append(calc_time_interval())
         if scan_option == ScanMode.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
