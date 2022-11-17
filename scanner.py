@@ -440,15 +440,15 @@ def prepare_summary_csv():
     summary_df.loc[len(summary_df.index)] = ["Memory Total (KB)", total_memory]
     summary_df.loc[len(summary_df.index)] = ["Process Memory / Memory Total", process_memory / total_memory]
 
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Process (KB)", pd.to_numeric(sub_process_df[ProcessesColumns.READ_BYTES]).mean()]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB)", sub_disk_df[DiskIOColumns.READ_BYTES].mean()]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Process (KB)", pd.to_numeric(sub_process_df[ProcessesColumns.WRITE_BYTES]).mean()]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB)", sub_disk_df[DiskIOColumns.WRITE_BYTES].mean()]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB per second)", pd.to_numeric(sub_process_df[ProcessesColumns.READ_BYTES]).sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB per second)", sub_disk_df[DiskIOColumns.READ_BYTES].sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB per second)", pd.to_numeric(sub_process_df[ProcessesColumns.WRITE_BYTES]).sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB per second)", sub_disk_df[DiskIOColumns.WRITE_BYTES].sum() / finishing_time]
 
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count (#)", pd.to_numeric(sub_process_df[ProcessesColumns.READ_BYTES]).mean()]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count (#)", sub_disk_df[DiskIOColumns.READ_BYTES].mean()]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Process Count (#)", pd.to_numeric(sub_process_df[ProcessesColumns.WRITE_BYTES]).mean()]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total Count (#)", sub_disk_df[DiskIOColumns.WRITE_BYTES].mean()]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# per second)", pd.to_numeric(sub_process_df[ProcessesColumns.READ_COUNT]).sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count Total (# per second)", sub_disk_df[DiskIOColumns.READ_COUNT].sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# per second)", pd.to_numeric(sub_process_df[ProcessesColumns.WRITE_COUNT]).sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# per second)", sub_disk_df[DiskIOColumns.WRITE_COUNT].sum() / finishing_time]
 
     battery_drop = calc_delta_capacity()
     summary_df.loc[len(summary_df.index)] = ["Energy consumption - total energy(mwh)", battery_drop[0]]
@@ -458,14 +458,33 @@ def prepare_summary_csv():
     summary_df.to_csv(SUMMARY_CSV, index=False)
 
 
+def ignore_last_results():
+    global processes_df
+    global memory_df
+    global disk_io_each_moment_df
+    global cpu_df
+    global battery_df
+
+    processes_num_last_measurement = processes_df[ProcessesColumns.TIME].value_counts()[processes_df[ProcessesColumns.TIME].max()]
+    processes_df = processes_df.iloc[:-processes_num_last_measurement, :]
+    memory_df = memory_df.iloc[:-1, :]
+    disk_io_each_moment_df = disk_io_each_moment_df.iloc[:-1, :]
+    if not battery_df.empty:
+        battery_df = battery_df.iloc[:-1, :]
+    cpu_df = cpu_df.iloc[:-1, :]
+
+
 def save_results_to_files():
     save_general_information_after_scanning()
-    processes_df.iloc[:-1, :].to_csv(PROCESSES_CSV, index=False)
-    memory_df.iloc[:-1, :].to_csv(TOTAL_MEMORY_EACH_MOMENT_CSV, index=False)
-    disk_io_each_moment_df.iloc[:-1, :].to_csv(DISK_IO_EACH_MOMENT, index=False)
+    ignore_last_results()
+
+    processes_df.to_csv(PROCESSES_CSV, index=False)
+    memory_df.to_csv(TOTAL_MEMORY_EACH_MOMENT_CSV, index=False)
+    disk_io_each_moment_df.to_csv(DISK_IO_EACH_MOMENT, index=False)
     if not battery_df.empty:
-        battery_df.iloc[:-1, :].to_csv(BATTERY_STATUS_CSV, index=False)
-    cpu_df.iloc[:-1, :].to_csv(TOTAL_CPU_CSV, index=False)
+        battery_df.to_csv(BATTERY_STATUS_CSV, index=False)
+    cpu_df.to_csv(TOTAL_CPU_CSV, index=False)
+
     prepare_summary_csv()
 
 
