@@ -590,7 +590,7 @@ def main():
     if battery is not None and battery.power_plugged:  # ensure that charging cable is unplugged in laptop
         raise Exception("Unplug charging cable during measurements!")
 
-    if is_tamper_protection_enabled() and disable_real_time_protection_during_measurement:
+    if disable_real_time_protection_during_measurement and is_tamper_protection_enabled():
         raise Exception("You must disable Tamper Protection manually so that the program could control real "
                         "time Protection")
 
