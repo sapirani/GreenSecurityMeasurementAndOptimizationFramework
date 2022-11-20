@@ -2,10 +2,12 @@ import os
 import shutil
 from pathlib import Path
 import random
+from pathlib import Path
+from tqdm import tqdm
 
-should_change_content = True
-path_of_directory_to_copy = r"C:\Users\Administrator\Desktop\University\Green Security Project\GreenSecurity-FirstExperiment\Data\Duplicated Changed Files\power point files"
-path_of_file_to_duplicate = r"C:\Users\Administrator\Desktop\University\Green Security Project\GreenSecurity-FirstExperiment\Data\Files To Duplicate\pptx file.pptx"
+# should_change_content = False
+file_type = 'pdf'
+path_of_file_to_duplicate = fr"data\{file_type}_file.{file_type}"
 
 DUPLICATE_NUMBER = 10000
 MAX_DATA_SIZE = 100
@@ -24,12 +26,17 @@ def change_file_content(file_path):
 
 
 def duplicate():
-    for i in range(DUPLICATE_NUMBER):
-        new_file_path = f'{path_of_directory_to_copy}\\{copied_file_name}{i}.{path_of_file_to_duplicate.split(".")[-1]}'
-        shutil.copy(path_of_file_to_duplicate, new_file_path)
-
-        if should_change_content:
-            change_file_content(new_file_path)
+    for should_change_content in range(2):
+        if should_change_content:        
+            prefix_path = fr"data\{file_type}\changed"
+        else:
+            prefix_path = fr"data\{file_type}\dup"
+        Path(prefix_path).mkdir(parents=True, exist_ok=True)  
+        for i in tqdm(range(DUPLICATE_NUMBER)):
+            new_file_path = f'{prefix_path}\\{copied_file_name}{i}.{file_type}'
+            shutil.copy(path_of_file_to_duplicate, new_file_path)
+            if should_change_content:
+                change_file_content(new_file_path)
 
 
 def main():
