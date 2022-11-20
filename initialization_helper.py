@@ -71,9 +71,8 @@ def result_paths(is_scanner=True):
 
 
 # ======= Custom Scan Query (do not change) =======
-# TODO: is it necessary?
-#if program_to_scan == ProgramToScan.ANTIVIRUS and scan_type != ScanType.CUSTOM_SCAN and custom_scan_path != '""':
-#    raise Exception("custom_scan_path must be empty when running scans other than custom scan")
+if program_to_scan == ProgramToScan.ANTIVIRUS and scan_type != ScanType.CUSTOM_SCAN and custom_scan_path != '""':
+    raise Exception("custom_scan_path must be empty when running scans other than custom scan")
 
 
 battery_columns_list = [BatteryColumns.TIME, BatteryColumns.PERCENTS, BatteryColumns.CAPACITY, BatteryColumns.VOLTAGE]
