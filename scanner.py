@@ -436,8 +436,8 @@ def prepare_summary_csv():
 
     process_memory = pd.to_numeric(sub_process_df[ProcessesColumns.USED_MEMORY]).mean()
     total_memory = sub_memory_df[MemoryColumns.USED_MEMORY].mean() * KB
-    summary_df.loc[len(summary_df.index)] = ["Memory Process (KB)", process_memory]
-    summary_df.loc[len(summary_df.index)] = ["Memory Total (KB)", total_memory]
+    summary_df.loc[len(summary_df.index)] = ["Memory Process (MB)", process_memory]
+    summary_df.loc[len(summary_df.index)] = ["Memory Total (MB)", total_memory]
     summary_df.loc[len(summary_df.index)] = ["Process Memory / Memory Total", process_memory / total_memory]
 
     summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB per second)", pd.to_numeric(sub_process_df[ProcessesColumns.READ_BYTES]).sum() / finishing_time]
