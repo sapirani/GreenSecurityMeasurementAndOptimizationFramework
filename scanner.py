@@ -38,6 +38,7 @@ BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, SUMMARY_CSV = resul
 done_scanning = False
 starting_time = 0
 finishing_time = 0
+scanning_process_id = -1
 
 # TODO: maybe its better to calculate MEMORY(%) in the end of scan in order to reduce calculations during scanning
 processes_df = pd.DataFrame(columns=processes_columns_list)
@@ -413,7 +414,10 @@ def prepare_summary_csv():
     sub_memory_df = slice_df(memory_df, 5).astype(float)
     sub_disk_df = slice_df(disk_io_each_moment_df, 5).astype(float)
 
-    sub_process_df = slice_df(processes_df[processes_df[ProcessesColumns.PROCESS_NAME] == ANTIVIRUS_PROCESS_NAME], 5)
+    if program_to_scan is ProgramToScan.ANTIVIRUS:
+        sub_process_df = slice_df(processes_df[processes_df[ProcessesColumns.PROCESS_NAME] == ANTIVIRUS_PROCESS_NAME], 5)
+    else:
+        sub_process_df = slice_df(processes_df[processes_df[ProcessesColumns.PROCESS_ID] == scanning_process_id], 5)
 
     summary_df = pd.DataFrame(columns=["Metric", "Value"])
     summary_df.loc[len(summary_df.index)] = ["Duration", finishing_time]
@@ -512,6 +516,19 @@ def change_power_plan(name=balanced_power_plan_name, guid=balanced_power_plan_gu
         raise Exception(f'An error occurred while switching to the power plan: {name}', result.stderr)
 
 
+def find_child_id(process_pid):
+    if program_to_scan is ProgramToScan.ANTIVIRUS:
+        return
+
+    global scanning_process_id
+    result_screen = subprocess.run(["powershell", "-Command", f'Get-WmiObject Win32_Process -Filter "ParentProcessID={process_pid}" | Select ProcessID'],
+                                   capture_output=True)
+    if result_screen.returncode != 0:
+        raise Exception(result_screen.stderr)
+
+    scanning_process_id = int(str(result_screen.stdout).split("\\r\\n")[3: -3][0].strip())
+
+
 def scan_and_measure():
     global done_scanning
     global starting_time
@@ -522,14 +539,17 @@ def scan_and_measure():
     measurements_thread.start()
 
     while not scan_option == ScanMode.NO_SCAN and not done_scanning:
-        # TODO check about capture_output
-        result = subprocess.run(["powershell", "-Command", program.get_command()],
-                                capture_output=True)
+        powershell_process = subprocess.Popen(["powershell", "-Command", program.get_command()])
+        find_child_id(powershell_process.pid)
+        result = powershell_process.wait()
+        # TODO: get error when it happens - currently it is not working
+        outs, errs = powershell_process.communicate()
+
         finished_scanning_time.append(calc_time_interval())
         if scan_option == ScanMode.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
             done_scanning = True
-        if result.returncode != 0:
-            raise Exception("An error occurred while scanning: %s", result.stderr)
+        if result != 0:
+            raise Exception("An error occurred while scanning: %s", errs)
 
     measurements_thread.join()
     finishing_time = calc_time_interval()
