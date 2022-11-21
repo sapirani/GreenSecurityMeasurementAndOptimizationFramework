@@ -447,14 +447,24 @@ def prepare_summary_csv():
     summary_df.loc[len(summary_df.index)] = ["Process Memory / Memory Total", process_memory / total_memory]
 
     summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB per second)", pd.to_numeric(sub_process_df[ProcessesColumns.READ_BYTES]).sum() / finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB per second)", sub_disk_df[DiskIOColumns.READ_BYTES].sum() / finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB per second)", pd.to_numeric(sub_process_df[ProcessesColumns.WRITE_BYTES]).sum() / finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB per second)", sub_disk_df[DiskIOColumns.WRITE_BYTES].sum() / finishing_time]
-
+    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB - sum)", pd.to_numeric(sub_process_df[ProcessesColumns.READ_BYTES]).sum()]
     summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# per second)", pd.to_numeric(sub_process_df[ProcessesColumns.READ_COUNT]).sum() / finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count Total (# per second)", sub_disk_df[DiskIOColumns.READ_COUNT].sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# - sum)", pd.to_numeric(sub_process_df[ProcessesColumns.READ_COUNT]).sum()]
+
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB per second)", pd.to_numeric(sub_process_df[ProcessesColumns.WRITE_BYTES]).sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB - sum)", pd.to_numeric(sub_process_df[ProcessesColumns.WRITE_BYTES]).sum()]
     summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# per second)", pd.to_numeric(sub_process_df[ProcessesColumns.WRITE_COUNT]).sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# - sum)", pd.to_numeric(sub_process_df[ProcessesColumns.WRITE_COUNT]).sum()]
+
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB per second)", sub_disk_df[DiskIOColumns.READ_BYTES].sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB - sum)", sub_disk_df[DiskIOColumns.READ_BYTES].sum()]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count Total (# per second)", sub_disk_df[DiskIOColumns.READ_COUNT].sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count Total (# - sum)", sub_disk_df[DiskIOColumns.READ_COUNT].sum()]
+
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB per second)", sub_disk_df[DiskIOColumns.WRITE_BYTES].sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB - sum)", sub_disk_df[DiskIOColumns.WRITE_BYTES].sum()]
     summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# per second)", sub_disk_df[DiskIOColumns.WRITE_COUNT].sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# - sum)", sub_disk_df[DiskIOColumns.WRITE_COUNT].sum()]
 
     battery_drop = calc_delta_capacity()
     summary_df.loc[len(summary_df.index)] = ["Energy consumption - total energy(mwh)", battery_drop[0]]
@@ -519,23 +529,28 @@ def change_power_plan(name=balanced_power_plan_name, guid=balanced_power_plan_gu
 
 
 def find_child_id(process_pid):
-    if program_to_scan is ProgramToScan.ANTIVIRUS:
-        return
-
-    #time.sleep(0.3)
-
-    global scanning_process_id
-    result_screen = subprocess.run(["powershell", "-Command", f'Get-WmiObject Win32_Process -Filter "ParentProcessID={process_pid}" | Select ProcessID'],
-                                   capture_output=True)
-    if result_screen.returncode != 0:
-        raise Exception(result_screen.stderr)
-    #children = psutil.Process(process_pid).children()
-    #if len(children) != 1:
+    #if program_to_scan is ProgramToScan.ANTIVIRUS:
     #    return
-    #scanning_process_id = children[0].pid
-    #print([(p.pid, p.name()) for p in psutil.Process(process_pid).children(recursive=True)])
+    global scanning_process_id
+    current_time = time.time()
 
-    scanning_process_id = int(str(result_screen.stdout).split("\\r\\n")[3: -3][0].strip())
+    #result_screen = subprocess.run(["powershell", "-Command", f'Get-WmiObject Win32_Process -Filter "ParentProcessID={process_pid}" | Select ProcessID'],
+    #                               capture_output=True)
+    #if result_screen.returncode != 0:
+    #    raise Exception(result_screen.stderr)
+    children = []
+    while time.time() - current_time < 1.5:
+        children = psutil.Process(process_pid).children()
+        if len(children) != 0:
+            break
+        time.sleep(0.1)
+
+    if len(children) != 1:
+        return
+    scanning_process_id = children[0].pid
+    #([(p.pid, p.name()) for p in psutil.Process(process_pid).children(recursive=True)])
+
+    #scanning_process_id = int(str(result_screen.stdout).split("\\r\\n")[3: -3][0].strip())
     #print(scanning_process_id)
 
 

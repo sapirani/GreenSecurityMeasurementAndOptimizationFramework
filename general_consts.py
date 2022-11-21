@@ -64,6 +64,7 @@ class AntivirusProgram(ProgramInterface):
     def get_command(self) -> str:
         custom_scan_query = "" if self.custom_scan_path is None else f" -ScanPath {self.custom_scan_path}"
         return f"Start-MpScan -ScanType {self.scan_type}" + custom_scan_query
+        #return '"C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.2210.6-0\\MpCmdRun.exe" -Scan -ScanType 1'
 
     def path_adjustments(self):
         return self.scan_type
