@@ -564,11 +564,12 @@ def scan_and_measure():
     measurements_thread.start()
 
     while not scan_option == ScanMode.NO_SCAN and not done_scanning:
-        powershell_process = subprocess.Popen(["powershell", "-Command", program.get_command()])
-        find_child_id(powershell_process.pid)
-        result = powershell_process.wait()
-        # TODO: get error when it happens - currently it is not working
+        powershell_process = subprocess.Popen(["powershell", "-Command", program.get_command()],
+                                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if not powershell_process.stderr:
+            find_child_id(powershell_process.pid)
         outs, errs = powershell_process.communicate()
+        result = powershell_process.wait()
 
         finished_scanning_time.append(calc_time_interval())
         if scan_option == ScanMode.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
