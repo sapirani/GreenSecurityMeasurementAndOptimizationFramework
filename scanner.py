@@ -519,23 +519,23 @@ def change_power_plan(name=balanced_power_plan_name, guid=balanced_power_plan_gu
 
 
 def find_child_id(process_pid):
-    #if program_to_scan is ProgramToScan.ANTIVIRUS:
-    #    return
+    if program_to_scan is ProgramToScan.ANTIVIRUS:
+        return
 
-    time.sleep(0.3)
+    #time.sleep(0.3)
 
     global scanning_process_id
-    #result_screen = subprocess.run(["powershell", "-Command", f'Get-WmiObject Win32_Process -Filter "ParentProcessID={process_pid}" | Select ProcessID'],
-    #                               capture_output=True)
-    #if result_screen.returncode != 0:
-    #    raise Exception(result_screen.stderr)
-    children = psutil.Process(process_pid).children()
-    if len(children) != 1:
-        return
-    scanning_process_id = children[0].pid
+    result_screen = subprocess.run(["powershell", "-Command", f'Get-WmiObject Win32_Process -Filter "ParentProcessID={process_pid}" | Select ProcessID'],
+                                   capture_output=True)
+    if result_screen.returncode != 0:
+        raise Exception(result_screen.stderr)
+    #children = psutil.Process(process_pid).children()
+    #if len(children) != 1:
+    #    return
+    #scanning_process_id = children[0].pid
     #print([(p.pid, p.name()) for p in psutil.Process(process_pid).children(recursive=True)])
 
-    #scanning_process_id = int(str(result_screen.stdout).split("\\r\\n")[3: -3][0].strip())
+    scanning_process_id = int(str(result_screen.stdout).split("\\r\\n")[3: -3][0].strip())
     #print(scanning_process_id)
 
 
