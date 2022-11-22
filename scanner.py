@@ -344,8 +344,7 @@ def save_general_information_before_scanning():
         # dd/mm/YY
         f.write(f'Date: {date.today().strftime("%d/%m/%Y")}\n\n')
 
-        if scan_type == ScanType.CUSTOM_SCAN:
-            f.write(f'Scan Path: {custom_scan_path}\n\n')
+        program.general_information_before_measurement(f)
 
         save_general_system_information(f)
 
@@ -414,7 +413,7 @@ def slice_df(df, percent):
 def prepare_summary_csv():
     sub_cpu_df = slice_df(cpu_df, 5).astype(float)
     sub_memory_df = slice_df(memory_df, 5).astype(float)
-    sub_disk_df = slice_df(disk_io_each_moment_df, 5).astype(float)
+    sub_disk_df = slice_df(disk_io_each_moment_df, 0).astype(float)
 
     sub_process_df = slice_df(processes_df[processes_df[ProcessesColumns.PROCESS_ID] == scanning_process_id], 5)
 
@@ -443,15 +442,15 @@ def prepare_summary_csv():
     summary_df.loc[len(summary_df.index)] = ["Memory Total (MB)", total_memory]
     summary_df.loc[len(summary_df.index)] = ["Process Memory / Memory Total", process_memory / total_memory]
 
-    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB per second)", pd.to_numeric(sub_process_df[ProcessesColumns.READ_BYTES]).sum() / finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB - sum)", pd.to_numeric(sub_process_df[ProcessesColumns.READ_BYTES]).sum()]
-    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# per second)", pd.to_numeric(sub_process_df[ProcessesColumns.READ_COUNT]).sum() / finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# - sum)", pd.to_numeric(sub_process_df[ProcessesColumns.READ_COUNT]).sum()]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB per second)", pd.to_numeric(processes_df[ProcessesColumns.READ_BYTES]).sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB - sum)", pd.to_numeric(processes_df[ProcessesColumns.READ_BYTES]).sum()]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# per second)", pd.to_numeric(processes_df[ProcessesColumns.READ_COUNT]).sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# - sum)", pd.to_numeric(processes_df[ProcessesColumns.READ_COUNT]).sum()]
 
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB per second)", pd.to_numeric(sub_process_df[ProcessesColumns.WRITE_BYTES]).sum() / finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB - sum)", pd.to_numeric(sub_process_df[ProcessesColumns.WRITE_BYTES]).sum()]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# per second)", pd.to_numeric(sub_process_df[ProcessesColumns.WRITE_COUNT]).sum() / finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# - sum)", pd.to_numeric(sub_process_df[ProcessesColumns.WRITE_COUNT]).sum()]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB per second)", pd.to_numeric(processes_df[ProcessesColumns.WRITE_BYTES]).sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB - sum)", pd.to_numeric(processes_df[ProcessesColumns.WRITE_BYTES]).sum()]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# per second)", pd.to_numeric(processes_df[ProcessesColumns.WRITE_COUNT]).sum() / finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# - sum)", pd.to_numeric(processes_df[ProcessesColumns.WRITE_COUNT]).sum()]
 
     summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB per second)", sub_disk_df[DiskIOColumns.READ_BYTES].sum() / finishing_time]
     summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB - sum)", sub_disk_df[DiskIOColumns.READ_BYTES].sum()]
@@ -478,7 +477,10 @@ def ignore_last_results():
     global cpu_df
     global battery_df
 
-    processes_num_last_measurement = processes_df[ProcessesColumns.TIME].value_counts()[processes_df[ProcessesColumns.TIME].max()]
+    if processes_df.empty:
+        processes_num_last_measurement = 0
+    else:
+        processes_num_last_measurement = processes_df[ProcessesColumns.TIME].value_counts()[processes_df[ProcessesColumns.TIME].max()]
     processes_df = processes_df.iloc[:-processes_num_last_measurement, :]
     memory_df = memory_df.iloc[:-1, :]
     disk_io_each_moment_df = disk_io_each_moment_df.iloc[:-1, :]
@@ -503,7 +505,7 @@ def save_results_to_files():
 
 def calc_delta_capacity():
     if battery_df.empty:
-        return 0
+        return 0, 0
     before_scanning_capacity = battery_df.iloc[0].at[BatteryColumns.CAPACITY]
     current_capacity = battery_df.iloc[len(battery_df) - 1].at[BatteryColumns.CAPACITY]
 

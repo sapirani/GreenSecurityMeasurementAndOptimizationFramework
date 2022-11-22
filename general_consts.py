@@ -51,6 +51,9 @@ class ProgramInterface:
     def path_adjustments(self) -> str:
         return ""
 
+    def general_information_before_measurement(self, f):
+        pass
+
     def find_child_id(self, process_pid) -> int | None:
         # result_screen = subprocess.run(["powershell", "-Command", f'Get-WmiObject Win32_Process -Filter "ParentProcessID={process_pid}" | Select ProcessID'],
         #                               capture_output=True)
@@ -96,6 +99,10 @@ class AntivirusProgram(ProgramInterface):
     def path_adjustments(self):
         return self.scan_type
 
+    def general_information_before_measurement(self, f):
+        if self.scan_type == ScanType.CUSTOM_SCAN:
+            f.write(f'Scan Path: {self.custom_scan_path}\n\n')
+
     def find_child_id(self, process_pid):
         for i in range(3):  # try again and again
             for proc in psutil.process_iter():
@@ -114,6 +121,9 @@ class DummyAntivirusProgram(ProgramInterface):
 
     def get_command(self) -> str:
         return f"python FilesReader.py {self.scan_path}"
+
+    def general_information_before_measurement(self, f):
+        f.write(f'Scan Path: {self.scan_path}\n\n')
 
 
 class IDSProgram(ProgramInterface):
