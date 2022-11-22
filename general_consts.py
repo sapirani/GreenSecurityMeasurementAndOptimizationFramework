@@ -1,5 +1,7 @@
+import time
 from enum import Enum
 import psutil
+from subprocess import check_output
 
 # ======= Constants =======
 ANTIVIRUS_PROCESS_NAME = "MsMpEng.exe"
@@ -49,6 +51,31 @@ class ProgramInterface:
     def path_adjustments(self) -> str:
         return ""
 
+    def find_child_id(self, process_pid) -> int | None:
+        # result_screen = subprocess.run(["powershell", "-Command", f'Get-WmiObject Win32_Process -Filter "ParentProcessID={process_pid}" | Select ProcessID'],
+        #                               capture_output=True)
+        # if result_screen.returncode != 0:
+        #    raise Exception(result_screen.stderr)
+
+        # scanning_process_id = int(str(result_screen.stdout).split("\\r\\n")[3: -3][0].strip())
+        # print(scanning_process_id)
+
+        try:
+            children = []
+            for i in range(300):
+                children = psutil.Process(process_pid).children()
+                if len(children) != 0:
+                    break
+                time.sleep(0.1)
+
+        except psutil.NoSuchProcess:
+            return None
+
+        if len(children) != 1:
+            return None
+
+        return children[0].pid
+
 
 class AntivirusProgram(ProgramInterface):
     def __init__(self, scan_type, custom_scan_path):
@@ -68,6 +95,14 @@ class AntivirusProgram(ProgramInterface):
 
     def path_adjustments(self):
         return self.scan_type
+
+    def find_child_id(self, process_pid):
+        for i in range(3):  # try again and again
+            for proc in psutil.process_iter():
+                if proc.name() == ANTIVIRUS_PROCESS_NAME:
+                    return proc.pid
+
+        return None
 
 
 class DummyAntivirusProgram(ProgramInterface):

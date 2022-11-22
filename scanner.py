@@ -1,12 +1,9 @@
 import shutil
-
-import psutil
 import pythoncom
 from statistics import mean
 from prettytable import PrettyTable
 import subprocess
 from threading import Thread
-import time
 import pandas as pd
 from initialization_helper import *
 import ctypes
@@ -40,7 +37,7 @@ BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, SUMMARY_CSV = resul
 done_scanning = False
 starting_time = 0
 finishing_time = 0
-scanning_process_id = -1
+scanning_process_id = None
 
 # TODO: maybe its better to calculate MEMORY(%) in the end of scan in order to reduce calculations during scanning
 processes_df = pd.DataFrame(columns=processes_columns_list)
@@ -378,6 +375,9 @@ def convert_mwh_to_other_metrics(amount_of_mwh):
 def save_general_information_after_scanning():
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
         f.write('======After Scanning======\n')
+        if scanning_process_id is not None:
+            f.write(f'Process ID: {scanning_process_id}\n\n')
+
         save_general_disk(f)
 
         if not battery_df.empty:
@@ -416,10 +416,7 @@ def prepare_summary_csv():
     sub_memory_df = slice_df(memory_df, 5).astype(float)
     sub_disk_df = slice_df(disk_io_each_moment_df, 5).astype(float)
 
-    if program_to_scan is ProgramToScan.ANTIVIRUS:
-        sub_process_df = slice_df(processes_df[processes_df[ProcessesColumns.PROCESS_NAME] == ANTIVIRUS_PROCESS_NAME], 5)
-    else:
-        sub_process_df = slice_df(processes_df[processes_df[ProcessesColumns.PROCESS_ID] == scanning_process_id], 5)
+    sub_process_df = slice_df(processes_df[processes_df[ProcessesColumns.PROCESS_ID] == scanning_process_id], 5)
 
     summary_df = pd.DataFrame(columns=["Metric", "Value"])
     summary_df.loc[len(summary_df.index)] = ["Duration", finishing_time]
@@ -528,36 +525,11 @@ def change_power_plan(name=balanced_power_plan_name, guid=balanced_power_plan_gu
         raise Exception(f'An error occurred while switching to the power plan: {name}', result.stderr)
 
 
-def find_child_id(process_pid):
-    #if program_to_scan is ProgramToScan.ANTIVIRUS:
-    #    return
-    global scanning_process_id
-    current_time = time.time()
-
-    #result_screen = subprocess.run(["powershell", "-Command", f'Get-WmiObject Win32_Process -Filter "ParentProcessID={process_pid}" | Select ProcessID'],
-    #                               capture_output=True)
-    #if result_screen.returncode != 0:
-    #    raise Exception(result_screen.stderr)
-    children = []
-    while time.time() - current_time < 1.5:
-        children = psutil.Process(process_pid).children()
-        if len(children) != 0:
-            break
-        time.sleep(0.1)
-
-    if len(children) != 1:
-        return
-    scanning_process_id = children[0].pid
-    #([(p.pid, p.name()) for p in psutil.Process(process_pid).children(recursive=True)])
-
-    #scanning_process_id = int(str(result_screen.stdout).split("\\r\\n")[3: -3][0].strip())
-    #print(scanning_process_id)
-
-
 def scan_and_measure():
     global done_scanning
     global starting_time
     global finishing_time
+    global scanning_process_id
     starting_time = time.time()
 
     measurements_thread = Thread(target=continuously_measure, args=())
@@ -566,10 +538,11 @@ def scan_and_measure():
     while not scan_option == ScanMode.NO_SCAN and not done_scanning:
         powershell_process = subprocess.Popen(["powershell", "-Command", program.get_command()],
                                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if not powershell_process.stderr:
-            find_child_id(powershell_process.pid)
-        outs, errs = powershell_process.communicate()
+
+        scanning_process_id = program.find_child_id(powershell_process.pid)
         result = powershell_process.wait()
+        errs = powershell_process.stderr.read().decode()
+        #outs, errs = powershell_process.communicate()
 
         finished_scanning_time.append(calc_time_interval())
         if scan_option == ScanMode.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
