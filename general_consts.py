@@ -7,6 +7,7 @@ MB = 2 ** 20
 KB = 2 ** 10
 NEW_MEASUREMENT = -1
 MEASUREMENT_NAME_DIR = "Measurement"
+PROCESS_ID_PHRASE = "Process ID"
 NUMBER_OF_CORES = psutil.cpu_count()
 
 MINUTE = 60

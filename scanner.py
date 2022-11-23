@@ -12,18 +12,6 @@ import screen_brightness_control as sbc
 from powershell_helper import get_powershell_result_list_format
 
 
-class PreviousDiskIO:
-    def __init__(self, disk_io):
-        self.read_count = disk_io.read_count
-        self.write_count = disk_io.write_count
-        self.read_bytes = disk_io.read_bytes
-        self.write_bytes = disk_io.write_bytes
-
-        # TODO: fix read_time, write_time to non cumulative
-        #self.read_time = disk_io.read_time
-        #self.write_time = disk_io.write_time
-
-
 # ======= Constants =======
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
 SYSTEM_IDLE_PID = 0
@@ -103,8 +91,8 @@ def save_current_disk_io(previous_disk_io):
         disk_io_stat.write_count - previous_disk_io.write_count,
         f'{(disk_io_stat.read_bytes - previous_disk_io.read_bytes) / KB:.3f}',
         f'{(disk_io_stat.write_bytes - previous_disk_io.write_bytes) / KB:.3f}',
-        disk_io_stat.read_time,
-        disk_io_stat.write_count
+        disk_io_stat.read_time - previous_disk_io.read_time,
+        disk_io_stat.write_time - previous_disk_io.write_time
     ]
 
     return disk_io_stat
@@ -143,7 +131,7 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
                 io_stat = p.io_counters()
 
                 if (p.pid, p.name) not in prev_io_per_process:
-                    prev_io_per_process[(p.pid, p.name)] = PreviousDiskIO(io_stat)
+                    prev_io_per_process[(p.pid, p.name)] = io_stat
                     continue    # remove first sample of process (because cpu_percent is meaningless 0)
 
                 prev_io = prev_io_per_process[(p.pid, p.name)]
@@ -163,7 +151,7 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
                     f'{(io_stat.write_bytes - prev_io.write_bytes) / KB:.3f}',
                 ]
 
-                prev_io_per_process[(p.pid, p.name)] = PreviousDiskIO(io_stat)
+                prev_io_per_process[(p.pid, p.name)] = io_stat
 
         except Exception:
             pass
@@ -192,8 +180,8 @@ def save_current_total_cpu():
 def continuously_measure():
     pythoncom.CoInitialize()
 
-    # init PreviousDiskIO by first disk io measurements (before scan)
-    prev_disk_io = PreviousDiskIO(psutil.disk_io_counters())
+    # init prev_disk_io by first disk io measurements (before scan)
+    prev_disk_io = psutil.disk_io_counters()
     prev_io_per_process = {}
 
     # TODO: think if total tables should be printed only once
@@ -363,7 +351,7 @@ def save_general_information_after_scanning():
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
         f.write('======After Scanning======\n')
         if scanning_process_id is not None:
-            f.write(f'Process ID: {scanning_process_id}\n\n')
+            f.write(f'{PROCESS_ID_PHRASE}: {scanning_process_id}\n\n')
 
         save_general_disk(f)
 
@@ -454,10 +442,8 @@ def prepare_summary_csv():
     summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# per second)", sub_disk_df[DiskIOColumns.WRITE_COUNT].sum() / disk_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# - sum)", sub_disk_df[DiskIOColumns.WRITE_COUNT].sum()]
 
-
-    #summary_df.loc[len(summary_df.index)] = ["Disk IO Read Time Total", sub_disk_df[DiskIOColumns.READ_TIME].sum()]
-    #summary_df.loc[len(summary_df.index)] = ["Disk IO Write Time Total", sub_disk_df[DiskIOColumns.WRITE_TIME].sum()]
-
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Time (ms - sum)", sub_disk_df[DiskIOColumns.READ_TIME].sum()]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Time (ms - sum)", sub_disk_df[DiskIOColumns.WRITE_TIME].sum()]
 
     battery_drop = calc_delta_capacity()
     summary_df.loc[len(summary_df.index)] = ["Energy consumption - total energy(mwh)", battery_drop[0]]

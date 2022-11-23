@@ -3,6 +3,7 @@ import math
 import matplotlib.pyplot as plt
 import pandas as pd
 from initialization_helper import *
+import re
 
 base_dir, GRAPHS_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
     BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, SUMMARY_CSV = result_paths(is_scanner=False)
@@ -28,6 +29,14 @@ class Units:
 
 DEFAULT = "default"
 
+
+def get_process_id():
+    with open(GENERAL_INFORMATION_FILE, 'r') as f:
+        match = re.search(f'{PROCESS_ID_PHRASE}:\s*(\d+)', f.read())
+        if match:
+            return int(match.group(1))
+        else:
+            return None
 
 
 def design_and_plot(x_info, y_info, graph_name):
