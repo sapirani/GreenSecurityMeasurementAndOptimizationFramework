@@ -451,7 +451,15 @@ def prepare_summary_csv():
     summary_df.loc[len(summary_df.index)] = ["Battery Drop( %)", battery_drop[1]]
     summary_df.loc[len(summary_df.index)] = ["Trees (KG)", convert_mwh_to_other_metrics(battery_drop[0])[3]]
 
-    summary_df.to_csv(SUMMARY_CSV, index=False)
+    def colors_func(df):
+        return ['background-color: #FFFFFF'] + ['background-color: #FFFF00' for _ in range(3)] + \
+               ['background-color: #9CC2E5' for _ in range(3)] + ['background-color: #66FF66' for _ in range(3)] + \
+               ['background-color: #00B050' for _ in range(4)] + ['background-color: #70ad47' for _ in range(4)] + \
+               ['background-color: #FFC000' for _ in range(2)] + ['background-color: #FFFFFF']
+
+    styled_summary_df = summary_df.style.apply(colors_func, axis=0)
+
+    styled_summary_df.to_excel(SUMMARY_CSV, engine='openpyxl', index=False)
 
 
 def ignore_last_results():

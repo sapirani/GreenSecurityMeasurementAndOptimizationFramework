@@ -123,3 +123,8 @@ class IDSProgram(ProgramInterface):
 
     def get_command(self):
         return rf"& '{self.installation_dir}\{self.ids_type}\{self.ids_type.lower()}.exe' -i {self.interface_name} -l '{self.installation_dir}\{self.ids_type}\{self.log_dir}'"
+
+
+class NoScanProgram(ProgramInterface):
+    def get_program_name(self) -> str:
+        return "No Scan"
