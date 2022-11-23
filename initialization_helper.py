@@ -2,6 +2,7 @@ import os.path
 from program_parameters import *
 import wmi
 import platform
+from program_classes import *
 
 # ======= Power Plan Name and GUID (do not change) =======
 chosen_power_plan_name = power_plan[0]
@@ -84,7 +85,8 @@ cores_names_list = [get_core_name(i) for i in range(1, NUMBER_OF_CORES + 1)]
 cpu_columns_list = [CPUColumns.TIME, CPUColumns.USED_PERCENT] + cores_names_list
 
 disk_io_columns_list = [DiskIOColumns.TIME, DiskIOColumns.READ_COUNT, DiskIOColumns.WRITE_COUNT,
-                        DiskIOColumns.READ_BYTES, DiskIOColumns.WRITE_BYTES]
+                        DiskIOColumns.READ_BYTES, DiskIOColumns.WRITE_BYTES, DiskIOColumns.READ_TIME,
+                        DiskIOColumns.WRITE_TIME]
 
 processes_columns_list = [
     ProcessesColumns.TIME, ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME, ProcessesColumns.CPU_CONSUMPTION,
