@@ -37,7 +37,7 @@ def calc_base_dir():
                     f"{platform.system()} {platform.release()}"
 
     if program_to_scan == ProgramToScan.NO_SCAN:
-        return os.path.join(computer_info, 'No Scan', chosen_power_plan_name)
+        return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name)
     elif scan_option == ScanMode.ONE_SCAN:
         return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name, 'One Scan', program.path_adjustments())
     else:
