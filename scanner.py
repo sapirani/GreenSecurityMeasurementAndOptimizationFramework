@@ -153,7 +153,7 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
 
                 prev_io_per_process[(p.pid, p.name)] = io_stat
 
-        except Exception:
+        except psutil.NoSuchProcess:
             pass
 
     return prev_io_per_process
@@ -395,12 +395,13 @@ def prepare_summary_csv():
     sub_memory_df = slice_df(memory_df, 5).astype(float)
     sub_disk_df = slice_df(disk_io_each_moment_df, 0).astype(float)
 
-    sub_process_df = slice_df(processes_df[processes_df[ProcessesColumns.PROCESS_ID] == scanning_process_id], 5)
+    scanning_process_df = processes_df[processes_df[ProcessesColumns.PROCESS_ID] == scanning_process_id]
+    sub_scanning_process_df = slice_df(scanning_process_df, 5)
 
     summary_df = pd.DataFrame(columns=["Metric", "Value"])
     summary_df.loc[len(summary_df.index)] = ["Duration", total_finishing_time]
 
-    cpu_process = pd.to_numeric(sub_process_df[ProcessesColumns.CPU_CONSUMPTION]).mean()
+    cpu_process = pd.to_numeric(sub_scanning_process_df[ProcessesColumns.CPU_CONSUMPTION]).mean()
     cpu_total = sub_cpu_df[CPUColumns.USED_PERCENT].mean()
     summary_df.loc[len(summary_df.index)] = ["CPU Process", cpu_process]
     summary_df.loc[len(summary_df.index)] = ["CPU Total", cpu_total]
@@ -410,27 +411,27 @@ def prepare_summary_csv():
         summary_df.loc[len(summary_df.index)] = [f"CPU core {index + 1} (%)", sub_cpu_df[core_name].mean()]
 
     summary_df.loc[len(summary_df.index)] = ["Min CPU Process",
-                                             pd.to_numeric(sub_process_df[ProcessesColumns.CPU_CONSUMPTION]).min()]
+                                             pd.to_numeric(sub_scanning_process_df[ProcessesColumns.CPU_CONSUMPTION]).min()]
     summary_df.loc[len(summary_df.index)] = ["Max CPU Process",
-                                             pd.to_numeric(sub_process_df[ProcessesColumns.CPU_CONSUMPTION]).max()]
+                                             pd.to_numeric(sub_scanning_process_df[ProcessesColumns.CPU_CONSUMPTION]).max()]
     summary_df.loc[len(summary_df.index)] = ["Min CPU Total", sub_cpu_df[CPUColumns.USED_PERCENT].min()]
     summary_df.loc[len(summary_df.index)] = ["Max CPU Total", sub_cpu_df[CPUColumns.USED_PERCENT].max()]"""
 
-    process_memory = pd.to_numeric(sub_process_df[ProcessesColumns.USED_MEMORY]).mean()
+    process_memory = pd.to_numeric(sub_scanning_process_df[ProcessesColumns.USED_MEMORY]).mean()
     total_memory = sub_memory_df[MemoryColumns.USED_MEMORY].mean() * KB
     summary_df.loc[len(summary_df.index)] = ["Memory Process (MB)", process_memory]
     summary_df.loc[len(summary_df.index)] = ["Memory Total (MB)", total_memory]
     summary_df.loc[len(summary_df.index)] = ["Process Memory / Memory Total", process_memory / total_memory]
 
-    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB per second)", pd.to_numeric(processes_df[ProcessesColumns.READ_BYTES]).sum() / process_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB - sum)", pd.to_numeric(processes_df[ProcessesColumns.READ_BYTES]).sum()]
-    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# per second)", pd.to_numeric(processes_df[ProcessesColumns.READ_COUNT]).sum() / process_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# - sum)", pd.to_numeric(processes_df[ProcessesColumns.READ_COUNT]).sum()]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum() / process_finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB - sum)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum()]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum() / process_finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# - sum)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum()]
 
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB per second)", pd.to_numeric(processes_df[ProcessesColumns.WRITE_BYTES]).sum() / process_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB - sum)", pd.to_numeric(processes_df[ProcessesColumns.WRITE_BYTES]).sum()]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# per second)", pd.to_numeric(processes_df[ProcessesColumns.WRITE_COUNT]).sum() / process_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# - sum)", pd.to_numeric(processes_df[ProcessesColumns.WRITE_COUNT]).sum()]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum() / process_finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB - sum)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum()]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum() / process_finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# - sum)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum()]
 
     summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB per second)", sub_disk_df[DiskIOColumns.READ_BYTES].sum() / disk_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB - sum)", sub_disk_df[DiskIOColumns.READ_BYTES].sum()]
