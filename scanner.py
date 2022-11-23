@@ -423,25 +423,30 @@ def prepare_summary_csv():
     summary_df.loc[len(summary_df.index)] = ["Memory Total (MB)", total_memory]
     summary_df.loc[len(summary_df.index)] = ["Process Memory / Memory Total", process_memory / total_memory]
 
-    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum() / process_finishing_time]
+    #summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum() / process_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB - sum)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum()]
-    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum() / process_finishing_time]
+    #summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum() / process_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# - sum)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum()]
 
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum() / process_finishing_time]
+    #summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum() / process_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB - sum)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum()]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum() / process_finishing_time]
+    #summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum() / process_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# - sum)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum()]
 
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB per second)", sub_disk_df[DiskIOColumns.READ_BYTES].sum() / disk_finishing_time]
+    #summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB per second)", sub_disk_df[DiskIOColumns.READ_BYTES].sum() / disk_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB - sum)", sub_disk_df[DiskIOColumns.READ_BYTES].sum()]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count Total (# per second)", sub_disk_df[DiskIOColumns.READ_COUNT].sum() / disk_finishing_time]
+    #summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count Total (# per second)", sub_disk_df[DiskIOColumns.READ_COUNT].sum() / disk_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count Total (# - sum)", sub_disk_df[DiskIOColumns.READ_COUNT].sum()]
 
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB per second)", sub_disk_df[DiskIOColumns.WRITE_BYTES].sum() / disk_finishing_time]
+    #summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB per second)", sub_disk_df[DiskIOColumns.WRITE_BYTES].sum() / disk_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB - sum)", sub_disk_df[DiskIOColumns.WRITE_BYTES].sum()]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# per second)", sub_disk_df[DiskIOColumns.WRITE_COUNT].sum() / disk_finishing_time]
+    #summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# per second)", sub_disk_df[DiskIOColumns.WRITE_COUNT].sum() / disk_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# - sum)", sub_disk_df[DiskIOColumns.WRITE_COUNT].sum()]
+
+    summary_df.loc[len(summary_df.index)] = ["IO Read Process / Total (KB - sum)", (pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum()) / sub_disk_df[DiskIOColumns.READ_BYTES].sum()]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process / Total (# - sum)", (pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum()) / sub_disk_df[DiskIOColumns.READ_COUNT].sum()]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process / Total  (KB - sum)", (pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum()) / sub_disk_df[DiskIOColumns.WRITE_BYTES].sum()]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count / Total  (# - sum)", (pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum()) / sub_disk_df[DiskIOColumns.WRITE_COUNT].sum()]
 
     summary_df.loc[len(summary_df.index)] = ["Disk IO Read Time (ms - sum)", sub_disk_df[DiskIOColumns.READ_TIME].sum()]
     summary_df.loc[len(summary_df.index)] = ["Disk IO Write Time (ms - sum)", sub_disk_df[DiskIOColumns.WRITE_TIME].sum()]

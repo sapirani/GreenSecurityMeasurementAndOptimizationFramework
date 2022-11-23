@@ -1,7 +1,7 @@
 from general_consts import *
 
 # ======= Scanner Parameters =======
-program_to_scan = ProgramToScan.NO_SCAN
+program_to_scan = ProgramToScan.ANTIVIRUS
 
 power_plan = PowerPlan.BALANCED
 scan_option = ScanMode.ONE_SCAN
