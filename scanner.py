@@ -164,7 +164,7 @@ def min_scan_time_passed():
 
 
 def should_scan():
-    if scan_option == ScanMode.NO_SCAN:
+    if program_to_scan == ProgramToScan.NO_SCAN:
         return not min_scan_time_passed()
     elif scan_option == ScanMode.ONE_SCAN:
         return not done_scanning
@@ -366,7 +366,7 @@ def save_general_information_after_scanning():
             f.write(f'  Number of smartphone charged: {conversions[2]}\n')
             f.write(f'  Kilograms of wood burned: {conversions[3]}\n')
 
-        if scan_option == ScanMode.NO_SCAN:
+        if program_to_scan == ProgramToScan.NO_SCAN:
             measurement_time = finished_scanning_time[-1]
             f.write(f'\nMeasurement duration: {measurement_time} seconds, '
                     f'{measurement_time / 60} minutes\n')
@@ -519,7 +519,7 @@ def scan_and_measure():
     measurements_thread = Thread(target=continuously_measure, args=())
     measurements_thread.start()
 
-    while not scan_option == ScanMode.NO_SCAN and not done_scanning:
+    while not program_to_scan == ProgramToScan.NO_SCAN and not done_scanning:
         powershell_process = subprocess.Popen(["powershell", "-Command", program.get_command()],
                                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -535,7 +535,7 @@ def scan_and_measure():
             raise Exception("An error occurred while scanning: %s", errs)
 
     measurements_thread.join()
-    if scan_option == ScanMode.NO_SCAN:
+    if program_to_scan == ProgramToScan.NO_SCAN:
         finished_scanning_time.append(calc_time_interval())
 
 

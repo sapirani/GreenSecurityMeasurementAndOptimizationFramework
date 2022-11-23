@@ -34,7 +34,7 @@ def calc_base_dir():
     computer_info = f"{wmi_system.Manufacturer} {wmi_system.SystemFamily} {wmi_system.Model} " \
                     f"{platform.system()} {platform.release()}"
 
-    if scan_option == ScanMode.NO_SCAN:
+    if program_to_scan == ProgramToScan.NO_SCAN:
         return os.path.join(computer_info, 'No Scan', chosen_power_plan_name)
     elif scan_option == ScanMode.ONE_SCAN:
         return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name, 'One Scan', program.path_adjustments())

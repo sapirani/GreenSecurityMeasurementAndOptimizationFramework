@@ -86,7 +86,7 @@ def draw_grouped_dataframe(df, graph_name, x_info, y_info, total_path=DEFAULT, t
     for group_name, group in df:
         proc_name = group_name[1]
         group.plot(y=y_info.axis, ax=ax, label=proc_name, linewidth=(5 if proc_name == ANTIVIRUS_PROCESS_NAME and
-                                                                     scan_option != ScanMode.NO_SCAN
+                                                                     program_to_scan != ProgramToScan.NO_SCAN
                                                                      else 1))
 
     design_and_plot(x_info, y_info, graph_name)
@@ -199,7 +199,7 @@ def display_processes_graphs():
                                      CPUColumns.TIME, CPUColumns.USED_PERCENT)
 
     # display Total CPU consumption and Antivirus CPU consumption
-    if not scan_option == ScanMode.NO_SCAN:
+    if not program_to_scan == ProgramToScan.NO_SCAN:
         display_antivirus_and_total_cpu(x_info_cpu, y_info_cpu,
                                         processes_df.loc[
                                             processes_df[ProcessesColumns.PROCESS_NAME] == ANTIVIRUS_PROCESS_NAME])
@@ -213,7 +213,7 @@ def display_processes_graphs():
                                      TOTAL_MEMORY_EACH_MOMENT_CSV, MemoryColumns.TIME, MemoryColumns.USED_MEMORY)
 
     # display Total memory consumption and Antivirus memory consumption
-    if not scan_option == ScanMode.NO_SCAN:
+    if not program_to_scan == ProgramToScan.NO_SCAN:
         display_antivirus_and_total_memory(x_info_memory, y_info_memory,
                                            processes_df.loc[
                                                processes_df[ProcessesColumns.PROCESS_NAME] == ANTIVIRUS_PROCESS_NAME])

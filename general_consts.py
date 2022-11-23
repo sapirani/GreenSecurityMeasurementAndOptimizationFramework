@@ -37,15 +37,15 @@ disk_types = ["Unknown", "NoRootDirectory", "Removable", "Fixed", "Network", "CD
 
 # ======= Static Classes =======
 class ProgramToScan(Enum):
-    ANTIVIRUS = 0
-    DummyANTIVIRUS = 1
-    IDS = 2
+    NO_SCAN = 1
+    ANTIVIRUS = 2
+    DummyANTIVIRUS = 3
+    IDS = 4
 
 
 class ScanMode(Enum):
-    NO_SCAN = 1
-    ONE_SCAN = 2
-    CONTINUOUS_SCAN = 3
+    ONE_SCAN = 1
+    CONTINUOUS_SCAN = 2
     
 
 class PowerPlan:

@@ -51,7 +51,6 @@ class ProgramInterface:
         pass
 
 
-
 class AntivirusProgram(ProgramInterface):
     def __init__(self, scan_type, custom_scan_path):
         if custom_scan_path == "" or custom_scan_path == '""':
