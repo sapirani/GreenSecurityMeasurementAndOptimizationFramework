@@ -14,6 +14,7 @@ MAX_DATA_SIZE = 100
 copied_file_name = "Copy"
 
 
+
 def change_file_content(file_path):
     file_size = os.path.getsize(file_path)
 
