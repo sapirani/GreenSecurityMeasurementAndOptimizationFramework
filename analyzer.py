@@ -6,7 +6,7 @@ from initialization_helper import *
 import re
 
 base_dir, GRAPHS_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
-    BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, SUMMARY_CSV = result_paths(is_scanner=False)
+BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, SUMMARY_CSV = result_paths(is_scanner=False)
 
 
 class AxisInfo:
@@ -37,6 +37,9 @@ def get_process_id():
             return int(match.group(1))
         else:
             return None
+
+
+process_to_plot_id = get_process_id()
 
 
 def design_and_plot(x_info, y_info, graph_name):
@@ -84,10 +87,9 @@ def draw_grouped_dataframe(df, graph_name, x_info, y_info, total_path=DEFAULT, t
     check_plot(ax, total_path, total_index, total_column)
 
     for group_name, group in df:
+        proc_id = group_name[0]
         proc_name = group_name[1]
-        group.plot(y=y_info.axis, ax=ax, label=proc_name, linewidth=(5 if proc_name == ANTIVIRUS_PROCESS_NAME and
-                                                                     program_to_scan != ProgramToScan.NO_SCAN
-                                                                     else 1))
+        group.plot(y=y_info.axis, ax=ax, label=proc_name, linewidth=(5 if proc_id == process_to_plot_id else 1))
 
     design_and_plot(x_info, y_info, graph_name)
 
@@ -100,10 +102,10 @@ def draw_subplots(df, x_info, y_info, title):
     fig, ax = plt.subplots(rows, cols, figsize=(18, 10))
     for i in range(rows):
         for j in range(cols):
-            if i*cols + j >= number_of_cols_to_plot:
+            if i * cols + j >= number_of_cols_to_plot:
                 break
-            ax[i][j].plot(df[y_info.axis[i+j]])
-            ax[i][j].set_title(y_info.axis[i*cols+j])
+            ax[i][j].plot(df[y_info.axis[i + j]])
+            ax[i][j].set_title(y_info.axis[i * cols + j])
 
     fig.suptitle(title, color="darkblue", fontsize=30, fontname="Times New Roman", fontweight="bold")
     fig.supxlabel(x_info.label, fontsize=20, color='crimson')
@@ -118,7 +120,6 @@ def draw_subplots(df, x_info, y_info, title):
 
 
 def draw_dataframe(df, graph_name, x_info, y_info, column_to_emphasis=None, do_subplots=False):
-
     fig, ax = plt.subplots(figsize=(10, 5))
 
     if column_to_emphasis is not None:
@@ -198,11 +199,10 @@ def display_processes_graphs():
                                      x_info_cpu, y_info_cpu, "CPU consumption per process", TOTAL_CPU_CSV,
                                      CPUColumns.TIME, CPUColumns.USED_PERCENT)
 
-    # display Total CPU consumption and Antivirus CPU consumption
-    if not program_to_scan == ProgramToScan.NO_SCAN:
-        display_antivirus_and_total_cpu(x_info_cpu, y_info_cpu,
-                                        processes_df.loc[
-                                            processes_df[ProcessesColumns.PROCESS_NAME] == ANTIVIRUS_PROCESS_NAME])
+    # display Total CPU consumption and Antivirus/Dummy CPU consumption
+    if process_to_plot_id is not None:
+        display_process_and_total_cpu(x_info_cpu, y_info_cpu, processes_df.loc[
+            processes_df[ProcessesColumns.PROCESS_ID] == process_to_plot_id])
 
     # display Memory
     x_info_memory = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
@@ -212,11 +212,10 @@ def display_processes_graphs():
                                      x_info_memory, y_info_memory, "Memory consumption per process",
                                      TOTAL_MEMORY_EACH_MOMENT_CSV, MemoryColumns.TIME, MemoryColumns.USED_MEMORY)
 
-    # display Total memory consumption and Antivirus memory consumption
-    if not program_to_scan == ProgramToScan.NO_SCAN:
-        display_antivirus_and_total_memory(x_info_memory, y_info_memory,
-                                           processes_df.loc[
-                                               processes_df[ProcessesColumns.PROCESS_NAME] == ANTIVIRUS_PROCESS_NAME])
+    # display Total memory consumption and Antivirus/Dummy memory consumption
+    if process_to_plot_id is not None:
+        display_process_and_total_memory(x_info_memory, y_info_memory, processes_df.loc[
+            processes_df[ProcessesColumns.PROCESS_ID] == process_to_plot_id])
 
     # display IO read bytes
     x_info_read = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
@@ -247,23 +246,23 @@ def display_processes_graphs():
                                      x_info_write_count, y_info_write_count, "IO write count per process")
 
 
-def draw_antivirus_and_total(total, antivirus, x, y, title):
+def draw_process_and_total(total, process_df, x, y, title):
     fig, ax = plt.subplots(figsize=(15, 6))
     total.plot(color='black', ax=ax).legend(labels=["Total Consumption"])
-    antivirus.plot(y=y.axis, ax=ax, label="Antivirus", color="r")
+    process_df.plot(y=y.axis, ax=ax, label=program.get_program_name(), color="r")
     design_and_plot(x, y, title)
 
 
-def display_antivirus_and_total_cpu(x, y, antivirus_df):
+def display_process_and_total_cpu(x, y, process_df):
     total_df = pd.read_csv(TOTAL_CPU_CSV, index_col=CPUColumns.TIME)
     total_df = total_df[CPUColumns.USED_PERCENT]
-    draw_antivirus_and_total(total_df, antivirus_df, x, y, "CPU consumption - comparison")
+    draw_process_and_total(total_df, process_df, x, y, "CPU consumption - comparison")
 
 
-def display_antivirus_and_total_memory(x, y, antivirus_df):
+def display_process_and_total_memory(x, y, process_df):
     total_df = pd.read_csv(TOTAL_MEMORY_EACH_MOMENT_CSV, index_col=MemoryColumns.TIME)
     total_df = total_df[MemoryColumns.USED_MEMORY] * KB
-    draw_antivirus_and_total(total_df, antivirus_df, x, y, "Memory consumption - comparison")
+    draw_process_and_total(total_df, process_df, x, y, "Memory consumption - comparison")
 
 
 def main():

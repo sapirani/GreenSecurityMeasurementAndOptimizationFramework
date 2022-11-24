@@ -386,9 +386,13 @@ def slice_df(df, percent):
     return df[num: len(df.index) - num]
 
 
+def get_ratio(numerator, denominator):
+    return None if denominator == 0 else numerator / denominator
+
+
 def prepare_summary_csv():
-    process_finishing_time = processes_df[ProcessesColumns.TIME].iat[-1]
-    disk_finishing_time = disk_io_each_moment_df[DiskIOColumns.TIME].iat[-1]
+    # process_finishing_time = processes_df[ProcessesColumns.TIME].iat[-1]
+    # disk_finishing_time = disk_io_each_moment_df[DiskIOColumns.TIME].iat[-1]
     total_finishing_time = finished_scanning_time[-1]
 
     sub_cpu_df = slice_df(cpu_df, 5).astype(float)
@@ -423,25 +427,30 @@ def prepare_summary_csv():
     summary_df.loc[len(summary_df.index)] = ["Memory Total (MB)", total_memory]
     summary_df.loc[len(summary_df.index)] = ["Process Memory / Memory Total", process_memory / total_memory]
 
-    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum() / process_finishing_time]
+    #summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum() / process_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB - sum)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum()]
-    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum() / process_finishing_time]
+    #summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum() / process_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# - sum)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum()]
 
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum() / process_finishing_time]
+    #summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum() / process_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB - sum)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum()]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum() / process_finishing_time]
+    #summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum() / process_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# - sum)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum()]
 
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB per second)", sub_disk_df[DiskIOColumns.READ_BYTES].sum() / disk_finishing_time]
+    #summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB per second)", sub_disk_df[DiskIOColumns.READ_BYTES].sum() / disk_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB - sum)", sub_disk_df[DiskIOColumns.READ_BYTES].sum()]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count Total (# per second)", sub_disk_df[DiskIOColumns.READ_COUNT].sum() / disk_finishing_time]
+    #summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count Total (# per second)", sub_disk_df[DiskIOColumns.READ_COUNT].sum() / disk_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count Total (# - sum)", sub_disk_df[DiskIOColumns.READ_COUNT].sum()]
 
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB per second)", sub_disk_df[DiskIOColumns.WRITE_BYTES].sum() / disk_finishing_time]
+    #summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB per second)", sub_disk_df[DiskIOColumns.WRITE_BYTES].sum() / disk_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB - sum)", sub_disk_df[DiskIOColumns.WRITE_BYTES].sum()]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# per second)", sub_disk_df[DiskIOColumns.WRITE_COUNT].sum() / disk_finishing_time]
+    #summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# per second)", sub_disk_df[DiskIOColumns.WRITE_COUNT].sum() / disk_finishing_time]
     summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# - sum)", sub_disk_df[DiskIOColumns.WRITE_COUNT].sum()]
+
+    summary_df.loc[len(summary_df.index)] = ["IO Read Process / Total (KB - sum)", get_ratio((pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum()), sub_disk_df[DiskIOColumns.READ_BYTES].sum())]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process / Total (# - sum)", get_ratio((pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum()), sub_disk_df[DiskIOColumns.READ_COUNT].sum())]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process / Total  (KB - sum)", get_ratio((pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum()), sub_disk_df[DiskIOColumns.WRITE_BYTES].sum())]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count / Total  (# - sum)", get_ratio((pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum()), sub_disk_df[DiskIOColumns.WRITE_COUNT].sum())]
 
     summary_df.loc[len(summary_df.index)] = ["Disk IO Read Time (ms - sum)", sub_disk_df[DiskIOColumns.READ_TIME].sum()]
     summary_df.loc[len(summary_df.index)] = ["Disk IO Write Time (ms - sum)", sub_disk_df[DiskIOColumns.WRITE_TIME].sum()]
@@ -451,7 +460,16 @@ def prepare_summary_csv():
     summary_df.loc[len(summary_df.index)] = ["Battery Drop( %)", battery_drop[1]]
     summary_df.loc[len(summary_df.index)] = ["Trees (KG)", convert_mwh_to_other_metrics(battery_drop[0])[3]]
 
-    summary_df.to_csv(SUMMARY_CSV, index=False)
+    def colors_func(df):
+        return ['background-color: #FFFFFF'] + ['background-color: #FFFF00' for _ in range(3)] + \
+               ['background-color: #9CC2E5' for _ in range(3)] + ['background-color: #66FF66' for _ in range(4)] + \
+               ['background-color: #00B050' for _ in range(4)] + ['background-color: #70ad47' for _ in range(4)] + \
+               ['background-color: #CC66ff' for _ in range(2)] + ['background-color: #FFC000' for _ in range(2)] + \
+               ['background-color: #FFFFFF']
+
+    styled_summary_df = summary_df.style.apply(colors_func, axis=0)
+
+    styled_summary_df.to_excel(SUMMARY_CSV, engine='openpyxl', index=False)
 
 
 def ignore_last_results():
