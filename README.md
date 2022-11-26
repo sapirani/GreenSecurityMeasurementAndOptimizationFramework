@@ -33,7 +33,7 @@ It is possible to configure the computer's power plan during measurements. The a
 The main components of the code:
 1. Scanner - responsible to record the raw data in each mode and save it in the relevant csv and txt files
 2. Analyzer - responsible to create graphs from raw data saved by the scanner. The graphs are saved as pdf files.
-3. Configurations - responsible to easily configure power plan, scan mode, scan type, results path, minmum time and battary drain (for Continuous scan only), path of dir to scan (for Custom scan only)
+3. Program Parameters - responsible to easily configure power plan, scan mode, scan type, results path, minmum time and battary drain (for Continuous scan only), path of dir to scan (for Custom scan only)
 
 
 ### Program parameters (can easily be modified in Configurations file)
