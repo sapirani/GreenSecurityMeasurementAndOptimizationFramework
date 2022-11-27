@@ -3,10 +3,12 @@ from general_consts import *
 # ======= Scanner Parameters =======
 program_to_scan = ProgramToScan.ANTIVIRUS
 
-power_plan = PowerPlan.BALANCED
+power_plan = PowerPlan.POWER_SAVER
 scan_option = ScanMode.ONE_SCAN
-scan_type = ScanType.QUICK_SCAN  # relevant only for one scan or continuous scan
-custom_scan_path = r'""'  # relevant only for custom scans. On other types, must be empty
+scan_type = ScanType.CUSTOM_SCAN  # relevant only for one scan or continuous scan
+file_type = "txt"
+directory_type = "Duplicated Files"
+custom_scan_path = fr'"C:\Users\Administrator\Desktop\University\Green Security Project\GreenSecurity-FirstExperiment\Data\{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
 
 MINIMUM_DELTA_CAPACITY = 20
 MINIMUM_SCAN_TIME = 0.5 * MINUTE
