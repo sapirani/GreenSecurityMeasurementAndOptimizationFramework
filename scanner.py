@@ -130,11 +130,11 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
             with p.oneshot():
                 io_stat = p.io_counters()
 
-                if (p.pid, p.name) not in prev_io_per_process:
-                    prev_io_per_process[(p.pid, p.name)] = io_stat
+                if (p.pid, p.name()) not in prev_io_per_process:
+                    prev_io_per_process[(p.pid, p.name())] = io_stat
                     continue    # remove first sample of process (because cpu_percent is meaningless 0)
 
-                prev_io = prev_io_per_process[(p.pid, p.name)]
+                prev_io = prev_io_per_process[(p.pid, p.name())]
 
                 # TODO - does io_counters return only disk operations or all io operations (include network etc..)
                 processes_df.loc[len(processes_df.index)] = [
@@ -151,7 +151,7 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
                     f'{(io_stat.write_bytes - prev_io.write_bytes) / KB:.3f}',
                 ]
 
-                prev_io_per_process[(p.pid, p.name)] = io_stat
+                prev_io_per_process[(p.pid, p.name())] = io_stat
 
         except psutil.NoSuchProcess:
             pass
@@ -184,6 +184,8 @@ def continuously_measure():
     prev_disk_io = psutil.disk_io_counters()
     prev_io_per_process = {}
 
+    print(prev_disk_io)
+
     # TODO: think if total tables should be printed only once
     while should_scan():
         # Create a delay
@@ -194,6 +196,8 @@ def continuously_measure():
         save_current_total_cpu()
         save_current_total_memory()
         prev_disk_io = save_current_disk_io(prev_disk_io)
+        print(psutil.Process(5212).io_counters())
+        print(prev_disk_io)
 
 
 def save_general_battery(f):
