@@ -5,6 +5,10 @@ import sys
 
 
 def read_files_from_directory(directory_path):
+    import psutil
+    p = psutil.Process()
+    print(p.io_counters())
+    print(psutil.disk_io_counters())
     all_files_and_directories = os.listdir(directory_path)
     all_files = [f for f in all_files_and_directories if os.path.isfile(directory_path+'/'+f)] #Filtering only the files.
     for file in all_files:
@@ -12,6 +16,9 @@ def read_files_from_directory(directory_path):
         with open(file_path, 'rb') as f:
             #print(f.name)
             x = f.read()
+
+    print(p.io_counters())
+    print(psutil.disk_io_counters())
 
 
 def main():
