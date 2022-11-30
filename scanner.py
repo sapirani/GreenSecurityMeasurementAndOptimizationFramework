@@ -184,8 +184,6 @@ def continuously_measure():
     prev_disk_io = psutil.disk_io_counters()
     prev_io_per_process = {}
 
-    print(prev_disk_io)
-
     # TODO: think if total tables should be printed only once
     while should_scan():
         # Create a delay
@@ -196,8 +194,6 @@ def continuously_measure():
         save_current_total_cpu()
         save_current_total_memory()
         prev_disk_io = save_current_disk_io(prev_disk_io)
-        print(psutil.Process(scanning_process_id).io_counters())
-        print(prev_disk_io)
 
 
 def save_general_battery(f):
