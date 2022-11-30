@@ -196,7 +196,7 @@ def continuously_measure():
         save_current_total_cpu()
         save_current_total_memory()
         prev_disk_io = save_current_disk_io(prev_disk_io)
-        print(psutil.Process(5212).io_counters())
+        print(psutil.Process(scanning_process_id).io_counters())
         print(prev_disk_io)
 
 
