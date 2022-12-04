@@ -181,6 +181,7 @@ def continuously_measure():
     pythoncom.CoInitialize()
 
     # init prev_disk_io by first disk io measurements (before scan)
+    # TODO: lock until process starts
     prev_disk_io = psutil.disk_io_counters()
     prev_io_per_process = {}
 
