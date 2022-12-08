@@ -13,20 +13,21 @@ balanced_power_plan_guid = PowerPlan.BALANCED[1]
 
 
 # ======= Result Data Paths =======
-def program_to_scan_factory():
-    if program_to_scan == ProgramToScan.ANTIVIRUS:
+def program_to_scan_factory(program_type):
+    if program_type == ProgramToScan.ANTIVIRUS:
         return AntivirusProgram(scan_type, custom_scan_path)
-    if program_to_scan == ProgramToScan.IDS:
+    if program_type == ProgramToScan.IDS:
         return IDSProgram(ids_type, interface_name, log_dir)
-    if program_to_scan == ProgramToScan.DummyANTIVIRUS:
+    if program_type == ProgramToScan.DummyANTIVIRUS:
         return DummyAntivirusProgram(custom_scan_path)
-    if program_to_scan == ProgramToScan.NO_SCAN:
+    if program_type == ProgramToScan.NO_SCAN:
         return NoScanProgram()
 
     raise Exception("choose program to scan from ProgramToScan enum")
 
 
-program = program_to_scan_factory()
+program = program_to_scan_factory(main_program_to_scan)
+background_programs = [program_to_scan_factory(background_program) for background_program in background_programs_types]
 
 
 def calc_base_dir():
@@ -36,7 +37,7 @@ def calc_base_dir():
     computer_info = f"{wmi_system.Manufacturer} {wmi_system.SystemFamily} {wmi_system.Model} " \
                     f"{platform.system()} {platform.release()}"
 
-    if program_to_scan == ProgramToScan.NO_SCAN:
+    if main_program_to_scan == ProgramToScan.NO_SCAN:
         return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name)
     elif scan_option == ScanMode.ONE_SCAN:
         return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name, 'One Scan', program.path_adjustments())
@@ -74,7 +75,8 @@ def result_paths(is_scanner=True):
 
 
 # ======= Custom Scan Query (do not change) =======
-if program_to_scan == ProgramToScan.ANTIVIRUS and scan_type != ScanType.CUSTOM_SCAN and custom_scan_path != '""':
+if main_program_to_scan == ProgramToScan.ANTIVIRUS and ProgramToScan.DummyANTIVIRUS not in background_programs_types \
+        and scan_type != ScanType.CUSTOM_SCAN and custom_scan_path != '""':
     raise Exception("custom_scan_path must be empty when running scans other than custom scan")
 
 

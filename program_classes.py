@@ -46,10 +46,6 @@ class ProgramInterface:
 
         return children[0].pid
 
-    # TODO: add no scan
-    def calc_measurement_time(self):
-        pass
-
 
 class AntivirusProgram(ProgramInterface):
     def __init__(self, scan_type, custom_scan_path):
@@ -67,7 +63,7 @@ class AntivirusProgram(ProgramInterface):
 
     def get_command(self) -> str:
         custom_scan_query = "" if self.custom_scan_path is None else f" -ScanPath {self.custom_scan_path}"
-        return f"Start-MpScan -ScanType {self.scan_type}" + custom_scan_query
+        return f"dsff Start-MpScan -ScanType {self.scan_type}" + custom_scan_query
         #return '"C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.2210.6-0\\MpCmdRun.exe" -Scan -ScanType 1'
 
     def path_adjustments(self):
@@ -128,3 +124,17 @@ class IDSProgram(ProgramInterface):
 class NoScanProgram(ProgramInterface):
     def get_program_name(self) -> str:
         return "No Scan"
+
+
+class PerfmonProgram(ProgramInterface):
+    def __init__(self, results_path):
+        self.results_path = results_path
+
+    def get_program_name(self) -> str:
+        return "Performance Monitor"
+
+    def get_process_name(self) -> str:
+        pass
+
+    def get_command(self) -> str:
+        return f'Get-Counter gc =  "\PhysicalDisk(_Total)\Disk Write Bytes/sec", "\PhysicalDisk(_Total)\Disk Read Bytes/sec", "\Processor(_Total)\% Processor Time", "\Processor(_Total)\% Idle Time" Get-Counter -counter $gc -Continuous | Export-Counter -FileFormat "CSV" -Path "{self.results_path}\perfmon.csv"'

@@ -191,7 +191,7 @@ def min_scan_time_passed():
 
 
 def should_scan():
-    if program_to_scan == ProgramToScan.NO_SCAN:
+    if main_program_to_scan == ProgramToScan.NO_SCAN:
         return not min_scan_time_passed()
     elif scan_option == ScanMode.ONE_SCAN:
         return not done_scanning
@@ -394,7 +394,7 @@ def save_general_information_after_scanning():
             f.write(f'  Number of smartphone charged: {conversions[2]}\n')
             f.write(f'  Kilograms of wood burned: {conversions[3]}\n')
 
-        if program_to_scan == ProgramToScan.NO_SCAN:
+        if main_program_to_scan == ProgramToScan.NO_SCAN:
             measurement_time = finished_scanning_time[-1]
             f.write(f'\nMeasurement duration: {measurement_time} seconds, '
                     f'{measurement_time / 60} minutes\n')
@@ -570,6 +570,15 @@ def change_power_plan(name=balanced_power_plan_name, guid=balanced_power_plan_gu
         raise Exception(f'An error occurred while switching to the power plan: {name}', result.stderr)
 
 
+def start_process(program_to_scan):
+    powershell_process = subprocess.Popen(["powershell", "-Command", program_to_scan.get_command()],
+                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    child_process_id = program_to_scan.find_child_id(powershell_process.pid)
+
+    return powershell_process, child_process_id
+
+
 def scan_and_measure():
     global done_scanning
     global starting_time
@@ -579,14 +588,20 @@ def scan_and_measure():
     measurements_thread = Thread(target=continuously_measure, args=())
     measurements_thread.start()
 
-    while not program_to_scan == ProgramToScan.NO_SCAN and not done_scanning:
-        powershell_process = subprocess.Popen(["powershell", "-Command", program.get_command()],
-                                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    while not main_program_to_scan == ProgramToScan.NO_SCAN and not done_scanning:
+        main_powershell_process, scanning_process_id = start_process(program)
+        background_processes = [start_process(background_program) for background_program in background_programs]
+        result = main_powershell_process.wait()
 
-        scanning_process_id = program.find_child_id(powershell_process.pid)
-        result = powershell_process.wait()
-        errs = powershell_process.stderr.read().decode()
-        #outs, errs = powershell_process.communicate()
+        for powershell_process, child_process_id in background_processes:
+            try:
+                p = psutil.Process(child_process_id)
+                p.terminate()  # or p.kill()
+            except psutil.NoSuchProcess:
+                pass
+            powershell_process.wait()
+
+        errs = main_powershell_process.stderr.read().decode()
 
         finished_scanning_time.append(calc_time_interval())
         if scan_option == ScanMode.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
@@ -595,7 +610,7 @@ def scan_and_measure():
             raise Exception("An error occurred while scanning: %s", errs)
 
     measurements_thread.join()
-    if program_to_scan == ProgramToScan.NO_SCAN:
+    if main_program_to_scan == ProgramToScan.NO_SCAN:
         finished_scanning_time.append(calc_time_interval())
 
 
