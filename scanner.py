@@ -1,4 +1,6 @@
 import shutil
+import time
+
 import pythoncom
 from statistics import mean
 from prettytable import PrettyTable
@@ -10,7 +12,6 @@ from datetime import date
 from pathlib import Path
 import screen_brightness_control as sbc
 from powershell_helper import get_powershell_result_list_format
-
 
 # ======= Constants =======
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
@@ -25,10 +26,13 @@ NEVER_GO_TO_SLEEP_MODE = 0
 base_dir, GRAPHS_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
 BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, SUMMARY_CSV = result_paths()
 
+program.set_results_dir(base_dir)
+
 # ======= Program Global Parameters =======
 done_scanning = False
 starting_time = 0
 scanning_process_id = None
+processes_ids = []
 
 # TODO: maybe its better to calculate MEMORY(%) in the end of scan in order to reduce calculations during scanning
 processes_df = pd.DataFrame(columns=processes_columns_list)
@@ -41,12 +45,10 @@ battery_df = pd.DataFrame(columns=battery_columns_list)
 
 cpu_df = pd.DataFrame(columns=cpu_columns_list)
 
-
 # TODO: remove after fixing the problem with disk io
 raw_total_disk_df = pd.DataFrame(columns=raw_total_disk_list)
 
 raw_disk_processes_df = pd.DataFrame(columns=raw_disk_processes_list)
-
 
 finished_scanning_time = []
 
@@ -107,13 +109,13 @@ def save_current_disk_io(previous_disk_io):
     ]
 
     dataframe_append(raw_total_disk_df, [calc_time_interval(),
-                                             disk_io_stat.read_count,
-                                             disk_io_stat.write_count,
-                                             f'{disk_io_stat.read_bytes / KB:.3f}',
-                                             f'{disk_io_stat.write_bytes / KB:.3f}',
-                                             disk_io_stat.read_time,
-                                             disk_io_stat.write_time
-                                             ])
+                                         disk_io_stat.read_count,
+                                         disk_io_stat.write_count,
+                                         f'{disk_io_stat.read_bytes / KB:.3f}',
+                                         f'{disk_io_stat.write_bytes / KB:.3f}',
+                                         disk_io_stat.read_time,
+                                         disk_io_stat.write_time
+                                         ])
 
     return disk_io_stat
 
@@ -152,7 +154,7 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
 
                 if (p.pid, p.name()) not in prev_io_per_process:
                     prev_io_per_process[(p.pid, p.name())] = io_stat
-                    continue    # remove first sample of process (because cpu_percent is meaningless 0)
+                    continue  # remove first sample of process (because cpu_percent is meaningless 0)
 
                 prev_io = prev_io_per_process[(p.pid, p.name())]
 
@@ -410,7 +412,7 @@ def save_general_information_after_scanning():
 
 
 def slice_df(df, percent):
-    num = int(len(df.index)*(percent/100))
+    num = int(len(df.index) * (percent / 100))
     return df[num: len(df.index) - num]
 
 
@@ -455,33 +457,50 @@ def prepare_summary_csv():
     summary_df.loc[len(summary_df.index)] = ["Memory Total (MB)", total_memory]
     summary_df.loc[len(summary_df.index)] = ["Process Memory / Memory Total", process_memory / total_memory]
 
-    #summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum() / process_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB - sum)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum()]
-    #summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum() / process_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# - sum)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum()]
+    # summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum() / process_finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB - sum)",
+                                             pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum()]
+    # summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum() / process_finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# - sum)",
+                                             pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum()]
 
-    #summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum() / process_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB - sum)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum()]
-    #summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum() / process_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# - sum)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum()]
+    # summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum() / process_finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB - sum)",
+                                             pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum()]
+    # summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum() / process_finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# - sum)",
+                                             pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum()]
 
-    #summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB per second)", sub_disk_df[DiskIOColumns.READ_BYTES].sum() / disk_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB - sum)", sub_disk_df[DiskIOColumns.READ_BYTES].sum()]
-    #summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count Total (# per second)", sub_disk_df[DiskIOColumns.READ_COUNT].sum() / disk_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count Total (# - sum)", sub_disk_df[DiskIOColumns.READ_COUNT].sum()]
+    # summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB per second)", sub_disk_df[DiskIOColumns.READ_BYTES].sum() / disk_finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB - sum)",
+                                             sub_disk_df[DiskIOColumns.READ_BYTES].sum()]
+    # summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count Total (# per second)", sub_disk_df[DiskIOColumns.READ_COUNT].sum() / disk_finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count Total (# - sum)",
+                                             sub_disk_df[DiskIOColumns.READ_COUNT].sum()]
 
-    #summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB per second)", sub_disk_df[DiskIOColumns.WRITE_BYTES].sum() / disk_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB - sum)", sub_disk_df[DiskIOColumns.WRITE_BYTES].sum()]
-    #summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# per second)", sub_disk_df[DiskIOColumns.WRITE_COUNT].sum() / disk_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# - sum)", sub_disk_df[DiskIOColumns.WRITE_COUNT].sum()]
+    # summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB per second)", sub_disk_df[DiskIOColumns.WRITE_BYTES].sum() / disk_finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB - sum)",
+                                             sub_disk_df[DiskIOColumns.WRITE_BYTES].sum()]
+    # summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# per second)", sub_disk_df[DiskIOColumns.WRITE_COUNT].sum() / disk_finishing_time]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# - sum)",
+                                             sub_disk_df[DiskIOColumns.WRITE_COUNT].sum()]
 
-    summary_df.loc[len(summary_df.index)] = ["IO Read Process / Total (KB - sum)", get_ratio((pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum()), sub_disk_df[DiskIOColumns.READ_BYTES].sum())]
-    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process / Total (# - sum)", get_ratio((pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum()), sub_disk_df[DiskIOColumns.READ_COUNT].sum())]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process / Total  (KB - sum)", get_ratio((pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum()), sub_disk_df[DiskIOColumns.WRITE_BYTES].sum())]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count / Total  (# - sum)", get_ratio((pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum()), sub_disk_df[DiskIOColumns.WRITE_COUNT].sum())]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Process / Total (KB - sum)", get_ratio(
+        (pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum()),
+        sub_disk_df[DiskIOColumns.READ_BYTES].sum())]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process / Total (# - sum)", get_ratio(
+        (pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum()),
+        sub_disk_df[DiskIOColumns.READ_COUNT].sum())]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process / Total  (KB - sum)", get_ratio(
+        (pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum()),
+        sub_disk_df[DiskIOColumns.WRITE_BYTES].sum())]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count / Total  (# - sum)", get_ratio(
+        (pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum()),
+        sub_disk_df[DiskIOColumns.WRITE_COUNT].sum())]
 
     summary_df.loc[len(summary_df.index)] = ["Disk IO Read Time (ms - sum)", sub_disk_df[DiskIOColumns.READ_TIME].sum()]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Time (ms - sum)", sub_disk_df[DiskIOColumns.WRITE_TIME].sum()]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Time (ms - sum)",
+                                             sub_disk_df[DiskIOColumns.WRITE_TIME].sum()]
 
     battery_drop = calc_delta_capacity()
     summary_df.loc[len(summary_df.index)] = ["Energy consumption - total energy(mwh)", battery_drop[0]]
@@ -511,11 +530,11 @@ def ignore_last_results():
     global raw_total_disk_df
     global raw_disk_processes_df
 
-
     if processes_df.empty:
         processes_num_last_measurement = 0
     else:
-        processes_num_last_measurement = processes_df[ProcessesColumns.TIME].value_counts()[processes_df[ProcessesColumns.TIME].max()]
+        processes_num_last_measurement = processes_df[ProcessesColumns.TIME].value_counts()[
+            processes_df[ProcessesColumns.TIME].max()]
     processes_df = processes_df.iloc[:-processes_num_last_measurement, :]
     memory_df = memory_df.iloc[:-1, :]
     disk_io_each_moment_df = disk_io_each_moment_df.iloc[:-1, :]
@@ -571,12 +590,61 @@ def change_power_plan(name=balanced_power_plan_name, guid=balanced_power_plan_gu
 
 
 def start_process(program_to_scan):
+    global processes_ids
+
+    program_to_scan.set_processes_ids(processes_ids)
     powershell_process = subprocess.Popen(["powershell", "-Command", program_to_scan.get_command()],
                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     child_process_id = program_to_scan.find_child_id(powershell_process.pid)
 
+    if child_process_id is not None:
+        processes_ids.append(child_process_id)
+
     return powershell_process, child_process_id
+
+
+def terminate_due_to_exception(background_processes, program_name, err):
+    global done_scanning
+    done_scanning = True
+
+    try:
+        p = psutil.Process(scanning_process_id)
+        p.terminate()  # or p.kill()
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+
+    kill_background_processes(background_processes)
+    raise Exception("An error occurred in child program %s: %s", program_name, err)
+
+
+def start_background_processes():
+    background_processes = [start_process(background_program) for background_program in background_programs]
+    # TODO: think how to check if there are errors without sleeping - waiting for process initialization
+    time.sleep(5)
+
+    for (powershell_process, child_process_id), background_program in zip(background_processes, background_programs):
+        if powershell_process.poll() is not None:
+            err = powershell_process.stderr.read().decode()
+            if err:
+                terminate_due_to_exception(background_processes, background_program.get_program_name(), err)
+
+    return background_processes
+
+
+def kill_background_processes(background_processes):
+    for (powershell_process, child_process_id), background_program in zip(background_processes, background_programs):
+        try:
+            if child_process_id is None:
+                powershell_process.kill()
+
+            else:
+                p = psutil.Process(child_process_id)
+                p.terminate()  # or p.kill()
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
+        powershell_process.wait()
 
 
 def scan_and_measure():
@@ -590,17 +658,10 @@ def scan_and_measure():
 
     while not main_program_to_scan == ProgramToScan.NO_SCAN and not done_scanning:
         main_powershell_process, scanning_process_id = start_process(program)
-        background_processes = [start_process(background_program) for background_program in background_programs]
+        background_processes = start_background_processes()
         result = main_powershell_process.wait()
 
-        for powershell_process, child_process_id in background_processes:
-            try:
-                p = psutil.Process(child_process_id)
-                p.terminate()  # or p.kill()
-            except psutil.NoSuchProcess:
-                pass
-            powershell_process.wait()
-
+        kill_background_processes(background_processes)
         errs = main_powershell_process.stderr.read().decode()
 
         finished_scanning_time.append(calc_time_interval())
@@ -622,7 +683,7 @@ def can_proceed_towards_measurements():
                                       "Are you sure you want to continue?", 4)
 
         if button_selected == YES_BUTTON:
-            shutil.rmtree(base_dir)       # remove previous data
+            shutil.rmtree(base_dir)  # remove previous data
             return True
         else:
             return False
@@ -688,7 +749,7 @@ def main():
 
     psutil.cpu_percent()  # first call is meaningless
 
-    Path(GRAPHS_DIR).mkdir(parents=True, exist_ok=True)     # create empty dirs
+    Path(GRAPHS_DIR).mkdir(parents=True, exist_ok=True)  # create empty dirs
 
     save_general_information_before_scanning()
 

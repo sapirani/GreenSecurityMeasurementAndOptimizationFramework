@@ -5,7 +5,7 @@ import psutil
 x = psutil.disk_io_counters()
 print(x)
 
-time.sleep(32)
+time.sleep(180)
 
 y = psutil.disk_io_counters()
 print(y)

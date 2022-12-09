@@ -13,6 +13,7 @@ balanced_power_plan_guid = PowerPlan.BALANCED[1]
 
 
 # ======= Result Data Paths =======
+
 def program_to_scan_factory(program_type):
     if program_type == ProgramToScan.ANTIVIRUS:
         return AntivirusProgram(scan_type, custom_scan_path)
@@ -22,6 +23,8 @@ def program_to_scan_factory(program_type):
         return DummyAntivirusProgram(custom_scan_path)
     if program_type == ProgramToScan.NO_SCAN:
         return NoScanProgram()
+    if program_type == ProgramToScan.Permon:
+        return PerfmonProgram(program.get_process_name())
 
     raise Exception("choose program to scan from ProgramToScan enum")
 
@@ -70,6 +73,11 @@ def result_paths(is_scanner=True):
     general_information_file = os.path.join(measurements_dir, 'general_information.txt')
     total_cpu_csv = os.path.join(measurements_dir, 'total_cpu.csv')
     summary_csv = os.path.join(measurements_dir, 'summary.xlsx')
+
+    program.set_results_dir(measurements_dir)
+    for background_program in background_programs:
+        background_program.set_results_dir(measurements_dir)
+
     return measurements_dir, graphs_dir, processes_csv, total_memory_each_moment_csv, disk_io_each_moment,\
         battery_status_csv, general_information_file, total_cpu_csv, summary_csv
 
