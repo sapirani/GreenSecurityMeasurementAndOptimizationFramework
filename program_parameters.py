@@ -2,7 +2,7 @@ from general_consts import *
 
 # ======= Scanner Parameters =======
 main_program_to_scan = ProgramToScan.ANTIVIRUS
-background_programs_types = [ProgramToScan.DummyANTIVIRUS, ProgramToScan.Permon]
+background_programs_types = [ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 power_plan = PowerPlan.POWER_SAVER
 scan_option = ScanMode.ONE_SCAN

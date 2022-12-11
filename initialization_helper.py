@@ -23,7 +23,7 @@ def program_to_scan_factory(program_type):
         return DummyAntivirusProgram(custom_scan_path)
     if program_type == ProgramToScan.NO_SCAN:
         return NoScanProgram()
-    if program_type == ProgramToScan.Permon:
+    if program_type == ProgramToScan.Perfmon:
         return PerfmonProgram(program.get_process_name())
 
     raise Exception("choose program to scan from ProgramToScan enum")
