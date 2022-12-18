@@ -42,6 +42,7 @@ class ProgramToScan(Enum):
     DummyANTIVIRUS = 3
     IDS = 4
     Permon = 5
+    UserActivity = 6
 
 
 class ScanMode(Enum):

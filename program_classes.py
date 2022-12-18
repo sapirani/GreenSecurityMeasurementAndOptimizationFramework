@@ -118,6 +118,14 @@ class DummyAntivirusProgram(ProgramInterface):
         f.write(f'Scan Path: {self.scan_path}\n\n')
 
 
+class UserActivityProgram(ProgramInterface):
+    def get_program_name(self):
+        return "User Activity"
+
+    def get_command(self) -> str:
+        return f"python user_activity.py"
+
+
 class IDSProgram(ProgramInterface):
     def __init__(self, ids_type, interface_name, log_dir, installation_dir="C:\Program Files"):
         super().__init__()
