@@ -1,7 +1,7 @@
 from general_consts import *
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.ANTIVIRUS
+main_program_to_scan = ProgramToScan.user_activity
 background_programs_types = [ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 power_plan = PowerPlan.POWER_SAVER
