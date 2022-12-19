@@ -1,3 +1,4 @@
+import logging
 import shutil
 import time
 
@@ -12,8 +13,9 @@ from datetime import date
 from pathlib import Path
 import screen_brightness_control as sbc
 from powershell_helper import get_powershell_result_list_format
-
+import sys
 # ======= Constants =======
+logging.basicConfig(filename='session_log.log', encoding='utf-8', level=logging.DEBUG)
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
 SYSTEM_IDLE_PID = 0
 
@@ -694,7 +696,7 @@ def start_process(program_to_scan):
 
     program_to_scan.set_processes_ids(processes_ids)
     powershell_process = subprocess.Popen(["powershell", "-Command", program_to_scan.get_command()],
-                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,cwd=r"C:\Users\Administrator\Repositories\logdeep\demo")
 
     child_process_id = program_to_scan.find_child_id(powershell_process.pid)
 
@@ -760,10 +762,13 @@ def scan_and_measure():
     while not main_program_to_scan == ProgramToScan.NO_SCAN and not done_scanning:
         main_powershell_process, scanning_process_id = start_process(program)
         background_processes = start_background_processes()
+        for line in iter(main_powershell_process.stdout.readline, b''):
+            logging.info(line.decode('utf-8')[:-1]) # [:-1] to cut off newline char
+        main_powershell_process.stdout.close()
         result = main_powershell_process.wait()
 
         kill_background_processes(background_processes)
-        errs = main_powershell_process.stderr.read().decode()
+        errs = main_powershell_process.stderr.read()
 
         finished_scanning_time.append(calc_time_interval())
         if scan_option == ScanMode.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):

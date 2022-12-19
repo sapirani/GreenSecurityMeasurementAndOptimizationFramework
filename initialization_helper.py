@@ -25,6 +25,8 @@ def program_to_scan_factory(program_type):
         return NoScanProgram()
     if program_type == ProgramToScan.Perfmon:
         return PerfmonProgram(program.get_process_name())
+    if program_type == ProgramToScan.LogAnomalyDetection:
+        return LogAnomalyDetection(model_name, model_action, script_relative_path, installation_dir)
 
     raise Exception("choose program to scan from ProgramToScan enum")
 
