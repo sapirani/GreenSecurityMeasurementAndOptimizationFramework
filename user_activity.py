@@ -9,30 +9,52 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
+
 class Task:
 
     def __init__(self):
         self.task_name = ''
+        self.total_start_time = None
+        self.total_end_time = None
         self.start_time = None
         self.end_time = None
+        self.search_key = ''
+        self.github_key = 'github sign in'
+        self.stack_overflow = 'python selenium code example stack overflow'
+        self.nn_key = 'neural network architecture diagram'
         self.url = ''
         self.final_list = []
         self.google_url = 'https://www.google.com/'
         self.cnn_url = 'https://us.cnn.com/'
         self.whatsapp_url = 'https://web.whatsapp.com/'
+        self.photos_url = 'https://photos.google.com/'
+        self.javascr_url = 'https://observablehq.com/@d3/gallery'
+        self.video = 'neural+network+explained+statquest+'
+        self.username = 'sdvsdfv'
+        self.password = 'sdfvsdfv'
         self.driver = self.create_driver()
+        
         self.tasks_list = [
-            GoogleSearch(self.driver),
-            OpenLink(self.driver),
-            GetLink(self.driver),
-            Git(self.driver),
+            GoogleSearch(self.driver, self.github_key),
+            OpenFirstLink(self.driver),
+            GitLogIn(self.driver, self.username, self.password),
             NewTab(self.driver, self.cnn_url),
             ScrollDown(self.driver),
             NewTab(self.driver, self.whatsapp_url),
             NewTab(self.driver, self.google_url),
+            GoogleSearch(self.driver, self.stack_overflow),
+            LoopOverLinks(self.driver),
+            NewTab(self.driver, self.google_url),
+            GoogleSearch(self.driver, self.nn_key),
+            OpenFirstLink(self.driver),
+            ScreenShot(self.driver),
+            NewTab(self.driver, self.javascr_url),      
+            YouTubeVideo(self.driver, self.video),
+
         ]
 
     def _run_tasks(self):
+        self.total_start_time = time.time()
         for task in self.tasks_list:
             self.start_time = time.time()
             # print(f'Task {self.task_name} start. Start time: {self.start_time}')
@@ -40,8 +62,9 @@ class Task:
             task.run_task()
             self.end_time = time.time()
             self.final_list.append((task.get_name(), self.start_time, self.end_time))
-            # wait for 20 seconds
-            time.sleep(20)
+            print(f'Task {self.task_name} end. End time: {self.end_time}')
+        self.total_end_time = time.time()
+        print(f'total user activity running time: {self.total_end_time - self.total_start_time}')
         self.driver.quit()
 
     def _get_list(self):
