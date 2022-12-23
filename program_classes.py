@@ -1,3 +1,4 @@
+import os
 import subprocess
 import time
 
@@ -7,6 +8,7 @@ from general_consts import *
 
 class ProgramInterface:
     def __init__(self):
+        self.results_path = None
         self.processes_ids = None
 
     def get_program_name(self) -> str:
@@ -25,7 +27,7 @@ class ProgramInterface:
         pass
 
     def set_results_dir(self, results_path):
-        pass
+        self.results_path = results_path
 
     def set_processes_ids(self, processes_ids):
         self.processes_ids = processes_ids
@@ -123,7 +125,8 @@ class UserActivityProgram(ProgramInterface):
         return "User Activity"
 
     def get_command(self) -> str:
-        return f"python user_activity.py"
+        return f'python {os.path.join("UserActivity", "user_activity.py")} ' \
+               f'"{os.path.join(self.results_path, "tasks_times.csv")}"'
 
 
 class IDSProgram(ProgramInterface):
@@ -199,9 +202,6 @@ class PerfmonProgram(ProgramInterface):
         Get-Counter -counter $gc -Continuous | Export-Counter -FileFormat "CSV" -Path "C:{self.results_path}\\perfmon.csv"'''
 
         #return f'Get-Counter gc = "\\PhysicalDisk(_Total)\\Disk Reads/sec", "\\PhysicalDisk(_Total)\\Disk Writes/sec", "\\PhysicalDisk(_Total)\\Disk Read Bytes/sec", "\\PhysicalDisk(_Total)\\Disk Write Bytes/sec", "\\Processor(_Total)\\% Processor Time" Get-Counter -counter $gc -Continuous | Export-Counter -FileFormat "CSV" -Path "{self.results_path}\\perfmon.csv"'
-
-    def set_results_dir(self, results_path):
-        self.results_path = results_path
 
     def find_child_id(self, process_pid) -> int | None:
         return None

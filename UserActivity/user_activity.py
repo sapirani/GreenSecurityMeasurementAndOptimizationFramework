@@ -31,7 +31,7 @@ class Scheduler:
         return self.tasks_list
 
     def save_tasks_times(self):
-        self.tasks_times.to_csv(os.path.join(self.results_path, "tasks_times.csv"), index=False)
+        self.tasks_times.to_csv(self.results_path, index=False)
 
 
 def main():

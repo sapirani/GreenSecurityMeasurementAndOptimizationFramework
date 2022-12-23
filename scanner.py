@@ -32,6 +32,8 @@ program.set_results_dir(base_dir)
 done_scanning = False
 starting_time = 0
 scanning_process_id = None
+
+# include main programs and background
 processes_ids = []
 processes_names = []
 
@@ -382,7 +384,14 @@ def save_general_information_after_scanning():
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
         f.write('======After Scanning======\n')
         if scanning_process_id is not None:
-            f.write(f'{PROCESS_ID_PHRASE}: {scanning_process_id}\n\n')
+            f.write(f'{PROCESS_ID_PHRASE}: {processes_names[0]}({scanning_process_id})\n')
+
+        f.write(f'{BACKGROUND_ID_PHRASE}: ')
+        for background_process_id, background_process_name in zip(processes_ids[1:-1], processes_names[1:-1]):
+            f.write(f'{background_process_name}({background_process_id}),')
+
+        if len(processes_ids) > 1: # not just main program
+            f.write(f"{processes_names[-1]}({processes_ids[-1]})\n\n")
 
         save_general_disk(f)
 
