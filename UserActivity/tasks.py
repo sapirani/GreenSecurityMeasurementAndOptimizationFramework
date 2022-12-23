@@ -4,18 +4,24 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
+from abc import ABCMeta, abstractmethod
 
 
 class AbstractTask:
     def __init__(self, driver):
         self.driver = driver
 
+    @abstractmethod
     def run_task(self):
         pass
 
     def get_name(self):
-        return __class__.__name__
+        return self.__class__.__name__
+
+
+class CloseDriver(AbstractTask):
+    def run_task(self):
+        self.driver.quit()
 
 
 """class GoogleChrome(AbstractTask):
