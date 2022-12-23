@@ -61,7 +61,7 @@ def message_box(title, text, style):
 
 
 def calc_time_interval():
-    return time.time() - starting_time
+    return time.time()# - starting_time
 
 
 def save_battery_stat():
@@ -220,7 +220,7 @@ def continuously_measure():
     # TODO: think if total tables should be printed only once
     while should_scan():
         # Create a delay
-        time.sleep(0.5)
+        time.sleep(0.001)
 
         save_battery_stat()
         prev_io_per_process = save_current_processes_statistics(prev_io_per_process)
@@ -696,7 +696,7 @@ def start_process(program_to_scan):
 
     program_to_scan.set_processes_ids(processes_ids)
     powershell_process = subprocess.Popen(["powershell", "-Command", program_to_scan.get_command()],
-                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,cwd=r"C:\Users\Administrator\Repositories\logdeep\demo")
+                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,cwd=r"C:\Users\Administrator\Repositories\logdeep")
 
     child_process_id = program_to_scan.find_child_id(powershell_process.pid)
 

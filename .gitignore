@@ -4,3 +4,5 @@ __pycache__
 Dell Inc. Latitude Latitude 7430 Windows 10
 data
 session_log.log
+*.csv
+.vscode

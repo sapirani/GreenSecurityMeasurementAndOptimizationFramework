@@ -114,7 +114,7 @@ class LogAnomalyDetection(ProgramInterface):
         return "LogAnomalyDetection"
 
     def get_command(self):
-        return rf"& python '{self.script_relative_path}' {self.action}"
+        return rf"& python -m '{self.script_relative_path}' {self.action}"
 
 
 class DummyAntivirusProgram(ProgramInterface):
