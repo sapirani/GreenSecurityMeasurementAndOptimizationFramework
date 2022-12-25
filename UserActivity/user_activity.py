@@ -25,7 +25,7 @@ class Scheduler:
             dataframe_append(self.tasks_times, [task.get_name(), task_start_time, task_end_time,
                                                 task_end_time - task_start_time])
             # wait for 20 seconds
-            time.sleep(3)
+            #time.sleep(3)
 
     def get_list(self):
         return self.tasks_list

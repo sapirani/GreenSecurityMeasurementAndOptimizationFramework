@@ -76,11 +76,11 @@ class LoopOverLinks(AbstractTask):
         links = find_links(self.driver)
         for link in range(5):
             links[link].click()
-            time.sleep(20)
+            #time.sleep(20)
             ScrollDown(self.driver)
-            time.sleep(5)
+            #time.sleep(5)
             self.driver.back()
-            time.sleep(5)
+            #time.sleep(5)
 
 class GitLogIn(AbstractTask):
 
@@ -114,7 +114,7 @@ class GitLogIn(AbstractTask):
         if any(error_message in e.text for e in errors):
             print("[!] Login failed")
 
-        time.sleep(30)
+        #time.sleep(30)
 
 class NewTab(AbstractTask):
 
@@ -129,7 +129,7 @@ class NewTab(AbstractTask):
         # Switch to the new window and open new URL
         self.driver.switch_to.window(self.driver.window_handles[1])
         self.driver.get(self.url)
-        time.sleep(10)
+        #time.sleep(10)
 
 
 class ScrollDown(AbstractTask):
@@ -165,7 +165,7 @@ class YouTubeVideo(AbstractTask):
     def run_task(self):
         # Navigate to url with video being appended to search_query
         self.driver.get('https://www.youtube.com/results?search_query={}'.format(str(self.video)))
-        links = self.driver.find_elements(By.CLASS_NAME, 'style-scope ytd-item-section-renderer')
+        links = self.driver.find_elements(By.CLASS_NAME, "style-scope ytd-video-renderer")
         if links:
             links[0].click()
             time.sleep(1134)
