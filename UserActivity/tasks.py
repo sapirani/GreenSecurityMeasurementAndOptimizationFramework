@@ -5,6 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from abc import ABCMeta, abstractmethod
+from PIL import Image
 
 
 class AbstractTask:
@@ -33,9 +34,9 @@ class CloseDriver(AbstractTask):
 
 class GoogleSearch(AbstractTask):
 
-    def __init__(self, driver):
+    def __init__(self, driver, search_key):
         super(GoogleSearch, self).__init__(driver)
-        self.search_key = 'github sign in'
+        self.search_key = search_key
 
     def run_task(self):
         # find the element that's name attribute is q (the Google search box)
@@ -48,50 +49,53 @@ class GoogleSearch(AbstractTask):
         elem.send_keys(Keys.RETURN)
 
 
-class OpenLink(AbstractTask):
+class OpenFirstLink(AbstractTask):
 
     def __init__(self, driver):
-        super(OpenLink, self).__init__(driver)
+        super(OpenFirstLink, self).__init__(driver)
 
     def run_task(self):
         # open first link from the search results
         # make try adn except if there is no link
-        # try:
-        result = self.driver.find_element(By.TAG_NAME, 'h3')
-        result.click()
-        # except:
-        #    pass
+        try:
+            result = self.driver.find_element(By.TAG_NAME, 'h3')
+            result.click()
+        except:
+            pass
 
-
-class GetLink(AbstractTask):
-
-    def __init__(self, driver):
-        super(GetLink, self).__init__(driver)
-
-
-    def run_task(self):
-        # get the link from the current page
-        # try:
-        ahref = self.driver.find_element(By.TAG_NAME, 'a')
-        link = ahref.get_attribute('href')
-        link.click()
-        # except:
-
-
-class Git(AbstractTask):
+class LoopOverLinks(AbstractTask):
 
     def __init__(self, driver):
-        super(Git, self).__init__(driver)
+        super(LoopOverLinks, self).__init__(driver)
 
     def run_task(self):
-        username = 'adyon@post.bgu.ac'
-        password = 'aDyon5522'
+        def find_links(driver):
+                # find all links in the current page
+                return driver.find_elements(By.TAG_NAME, 'h3')
+
+        links = find_links(self.driver)
+        for link in range(5):
+            links[link].click()
+            time.sleep(20)
+            ScrollDown(self.driver)
+            time.sleep(5)
+            self.driver.back()
+            time.sleep(5)
+
+class GitLogIn(AbstractTask):
+
+    def __init__(self, driver, username, password):
+        super(GitLogIn, self).__init__(driver)
+        self.username = username
+        self.password = password
+
+    def run_task(self):
         # login
         uname = self.driver.find_element("id", "login_field")
-        uname.send_keys(username)
+        uname.send_keys(self.username)
 
         pword = self.driver.find_element("id", "password")
-        pword.send_keys(password)
+        pword.send_keys(self.password)
 
         self.driver.find_element("name", "commit").click()
 
@@ -110,6 +114,7 @@ class Git(AbstractTask):
         if any(error_message in e.text for e in errors):
             print("[!] Login failed")
 
+        time.sleep(30)
 
 class NewTab(AbstractTask):
 
@@ -124,6 +129,7 @@ class NewTab(AbstractTask):
         # Switch to the new window and open new URL
         self.driver.switch_to.window(self.driver.window_handles[1])
         self.driver.get(self.url)
+        time.sleep(10)
 
 
 class ScrollDown(AbstractTask):
@@ -152,3 +158,25 @@ class ScrollDown(AbstractTask):
         # ??
         self.driver.back()
 
+class YouTubeVideo(AbstractTask):
+    def __init__(self, driver, video):
+        super(YouTubeVideo, self).__init__(driver)
+        self.video = video
+    def run_task(self):
+        # Navigate to url with video being appended to search_query
+        self.driver.get('https://www.youtube.com/results?search_query={}'.format(str(self.video)))
+        links = self.driver.find_elements(By.CLASS_NAME, 'style-scope ytd-item-section-renderer')
+        if links:
+            links[0].click()
+            time.sleep(1134)
+
+class ScreenShot(AbstractTask):
+    def __init__(self, driver):
+        super(ScreenShot, self).__init__(driver)
+
+    def run_task(self):
+        self.driver.save_screenshot('ss.png')
+        screenshot = Image.open('ss.png')
+        # download the screenshot
+        screenshot.save('ss.png')
+        time.sleep(5)
