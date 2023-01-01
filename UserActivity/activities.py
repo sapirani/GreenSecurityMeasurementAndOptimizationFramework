@@ -1,4 +1,5 @@
-from tasks import *
+from web_tasks import *
+from office_tasks import *
 
 google_url = 'https://www.google.com/'
 cnn_url = 'https://us.cnn.com/'
@@ -24,7 +25,11 @@ driver = create_driver()
 
 
 class ACTIVITIES:
-    git_cnn_whatsapp_google = [
+    activities_flow = [
+        Word(),
+        Excel(),
+        PowerPoint(),
+        Outlook(),
         GoogleSearch(driver, github_key),
         OpenFirstLink(driver),
         GitLogIn(driver, username, password),
@@ -40,4 +45,6 @@ class ACTIVITIES:
         ScreenShot(driver),
         NewTab(driver, javascr_url),
         YouTubeVideo(driver, video),
+       
+        
     ]

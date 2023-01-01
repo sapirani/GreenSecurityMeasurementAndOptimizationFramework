@@ -39,7 +39,7 @@ def main():
         raise Exception("Expecting exactly one argument - scan path")
 
     # Yonatan's code
-    user_activity = Scheduler(ACTIVITIES.git_cnn_whatsapp_google, sys.argv[1])
+    user_activity = Scheduler(ACTIVITIES.activities_flow, sys.argv[1])
     user_activity.run_tasks()
     user_activity.save_tasks_times()
 

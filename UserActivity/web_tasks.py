@@ -72,15 +72,18 @@ class LoopOverLinks(AbstractTask):
         def find_links(driver):
                 # find all links in the current page
                 return driver.find_elements(By.TAG_NAME, 'h3')
-
-        links = find_links(self.driver)
-        for link in range(5):
-            links[link].click()
-            time.sleep(20)
-            ScrollDown(self.driver)
-            time.sleep(5)
-            self.driver.back()
-            time.sleep(5)
+        try:
+            links = find_links(self.driver)
+            for link in range(5):
+                links[link].click()
+                time.sleep(20)
+                ScrollDown(self.driver)
+                time.sleep(5)
+                self.driver.back()
+                time.sleep(5)
+        
+        except:
+            pass
 
 class GitLogIn(AbstractTask):
 
@@ -138,7 +141,7 @@ class ScrollDown(AbstractTask):
         super(ScrollDown, self).__init__(driver)
 
     def run_task(self):
-        scroll_pause_time = 0.5
+        scroll_pause_time = 1
 
         # Get scroll height
         last_height = self.driver.execute_script("return document.body.scrollHeight")
