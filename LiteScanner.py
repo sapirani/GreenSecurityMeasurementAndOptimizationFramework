@@ -70,8 +70,8 @@ def save_battery_stat():
     if battery is None:  # if desktop computer (has no battery)
         return
 
-    if battery.power_plugged:
-        raise Exception("Unplug charging cable during measurements!")
+    # if battery.power_plugged:
+    #     raise Exception("Unplug charging cable during measurements!")
 
     t = wmi.WMI(moniker="//./root/wmi")
 
@@ -229,8 +229,8 @@ def save_general_battery(f):
     if battery is None:  # if desktop computer (has no battery)
         return
 
-    if battery.power_plugged:
-        raise Exception("Unplug charging cable during measurements!")
+    # if battery.power_plugged:
+    #     raise Exception("Unplug charging cable during measurements!")
 
     f.write("----Battery----\n")
     c = wmi.WMI()
@@ -602,7 +602,7 @@ def start_process(program_to_scan):
 
     program_to_scan.set_processes_ids(processes_ids)
     powershell_process = subprocess.Popen(["powershell", "-Command", program_to_scan.get_command()],
-                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,cwd=r"C:\Users\Administrator\Repositories\logdeep")
+                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,cwd=r"C:\Users\Administrator\Repositories\logdeep_measurable")
 
     child_process_id = program_to_scan.find_child_id(powershell_process.pid)
 
