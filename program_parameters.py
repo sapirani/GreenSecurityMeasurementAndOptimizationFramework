@@ -1,18 +1,18 @@
 from general_consts import *
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.LogAnomalyDetection
-background_programs_types = []
-program_to_scan = ProgramToScan.DummyANTIVIRUS
+main_program_to_scan = ProgramToScan.ANTIVIRUS
+background_programs_types = [ProgramToScan.UserActivity]
 
 power_plan = PowerPlan.POWER_SAVER
 scan_option = ScanMode.ONE_SCAN
 scan_type = ScanType.CUSTOM_SCAN  # relevant only for one scan or continuous scan
 file_type = "pdf"
 directory_type = "Duplicated Files"
-custom_scan_path = fr'"C:\Users\Administrator\Desktop\University\Green Security Project\GreenSecurity\Data\{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
+custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
+
 MINIMUM_DELTA_CAPACITY = 20
-MINIMUM_SCAN_TIME = 0.5 * MINUTE
+MINIMUM_SCAN_TIME = 20 * MINUTE
 
 measurement_number = NEW_MEASUREMENT    # write number between 1->inf or type NEW_MEASUREMENT
 

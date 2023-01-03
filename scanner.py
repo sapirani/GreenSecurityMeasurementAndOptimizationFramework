@@ -1,4 +1,3 @@
-import logging
 import shutil
 import time
 
@@ -13,9 +12,8 @@ from datetime import date
 from pathlib import Path
 import screen_brightness_control as sbc
 from powershell_helper import get_powershell_result_list_format
-import sys
+
 # ======= Constants =======
-logging.basicConfig(filename='session_log.log', encoding='utf-8', level=logging.DEBUG)
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
 SYSTEM_IDLE_PID = 0
 
@@ -34,6 +32,8 @@ program.set_results_dir(base_dir)
 done_scanning = False
 starting_time = 0
 scanning_process_id = None
+
+# include main programs and background
 processes_ids = []
 processes_names = []
 
@@ -61,7 +61,7 @@ def message_box(title, text, style):
 
 
 def calc_time_interval():
-    return time.time()# - starting_time
+    return time.time() - starting_time
 
 
 def save_battery_stat():
@@ -220,7 +220,7 @@ def continuously_measure():
     # TODO: think if total tables should be printed only once
     while should_scan():
         # Create a delay
-        time.sleep(0.001)
+        time.sleep(0.5)
 
         save_battery_stat()
         prev_io_per_process = save_current_processes_statistics(prev_io_per_process)
@@ -384,7 +384,14 @@ def save_general_information_after_scanning():
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
         f.write('======After Scanning======\n')
         if scanning_process_id is not None:
-            f.write(f'{PROCESS_ID_PHRASE}: {scanning_process_id}\n\n')
+            f.write(f'{PROCESS_ID_PHRASE}: {processes_names[0]}({scanning_process_id})\n')
+
+        f.write(f'{BACKGROUND_ID_PHRASE}: ')
+        for background_process_id, background_process_name in zip(processes_ids[1:-1], processes_names[1:-1]):
+            f.write(f'{background_process_name}({background_process_id}),')
+
+        if len(processes_ids) > 1: # not just main program
+            f.write(f"{processes_names[-1]}({processes_ids[-1]})\n\n")
 
         save_general_disk(f)
 
@@ -696,7 +703,7 @@ def start_process(program_to_scan):
 
     program_to_scan.set_processes_ids(processes_ids)
     powershell_process = subprocess.Popen(["powershell", "-Command", program_to_scan.get_command()],
-                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,cwd=r"C:\Users\Administrator\Repositories\logdeep")
+                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     child_process_id = program_to_scan.find_child_id(powershell_process.pid)
 
@@ -762,13 +769,10 @@ def scan_and_measure():
     while not main_program_to_scan == ProgramToScan.NO_SCAN and not done_scanning:
         main_powershell_process, scanning_process_id = start_process(program)
         background_processes = start_background_processes()
-        for line in iter(main_powershell_process.stdout.readline, b''):
-            logging.info(line.decode('utf-8')[:-1]) # [:-1] to cut off newline char
-        main_powershell_process.stdout.close()
         result = main_powershell_process.wait()
 
         kill_background_processes(background_processes)
-        errs = main_powershell_process.stderr.read()
+        errs = main_powershell_process.stderr.read().decode()
 
         finished_scanning_time.append(calc_time_interval())
         if scan_option == ScanMode.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
