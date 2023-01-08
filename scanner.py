@@ -65,6 +65,11 @@ def calc_time_interval():
 
 
 def save_battery_stat():
+    """_summary_: take battery information and append it to a dataframe
+
+    Raises:
+        Exception: if the computer is charging or using desktop computer cant get battery information
+    """
     # Fetch the battery information
     battery = psutil.sensors_battery()
     if battery is None:  # if desktop computer (has no battery)
@@ -87,6 +92,8 @@ def save_battery_stat():
 
 
 def save_current_total_memory():
+    """_summary_: take memory information and append it to a dataframe
+    """
     vm = psutil.virtual_memory()
     memory_df.loc[len(memory_df.index)] = [
         calc_time_interval(),
@@ -96,10 +103,24 @@ def save_current_total_memory():
 
 
 def dataframe_append(df, element):
+    """_summary_: append an element to a dataframe
+
+    Args:
+        df : dataframe to append to
+        element (): element to append
+    """
     df.loc[len(df.index)] = element
 
 
 def save_current_disk_io(previous_disk_io):
+    """_summary_: take disk io information and append it to a dataframe
+
+    Args:
+        previous_disk_io : previous disk io information
+
+    Returns:
+        disk_io_stat: psutil.disk_io_counters
+    """
     disk_io_stat = psutil.disk_io_counters()
     disk_io_each_moment_df.loc[len(disk_io_each_moment_df.index)] = [
         calc_time_interval(),
@@ -192,10 +213,20 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
 
 
 def min_scan_time_passed():
+    """_summary_: check if the minimum scan time has passed
+
+    Returns:
+        bool: True if the minimum scan time has passed, False otherwise
+    """
     return time.time() - starting_time >= MINIMUM_SCAN_TIME
 
 
 def should_scan():
+    """_summary_: check what is the scan option
+
+    Returns:
+        _type_: bool
+    """
     if main_program_to_scan == ProgramToScan.NO_SCAN:
         return not min_scan_time_passed()
     elif scan_option == ScanMode.ONE_SCAN:
@@ -435,6 +466,7 @@ def get_all_df_by_id():
 
 
 def prepare_summary_csv():
+    """Prepare the summary csv file"""
     total_finishing_time = finished_scanning_time[-1]
 
     num_of_processes = len(processes_ids) + 1
@@ -803,6 +835,12 @@ def can_proceed_towards_measurements():
 
 def change_sleep_and_turning_screen_off_settings(screen_time=DEFAULT_SCREEN_TURNS_OFF_TIME,
                                                  sleep_time=DEFAULT_TIME_BEFORE_SLEEP_MODE):
+    """_summary_ : change the sleep and turning screen off settings
+
+    Args:
+        screen_time :Defaults to DEFAULT_SCREEN_TURNS_OFF_TIME.
+        sleep_time : Defaults to DEFAULT_TIME_BEFORE_SLEEP_MODE.
+    """
     result_screen = subprocess.run(["powershell", "-Command", f"powercfg /Change monitor-timeout-dc {screen_time}"],
                                    capture_output=True)
     if result_screen.returncode != 0:
@@ -815,6 +853,7 @@ def change_sleep_and_turning_screen_off_settings(screen_time=DEFAULT_SCREEN_TURN
 
 
 def change_real_time_protection(should_disable=True):
+
     protection_mode = "1" if should_disable else "0"
     result = subprocess.run(["powershell", "-Command",
                              f'Start-Process powershell -ArgumentList("Set-MpPreference -DisableRealTimeMonitoring {protection_mode}") -Verb runAs -WindowStyle hidden'],
@@ -824,6 +863,14 @@ def change_real_time_protection(should_disable=True):
 
 
 def is_tamper_protection_enabled():
+    """_summary_: tamper protection should be disabled for the program to work properly
+
+    Raises:
+        Exception: if could not check if tamper protection enabled
+
+    Returns:
+        _type_ : bool -- True if tamper protection is enabled, False otherwise
+    """
     result = subprocess.run(["powershell", "-Command", "Get-MpComputerStatus | Select IsTamperProtected | Format-List"],
                             capture_output=True)
     if result.returncode != 0:

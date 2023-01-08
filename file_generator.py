@@ -19,10 +19,19 @@ MB = 2**20
 
 
 def generator(generate_file_func, dir_name, base_file_name, file_ending):
+    """_summary_: genarate files in a directory
+
+    Args:
+        generate_file_func (func): function that generate the file
+        dir_name (str): path to the directory
+        base_file_name (str): base name of the file
+        file_ending (str): file type
+    """
     Path(f'{DIR_NAME}\\{dir_name}').mkdir(parents=True, exist_ok=True)
     for i in range(NUMBER_OF_FILES):
         generate_file_func(f'{DIR_NAME}\\{dir_name}\\{base_file_name}{i}.{file_ending}')
 
+# generate all different types of files
 
 def generate_text(full_dir):
     with open(f'{full_dir}', 'w') as f:

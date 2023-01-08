@@ -9,6 +9,8 @@ from PIL import Image
 
 
 class AbstractTask:
+    """_summary_: abstract class for tasks
+    """
     def __init__(self, driver):
         self.driver = driver
 
@@ -21,24 +23,28 @@ class AbstractTask:
 
 
 class CloseDriver(AbstractTask):
+    """_summary_: close the driver
+    """
     def run_task(self):
         self.driver.quit()
 
 
-"""class GoogleChrome(AbstractTask):
-    
+class GoogleChrome(AbstractTask):
+    """_summary_: open google chrome
+    """
     def __init__(self, driver):
         super(GoogleChrome, self).__init__(driver)
-        self.url = self.driver.open_driver('https://www.google.com/')"""
+        self.url = self.driver.open_driver('https://www.google.com/')
 
 
 class GoogleSearch(AbstractTask):
-
     def __init__(self, driver, search_key):
         super(GoogleSearch, self).__init__(driver)
         self.search_key = search_key
 
     def run_task(self):
+        """_summary_: search for a key word in google
+        """
         # find the element that's name attribute is q (the Google search box)
         elem = self.driver.find_element(By.NAME, "q")
         # clear the text in it
@@ -50,6 +56,8 @@ class GoogleSearch(AbstractTask):
 
 
 class OpenFirstLink(AbstractTask):
+    """_summary_: open the first link from the search results
+    """
 
     def __init__(self, driver):
         super(OpenFirstLink, self).__init__(driver)
@@ -64,6 +72,8 @@ class OpenFirstLink(AbstractTask):
             pass
 
 class LoopOverLinks(AbstractTask):
+    """_summary_: loop over the first 5 links from the search results, scroll down and go back to the search results page
+    """
 
     def __init__(self, driver):
         super(LoopOverLinks, self).__init__(driver)
@@ -86,6 +96,8 @@ class LoopOverLinks(AbstractTask):
             pass
 
 class GitLogIn(AbstractTask):
+    """_summary_: log in to github
+    """
 
     def __init__(self, driver, username, password):
         super(GitLogIn, self).__init__(driver)
@@ -120,6 +132,8 @@ class GitLogIn(AbstractTask):
         time.sleep(30)
 
 class NewTab(AbstractTask):
+    """_summary_: open a new tab and go to a specific url
+    """
 
     def __init__(self, driver, url):
         super(NewTab, self).__init__(driver)
@@ -136,6 +150,8 @@ class NewTab(AbstractTask):
 
 
 class ScrollDown(AbstractTask):
+    """_summary_: scroll down the page
+    """
 
     def __init__(self, driver):
         super(ScrollDown, self).__init__(driver)
@@ -162,6 +178,7 @@ class ScrollDown(AbstractTask):
         self.driver.back()
 
 class YouTubeVideo(AbstractTask):
+    """_summary_: search for a video on youtube and play"""
     def __init__(self, driver, video):
         super(YouTubeVideo, self).__init__(driver)
         self.video = video
@@ -174,6 +191,8 @@ class YouTubeVideo(AbstractTask):
             time.sleep(1134)
 
 class ScreenShot(AbstractTask):
+    """_summary_: take a screenshot of the page
+    """
     def __init__(self, driver):
         super(ScreenShot, self).__init__(driver)
 

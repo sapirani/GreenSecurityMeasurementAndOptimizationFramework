@@ -20,11 +20,14 @@ class AbstractTask:
 
 # around 6 minutes     
 class Word(AbstractTask):
-
     def __init__(self):
         # super(Word, self).__init__()        
         pass
     def run_task(self):
+        """
+        _summary_: create a word document  with text and save it to the desktop
+        
+        """
         word = win32com.client.Dispatch("Word.Application")
         word.Visible = True
         
@@ -53,6 +56,10 @@ class Excel(AbstractTask):
         pass
         
     def run_task(self):
+        """
+        _summary_: create an excel file with random data and save it to the desktop
+        
+        """
         excel = win32com.client.Dispatch("Excel.Application")
         excel.Visible = True
         workbook = excel.Workbooks.Add()
@@ -84,6 +91,10 @@ class PowerPoint(AbstractTask):
         
 
     def run_task(self):
+        """
+        _summary_: create a powerpoint presentation with a slide and save it to the desktop
+        
+        """
         ppt = win32com.client.Dispatch("PowerPoint.Application")
         ppt.Visible = True
         
@@ -105,6 +116,10 @@ class Outlook(AbstractTask):
         # super(Outlook, self).__init__()
         pass
     def run_task(self):
+        """
+        _summary_: send an email using outlook(doesnt work because we dont have an outlook account)
+        
+        """
         outlook = win32com.client.Dispatch("Outlook.Application")
 
         # message = outlook.CreateItem(0)

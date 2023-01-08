@@ -5,17 +5,26 @@ import pandas as pd
 
 
 def dataframe_append(df, element):
+    """Append a row to a dataframe"""
     df.loc[len(df.index)] = element
 
 
 class Scheduler:
 
     def __init__(self, tasks, results_path):
+        """_summary_: _description_
+
+        Args:
+            tasks (list): list of tasks to run
+            results_path (list[str]): array of paths to save the results
+        """
         self.tasks_list = tasks
         self.results_path = results_path
         self.tasks_times = pd.DataFrame(columns=["task name", "start time", "finished time", "duration"])
 
     def run_tasks(self):
+        """_summary_: take times of each task and append it to a dataframe
+        """
         start_time = time.time()
         for task in self.tasks_list:
             task_start_time = time.time() - start_time
@@ -31,6 +40,8 @@ class Scheduler:
         return self.tasks_list
 
     def save_tasks_times(self):
+        """_summary_: save the dataframe to a csv file
+        """
         self.tasks_times.to_csv(self.results_path, index=False)
 
 

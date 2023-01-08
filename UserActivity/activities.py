@@ -15,6 +15,12 @@ nn_key = 'neural network architecture diagram'
 
 
 def create_driver():
+    """
+    function to create a driver connection to the browser ('Chrome')
+
+    Returns:
+        driver: the driver connects to google chrome page loaded with the google url
+    """   
     driver = webdriver.Chrome()
     driver.get(url=google_url)
     # self.url = driver.open_driver('https://www.google.com/')
@@ -25,6 +31,9 @@ driver = create_driver()
 
 
 class ACTIVITIES:
+    """
+    list of all the activities that will be performed
+    """
     activities_flow = [
         Word(),
         Excel(),
