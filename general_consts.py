@@ -44,7 +44,7 @@ class ProgramToScan(Enum):
     IDS = 4
     Perfmon = 5
     UserActivity = 6
-
+    LogAnomalyDetection = 7
 
 class ScanMode(Enum):
     ONE_SCAN = 1
