@@ -211,3 +211,6 @@ class LinuxOS(OSFuncsInterface):
     def popen(self, command):
         return subprocess.Popen(["/usr/bin/gnome-terminal", command],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    def get_computer_info(self):
+        return "get computer info"
