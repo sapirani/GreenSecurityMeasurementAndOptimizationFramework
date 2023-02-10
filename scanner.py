@@ -77,7 +77,8 @@ def save_battery_stat():
     if battery.power_plugged:
         raise Exception("Unplug charging cable during measurements!")
 
-    t = wmi.WMI(moniker="//./root/wmi")
+    running_os.insert_battery_state_to_df(battery_df, calc_time_interval(), battery.percent)
+    """t = wmi.WMI(moniker="//./root/wmi")
 
     new_row_index = len(battery_df.index)
 
@@ -87,7 +88,7 @@ def save_battery_stat():
             battery.percent,
             b.RemainingCapacity,
             b.Voltage
-        ]
+        ]"""
 
 
 def save_current_total_memory():
@@ -269,7 +270,10 @@ def save_general_battery(f):
         raise Exception("Unplug charging cable during measurements!")
 
     f.write("----Battery----\n")
-    c = wmi.WMI()
+
+    running_os.save_battery_capacity(f)
+
+    """c = wmi.WMI()
     t = wmi.WMI(moniker="//./root/wmi")
     batts1 = c.CIM_Battery(Caption='Portable Battery')
     for i, b in enumerate(batts1):
@@ -277,7 +281,7 @@ def save_general_battery(f):
 
     batts = t.ExecQuery('Select * from BatteryFullChargedCapacity')
     for i, b in enumerate(batts):
-        f.write('Battery %d Fully Charged Capacity: %d mWh\n' % (i, b.FullChargedCapacity))
+        f.write('Battery %d Fully Charged Capacity: %d mWh\n' % (i, b.FullChargedCapacity))"""
 
 
 def save_general_disk(f):
@@ -295,7 +299,7 @@ def save_general_disk(f):
     f.write('\n')
 
 
-def save_disk_info(f, c):
+"""def save_disk_info(f, c):
     wmi_logical_disks = c.Win32_LogicalDisk()
     result = subprocess.run(["powershell", "-Command",
                              "Get-Disk | Select FriendlyName, Manufacturer, Model,  PartitionStyle, NumberOfPartitions,"
@@ -335,21 +339,24 @@ def save_disk_info(f, c):
             f.write(f"Bus Type: {logical_disk_info['BusType']}\n")
             f.write(f"FileSystem: {wmi_logical_disks[index].FileSystem}\n")
     except Exception:
-        pass
+        pass"""
 
 
 def save_general_system_information(f):
     platform_system = platform.uname()
-    c = wmi.WMI()
-    wmi_system = c.Win32_ComputerSystem()[0]
-    wmi_physical_memory = c.Win32_PhysicalMemory()
 
     f.write("======System Information======\n")
+
+    running_os.save_system_information(f)
+
+    """c = wmi.WMI()
+    wmi_system = c.Win32_ComputerSystem()[0]
+    wmi_physical_memory = c.Win32_PhysicalMemory()
 
     f.write(f"PC Type: {pc_types[wmi_system.PCSystemType]}\n")
     f.write(f"Manufacturer: {wmi_system.Manufacturer}\n")
     f.write(f"System Family: {wmi_system.SystemFamily}\n")
-    f.write(f"Model: {wmi_system.Model}\n")
+    f.write(f"Model: {wmi_system.Model}\n")"""
     f.write(f"Machine Type: {platform_system.machine}\n")
     f.write(f"Device Name: {platform_system.node}\n")
 
@@ -369,14 +376,18 @@ def save_general_system_information(f):
     f.write("\n----RAM Information----\n")
     f.write(f"Total RAM: {psutil.virtual_memory().total / GB} GB\n")
 
-    for physical_memory in wmi_physical_memory:
+    running_os.save_physical_memory(f)
+
+
+    """for physical_memory in wmi_physical_memory:
         f.write(f"\nName: {physical_memory.Tag}\n")
         f.write(f"Manufacturer: {physical_memory.Manufacturer}\n")
         f.write(f"Capacity: {int(physical_memory.Capacity) / GB}\n")
         f.write(f"Memory Type: {physical_memory_types[physical_memory.SMBIOSMemoryType]}\n")
-        f.write(f"Speed: {physical_memory.Speed} MHz\n")
+        f.write(f"Speed: {physical_memory.Speed} MHz\n")"""
 
-    save_disk_info(f, c)
+    running_os.save_disk_information(f)
+    #save_disk_info(f, c)
 
 
 def save_general_information_before_scanning():

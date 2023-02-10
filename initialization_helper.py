@@ -1,9 +1,16 @@
 import os.path
 from program_parameters import *
-import wmi
-import platform
+#import wmi
+#import platform
 from program_classes import *
 from os_funcs import *
+
+
+# ======= Get Operating System Type =======
+if platform.system() == "Linux":
+    running_os = LinuxOS()
+elif platform.system() == "Windows":
+    running_os = WindowsOS()
 
 # ======= Power Plan Name and GUID (do not change) =======
 chosen_power_plan_name = power_plan[0]
@@ -31,7 +38,6 @@ def program_to_scan_factory(program_type):
     if program_type == ProgramToScan.LogAnomalyDetection:
         return LogAnomalyDetection(model_name, model_action, script_relative_path, installation_dir)
 
-
     raise Exception("choose program to scan from ProgramToScan enum")
 
 
@@ -40,11 +46,13 @@ background_programs = [program_to_scan_factory(background_program) for backgroun
 
 
 def calc_base_dir():
-    c = wmi.WMI()
+    """c = wmi.WMI()
     wmi_system = c.Win32_ComputerSystem()[0]
 
     computer_info = f"{wmi_system.Manufacturer} {wmi_system.SystemFamily} {wmi_system.Model} " \
-                    f"{platform.system()} {platform.release()}"
+                    f"{platform.system()} {platform.release()}"""
+
+    computer_info = running_os.get_computer_info()
 
     if main_program_to_scan == ProgramToScan.NO_SCAN:
         return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name)
@@ -86,13 +94,6 @@ def result_paths(is_scanner=True):
 
     return measurements_dir, graphs_dir, processes_csv, total_memory_each_moment_csv, disk_io_each_moment,\
         battery_status_csv, general_information_file, total_cpu_csv, summary_csv
-
-
-# ======= Get Operating System Type =======
-if platform.system() == "Linux":
-    running_os = LinuxOS()
-elif platform.system() == "Windows":
-    running_os = WindowsOS()
 
 
 # ======= Custom Scan Query (do not change) =======
