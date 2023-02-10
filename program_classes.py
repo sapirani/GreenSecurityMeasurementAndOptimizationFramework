@@ -104,6 +104,7 @@ class AntivirusProgram(ProgramInterface):
 
         return None
 
+
 class LogAnomalyDetection(ProgramInterface):
     def __init__(self, model_name, action, script_relative_path, installation_dir):
         super().__init__()

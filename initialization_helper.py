@@ -3,6 +3,7 @@ from program_parameters import *
 import wmi
 import platform
 from program_classes import *
+from os_funcs import *
 
 # ======= Power Plan Name and GUID (do not change) =======
 chosen_power_plan_name = power_plan[0]
@@ -85,6 +86,13 @@ def result_paths(is_scanner=True):
 
     return measurements_dir, graphs_dir, processes_csv, total_memory_each_moment_csv, disk_io_each_moment,\
         battery_status_csv, general_information_file, total_cpu_csv, summary_csv
+
+
+# ======= Get Operating System Type =======
+if platform.system() == "Linux":
+    running_os = LinuxOS()
+elif platform.system() == "Windows":
+    running_os = WindowsOS()
 
 
 # ======= Custom Scan Query (do not change) =======

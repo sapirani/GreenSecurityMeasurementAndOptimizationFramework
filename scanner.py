@@ -1,7 +1,6 @@
 import shutil
-import time
 
-import pythoncom
+#import pythoncom
 from statistics import mean
 from prettytable import PrettyTable
 from threading import Thread
@@ -11,7 +10,7 @@ import ctypes
 from datetime import date
 from pathlib import Path
 import screen_brightness_control as sbc
-from powershell_helper import get_powershell_result_list_format
+#from powershell_helper import get_powershell_result_list_format
 
 # ======= Constants =======
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
@@ -241,7 +240,8 @@ def save_current_total_cpu():
 
 
 def continuously_measure():
-    pythoncom.CoInitialize()
+    #pythoncom.CoInitialize()
+    running_os.init_thread()
 
     # init prev_disk_io by first disk io measurements (before scan)
     # TODO: lock until process starts
@@ -470,8 +470,7 @@ def prepare_summary_csv():
     total_finishing_time = finished_scanning_time[-1]
 
     num_of_processes = len(processes_ids) + 1
-    print(num_of_processes)
-    print(len(processes_names))
+
     sub_cpu_df = slice_df(cpu_df, 5).astype(float)
     sub_memory_df = slice_df(memory_df, 5).astype(float)
     sub_disk_df = slice_df(disk_io_each_moment_df, 0).astype(float)
@@ -543,7 +542,6 @@ def prepare_summary_csv():
     summary_df.loc[len(summary_df.index)] = ["IO Write Count System (total - process) (# - sum)",
                                              *write_count_total_without_process, system_write_count]
 
-    print(summary_df)
 
     # TODO: merge cells to one
     total_disk_read_time = sub_disk_df[DiskIOColumns.READ_TIME].sum();
@@ -724,18 +722,20 @@ def is_delta_capacity_achieved():
     return calc_delta_capacity()[0] >= MINIMUM_DELTA_CAPACITY
 
 
-def change_power_plan(name=balanced_power_plan_name, guid=balanced_power_plan_guid):
+"""def change_power_plan(name=balanced_power_plan_name, guid=balanced_power_plan_guid):
     result = subprocess.run(["powershell", "-Command", "powercfg /s " + guid], capture_output=True)
     if result.returncode != 0:
-        raise Exception(f'An error occurred while switching to the power plan: {name}', result.stderr)
+        raise Exception(f'An error occurred while switching to the power plan: {name}', result.stderr)"""
 
 
 def start_process(program_to_scan):
     global processes_ids
 
     program_to_scan.set_processes_ids(processes_ids)
-    powershell_process = subprocess.Popen(["powershell", "-Command", program_to_scan.get_command()],
-                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    #powershell_process = subprocess.Popen(["powershell", "-Command", program_to_scan.get_command()],
+    #                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    powershell_process = running_os.popen(program_to_scan.get_command())
 
     child_process_id = program_to_scan.find_child_id(powershell_process.pid)
 
@@ -833,14 +833,14 @@ def can_proceed_towards_measurements():
         return True
 
 
-def change_sleep_and_turning_screen_off_settings(screen_time=DEFAULT_SCREEN_TURNS_OFF_TIME,
+"""def change_sleep_and_turning_screen_off_settings(screen_time=DEFAULT_SCREEN_TURNS_OFF_TIME,
                                                  sleep_time=DEFAULT_TIME_BEFORE_SLEEP_MODE):
-    """_summary_ : change the sleep and turning screen off settings
+    _summary_ : change the sleep and turning screen off settings
 
     Args:
         screen_time :Defaults to DEFAULT_SCREEN_TURNS_OFF_TIME.
         sleep_time : Defaults to DEFAULT_TIME_BEFORE_SLEEP_MODE.
-    """
+    
     result_screen = subprocess.run(["powershell", "-Command", f"powercfg /Change monitor-timeout-dc {screen_time}"],
                                    capture_output=True)
     if result_screen.returncode != 0:
@@ -849,35 +849,35 @@ def change_sleep_and_turning_screen_off_settings(screen_time=DEFAULT_SCREEN_TURN
     result_sleep_mode = subprocess.run(["powershell", "-Command", f"powercfg /Change standby-timeout-dc {sleep_time}"],
                                        capture_output=True)
     if result_sleep_mode.returncode != 0:
-        raise Exception(f'An error occurred while disabling sleep mode', result_sleep_mode.stderr)
+        raise Exception(f'An error occurred while disabling sleep mode', result_sleep_mode.stderr)"""
 
 
-def change_real_time_protection(should_disable=True):
+"""def change_real_time_protection(should_disable=True):
 
     protection_mode = "1" if should_disable else "0"
     result = subprocess.run(["powershell", "-Command",
                              f'Start-Process powershell -ArgumentList("Set-MpPreference -DisableRealTimeMonitoring {protection_mode}") -Verb runAs -WindowStyle hidden'],
                             capture_output=True)
     if result.returncode != 0:
-        raise Exception("Could not change real time protection", result.stderr)
+        raise Exception("Could not change real time protection", result.stderr)"""
 
 
-def is_tamper_protection_enabled():
-    """_summary_: tamper protection should be disabled for the program to work properly
+"""def is_tamper_protection_enabled():
+    _summary_: tamper protection should be disabled for the program to work properly
 
     Raises:
         Exception: if could not check if tamper protection enabled
 
     Returns:
         _type_ : bool -- True if tamper protection is enabled, False otherwise
-    """
+    
     result = subprocess.run(["powershell", "-Command", "Get-MpComputerStatus | Select IsTamperProtected | Format-List"],
                             capture_output=True)
     if result.returncode != 0:
         raise Exception("Could not check if tamper protection enabled", result.stderr)
 
     # return bool(re.search("IsTamperProtected\s*:\sTrue", str(result.stdout)))
-    return get_powershell_result_list_format(result.stdout)[0]["IsTamperProtected"] == "True"
+    return get_powershell_result_list_format(result.stdout)[0]["IsTamperProtected"] == "True"""
 
 
 def main():
@@ -887,7 +887,7 @@ def main():
     if battery is not None and battery.power_plugged:  # ensure that charging cable is unplugged in laptop
         raise Exception("Unplug charging cable during measurements!")
 
-    if disable_real_time_protection_during_measurement and is_tamper_protection_enabled():
+    if disable_real_time_protection_during_measurement and running_os.is_tamper_protection_enabled():
         raise Exception("You must disable Tamper Protection manually so that the program could control real "
                         "time Protection")
 
@@ -895,12 +895,12 @@ def main():
         print("Exiting program")
         return
 
-    change_power_plan(chosen_power_plan_name, chosen_power_plan_guid)
+    running_os.change_power_plan(chosen_power_plan_name, chosen_power_plan_guid)
 
     if disable_real_time_protection_during_measurement:
-        change_real_time_protection()
+        running_os.change_real_time_protection()
 
-    change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
+    running_os.change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
 
     sbc.set_brightness(screen_brightness_level)
 
@@ -914,12 +914,12 @@ def main():
 
     save_results_to_files()
 
-    change_power_plan()  # return to balanced
+    running_os.change_power_plan(balanced_power_plan_name, balanced_power_plan_guid)  # return to balanced
 
-    change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
+    running_os.change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
 
     if disable_real_time_protection_during_measurement:
-        change_real_time_protection(should_disable=False)
+        running_os.change_real_time_protection(should_disable=False)
 
     print("Finished scanning")
 
