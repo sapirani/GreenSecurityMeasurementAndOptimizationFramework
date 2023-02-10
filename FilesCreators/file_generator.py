@@ -7,7 +7,7 @@ from docx import Document
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 
-DIR_NAME = "Generated Files"
+DIR_NAME = "../Generated Files"
 JPG_NAME = "jpg files"
 POWERPOINT_NAME = "power point files"
 TEXT_DIR_NAME = "text files"
