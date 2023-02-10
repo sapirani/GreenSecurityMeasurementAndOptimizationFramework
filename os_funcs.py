@@ -1,3 +1,4 @@
+import ctypes
 import platform
 import subprocess
 from abc import ABC, abstractmethod
@@ -27,6 +28,9 @@ class OSFuncsInterface:
         pass
 
     def save_disk_information(self, f):
+        pass
+
+    def message_box(self, title, text, style):
         pass
 
     @abstractmethod
@@ -219,6 +223,9 @@ class WindowsOS(OSFuncsInterface):
                 f.write(f"FileSystem: {wmi_logical_disks[index].FileSystem}\n")
         except Exception:
             pass
+
+    def message_box(self, title, text, style):
+        return ctypes.windll.user32.MessageBoxW(0, text, title, style)
 
 
 class LinuxOS(OSFuncsInterface):

@@ -1,8 +1,8 @@
 from general_consts import *
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.ANTIVIRUS
-background_programs_types = [ProgramToScan.DummyANTIVIRUS]
+main_program_to_scan = ProgramToScan.DummyANTIVIRUS
+background_programs_types = []
 
 power_plan = PowerPlan.POWER_SAVER
 scan_option = ScanMode.ONE_SCAN
@@ -15,7 +15,7 @@ custom_scan_path = fr'"C:\Users\sagib\OneDrive\Desktop"'
 MINIMUM_DELTA_CAPACITY = 20
 MINIMUM_SCAN_TIME = 0.5 * MINUTE
 
-measurement_number = 9000    # write number between 1->inf or type NEW_MEASUREMENT
+measurement_number = NEW_MEASUREMENT    # write number between 1->inf or type NEW_MEASUREMENT
 
 # MUST disable tamper protection manually for this feature to work
 disable_real_time_protection_during_measurement = False  # must use administrator permissions

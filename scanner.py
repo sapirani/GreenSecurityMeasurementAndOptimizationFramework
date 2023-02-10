@@ -6,7 +6,7 @@ from prettytable import PrettyTable
 from threading import Thread
 import pandas as pd
 from initialization_helper import *
-import ctypes
+#import ctypes
 from datetime import date
 from pathlib import Path
 import screen_brightness_control as sbc
@@ -55,8 +55,8 @@ raw_disk_processes_df = pd.DataFrame(columns=raw_disk_processes_list)
 finished_scanning_time = []
 
 
-def message_box(title, text, style):
-    return ctypes.windll.user32.MessageBoxW(0, text, title, style)
+"""def message_box(title, text, style):
+    return ctypes.windll.user32.MessageBoxW(0, text, title, style)"""
 
 
 def calc_time_interval():
@@ -832,7 +832,7 @@ def scan_and_measure():
 def can_proceed_towards_measurements():
     if os.path.exists(base_dir):
 
-        button_selected = message_box("Deleting Previous Results",
+        button_selected = running_os.message_box("Deleting Previous Results",
                                       "Running the program will override the results of the previous measurement.\n\n"
                                       "Are you sure you want to continue?", 4)
 
