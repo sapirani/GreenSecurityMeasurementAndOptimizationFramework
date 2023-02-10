@@ -53,9 +53,10 @@ class OSFuncsInterface:
 
 
 class WindowsOS(OSFuncsInterface):
-    import wmi
-    c = wmi.WMI()
-    t = wmi.WMI(moniker="//./root/wmi")
+    def __init__(self):
+        import wmi
+        self.c = wmi.WMI()
+        self.t = wmi.WMI(moniker="//./root/wmi")
 
     def init_thread(self):
         import pythoncom
@@ -66,7 +67,7 @@ class WindowsOS(OSFuncsInterface):
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     def get_computer_info(self):
-        wmi_system = WindowsOS.c.Win32_ComputerSystem()[0]
+        wmi_system = self.c.Win32_ComputerSystem()[0]
 
         return f"{wmi_system.Manufacturer} {wmi_system.SystemFamily} {wmi_system.Model} " \
                         f"{platform.system()} {platform.release()}"
@@ -137,16 +138,16 @@ class WindowsOS(OSFuncsInterface):
             ]
 
     def save_battery_capacity(self, f):
-        batts1 = WindowsOS.c.CIM_Battery(Caption='Portable Battery')
+        batts1 = self.c.CIM_Battery(Caption='Portable Battery')
         for i, b in enumerate(batts1):
             f.write('Battery %d Design Capacity: %d mWh\n' % (i, b.DesignCapacity or 0))
 
-        batts = WindowsOS.t.ExecQuery('Select * from BatteryFullChargedCapacity')
+        batts = self.t.ExecQuery('Select * from BatteryFullChargedCapacity')
         for i, b in enumerate(batts):
             f.write('Battery %d Fully Charged Capacity: %d mWh\n' % (i, b.FullChargedCapacity))
 
     def save_system_information(self, f):
-        wmi_system = WindowsOS.c.Win32_ComputerSystem()[0]
+        wmi_system = self.c.Win32_ComputerSystem()[0]
 
         f.write(f"PC Type: {pc_types[wmi_system.PCSystemType]}\n")
         f.write(f"Manufacturer: {wmi_system.Manufacturer}\n")
@@ -154,8 +155,7 @@ class WindowsOS(OSFuncsInterface):
         f.write(f"Model: {wmi_system.Model}\n")
 
     def save_physical_memory(self, f):
-        c = WindowsOS.wmi.WMI()
-        wmi_physical_memory = c.Win32_PhysicalMemory()
+        wmi_physical_memory = self.c.Win32_PhysicalMemory()
 
         for physical_memory in wmi_physical_memory:
             f.write(f"\nName: {physical_memory.Tag}\n")
@@ -165,7 +165,7 @@ class WindowsOS(OSFuncsInterface):
             f.write(f"Speed: {physical_memory.Speed} MHz\n")
 
     def save_disk_information(self, f):
-        wmi_logical_disks = WindowsOS.c.Win32_LogicalDisk()
+        wmi_logical_disks = self.c.Win32_LogicalDisk()
         result = subprocess.run(["powershell", "-Command",
                                  "Get-Disk | Select FriendlyName, Manufacturer, Model,  PartitionStyle, NumberOfPartitions,"
                                  " PhysicalSectorSize, LogicalSectorSize, BusType | Format-List"], capture_output=True)
