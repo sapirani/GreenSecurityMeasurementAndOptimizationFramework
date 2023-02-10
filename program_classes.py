@@ -5,6 +5,8 @@ import time
 import powershell_helper
 from general_consts import *
 
+from typing import Union
+
 
 class ProgramInterface:
     def __init__(self):
@@ -32,7 +34,7 @@ class ProgramInterface:
     def set_processes_ids(self, processes_ids):
         self.processes_ids = processes_ids
 
-    def find_child_id(self, process_pid) -> int | None:
+    def find_child_id(self, process_pid) -> Union[int, None]:  #from python 3.10 - int | None:
         # result_screen = subprocess.run(["powershell", "-Command", f'Get-WmiObject Win32_Process -Filter "ParentProcessID={process_pid}" | Select ProcessID'],
         #                               capture_output=True)
         # if result_screen.returncode != 0:
@@ -218,5 +220,5 @@ class PerfmonProgram(ProgramInterface):
 
         #return f'Get-Counter gc = "\\PhysicalDisk(_Total)\\Disk Reads/sec", "\\PhysicalDisk(_Total)\\Disk Writes/sec", "\\PhysicalDisk(_Total)\\Disk Read Bytes/sec", "\\PhysicalDisk(_Total)\\Disk Write Bytes/sec", "\\Processor(_Total)\\% Processor Time" Get-Counter -counter $gc -Continuous | Export-Counter -FileFormat "CSV" -Path "{self.results_path}\\perfmon.csv"'
 
-    def find_child_id(self, process_pid) -> int | None:
+    def find_child_id(self, process_pid) -> Union[int, None]:  #from python 3.10 - int | None:
         return None
