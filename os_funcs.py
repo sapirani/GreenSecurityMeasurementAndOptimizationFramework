@@ -230,6 +230,9 @@ class WindowsOS(OSFuncsInterface):
 
 class LinuxOS(OSFuncsInterface):
     def popen(self, command):
+        #return subprocess.Popen(["/usr/bin/gnome-terminal", command],
+        #                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
         return subprocess.Popen(["/usr/bin/gnome-terminal", command],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
