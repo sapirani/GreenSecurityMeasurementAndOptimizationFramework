@@ -58,6 +58,20 @@ class WindowsOS(OSFuncsInterface):
         self.c = wmi.WMI()
         self.t = wmi.WMI(moniker="//./root/wmi")
 
+    @classmethod
+    def save_antivirus_version(cls, f, program_name):
+        result = subprocess.run(["powershell", "-Command", "Get-MpComputerStatus | Select AMEngineVersion,"
+                                                           " AMProductVersion, AMServiceVersion | Format-List"],
+                                capture_output=True)
+        if result.returncode != 0:
+            raise Exception(f'Could not get {program_name} version', result.stderr)
+
+        import powershell_helper
+        version_dict = powershell_helper.get_powershell_result_list_format(result.stdout)[0]
+        f.write(f"Anti Malware Engine Version: {version_dict['AMEngineVersion']}\n")
+        f.write(f"Anti Malware Client Version: {version_dict['AMProductVersion']}\n")
+        f.write(f"Anti Malware Service Version: {version_dict['AMServiceVersion']}\n\n")
+
     def init_thread(self):
         import pythoncom
         pythoncom.CoInitialize()

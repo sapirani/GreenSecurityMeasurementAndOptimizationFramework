@@ -87,7 +87,10 @@ class AntivirusProgram(ProgramInterface):
         if self.scan_type == ScanType.CUSTOM_SCAN:
             f.write(f'Scan Path: {self.custom_scan_path}\n\n')
 
-        result = subprocess.run(["powershell", "-Command", "Get-MpComputerStatus | Select AMEngineVersion,"
+        from os_funcs import WindowsOS
+        WindowsOS.save_antivirus_version(f, self.get_program_name())
+
+        """result = subprocess.run(["powershell", "-Command", "Get-MpComputerStatus | Select AMEngineVersion,"
                                                            " AMProductVersion, AMServiceVersion | Format-List"],
                                 capture_output=True)
         if result.returncode != 0:
@@ -96,7 +99,7 @@ class AntivirusProgram(ProgramInterface):
         version_dict = powershell_helper.get_powershell_result_list_format(result.stdout)[0]
         f.write(f"Anti Malware Engine Version: {version_dict['AMEngineVersion']}\n")
         f.write(f"Anti Malware Client Version: {version_dict['AMProductVersion']}\n")
-        f.write(f"Anti Malware Service Version: {version_dict['AMServiceVersion']}\n\n")
+        f.write(f"Anti Malware Service Version: {version_dict['AMServiceVersion']}\n\n")"""
 
     def find_child_id(self, process_pid):
         for i in range(3):  # try again and again
