@@ -395,6 +395,7 @@ def save_general_information_before_scanning():
         # dd/mm/YY
         f.write(f'Date: {date.today().strftime("%d/%m/%Y")}\n\n')
 
+        # TODO: add background_programs general_information_before_measurement(f)
         #program.general_information_before_measurement(f)
         program.general_information_before_measurement(f)
 

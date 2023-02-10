@@ -1,4 +1,5 @@
 import ctypes
+import os
 import platform
 import subprocess
 from abc import ABC, abstractmethod
@@ -233,7 +234,8 @@ class LinuxOS(OSFuncsInterface):
         #return subprocess.Popen(["/usr/bin/gnome-terminal", command],
         #                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        return subprocess.Popen(["/usr/bin/gnome-terminal", command],
+        return subprocess.Popen(["python3", f"{os.path.join('DummyPrograms', 'FilesReader.py')}",
+                                 './home/ubuntu/Desktop'],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     def get_computer_info(self):
