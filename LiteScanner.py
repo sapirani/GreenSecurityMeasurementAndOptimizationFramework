@@ -1,3 +1,4 @@
+import logging
 import shutil
 import time
 
@@ -12,8 +13,9 @@ from datetime import date
 from pathlib import Path
 import screen_brightness_control as sbc
 from powershell_helper import get_powershell_result_list_format
-
+import sys
 # ======= Constants =======
+logging.basicConfig(filename='session_log.log', encoding='utf-8', level=logging.DEBUG)
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
 SYSTEM_IDLE_PID = 0
 
@@ -32,8 +34,6 @@ program.set_results_dir(base_dir)
 done_scanning = False
 starting_time = 0
 scanning_process_id = None
-
-# include main programs and background
 processes_ids = []
 processes_names = []
 
@@ -61,22 +61,17 @@ def message_box(title, text, style):
 
 
 def calc_time_interval():
-    return time.time() - starting_time
+    return time.time()# - starting_time
 
 
 def save_battery_stat():
-    """_summary_: take battery information and append it to a dataframe
-
-    Raises:
-        Exception: if the computer is charging or using desktop computer cant get battery information
-    """
     # Fetch the battery information
     battery = psutil.sensors_battery()
     if battery is None:  # if desktop computer (has no battery)
         return
 
-    if battery.power_plugged:
-        raise Exception("Unplug charging cable during measurements!")
+    # if battery.power_plugged:
+    #     raise Exception("Unplug charging cable during measurements!")
 
     t = wmi.WMI(moniker="//./root/wmi")
 
@@ -92,8 +87,6 @@ def save_battery_stat():
 
 
 def save_current_total_memory():
-    """_summary_: take memory information and append it to a dataframe
-    """
     vm = psutil.virtual_memory()
     memory_df.loc[len(memory_df.index)] = [
         calc_time_interval(),
@@ -103,24 +96,10 @@ def save_current_total_memory():
 
 
 def dataframe_append(df, element):
-    """_summary_: append an element to a dataframe
-
-    Args:
-        df : dataframe to append to
-        element (): element to append
-    """
     df.loc[len(df.index)] = element
 
 
 def save_current_disk_io(previous_disk_io):
-    """_summary_: take disk io information and append it to a dataframe
-
-    Args:
-        previous_disk_io : previous disk io information
-
-    Returns:
-        disk_io_stat: psutil.disk_io_counters
-    """
     disk_io_stat = psutil.disk_io_counters()
     disk_io_each_moment_df.loc[len(disk_io_each_moment_df.index)] = [
         calc_time_interval(),
@@ -144,22 +123,17 @@ def save_current_disk_io(previous_disk_io):
     return disk_io_stat
 
 
-def save_current_processes_statistics(prev_io_per_process):
+def save_current_processes_statistics(prev_io_per_process,pid):
     proc = []
 
     time_of_sample = calc_time_interval()
-
-    for p in psutil.process_iter():
-        try:
-            if p.pid == SYSTEM_IDLE_PID:  # ignore System Idle Process
-                continue
-
-            # trigger cpu_percent() the first time will lead to return of 0.0
-            cpu_percent = p.cpu_percent() / NUMBER_OF_CORES
-            proc.append((p, cpu_percent))
-
-        except Exception:
-            pass
+    p = psutil.Process(pid)
+    try:
+        # trigger cpu_percent() the first time will lead to return of 0.0
+        cpu_percent = p.cpu_percent(0.1) / NUMBER_OF_CORES
+        proc.append((p, cpu_percent))
+    except Exception:
+        pass
 
     proc = sorted(proc, key=lambda x: x[1], reverse=True)
 
@@ -213,20 +187,10 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
 
 
 def min_scan_time_passed():
-    """_summary_: check if the minimum scan time has passed
-
-    Returns:
-        bool: True if the minimum scan time has passed, False otherwise
-    """
     return time.time() - starting_time >= MINIMUM_SCAN_TIME
 
 
 def should_scan():
-    """_summary_: check what is the scan option
-
-    Returns:
-        _type_: bool
-    """
     if main_program_to_scan == ProgramToScan.NO_SCAN:
         return not min_scan_time_passed()
     elif scan_option == ScanMode.ONE_SCAN:
@@ -240,24 +204,24 @@ def save_current_total_cpu():
     cpu_df.loc[len(cpu_df.index)] = [calc_time_interval(), mean(total_cpu)] + total_cpu
 
 
-def continuously_measure():
+def continuously_measure(pid):
     pythoncom.CoInitialize()
 
     # init prev_disk_io by first disk io measurements (before scan)
     # TODO: lock until process starts
-    prev_disk_io = psutil.disk_io_counters()
+    # prev_disk_io = psutil.disk_io_counters()
     prev_io_per_process = {}
 
     # TODO: think if total tables should be printed only once
     while should_scan():
         # Create a delay
-        time.sleep(0.5)
+        # time.sleep(0.001)
 
         save_battery_stat()
-        prev_io_per_process = save_current_processes_statistics(prev_io_per_process)
-        save_current_total_cpu()
-        save_current_total_memory()
-        prev_disk_io = save_current_disk_io(prev_disk_io)
+        prev_io_per_process = save_current_processes_statistics(prev_io_per_process, pid)
+        # save_current_total_cpu()
+        # save_current_total_memory()
+        # prev_disk_io = save_current_disk_io(prev_disk_io)
 
 
 def save_general_battery(f):
@@ -265,8 +229,8 @@ def save_general_battery(f):
     if battery is None:  # if desktop computer (has no battery)
         return
 
-    if battery.power_plugged:
-        raise Exception("Unplug charging cable during measurements!")
+    # if battery.power_plugged:
+    #     raise Exception("Unplug charging cable during measurements!")
 
     f.write("----Battery----\n")
     c = wmi.WMI()
@@ -415,14 +379,7 @@ def save_general_information_after_scanning():
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
         f.write('======After Scanning======\n')
         if scanning_process_id is not None:
-            f.write(f'{PROCESS_ID_PHRASE}: {processes_names[0]}({scanning_process_id})\n')
-
-        f.write(f'{BACKGROUND_ID_PHRASE}: ')
-        for background_process_id, background_process_name in zip(processes_ids[1:-1], processes_names[1:-1]):
-            f.write(f'{background_process_name}({background_process_id}),')
-
-        if len(processes_ids) > 1: # not just main program
-            f.write(f"{processes_names[-1]}({processes_ids[-1]})\n\n")
+            f.write(f'{PROCESS_ID_PHRASE}: {scanning_process_id}\n\n')
 
         save_general_disk(f)
 
@@ -466,7 +423,6 @@ def get_all_df_by_id():
 
 
 def prepare_summary_csv():
-    """Prepare the summary csv file"""
     total_finishing_time = finished_scanning_time[-1]
 
     num_of_processes = len(processes_ids) + 1
@@ -558,95 +514,6 @@ def prepare_summary_csv():
     summary_df.loc[len(summary_df.index)] = ["Trees (KG)", *([other_metrics[3] for _ in range(num_of_processes)])]
 
 
-    # summary_df = summary_df.set_index("Duration", append=True).swaplevel(1,0)
-
-    """# process_finishing_time = processes_df[ProcessesColumns.TIME].iat[-1]
-    # disk_finishing_time = disk_io_each_moment_df[DiskIOColumns.TIME].iat[-1]
-    
-
-    sub_cpu_df = slice_df(cpu_df, 5).astype(float)
-    sub_memory_df = slice_df(memory_df, 5).astype(float)
-    sub_disk_df = slice_df(disk_io_each_moment_df, 0).astype(float)
-
-    scanning_process_df = processes_df[processes_df[ProcessesColumns.PROCESS_ID] == scanning_process_id]
-    sub_scanning_process_df = slice_df(scanning_process_df, 5)
-
-    summary_df = pd.DataFrame(columns=["Metric", "Value"])
-    summary_df.loc[len(summary_df.index)] = ["Duration", total_finishing_time]
-
-    cpu_process = pd.to_numeric(sub_scanning_process_df[ProcessesColumns.CPU_CONSUMPTION]).mean()
-    cpu_total = sub_cpu_df[CPUColumns.USED_PERCENT].mean()
-    summary_df.loc[len(summary_df.index)] = ["CPU Process", cpu_process]
-    summary_df.loc[len(summary_df.index)] = ["CPU Total", cpu_total]
-    summary_df.loc[len(summary_df.index)] = ["CPU Process / CPU Total", cpu_process / cpu_total]
-
-    for index, core_name in enumerate(cores_names_list):
-        summary_df.loc[len(summary_df.index)] = [f"CPU core {index + 1} (%)", sub_cpu_df[core_name].mean()]
-
-    summary_df.loc[len(summary_df.index)] = ["Min CPU Process",
-                                             pd.to_numeric(sub_scanning_process_df[ProcessesColumns.CPU_CONSUMPTION]).min()]
-    summary_df.loc[len(summary_df.index)] = ["Max CPU Process",
-                                             pd.to_numeric(sub_scanning_process_df[ProcessesColumns.CPU_CONSUMPTION]).max()]
-    summary_df.loc[len(summary_df.index)] = ["Min CPU Total", sub_cpu_df[CPUColumns.USED_PERCENT].min()]
-    summary_df.loc[len(summary_df.index)] = ["Max CPU Total", sub_cpu_df[CPUColumns.USED_PERCENT].max()]
-
-    process_memory = pd.to_numeric(sub_scanning_process_df[ProcessesColumns.USED_MEMORY]).mean()
-    total_memory = sub_memory_df[MemoryColumns.USED_MEMORY].mean() * KB
-    summary_df.loc[len(summary_df.index)] = ["Memory Process (MB)", process_memory]
-    summary_df.loc[len(summary_df.index)] = ["Memory Total (MB)", total_memory]
-    summary_df.loc[len(summary_df.index)] = ["Process Memory / Memory Total", process_memory / total_memory]
-
-    # summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum() / process_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB - sum)",
-                                             pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum()]
-    # summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum() / process_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# - sum)",
-                                             pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum()]
-
-    # summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum() / process_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB - sum)",
-                                             pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum()]
-    # summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# per second)", pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum() / process_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count (# - sum)",
-                                             pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum()]
-
-    # summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB per second)", sub_disk_df[DiskIOColumns.READ_BYTES].sum() / disk_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Total (KB - sum)",
-                                             sub_disk_df[DiskIOColumns.READ_BYTES].sum()]
-    # summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count Total (# per second)", sub_disk_df[DiskIOColumns.READ_COUNT].sum() / disk_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Count Total (# - sum)",
-                                             sub_disk_df[DiskIOColumns.READ_COUNT].sum()]
-
-    # summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB per second)", sub_disk_df[DiskIOColumns.WRITE_BYTES].sum() / disk_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Total (KB - sum)",
-                                             sub_disk_df[DiskIOColumns.WRITE_BYTES].sum()]
-    # summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# per second)", sub_disk_df[DiskIOColumns.WRITE_COUNT].sum() / disk_finishing_time]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count Total (# - sum)",
-                                             sub_disk_df[DiskIOColumns.WRITE_COUNT].sum()]
-
-    summary_df.loc[len(summary_df.index)] = ["IO Read Process / Total (KB - sum)", get_ratio(
-        (pd.to_numeric(scanning_process_df[ProcessesColumns.READ_BYTES]).sum()),
-        sub_disk_df[DiskIOColumns.READ_BYTES].sum())]
-    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process / Total (# - sum)", get_ratio(
-        (pd.to_numeric(scanning_process_df[ProcessesColumns.READ_COUNT]).sum()),
-        sub_disk_df[DiskIOColumns.READ_COUNT].sum())]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process / Total  (KB - sum)", get_ratio(
-        (pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_BYTES]).sum()),
-        sub_disk_df[DiskIOColumns.WRITE_BYTES].sum())]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process Count / Total  (# - sum)", get_ratio(
-        (pd.to_numeric(scanning_process_df[ProcessesColumns.WRITE_COUNT]).sum()),
-        sub_disk_df[DiskIOColumns.WRITE_COUNT].sum())]
-
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Time (ms - sum)", sub_disk_df[DiskIOColumns.READ_TIME].sum()]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Time (ms - sum)",
-                                             sub_disk_df[DiskIOColumns.WRITE_TIME].sum()]
-
-    battery_drop = calc_delta_capacity()
-    summary_df.loc[len(summary_df.index)] = ["Energy consumption - total energy(mwh)", battery_drop[0]]
-    summary_df.loc[len(summary_df.index)] = ["Battery Drop( %)", battery_drop[1]]
-    summary_df.loc[len(summary_df.index)] = ["Trees (KG)", convert_mwh_to_other_metrics(battery_drop[0])[3]]
-"""
-
     def colors_func(df):
         return ['background-color: #FFFFFF'] + \
                ['background-color: #ffff00' for _ in range(2)] + ['background-color: #9CC2E5' for _ in range(2)] + \
@@ -735,7 +602,7 @@ def start_process(program_to_scan):
 
     program_to_scan.set_processes_ids(processes_ids)
     powershell_process = subprocess.Popen(["powershell", "-Command", program_to_scan.get_command()],
-                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,cwd=r"C:\Users\Administrator\Repositories\logdeep_measurable")
 
     child_process_id = program_to_scan.find_child_id(powershell_process.pid)
 
@@ -755,38 +622,9 @@ def terminate_due_to_exception(background_processes, program_name, err):
         p.terminate()  # or p.kill()
     except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
-
-    kill_background_processes(background_processes)
     raise Exception("An error occurred in child program %s: %s", program_name, err)
 
 
-def start_background_processes():
-    background_processes = [start_process(background_program) for background_program in background_programs]
-    # TODO: think how to check if there are errors without sleeping - waiting for process initialization
-    time.sleep(5)
-
-    for (powershell_process, child_process_id), background_program in zip(background_processes, background_programs):
-        if powershell_process.poll() is not None:
-            err = powershell_process.stderr.read().decode()
-            if err:
-                terminate_due_to_exception(background_processes, background_program.get_program_name(), err)
-
-    return background_processes
-
-
-def kill_background_processes(background_processes):
-    for (powershell_process, child_process_id), background_program in zip(background_processes, background_programs):
-        try:
-            if child_process_id is None:
-                powershell_process.kill()
-
-            else:
-                p = psutil.Process(child_process_id)
-                p.terminate()  # or p.kill()
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            pass
-
-        powershell_process.wait()
 
 
 def scan_and_measure():
@@ -794,17 +632,16 @@ def scan_and_measure():
     global starting_time
     global scanning_process_id
     starting_time = time.time()
-
-    measurements_thread = Thread(target=continuously_measure, args=())
-    measurements_thread.start()
-
     while not main_program_to_scan == ProgramToScan.NO_SCAN and not done_scanning:
         main_powershell_process, scanning_process_id = start_process(program)
-        background_processes = start_background_processes()
+        measurements_thread = Thread(target=continuously_measure, args=[scanning_process_id])
+        measurements_thread.start()
+        for line in iter(main_powershell_process.stdout.readline, b''):
+            logging.info(line.decode('utf-8')[:-1]) # [:-1] to cut off newline char
+        main_powershell_process.stdout.close()
         result = main_powershell_process.wait()
 
-        kill_background_processes(background_processes)
-        errs = main_powershell_process.stderr.read().decode()
+        errs = main_powershell_process.stderr.read()
 
         finished_scanning_time.append(calc_time_interval())
         if scan_option == ScanMode.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
@@ -812,7 +649,7 @@ def scan_and_measure():
         if result != 0:
             raise Exception("An error occurred while scanning: %s", errs)
 
-    measurements_thread.join()
+        measurements_thread.join()
     if main_program_to_scan == ProgramToScan.NO_SCAN:
         finished_scanning_time.append(calc_time_interval())
 
@@ -835,12 +672,6 @@ def can_proceed_towards_measurements():
 
 def change_sleep_and_turning_screen_off_settings(screen_time=DEFAULT_SCREEN_TURNS_OFF_TIME,
                                                  sleep_time=DEFAULT_TIME_BEFORE_SLEEP_MODE):
-    """_summary_ : change the sleep and turning screen off settings
-
-    Args:
-        screen_time :Defaults to DEFAULT_SCREEN_TURNS_OFF_TIME.
-        sleep_time : Defaults to DEFAULT_TIME_BEFORE_SLEEP_MODE.
-    """
     result_screen = subprocess.run(["powershell", "-Command", f"powercfg /Change monitor-timeout-dc {screen_time}"],
                                    capture_output=True)
     if result_screen.returncode != 0:
@@ -853,7 +684,6 @@ def change_sleep_and_turning_screen_off_settings(screen_time=DEFAULT_SCREEN_TURN
 
 
 def change_real_time_protection(should_disable=True):
-
     protection_mode = "1" if should_disable else "0"
     result = subprocess.run(["powershell", "-Command",
                              f'Start-Process powershell -ArgumentList("Set-MpPreference -DisableRealTimeMonitoring {protection_mode}") -Verb runAs -WindowStyle hidden'],
@@ -863,14 +693,6 @@ def change_real_time_protection(should_disable=True):
 
 
 def is_tamper_protection_enabled():
-    """_summary_: tamper protection should be disabled for the program to work properly
-
-    Raises:
-        Exception: if could not check if tamper protection enabled
-
-    Returns:
-        _type_ : bool -- True if tamper protection is enabled, False otherwise
-    """
     result = subprocess.run(["powershell", "-Command", "Get-MpComputerStatus | Select IsTamperProtected | Format-List"],
                             capture_output=True)
     if result.returncode != 0:
@@ -883,13 +705,10 @@ def is_tamper_protection_enabled():
 def main():
     print("======== Process Monitor ========")
 
-    battery = psutil.sensors_battery()
-    if battery is not None and battery.power_plugged:  # ensure that charging cable is unplugged in laptop
-        raise Exception("Unplug charging cable during measurements!")
+    # battery = psutil.sensors_battery()
+    # if battery is not None and battery.power_plugged:  # ensure that charging cable is unplugged in laptop
+    #     raise Exception("Unplug charging cable during measurements!")
 
-    if disable_real_time_protection_during_measurement and is_tamper_protection_enabled():
-        raise Exception("You must disable Tamper Protection manually so that the program could control real "
-                        "time Protection")
 
     if not can_proceed_towards_measurements():
         print("Exiting program")
@@ -897,8 +716,6 @@ def main():
 
     change_power_plan(chosen_power_plan_name, chosen_power_plan_guid)
 
-    if disable_real_time_protection_during_measurement:
-        change_real_time_protection()
 
     change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
 
@@ -917,9 +734,6 @@ def main():
     change_power_plan()  # return to balanced
 
     change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
-
-    if disable_real_time_protection_during_measurement:
-        change_real_time_protection(should_disable=False)
 
     print("Finished scanning")
 

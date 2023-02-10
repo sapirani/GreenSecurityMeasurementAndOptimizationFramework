@@ -31,6 +31,11 @@ DEFAULT = "default"
 
 
 def get_process_id():
+    """_summary_: get the process id from the general information file
+
+    Returns:
+        int: the process id
+    """
     with open(GENERAL_INFORMATION_FILE, 'r') as f:
         match = re.search(f'{PROCESS_ID_PHRASE}:\s*(\d+)', f.read())
         if match:

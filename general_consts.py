@@ -7,7 +7,8 @@ MB = 2 ** 20
 KB = 2 ** 10
 NEW_MEASUREMENT = -1
 MEASUREMENT_NAME_DIR = "Measurement"
-PROCESS_ID_PHRASE = "Process ID"
+PROCESS_ID_PHRASE = "Main Process ID"
+BACKGROUND_ID_PHRASE = "Background Processes IDs"
 NUMBER_OF_CORES = psutil.cpu_count()
 
 MINUTE = 60
@@ -43,7 +44,7 @@ class ProgramToScan(Enum):
     IDS = 4
     Perfmon = 5
     UserActivity = 6
-
+    LogAnomalyDetection = 7
 
 class ScanMode(Enum):
     ONE_SCAN = 1
