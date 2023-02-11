@@ -10,7 +10,7 @@ def read_files_from_directory(directory_path):
     for file in all_files:
         file_path = os.path.join(directory_path, file) # f"{directory_path}\\{file}"
         with open(file_path, 'rb') as f:
-            print(f.name)
+            #print(f.name)
             x = f.read()
 
 
