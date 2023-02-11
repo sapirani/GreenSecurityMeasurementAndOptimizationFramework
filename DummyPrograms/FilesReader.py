@@ -6,11 +6,11 @@ import sys
 
 def read_files_from_directory(directory_path):
     all_files_and_directories = os.listdir(directory_path)
-    all_files = [f for f in all_files_and_directories if os.path.isfile(directory_path+'/'+f)] #Filtering only the files.
+    all_files = [f for f in all_files_and_directories if os.path.isfile(os.path.join(directory_path, f))] #Filtering only the files.
     for file in all_files:
         file_path = os.path.join(directory_path, file) # f"{directory_path}\\{file}"
         with open(file_path, 'rb') as f:
-            #print(f.name)
+            print(f.name)
             x = f.read()
 
 
