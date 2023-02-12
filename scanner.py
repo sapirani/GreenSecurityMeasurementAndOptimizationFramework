@@ -500,7 +500,7 @@ def prepare_summary_csv():
     cpu_total = sub_cpu_df[CPUColumns.USED_PERCENT].mean()
     cpu_system = cpu_total - sum(cpu_all_processes)
     cpu_total_without_process = [cpu_total - process_cpu for process_cpu in cpu_all_processes]
-    summary_df.loc[len(summary_df.index)] = ["CPU Process", *cpu_all_processes, cpu_system]
+    summary_df.loc[len(summary_df.index)] = ["CPU Process", *cpu_all_processes, "X"]
     summary_df.loc[len(summary_df.index)] = ["CPU System (total - process)", *cpu_total_without_process, cpu_system]
 
     # Memory
@@ -508,7 +508,7 @@ def prepare_summary_csv():
     total_memory = sub_memory_df[MemoryColumns.USED_MEMORY].mean() * KB
     system_memory = total_memory - sum(all_process_memory)
     memory_total_without_process = [total_memory - process_memory for process_memory in all_process_memory]
-    summary_df.loc[len(summary_df.index)] = ["Memory Process (MB)", *all_process_memory, system_memory]
+    summary_df.loc[len(summary_df.index)] = ["Memory Process (MB)", *all_process_memory, "X"]
     summary_df.loc[len(summary_df.index)] = ["Memory Total (total - process) (MB)", *memory_total_without_process,
                                              system_memory]
 
@@ -518,7 +518,7 @@ def prepare_summary_csv():
     system_read_bytes = total_read_bytes - sum(all_process_read_bytes)
     read_bytes_total_without_process = [total_read_bytes - process_read_bytes for process_read_bytes in
                                         all_process_read_bytes]
-    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB - sum)", *all_process_read_bytes, system_read_bytes]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Process (KB - sum)", *all_process_read_bytes, "X"]
     summary_df.loc[len(summary_df.index)] = ["IO Read System (total - process) (KB - sum)",
                                              *read_bytes_total_without_process, system_read_bytes]
 
@@ -528,8 +528,7 @@ def prepare_summary_csv():
     system_read_count = total_read_count - sum(all_process_read_count)
     read_count_total_without_process = [total_read_count - process_read_count for process_read_count in
                                         all_process_read_count]
-    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# - sum)", *all_process_read_count,
-                                             system_read_count]
+    summary_df.loc[len(summary_df.index)] = ["IO Read Count Process (# - sum)", *all_process_read_count, "X"]
     summary_df.loc[len(summary_df.index)] = ["IO Read Count System (total - process) (# - sum)",
                                              *read_count_total_without_process, system_read_count]
 
@@ -539,8 +538,7 @@ def prepare_summary_csv():
     system_write_bytes = total_write_bytes - sum(all_process_write_bytes)
     write_bytes_total_without_process = [total_write_bytes - process_write_bytes for process_write_bytes in
                                          all_process_write_bytes]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB - sum)", *all_process_write_bytes,
-                                             system_write_bytes]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Process (KB - sum)", *all_process_write_bytes, "X"]
     summary_df.loc[len(summary_df.index)] = ["IO Write System (total - process) (KB - sum)",
                                              *write_bytes_total_without_process, system_write_bytes]
 
@@ -550,8 +548,7 @@ def prepare_summary_csv():
     system_write_count = total_write_count - sum(all_process_write_count)
     write_count_total_without_process = [total_write_count - process_write_count for process_write_count in
                                          all_process_write_count]
-    summary_df.loc[len(summary_df.index)] = ["IO Write Count Process (# - sum)", *all_process_write_count,
-                                             system_write_count]
+    summary_df.loc[len(summary_df.index)] = ["IO Write Count Process (# - sum)", *all_process_write_count, "X"]
     summary_df.loc[len(summary_df.index)] = ["IO Write Count System (total - process) (# - sum)",
                                              *write_count_total_without_process, system_write_count]
 

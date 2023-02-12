@@ -231,12 +231,18 @@ class WindowsOS(OSFuncsInterface):
 
 class LinuxOS(OSFuncsInterface):
     def popen(self, command):
-        #return subprocess.Popen(["/usr/bin/gnome-terminal", command],
-        #                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        return subprocess.Popen(["python3", f"{os.path.join('DummyPrograms', 'FilesReader.py')}",
-                                 './home/ubuntu/Desktop'],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        command_list = list(map(lambda s: s.strip('"'), command.split()))
+        try:
+            return subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except FileNotFoundError as e:
+            if command_list[0] == "python":
+                command_list[0] = "python3"
+                #return subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                #['gnome-terminal', '-x', 'python bb.py']
+                return subprocess.Popen(['gnome-terminal', '-x', command.replace("python", "python3")],
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            else:
+                raise e
 
     def get_computer_info(self):
         return "get computer info"
