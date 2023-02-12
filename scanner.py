@@ -745,15 +745,20 @@ def start_process(program_to_scan):
     #powershell_process = subprocess.Popen(["powershell", "-Command", program_to_scan.get_command()],
     #                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    powershell_process = running_os.popen(program_to_scan.get_command())
+    shell_process, pid = OSFuncsInterface.popen(program_to_scan.get_command(), program_to_scan.find_child_id,
+                                                program_to_scan.should_use_powershell())
 
-    child_process_id = program_to_scan.find_child_id(powershell_process.pid)
+    """child_process_id = program_to_scan.find_child_id(powershell_process.pid)
 
     if child_process_id is not None:
         processes_ids.append(child_process_id)
+        processes_names.append(program_to_scan.get_program_name())"""
+
+    if pid is not None:
+        processes_ids.append(pid)
         processes_names.append(program_to_scan.get_program_name())
 
-    return powershell_process, child_process_id
+    return shell_process, pid
 
 
 def terminate_due_to_exception(background_processes, program_name, err):

@@ -42,9 +42,30 @@ class OSFuncsInterface:
     def get_computer_info(self):
         pass
 
-    @abstractmethod
+    """@abstractmethod
     def popen(self, command):
-        pass
+        pass"""
+    @staticmethod
+    def popen(command, find_child_id_func, should_use_powershell):
+        def process_obj_and_pid(command_lst):
+            p = subprocess.Popen(command_lst, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if should_use_powershell:
+                return p, find_child_id_func(p.pid)
+            return p, p.pid
+
+        if should_use_powershell:
+            command = ["powershell", "-Command", command]
+        else:
+            command = list(map(lambda s: s.strip('"'), command.split()))
+
+        try:
+            return process_obj_and_pid(command)
+        except FileNotFoundError as e:
+            if command[0] == "python":
+                command[0] = "python3"
+                return process_obj_and_pid(command)
+            else:
+                raise e
 
     @abstractmethod
     # make balance the default
@@ -81,10 +102,12 @@ class WindowsOS(OSFuncsInterface):
         import pythoncom
         pythoncom.CoInitialize()
 
-    def popen(self, command):
-        return subprocess.Popen(["powershell", "-Command", command],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
+    """def popen(self, command):
+        command_list = list(map(lambda s: s.strip('"'), command.split()))
+        return subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        #return subprocess.Popen(["powershell", "-Command", command],
+        #                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+"""
     def get_computer_info(self):
         wmi_system = self.c.Win32_ComputerSystem()[0]
 
@@ -230,7 +253,7 @@ class WindowsOS(OSFuncsInterface):
 
 
 class LinuxOS(OSFuncsInterface):
-    def popen(self, command):
+    """def popen(self, command):
         command_list = list(map(lambda s: s.strip('"'), command.split()))
         try:
             return subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -242,7 +265,7 @@ class LinuxOS(OSFuncsInterface):
                 return subprocess.Popen(['gnome-terminal', '-x', command.replace("python", "python3")],
                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             else:
-                raise e
+                raise e"""
 
     def get_computer_info(self):
         return "get computer info"

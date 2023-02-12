@@ -28,12 +28,17 @@ class ProgramInterface:
     def general_information_before_measurement(self, f):
         pass
 
+    def should_use_powershell(self) -> bool:
+        return False
+
     def set_results_dir(self, results_path):
         self.results_path = results_path
 
     def set_processes_ids(self, processes_ids):
         self.processes_ids = processes_ids
 
+    ######## probably not needed anymore because we don't start powershell process if not needed in popen
+    ######## so the id of the process we are interested in is the pid returned from popen process
     def find_child_id(self, process_pid) -> Union[int, None]:  #from python 3.10 - int | None:
         # result_screen = subprocess.run(["powershell", "-Command", f'Get-WmiObject Win32_Process -Filter "ParentProcessID={process_pid}" | Select ProcessID'],
         #                               capture_output=True)
@@ -75,9 +80,14 @@ class AntivirusProgram(ProgramInterface):
     def get_process_name(self) -> str:
         return "MsMpEng.exe"
 
-    def get_command(self) -> str:
+    def should_use_powershell(self) -> bool:
+        return True
+
+    def get_command(self) -> Union[str, list]:
         custom_scan_query = "" if self.custom_scan_path is None else f" -ScanPath {self.custom_scan_path}"
         return f"Start-MpScan -ScanType {self.scan_type}" + custom_scan_query
+        #return ["powershell", "-Command", f"Start-MpScan -ScanType {self.scan_type}" + custom_scan_query]
+        #["powershell", "-Command", command]
         #return '"C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.2210.6-0\\MpCmdRun.exe" -Scan -ScanType 1'
 
     def path_adjustments(self):
@@ -180,6 +190,9 @@ class PerfmonProgram(ProgramInterface):
 
     def get_process_name(self) -> str:
         pass
+
+    def should_use_powershell(self) -> bool:
+        return True
 
     def get_command(self) -> str:
         def process_counters_variables(process_id):
