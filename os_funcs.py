@@ -4,7 +4,8 @@ import platform
 import subprocess
 from abc import ABC, abstractmethod
 
-from general_consts import pc_types, GB, physical_memory_types, disk_types
+from general_consts import pc_types, GB, physical_memory_types, disk_types, NEVER_TURN_SCREEN_OFF, \
+    NEVER_GO_TO_SLEEP_MODE
 from powershell_helper import get_powershell_result_list_format
 from program_parameters import DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFORE_SLEEP_MODE
 
@@ -269,3 +270,22 @@ class LinuxOS(OSFuncsInterface):
 
     def get_computer_info(self):
         return "get computer info"
+
+    def change_sleep_and_turning_screen_off_settings(self, screen_time=DEFAULT_SCREEN_TURNS_OFF_TIME,
+                                                     sleep_time=DEFAULT_TIME_BEFORE_SLEEP_MODE):
+        # prevent from sleeping
+        "gsettings set org.gnome.desktop.session idle-delay 1800"
+        result_screen = subprocess.run(["gsettings", "set", f"org.gnome.desktop.session idle-delay {screen_time}"],
+                                       capture_output=True)
+
+        if result_screen.returncode != 0:
+            raise Exception(f'An error occurred while changing screen settings', result_screen.stderr)
+
+        # prevent from sleeping
+        result_sleep = subprocess.run(["systemctl", "mask" if sleep_time == NEVER_GO_TO_SLEEP_MODE else "unmask",
+                                       "sleep.target suspend.target hibernate.target hybrid-sleep.target"],
+                                      capture_output=True)
+
+        if result_sleep.returncode != 0:
+            raise Exception(f'An error occurred while changing sleep mode', result_sleep.stderr)
+

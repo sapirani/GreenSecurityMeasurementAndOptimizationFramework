@@ -13,6 +13,9 @@ NUMBER_OF_CORES = psutil.cpu_count()
 
 MINUTE = 60
 
+NEVER_TURN_SCREEN_OFF = 0
+NEVER_GO_TO_SLEEP_MODE = 0
+
 pc_types = ["Unspecified", "Desktop", "Mobile Device", "Workstation",
                 "EnterpriseServer", "SOHOServer", "AppliancePC", "PerformanceServer"]
 
@@ -45,6 +48,7 @@ class ProgramToScan(Enum):
     Perfmon = 5
     UserActivity = 6
     LogAnomalyDetection = 7
+
 
 class ScanMode(Enum):
     ONE_SCAN = 1
