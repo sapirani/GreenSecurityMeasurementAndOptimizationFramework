@@ -5,7 +5,7 @@ import subprocess
 from abc import ABC, abstractmethod
 
 from general_consts import pc_types, GB, physical_memory_types, disk_types, NEVER_TURN_SCREEN_OFF, \
-    NEVER_GO_TO_SLEEP_MODE
+    NEVER_GO_TO_SLEEP_MODE, MINUTE
 from powershell_helper import get_powershell_result_list_format
 from program_parameters import DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFORE_SLEEP_MODE
 
@@ -273,19 +273,22 @@ class LinuxOS(OSFuncsInterface):
 
     def change_sleep_and_turning_screen_off_settings(self, screen_time=DEFAULT_SCREEN_TURNS_OFF_TIME,
                                                      sleep_time=DEFAULT_TIME_BEFORE_SLEEP_MODE):
-        # prevent from sleeping
-        "gsettings set org.gnome.desktop.session idle-delay 1800"
-        result_screen = subprocess.run(["gsettings", "set", f"org.gnome.desktop.session idle-delay {screen_time}"],
-                                       capture_output=True)
+
+        result_screen = subprocess.run(f'sudo -H -u $SUDO_USER DISPLAY:=0 DBUS_SESSION_BUS_ADDRESS='
+                                       f'unix:path=/run/user/$SUDO_UID/bus gsettings set org.gnome.desktop.session '
+                                       f'idle-delay {screen_time * MINUTE}',
+                                       capture_output=True, shell=True)
 
         if result_screen.returncode != 0:
             raise Exception(f'An error occurred while changing screen settings', result_screen.stderr)
 
-        # prevent from sleeping
-        result_sleep = subprocess.run(["systemctl", "mask" if sleep_time == NEVER_GO_TO_SLEEP_MODE else "unmask",
-                                       "sleep.target suspend.target hibernate.target hybrid-sleep.target"],
-                                      capture_output=True)
+        result_sleep = subprocess.run(f'sudo systemctl {"mask" if sleep_time == NEVER_GO_TO_SLEEP_MODE else "unmask"} '
+                                      f'sleep.target suspend.target hibernate.target hybrid-sleep.target',
+                                      capture_output=True, shell=True)
 
         if result_sleep.returncode != 0:
             raise Exception(f'An error occurred while changing sleep mode', result_sleep.stderr)
+
+        # is the following command necessary??? suppose to control the idle time before going to sleep
+        # gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 400
 
