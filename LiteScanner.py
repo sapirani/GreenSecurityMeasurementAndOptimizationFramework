@@ -48,11 +48,6 @@ battery_df = pd.DataFrame(columns=battery_columns_list)
 
 cpu_df = pd.DataFrame(columns=cpu_columns_list)
 
-# TODO: remove after fixing the problem with disk io
-raw_total_disk_df = pd.DataFrame(columns=raw_total_disk_list)
-
-raw_disk_processes_df = pd.DataFrame(columns=raw_disk_processes_list)
-
 finished_scanning_time = []
 
 
@@ -111,15 +106,6 @@ def save_current_disk_io(previous_disk_io):
         disk_io_stat.write_time - previous_disk_io.write_time
     ]
 
-    dataframe_append(raw_total_disk_df, [calc_time_interval(),
-                                         disk_io_stat.read_count,
-                                         disk_io_stat.write_count,
-                                         f'{disk_io_stat.read_bytes / KB:.3f}',
-                                         f'{disk_io_stat.write_bytes / KB:.3f}',
-                                         disk_io_stat.read_time,
-                                         disk_io_stat.write_time
-                                         ])
-
     return disk_io_stat
 
 
@@ -172,13 +158,6 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
                 ]
 
                 prev_io_per_process[(p.pid, p.name())] = io_stat
-
-                dataframe_append(raw_disk_processes_df, [time_of_sample, p.pid, p.name(),
-                                                         io_stat.read_count,
-                                                         io_stat.write_count,
-                                                         f'{io_stat.read_bytes / KB:.3f}',
-                                                         f'{io_stat.write_bytes / KB:.3f}'
-                                                         ])
 
         except psutil.NoSuchProcess:
             pass
@@ -534,10 +513,6 @@ def ignore_last_results():
     global cpu_df
     global battery_df
 
-    # remove later
-    global raw_total_disk_df
-    global raw_disk_processes_df
-
     if processes_df.empty:
         processes_num_last_measurement = 0
     else:
@@ -550,10 +525,6 @@ def ignore_last_results():
         battery_df = battery_df.iloc[:-1, :]
     cpu_df = cpu_df.iloc[:-1, :]
 
-    # remove later
-    raw_total_disk_df = raw_total_disk_df.iloc[:-1, :]
-    raw_disk_processes_df = raw_disk_processes_df.iloc[:-1, :]
-
 
 def save_results_to_files():
     save_general_information_after_scanning()
@@ -565,10 +536,6 @@ def save_results_to_files():
     if not battery_df.empty:
         battery_df.to_csv(BATTERY_STATUS_CSV, index=False)
     cpu_df.to_csv(TOTAL_CPU_CSV, index=False)
-
-    # remove later
-    raw_total_disk_df.to_csv(os.path.join(base_dir, 'raw_total_disk.csv'), index=False)
-    raw_disk_processes_df.to_csv(os.path.join(base_dir, 'raw_disk_processes.csv'), index=False)
 
     prepare_summary_csv()
 

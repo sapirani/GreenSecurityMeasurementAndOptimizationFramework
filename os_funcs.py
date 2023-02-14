@@ -1,5 +1,4 @@
 import ctypes
-import os
 import platform
 import subprocess
 from abc import ABC, abstractmethod
@@ -12,12 +11,25 @@ from program_parameters import DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFOR
 
 class OSFuncsInterface:
     def is_tamper_protection_enabled(self):
+        """
+        Needed only in Windows
+        :return:
+        """
         return True
 
     def change_real_time_protection(self, should_disable=True):
+        """
+        Needed only in Windows
+        :param should_disable: determine if real time protection will be turned on or off
+        :return: None
+        """
         pass
 
     def init_thread(self):
+        """
+        probably only needed in Windows
+        :return: None
+        """
         pass
 
     def save_battery_capacity(self, f):
