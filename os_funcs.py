@@ -269,6 +269,12 @@ class LinuxOS(OSFuncsInterface):
                 raise e"""
 
     def get_computer_info(self):
+        res = subprocess.Popen("dmidecode | grep -A3 '^System Information' | grep Manufacturer",
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print(res.stdout)
+
+        if res.returncode != 0:
+            raise Exception(f'An error occurred while changing screen settings', res.stderr)
         return "get computer info"
 
     def change_sleep_and_turning_screen_off_settings(self, screen_time=DEFAULT_SCREEN_TURNS_OFF_TIME,
