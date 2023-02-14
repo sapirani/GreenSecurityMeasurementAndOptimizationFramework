@@ -4,7 +4,7 @@ import subprocess
 from abc import ABC, abstractmethod
 
 from general_consts import pc_types, GB, physical_memory_types, disk_types, NEVER_TURN_SCREEN_OFF, \
-    NEVER_GO_TO_SLEEP_MODE, MINUTE
+    NEVER_GO_TO_SLEEP_MODE, MINUTE, YES_BUTTON, NO_BUTTON
 from powershell_helper import get_powershell_result_list_format
 from program_parameters import DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFORE_SLEEP_MODE
 
@@ -314,3 +314,18 @@ class LinuxOS(OSFuncsInterface):
         # is the following command necessary??? suppose to control the idle time before going to sleep
         # gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 400
 
+    def message_box(self, title, text, style):
+        import tkinter as tk
+        from tkinter import messagebox
+
+        root = tk.Tk()
+
+        canvas1 = tk.Canvas(root, width=3, height=3)
+        canvas1.pack()
+
+        msg_box = tk.messagebox.askquestion(title, text, icon='warning')
+        root.destroy()
+
+        if msg_box == 'yes':
+            return YES_BUTTON
+        return NO_BUTTON

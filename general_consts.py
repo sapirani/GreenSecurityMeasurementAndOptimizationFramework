@@ -16,6 +16,9 @@ MINUTE = 60
 NEVER_TURN_SCREEN_OFF = 0
 NEVER_GO_TO_SLEEP_MODE = 0
 
+YES_BUTTON = 6
+NO_BUTTON = 7
+
 pc_types = ["Unspecified", "Desktop", "Mobile Device", "Workstation",
                 "EnterpriseServer", "SOHOServer", "AppliancePC", "PerformanceServer"]
 

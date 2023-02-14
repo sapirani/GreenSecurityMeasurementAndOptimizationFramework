@@ -19,9 +19,6 @@ logging.basicConfig(filename='session_log.log', encoding='utf-8', level=logging.
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
 SYSTEM_IDLE_PID = 0
 
-YES_BUTTON = 6
-NO_BUTTON = 7
-
 NEVER_TURN_SCREEN_OFF = 0
 NEVER_GO_TO_SLEEP_MODE = 0
 
