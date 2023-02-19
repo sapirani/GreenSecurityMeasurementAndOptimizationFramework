@@ -13,7 +13,7 @@ class OSFuncsInterface:
     def is_tamper_protection_enabled(self):
         """
         Needed only in Windows
-        :return:
+        :return: True if tamper protection is enabled, False otherwise
         """
         return True
 
@@ -55,9 +55,6 @@ class OSFuncsInterface:
     def get_computer_info(self):
         pass
 
-    """@abstractmethod
-    def popen(self, command):
-        pass"""
     @staticmethod
     def popen(command, find_child_id_func, should_use_powershell):
         def process_obj_and_pid(command_lst):
@@ -81,7 +78,7 @@ class OSFuncsInterface:
                 raise e
 
     @abstractmethod
-    # make balance the default
+    # TODO: make balance the default
     def change_power_plan(self, name, guid):
         pass
 
@@ -266,20 +263,6 @@ class WindowsOS(OSFuncsInterface):
 
 
 class LinuxOS(OSFuncsInterface):
-    """def popen(self, command):
-        command_list = list(map(lambda s: s.strip('"'), command.split()))
-        try:
-            return subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except FileNotFoundError as e:
-            if command_list[0] == "python":
-                command_list[0] = "python3"
-                #return subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                #['gnome-terminal', '-x', 'python bb.py']
-                return subprocess.Popen(['gnome-terminal', '-x', command.replace("python", "python3")],
-                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            else:
-                raise e"""
-
     def get_computer_info(self):
 
         res = subprocess.run("dmidecode | grep -A3 '^System Information' | grep Manufacturer",

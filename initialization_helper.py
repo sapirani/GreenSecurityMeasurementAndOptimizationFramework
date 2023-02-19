@@ -21,6 +21,11 @@ balanced_power_plan_guid = PowerPlan.BALANCED[1]
 # ======= Result Data Paths =======
 
 def program_to_scan_factory(program_type):
+    """
+    Return the class that represents the program that the user wishes to run and send its dedicated parameters
+    :param program_type: The program specified by the user
+    :return: The dedicated class
+    """
     if program_type == ProgramToScan.ANTIVIRUS:
         return AntivirusProgram(scan_type, custom_scan_path)
     if program_type == ProgramToScan.IDS:
@@ -44,6 +49,9 @@ background_programs = [program_to_scan_factory(background_program) for backgroun
 
 
 def calc_base_dir():
+    """
+    :return: A string represents the directory hierarchy of the results
+    """
     computer_info = running_os.get_computer_info()
 
     if main_program_to_scan == ProgramToScan.NO_SCAN:
@@ -58,6 +66,15 @@ base_dir = calc_base_dir()
 
 
 def calc_measurement_number(is_scanner=True):
+    """
+    return the next number of measurement directory.
+    :param is_scanner: True if we are running the scanner. False if we  are running analyzer
+    :return:  one of the followings:
+    1.  The number specified by the user.
+    2.  The highest dir number exists + 1 if the user chose NEW_MEASUREMENT and runs the scanner.
+    2.  The highest dir number exists if the user chose NEW_MEASUREMENT and runs the analyzer.
+
+    """
     if measurement_number != NEW_MEASUREMENT:
         return measurement_number
 
@@ -69,6 +86,11 @@ def calc_measurement_number(is_scanner=True):
 
 
 def result_paths(is_scanner=True):
+    """
+    return all paths of results files
+    :param is_scanner:
+    :return:
+    """
     measurements_dir = os.path.join(base_dir, f"{MEASUREMENT_NAME_DIR} {calc_measurement_number(is_scanner)}")
     graphs_dir = os.path.join(measurements_dir, "graphs")
 
@@ -93,7 +115,7 @@ if main_program_to_scan == ProgramToScan.ANTIVIRUS and ProgramToScan.DummyANTIVI
         and scan_type != ScanType.CUSTOM_SCAN and custom_scan_path != '""':
     raise Exception("custom_scan_path must be empty when running scans other than custom scan")
 
-
+# ======= Prepare dataframes titles =======
 battery_columns_list = [BatteryColumns.TIME, BatteryColumns.PERCENTS, BatteryColumns.CAPACITY, BatteryColumns.VOLTAGE]
 
 memory_columns_list = [MemoryColumns.TIME, MemoryColumns.USED_MEMORY, MemoryColumns.USED_PERCENT]

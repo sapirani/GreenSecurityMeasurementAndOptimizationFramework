@@ -1,6 +1,11 @@
 
 
 def get_powershell_result_list_format(result: bytes):
+    """
+    This function parse bytes result returned from powershell
+    :param result: bytes result returned from powershell. The result should be in list format
+    :return: list of dictionaries. We use list because some powershell commands return multimple answers
+    """
     lines_list = str(result).split("\\r\\n")[2:-4]
     specific_item_dict = {}
     items_list = []
