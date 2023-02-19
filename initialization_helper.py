@@ -1,7 +1,5 @@
 import os.path
 from program_parameters import *
-#import wmi
-#import platform
 from program_classes import *
 from os_funcs import *
 
@@ -46,12 +44,6 @@ background_programs = [program_to_scan_factory(background_program) for backgroun
 
 
 def calc_base_dir():
-    """c = wmi.WMI()
-    wmi_system = c.Win32_ComputerSystem()[0]
-
-    computer_info = f"{wmi_system.Manufacturer} {wmi_system.SystemFamily} {wmi_system.Model} " \
-                    f"{platform.system()} {platform.release()}"""
-
     computer_info = running_os.get_computer_info()
 
     if main_program_to_scan == ProgramToScan.NO_SCAN:

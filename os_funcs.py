@@ -32,23 +32,23 @@ class OSFuncsInterface:
         """
         pass
 
-    def save_battery_capacity(self, f):
+    def save_battery_capacity(self, f):     # did not work in ubuntu
         pass
 
-    def save_system_information(self, f):
+    def save_system_information(self, f):   # TODO
         pass
 
-    def save_physical_memory(self, f):
+    def save_physical_memory(self, f):      # TODO
         pass
 
-    def save_disk_information(self, f):
+    def save_disk_information(self, f):     # TODO
         pass
 
     def message_box(self, title, text, style):
         pass
 
     @abstractmethod
-    def insert_battery_state_to_df(self, battery_df, time_interval, battery_percent):
+    def insert_battery_state_to_df(self, battery_df, time_interval, battery_percent): # did not work in ubuntu
         pass
 
     @abstractmethod
@@ -329,3 +329,11 @@ class LinuxOS(OSFuncsInterface):
         if msg_box == 'yes':
             return YES_BUTTON
         return NO_BUTTON
+
+    def change_power_plan(self, name, guid):
+        #this is the command to switch to performance plan
+        """result = subprocess.run("echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor",
+                                       capture_output=True, shell=True)"""
+
+
+        "echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"

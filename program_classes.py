@@ -100,17 +100,6 @@ class AntivirusProgram(ProgramInterface):
         from os_funcs import WindowsOS
         WindowsOS.save_antivirus_version(f, self.get_program_name())
 
-        """result = subprocess.run(["powershell", "-Command", "Get-MpComputerStatus | Select AMEngineVersion,"
-                                                           " AMProductVersion, AMServiceVersion | Format-List"],
-                                capture_output=True)
-        if result.returncode != 0:
-            raise Exception(f'Could not get {self.get_program_name()} version', result.stderr)
-
-        version_dict = powershell_helper.get_powershell_result_list_format(result.stdout)[0]
-        f.write(f"Anti Malware Engine Version: {version_dict['AMEngineVersion']}\n")
-        f.write(f"Anti Malware Client Version: {version_dict['AMProductVersion']}\n")
-        f.write(f"Anti Malware Service Version: {version_dict['AMServiceVersion']}\n\n")"""
-
     def find_child_id(self, process_pid):
         for i in range(3):  # try again and again
             for proc in psutil.process_iter():

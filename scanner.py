@@ -1,16 +1,13 @@
 import shutil
 
-#import pythoncom
 from statistics import mean
 from prettytable import PrettyTable
 from threading import Thread
 import pandas as pd
 from initialization_helper import *
-#import ctypes
 from datetime import date
 from pathlib import Path
 import screen_brightness_control as sbc
-#from powershell_helper import get_powershell_result_list_format
 
 # ======= Constants =======
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
@@ -44,11 +41,10 @@ cpu_df = pd.DataFrame(columns=cpu_columns_list)
 finished_scanning_time = []
 
 
-"""def message_box(title, text, style):
-    return ctypes.windll.user32.MessageBoxW(0, text, title, style)"""
-
-
 def calc_time_interval():
+    """
+    :return: the time passed since starting the program
+    """
     return time.time() - starting_time
 
 
@@ -67,17 +63,6 @@ def save_battery_stat():
         raise Exception("Unplug charging cable during measurements!")
 
     running_os.insert_battery_state_to_df(battery_df, calc_time_interval(), battery.percent)
-    """t = wmi.WMI(moniker="//./root/wmi")
-
-    new_row_index = len(battery_df.index)
-
-    for i, b in enumerate(t.ExecQuery('Select * from BatteryStatus where Voltage > 0')):
-        battery_df.loc[new_row_index + i] = [
-            calc_time_interval(),
-            battery.percent,
-            b.RemainingCapacity,
-            b.Voltage
-        ]"""
 
 
 def save_current_total_memory():
@@ -125,6 +110,12 @@ def save_current_disk_io(previous_disk_io):
 
 
 def save_current_processes_statistics(prev_io_per_process):
+    """
+    This function gets all processes running in the system and order them by thier cpu usage
+    :param prev_io_per_process: previous read of all processes from io_counters.
+    It is dictionary where the key is (pid, name) and the value is the io_counters() read
+    :return: a new dictionary that contains the new values from io_counters() for each process
+    """
     proc = []
 
     time_of_sample = calc_time_interval()
@@ -147,6 +138,14 @@ def save_current_processes_statistics(prev_io_per_process):
 
 
 def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
+    """
+    This function saves the relevant data from the process in dataframe (will be saved later as csv files)
+    :param time_of_sample: time since starting the program
+    :param top_list: list of all processes sorted by cpu usage
+    :param prev_io_per_process: previous read of all processes from io_counters.
+    It is dictionary where the key is (pid, name) and the value is the io_counters() read
+    :return:
+    """
     for p, cpu_percent in top_list:
 
         # While fetching the processes, some subprocesses may exit
@@ -177,7 +176,7 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
                     f'{(io_stat.write_bytes - prev_io.write_bytes) / KB:.3f}',
                 ]
 
-                prev_io_per_process[(p.pid, p.name())] = io_stat
+                prev_io_per_process[(p.pid, p.name())] = io_stat    # after finishing loop
 
         except psutil.NoSuchProcess:
             pass
@@ -198,7 +197,7 @@ def should_scan():
     """_summary_: check what is the scan option
 
     Returns:
-        _type_: bool
+        True if measurement thread should perform another iteration or False if it should terminate
     """
     if main_program_to_scan == ProgramToScan.NO_SCAN:
         return not min_scan_time_passed()
@@ -209,16 +208,21 @@ def should_scan():
 
 
 def save_current_total_cpu():
+    """
+    This function saves the total cpu usage of the system
+    """
     total_cpu = psutil.cpu_percent(percpu=True)
     cpu_df.loc[len(cpu_df.index)] = [calc_time_interval(), mean(total_cpu)] + total_cpu
 
 
 def continuously_measure():
-    #pythoncom.CoInitialize()
+    """
+    This function runs in a different thread. It accounts for measuring the full resource consumption of the system
+    """
     running_os.init_thread()
 
     # init prev_disk_io by first disk io measurements (before scan)
-    # TODO: lock until process starts
+    # TODO: lock thread until process starts
     prev_disk_io = psutil.disk_io_counters()
     prev_io_per_process = {}
 
@@ -235,6 +239,11 @@ def continuously_measure():
 
 
 def save_general_battery(f):
+    """
+    This function writes battery info to a file.
+    On laptop devices, charger must be unplugged!
+    :param f: text file to write the battery info
+    """
     battery = psutil.sensors_battery()
     if battery is None:  # if desktop computer (has no battery)
         return
@@ -246,18 +255,12 @@ def save_general_battery(f):
 
     running_os.save_battery_capacity(f)
 
-    """c = wmi.WMI()
-    t = wmi.WMI(moniker="//./root/wmi")
-    batts1 = c.CIM_Battery(Caption='Portable Battery')
-    for i, b in enumerate(batts1):
-        f.write('Battery %d Design Capacity: %d mWh\n' % (i, b.DesignCapacity or 0))
-
-    batts = t.ExecQuery('Select * from BatteryFullChargedCapacity')
-    for i, b in enumerate(batts):
-        f.write('Battery %d Fully Charged Capacity: %d mWh\n' % (i, b.FullChargedCapacity))"""
-
 
 def save_general_disk(f):
+    """
+    This function writes disk info to a file.
+    :param f: text file to write the battery info
+    """
     f.write("----Disk----\n")
     disk_table = PrettyTable(["Total(GB)", "Used(GB)",
                               "Available(GB)", "Percentage"])
@@ -272,64 +275,18 @@ def save_general_disk(f):
     f.write('\n')
 
 
-"""def save_disk_info(f, c):
-    wmi_logical_disks = c.Win32_LogicalDisk()
-    result = subprocess.run(["powershell", "-Command",
-                             "Get-Disk | Select FriendlyName, Manufacturer, Model,  PartitionStyle, NumberOfPartitions,"
-                             " PhysicalSectorSize, LogicalSectorSize, BusType | Format-List"], capture_output=True)
-    if result.returncode != 0:
-        raise Exception(f'An error occurred while getting disk information', result.stderr)
-
-    logical_disks_info = get_powershell_result_list_format(result.stdout)
-
-    result = subprocess.run(["powershell", "-Command",
-                             "Get-PhysicalDisk | Select FriendlyName, Manufacturer, Model, FirmwareVersion, MediaType"
-                             " | Format-List"], capture_output=True)
-    if result.returncode != 0:
-        raise Exception(f'An error occurred while getting disk information', result.stderr)
-
-    physical_disks_info = get_powershell_result_list_format(result.stdout)
-
-    f.write("\n----Physical Disk Information----\n")
-    for physical_disk_info in physical_disks_info:
-        f.write(f"\nName: {physical_disk_info['FriendlyName']}\n")
-        f.write(f"Manufacturer: {physical_disk_info['Manufacturer']}\n")
-        f.write(f"Model: {physical_disk_info['Model']}\n")
-        f.write(f"Media Type: {physical_disk_info['MediaType']}\n")
-        f.write(f"Disk Firmware Version: {physical_disk_info['FirmwareVersion']}\n")
-
-    f.write("\n----Logical Disk Information----\n")
-    try:
-        for index, logical_disk_info in enumerate(logical_disks_info):
-            f.write(f"\nName: {logical_disk_info['FriendlyName']}\n")
-            f.write(f"Manufacturer: {logical_disk_info['Manufacturer']}\n")
-            f.write(f"Model: {logical_disk_info['Model']}\n")
-            f.write(f"Disk Type: {disk_types[wmi_logical_disks[index].DriveType]}\n")
-            f.write(f"Partition Style: {logical_disk_info['PartitionStyle']}\n")
-            f.write(f"Number Of Partitions: {logical_disk_info['NumberOfPartitions']}\n")
-            f.write(f"Physical Sector Size: {logical_disk_info['PhysicalSectorSize']} bytes\n")
-            f.write(f"Logical Sector Size: {logical_disk_info['LogicalSectorSize']}  bytes\n")
-            f.write(f"Bus Type: {logical_disk_info['BusType']}\n")
-            f.write(f"FileSystem: {wmi_logical_disks[index].FileSystem}\n")
-    except Exception:
-        pass"""
-
-
 def save_general_system_information(f):
+    """
+    This function saves general info about the platform to a file.
+    :param f:
+    :return:
+    """
     platform_system = platform.uname()
 
     f.write("======System Information======\n")
 
     running_os.save_system_information(f)
 
-    """c = wmi.WMI()
-    wmi_system = c.Win32_ComputerSystem()[0]
-    wmi_physical_memory = c.Win32_PhysicalMemory()
-
-    f.write(f"PC Type: {pc_types[wmi_system.PCSystemType]}\n")
-    f.write(f"Manufacturer: {wmi_system.Manufacturer}\n")
-    f.write(f"System Family: {wmi_system.SystemFamily}\n")
-    f.write(f"Model: {wmi_system.Model}\n")"""
     f.write(f"Machine Type: {platform_system.machine}\n")
     f.write(f"Device Name: {platform_system.node}\n")
 
@@ -350,26 +307,18 @@ def save_general_system_information(f):
     f.write(f"Total RAM: {psutil.virtual_memory().total / GB} GB\n")
 
     running_os.save_physical_memory(f)
-
-
-    """for physical_memory in wmi_physical_memory:
-        f.write(f"\nName: {physical_memory.Tag}\n")
-        f.write(f"Manufacturer: {physical_memory.Manufacturer}\n")
-        f.write(f"Capacity: {int(physical_memory.Capacity) / GB}\n")
-        f.write(f"Memory Type: {physical_memory_types[physical_memory.SMBIOSMemoryType]}\n")
-        f.write(f"Speed: {physical_memory.Speed} MHz\n")"""
-
     running_os.save_disk_information(f)
-    #save_disk_info(f, c)
 
 
 def save_general_information_before_scanning():
+    """
+    This function writes general battery, disk, ram, os, etc. information
+    """
     with open(GENERAL_INFORMATION_FILE, 'w') as f:
         # dd/mm/YY
         f.write(f'Date: {date.today().strftime("%d/%m/%Y")}\n\n')
 
         # TODO: add background_programs general_information_before_measurement(f)
-        #program.general_information_before_measurement(f)
         program.general_information_before_measurement(f)
 
         save_general_system_information(f)
@@ -382,6 +331,11 @@ def save_general_information_before_scanning():
 
 
 def convert_mwh_to_other_metrics(amount_of_mwh):
+    """
+    convert mwh to woods, coal, etc.
+    :param amount_of_mwh: amount to convert
+    :return: tuple of equivalents (woods, coal, etc.)
+    """
     kwh_to_mwh = 1e6
     # link: https://www.epa.gov/energy/greenhouse-gases-equivalencies-calculator-calculations-and-references
     co2 = (0.709 * amount_of_mwh) / kwh_to_mwh  # 1 kwh = 0.709 kg co2
@@ -398,6 +352,9 @@ def convert_mwh_to_other_metrics(amount_of_mwh):
 
 
 def save_general_information_after_scanning():
+    """
+    save processes names and ids, disk and battery info, scanning times
+    """
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
         f.write('======After Scanning======\n')
         if scanning_process_id is not None:
@@ -444,10 +401,16 @@ def slice_df(df, percent):
 
 
 def get_ratio(numerator, denominator):
+    """
+    Simple division, if denominator is 0 avoid crashing
+    """
     return None if denominator == 0 else numerator / denominator
 
 
 def get_all_df_by_id():
+    """
+    Filter the processes dataframe so it will contain only the main and background processes specified by the user
+    """
     return [processes_df[processes_df[ProcessesColumns.PROCESS_ID] == id] for id in processes_ids]
 
 
@@ -642,6 +605,10 @@ def prepare_summary_csv():
 
 
 def ignore_last_results():
+    """
+    Remove the last sample from each dataframe because the main process may be finished before the sample,
+    so that sample is not relevant
+    """
     global processes_df
     global memory_df
     global disk_io_each_moment_df
@@ -662,6 +629,9 @@ def ignore_last_results():
 
 
 def save_results_to_files():
+    """
+    Save all measurements (cpu, memory, disk battery) into dedicated files.
+    """
     save_general_information_after_scanning()
     ignore_last_results()
 
@@ -676,6 +646,9 @@ def save_results_to_files():
 
 
 def calc_delta_capacity():
+    """
+    :return: capacity and percentage drain of the battery during the measurements
+    """
     if battery_df.empty:
         return 0, 0
     before_scanning_capacity = battery_df.iloc[0].at[BatteryColumns.CAPACITY]
@@ -687,34 +660,31 @@ def calc_delta_capacity():
 
 
 def is_delta_capacity_achieved():
+    """
+    Relevant for Continuous Scan
+    :return: True if the minimum capacity drain specified by the user is achieved and False otherwise.
+    The meaning of False is that another scan should be performed
+    """
     if psutil.sensors_battery() is None:  # if desktop computer (has no battery)
         return True
 
     return calc_delta_capacity()[0] >= MINIMUM_DELTA_CAPACITY
 
 
-"""def change_power_plan(name=balanced_power_plan_name, guid=balanced_power_plan_guid):
-    result = subprocess.run(["powershell", "-Command", "powercfg /s " + guid], capture_output=True)
-    if result.returncode != 0:
-        raise Exception(f'An error occurred while switching to the power plan: {name}', result.stderr)"""
-
-
 def start_process(program_to_scan):
+    """
+    This function creates a process that runs the given program
+    :param program_to_scan: the program to run. Can be either the main program or background program
+    :return: process object as returned by subprocesses popen and the pid of the process
+    """
     global processes_ids
 
     program_to_scan.set_processes_ids(processes_ids)
-    #powershell_process = subprocess.Popen(["powershell", "-Command", program_to_scan.get_command()],
-    #                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     shell_process, pid = OSFuncsInterface.popen(program_to_scan.get_command(), program_to_scan.find_child_id,
                                                 program_to_scan.should_use_powershell())
 
-    """child_process_id = program_to_scan.find_child_id(powershell_process.pid)
-
-    if child_process_id is not None:
-        processes_ids.append(child_process_id)
-        processes_names.append(program_to_scan.get_program_name())"""
-
+    # save the process names and pids in global arrays
     if pid is not None:
         processes_ids.append(pid)
         processes_names.append(program_to_scan.get_program_name())
@@ -722,21 +692,13 @@ def start_process(program_to_scan):
     return shell_process, pid
 
 
-def terminate_due_to_exception(background_processes, program_name, err):
-    global done_scanning
-    done_scanning = True
-
-    try:
-        p = psutil.Process(scanning_process_id)
-        p.terminate()  # or p.kill()
-    except (psutil.NoSuchProcess, psutil.AccessDenied):
-        pass
-
-    kill_background_processes(background_processes)
-    raise Exception("An error occurred in child program %s: %s", program_name, err)
-
-
 def start_background_processes():
+    """
+    Start a process per each background program using start_process function above.
+    If there is an error when creating a process, terminate all process and notify user
+    :return: list of tuples. each tuple contains a process object as returned by subprocesses popen
+    and the pid of the process
+    """
     background_processes = [start_process(background_program) for background_program in background_programs]
     # TODO: think how to check if there are errors without sleeping - waiting for process initialization
     time.sleep(5)
@@ -748,6 +710,30 @@ def start_background_processes():
                 terminate_due_to_exception(background_processes, background_program.get_program_name(), err)
 
     return background_processes
+
+
+def terminate_due_to_exception(background_processes, program_name, err):
+    """
+    When an exception is raised from one of the processes, we will terminate all other process and stop measuring
+    :param background_processes:
+    :param program_name: the name of the program that had an error
+    :param err: explanation about the error occurred
+    """
+    global done_scanning
+    done_scanning = True
+
+    # terminate the main process if it still exists
+    try:
+        p = psutil.Process(scanning_process_id)
+        p.terminate()  # or p.kill()
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+
+    # terminate other processes (background processes)
+    kill_background_processes(background_processes)
+
+    # stop measuring - raise exception to user
+    raise Exception("An error occurred in child program %s: %s", program_name, err)
 
 
 def kill_background_processes(background_processes):
@@ -766,6 +752,11 @@ def kill_background_processes(background_processes):
 
 
 def scan_and_measure():
+    """
+    The main function. This function starts a thread that will be responsible for measuring the resource
+    consumption of the whole system and per each process. Simultaneously, it starts the main program and
+    background programs defined by the user (so the thread will measure them also)
+    """
     global done_scanning
     global starting_time
     global scanning_process_id
@@ -779,21 +770,30 @@ def scan_and_measure():
         background_processes = start_background_processes()
         result = main_powershell_process.wait()
 
+        # kill background programs after main program finished
         kill_background_processes(background_processes)
         errs = main_powershell_process.stderr.read().decode()
 
         finished_scanning_time.append(calc_time_interval())
+        # check whether another iteration of scan is needed or not
         if scan_option == ScanMode.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
+            # if there is no need in another iteration, exit this while and signal the measurement thread to stop
             done_scanning = True
+
         if result != 0:
             raise Exception("An error occurred while scanning: %s", errs)
 
+    # wait for measurement
     measurements_thread.join()
     if main_program_to_scan == ProgramToScan.NO_SCAN:
         finished_scanning_time.append(calc_time_interval())
 
 
 def can_proceed_towards_measurements():
+    """
+    Check if user is aware that he is going to delete previous measurements
+    :return: True if it is new measurement or if the user agreed to delete the previous measurements
+    """
     if os.path.exists(base_dir):
 
         button_selected = running_os.message_box("Deleting Previous Results",
@@ -809,53 +809,6 @@ def can_proceed_towards_measurements():
         return True
 
 
-"""def change_sleep_and_turning_screen_off_settings(screen_time=DEFAULT_SCREEN_TURNS_OFF_TIME,
-                                                 sleep_time=DEFAULT_TIME_BEFORE_SLEEP_MODE):
-    _summary_ : change the sleep and turning screen off settings
-
-    Args:
-        screen_time :Defaults to DEFAULT_SCREEN_TURNS_OFF_TIME.
-        sleep_time : Defaults to DEFAULT_TIME_BEFORE_SLEEP_MODE.
-    
-    result_screen = subprocess.run(["powershell", "-Command", f"powercfg /Change monitor-timeout-dc {screen_time}"],
-                                   capture_output=True)
-    if result_screen.returncode != 0:
-        raise Exception(f'An error occurred while changing turning off the screen to never', result_screen.stderr)
-
-    result_sleep_mode = subprocess.run(["powershell", "-Command", f"powercfg /Change standby-timeout-dc {sleep_time}"],
-                                       capture_output=True)
-    if result_sleep_mode.returncode != 0:
-        raise Exception(f'An error occurred while disabling sleep mode', result_sleep_mode.stderr)"""
-
-
-"""def change_real_time_protection(should_disable=True):
-
-    protection_mode = "1" if should_disable else "0"
-    result = subprocess.run(["powershell", "-Command",
-                             f'Start-Process powershell -ArgumentList("Set-MpPreference -DisableRealTimeMonitoring {protection_mode}") -Verb runAs -WindowStyle hidden'],
-                            capture_output=True)
-    if result.returncode != 0:
-        raise Exception("Could not change real time protection", result.stderr)"""
-
-
-"""def is_tamper_protection_enabled():
-    _summary_: tamper protection should be disabled for the program to work properly
-
-    Raises:
-        Exception: if could not check if tamper protection enabled
-
-    Returns:
-        _type_ : bool -- True if tamper protection is enabled, False otherwise
-    
-    result = subprocess.run(["powershell", "-Command", "Get-MpComputerStatus | Select IsTamperProtected | Format-List"],
-                            capture_output=True)
-    if result.returncode != 0:
-        raise Exception("Could not check if tamper protection enabled", result.stderr)
-
-    # return bool(re.search("IsTamperProtected\s*:\sTrue", str(result.stdout)))
-    return get_powershell_result_list_format(result.stdout)[0]["IsTamperProtected"] == "True"""
-
-
 def main():
     print("======== Process Monitor ========")
 
@@ -867,7 +820,7 @@ def main():
         raise Exception("You must disable Tamper Protection manually so that the program could control real "
                         "time Protection")
 
-    if not can_proceed_towards_measurements():
+    if not can_proceed_towards_measurements():  # avoid deleting previous measurements
         print("Exiting program")
         return
 
@@ -882,7 +835,7 @@ def main():
 
     psutil.cpu_percent()  # first call is meaningless
 
-    Path(GRAPHS_DIR).mkdir(parents=True, exist_ok=True)  # create empty dirs
+    Path(GRAPHS_DIR).mkdir(parents=True, exist_ok=True)  # create empty results dirs
 
     save_general_information_before_scanning()
 
