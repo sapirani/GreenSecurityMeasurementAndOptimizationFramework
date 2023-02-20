@@ -41,15 +41,17 @@ The main components of the code:
 14. Code will back to default settings.
 
 ## Program Parameters
-1. `power_plan` - the computer's power plan, [see options](#power-plans).
-2. `scan_option` - the mode of execution, [see options](#modes-of-execution).
-3. `scan_type` - the type of antivirus scan, [see options](#scan-types).
-4. `custom_scan_path` - the directory / file to scan (for Custom scan only)
-5. `MINIMUM_DELTA_CAPACITY` - enables to define the minimum battery drop required before the code ends. Relevant only in continuous scan mode.
-6. `MINIMUM_SCAN_TIME` - enables to define the minimum time required for antivirus scans before the code ends. Relevant only in continuous scan mode.
-7. `measurement_number` - if equals to NEW_MEASUREMENT, result will be saved in new folder. It is possible to define specific number
-8. `disable_real_time_protection_during_measurement` - if True, code will disable defender's real time protection during measurements and turn it on before ending. IMPORTANT - in this case, Tamper Protection MUST be turned off manually, and Scanner.py must run in admin mode
-9. `screen_brightness_level` - enables to define the brightness of screen - a value between 0 and 100
+1. `main_program_to_scan` - the main program that you want to measure it's resource consumption
+2. `background_programs_types` - a list of programs that will run in parallel to the main program. This list could be empty (meaning that no additional background program will run). Their resource consumption will be also measured
+3. `power_plan` - the computer's power plan, [see options](#power-plans).
+4. `scan_option` - the mode of execution, [see options](#modes-of-execution).
+5. `scan_type` - the type of antivirus scan, [see options](#scan-types).
+6. `custom_scan_path` - the directory / file to scan (for Custom scan only)
+7. `MINIMUM_DELTA_CAPACITY` - enables to define the minimum battery drop required before the code ends. Relevant only in continuous scan mode.
+8. `MINIMUM_SCAN_TIME` - enables to define the minimum time required for antivirus scans before the code ends. Relevant only in continuous scan mode.
+9. `measurement_number` - if equals to NEW_MEASUREMENT, result will be saved in new folder. It is possible to define specific number
+10. `disable_real_time_protection_during_measurement` - if True, code will disable defender's real time protection during measurements and turn it on before ending. IMPORTANT - in this case, Tamper Protection MUST be turned off manually, and Scanner.py must run in admin mode
+11. `screen_brightness_level` - enables to define the brightness of screen - a value between 0 and 100
 
 ### Modes of Execution
 There are 3 modes of execution:
