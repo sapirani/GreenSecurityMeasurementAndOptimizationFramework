@@ -28,7 +28,7 @@ DEFAULT_SCREEN_TURNS_OFF_TIME = 4
 DEFAULT_TIME_BEFORE_SLEEP_MODE = 4
 
 # ==== IDS configurations
-ids_type = IDSType.SURICATA
+ids_type = IDSType.SNORT
 interface_name = "ens33"
 log_path = "var/log/snort"
 configuration_file_path = "etc/snort/snort.conf"
