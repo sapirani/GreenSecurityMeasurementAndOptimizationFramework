@@ -1,8 +1,6 @@
 import os
-import subprocess
 import time
 
-import powershell_helper
 from general_consts import *
 
 from typing import Union
@@ -149,18 +147,28 @@ class UserActivityProgram(ProgramInterface):
 
 
 class IDSProgram(ProgramInterface):
-    def __init__(self, ids_type, interface_name, log_dir, installation_dir="C:\Program Files"):
+    def __init__(self, interface_name, log_dir, configuration_file_path=None, installation_dir="C:\Program Files"):
         super().__init__()
-        self.ids_type = ids_type
         self.interface_name = interface_name
         self.log_dir = log_dir
         self.installation_dir = installation_dir
+        self.configuration_file_path = configuration_file_path
 
+
+class SuricataProgram(IDSProgram):
     def get_program_name(self):
-        return "IDS"
+        return "Suricata IDS"
 
     def get_command(self):
-        return rf"& '{self.installation_dir}\{self.ids_type}\{self.ids_type.lower()}.exe' -i {self.interface_name} -l '{self.installation_dir}\{self.ids_type}\{self.log_dir}'"
+        return rf"& '{self.installation_dir}\{IDSType.SURICATA}\{IDSType.SURICATA.lower()}.exe' -i {self.interface_name} -l '{self.installation_dir}\{IDSType.SURICATA}\{self.log_dir}'"
+
+
+class SnortProgram(IDSProgram):
+    def get_program_name(self):
+        return "Snort IDS"
+
+    def get_command(self) -> str:
+        return f"sudo snort -q -l {self.log_dir} -i {self.interface_name} -A fast -c {self.configuration_file_path}"
 
 
 class NoScanProgram(ProgramInterface):

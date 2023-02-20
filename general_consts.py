@@ -70,7 +70,7 @@ class ScanType:
     CUSTOM_SCAN = "CustomScan"
     
     
-class IdsType:
+class IDSType:
     SURICATA = "Suricata"
     SNORT = "Snort"
 

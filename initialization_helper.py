@@ -28,8 +28,10 @@ def program_to_scan_factory(program_type):
     """
     if program_type == ProgramToScan.ANTIVIRUS:
         return AntivirusProgram(scan_type, custom_scan_path)
-    if program_type == ProgramToScan.IDS:
-        return IDSProgram(ids_type, interface_name, log_dir)
+    if program_type == ProgramToScan.IDS and ids_type == IDSType.SURICATA:
+        return SuricataProgram(interface_name, log_path)
+    if program_type == ProgramToScan.IDS and ids_type == IDSType.SNORT:
+        return SnortProgram(interface_name, log_path, configuration_file_path=configuration_file_path)
     if program_type == ProgramToScan.DummyANTIVIRUS:
         return DummyAntivirusProgram(custom_scan_path)
     if program_type == ProgramToScan.NO_SCAN:
