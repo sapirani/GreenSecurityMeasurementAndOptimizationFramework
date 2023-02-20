@@ -7,9 +7,9 @@ background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Pe
 power_plan = PowerPlan.POWER_SAVER
 scan_option = ScanMode.ONE_SCAN
 scan_type = ScanType.QUICK_SCAN  # relevant only for one scan or continuous scan
+
 file_type = "pdf"
 directory_type = "Duplicated Files"
-#custom_scan_path = '""'
 custom_scan_path = fr'"C:\Users\sagib\Downloads"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
 
