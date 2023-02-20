@@ -303,7 +303,7 @@ class LinuxOS(OSFuncsInterface):
 
         root = tk.Tk()
 
-        canvas1 = tk.Canvas(root, width=3, height=3)
+        canvas1 = tk.Canvas(root, width=30, height=20)
         canvas1.pack()
 
         msg_box = tk.messagebox.askquestion(title, text, icon='warning')
