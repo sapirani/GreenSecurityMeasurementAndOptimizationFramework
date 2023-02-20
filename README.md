@@ -80,14 +80,14 @@ It is possible to configure the computer's power plan during measurements. The a
 * use "git update-index --no-skip-worktree program_parameters.py" command to resume tracking changes
 
 ## Execution Example:
-1) When you want to run the windows defender antivirus and measure it's energy consumption when scanning a folder <dir> once, with no other processes running in the background, while the power mode of the computer should be power saver, you should change the next parameters in the file program_parameters.py:
+1) When you want to run the windows defender antivirus and measure it's energy consumption when scanning a folder (in path dir) once, with no other processes running in the background, while the power mode of the computer should be power saver, you should change the next parameters in the file program_parameters.py:
 
 * main_program_to_scan = ProgramToScan.ANTIVIRUS
 * background_programs_types = []  
 * power_plan = PowerPlan.POWER_SAVER
 * scan_option = ScanMode.ONE_SCAN
 * scan_type = ScanType.CUSTOM_SCAN
-* custom_scan_path = path
+* custom_scan_path = dir
 * disable_real_time_protection_during_measurement = true
 
 Next, run in the terminal\command line the command - python scanner.py
