@@ -87,7 +87,7 @@ It is possible to configure the computer's power plan during measurements. The a
 * power_plan = PowerPlan.POWER_SAVER
 * scan_option = ScanMode.ONE_SCAN
 * scan_type = ScanType.CUSTOM_SCAN
-* custom_scan_path = <path>
+* custom_scan_path = path
 * disable_real_time_protection_during_measurement = true
 
 Next, run in the terminal\command line the command - python scanner.py
