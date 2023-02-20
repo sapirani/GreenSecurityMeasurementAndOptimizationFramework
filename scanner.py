@@ -2,7 +2,7 @@ import shutil
 
 from statistics import mean
 from prettytable import PrettyTable
-from threading import Thread
+from threading import Thread, Timer
 import pandas as pd
 from initialization_helper import *
 from datetime import date
@@ -22,6 +22,7 @@ program.set_results_dir(base_dir)
 done_scanning = False
 starting_time = 0
 scanning_process_id = None
+max_timeout_reached = False
 
 # include main programs and background
 processes_ids = []
@@ -176,7 +177,7 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
                     f'{(io_stat.write_bytes - prev_io.write_bytes) / KB:.3f}',
                 ]
 
-                prev_io_per_process[(p.pid, p.name())] = io_stat    # after finishing loop
+                prev_io_per_process[(p.pid, p.name())] = io_stat  # after finishing loop
 
         except psutil.NoSuchProcess:
             pass
@@ -364,7 +365,7 @@ def save_general_information_after_scanning():
         for background_process_id, background_process_name in zip(processes_ids[1:-1], processes_names[1:-1]):
             f.write(f'{background_process_name}({background_process_id}),')
 
-        if len(processes_ids) > 1: # not just main program
+        if len(processes_ids) > 1:  # not just main program
             f.write(f"{processes_names[-1]}({processes_ids[-1]})\n\n")
 
         save_general_disk(f)
@@ -387,6 +388,8 @@ def save_general_information_after_scanning():
 
         else:
             f.write('\n------Scanning Times------\n')
+            if max_timeout_reached:
+                f.write("Scanned program reached the maximum time so we terminated it\n")
             f.write(f'Scan number 1, finished at: {finished_scanning_time[0]} seconds, '
                     f'{finished_scanning_time[0] / 60} minutes\n')
             for i, scan_time in enumerate(finished_scanning_time[1:]):
@@ -488,19 +491,20 @@ def prepare_summary_csv():
     summary_df.loc[len(summary_df.index)] = ["IO Write Count System (total - process) (# - sum)",
                                              *write_count_total_without_process, system_write_count]
 
-
     # TODO: merge cells to one
     total_disk_read_time = sub_disk_df[DiskIOColumns.READ_TIME].sum();
     total_disk_write_time = sub_disk_df[DiskIOColumns.WRITE_TIME].sum()
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Time (ms - sum)", *([total_disk_read_time for _ in range(num_of_processes)])]
-    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Time (ms - sum)", *([total_disk_write_time for _ in range(num_of_processes)])]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Read Time (ms - sum)",
+                                             *([total_disk_read_time for _ in range(num_of_processes)])]
+    summary_df.loc[len(summary_df.index)] = ["Disk IO Write Time (ms - sum)",
+                                             *([total_disk_write_time for _ in range(num_of_processes)])]
 
     battery_drop = calc_delta_capacity()
-    summary_df.loc[len(summary_df.index)] = ["Energy consumption - total energy(mwh)", *([battery_drop[0] for _ in range(num_of_processes)])]
+    summary_df.loc[len(summary_df.index)] = ["Energy consumption - total energy(mwh)",
+                                             *([battery_drop[0] for _ in range(num_of_processes)])]
     summary_df.loc[len(summary_df.index)] = ["Battery Drop( %)", *([battery_drop[1] for _ in range(num_of_processes)])]
     other_metrics = convert_mwh_to_other_metrics(battery_drop[0])
     summary_df.loc[len(summary_df.index)] = ["Trees (KG)", *([other_metrics[3] for _ in range(num_of_processes)])]
-
 
     # summary_df = summary_df.set_index("Duration", append=True).swaplevel(1,0)
 
@@ -597,7 +601,6 @@ def prepare_summary_csv():
                ['background-color: #66ff66' for _ in range(4)] + ['background-color: #70ad47' for _ in range(4)] + \
                ['background-color: #cc66ff' for _ in range(2)] + ['background-color: #ffc000' for _ in range(2)] + \
                ['background-color: #FFFFFF']
-
 
     styled_summary_df = summary_df.style.apply(colors_func, axis=0)
 
@@ -751,6 +754,35 @@ def kill_background_processes(background_processes):
         powershell_process.wait()
 
 
+def start_timeout(main_shell_process):
+    """
+    This function terminates the main process if its running time exceeds maximum allowed time
+    :param main_shell_process: the process to terminate  
+    :return: a timer thread (as returned from Timer function)
+    """
+    if MAX_SCAN_TIME is None:
+        return
+
+    def kill_process(p):
+        global max_timeout_reached
+        p.terminate()
+        max_timeout_reached = True
+
+    timeout_thread = Timer(MAX_SCAN_TIME, kill_process, [main_shell_process])
+    timeout_thread.start()
+    return timeout_thread
+
+
+def cancel_timeout_timer(timeout_timer):
+    """
+    This function cancels the timer thread that kills terminates the main program in case it
+     exceeded maximum allowed running time
+    :param timeout_timer: the timer thread returned from start_timeout
+    """
+    if timeout_timer is not None:
+        timeout_timer.cancel()
+
+
 def scan_and_measure():
     """
     The main function. This function starts a thread that will be responsible for measuring the resource
@@ -766,13 +798,15 @@ def scan_and_measure():
     measurements_thread.start()
 
     while not main_program_to_scan == ProgramToScan.NO_SCAN and not done_scanning:
-        main_powershell_process, scanning_process_id = start_process(program)
+        main_shell_process, scanning_process_id = start_process(program)
+        timeout_timer = start_timeout(main_shell_process)
         background_processes = start_background_processes()
-        result = main_powershell_process.wait()
+        result = main_shell_process.wait()
+        cancel_timeout_timer(timeout_timer)
 
         # kill background programs after main program finished
         kill_background_processes(background_processes)
-        errs = main_powershell_process.stderr.read().decode()
+        errs = main_shell_process.stderr.read().decode()
 
         finished_scanning_time.append(calc_time_interval())
         # check whether another iteration of scan is needed or not
@@ -780,7 +814,7 @@ def scan_and_measure():
             # if there is no need in another iteration, exit this while and signal the measurement thread to stop
             done_scanning = True
 
-        if result != 0:
+        if result != 0 and max_timeout_reached is False:
             raise Exception("An error occurred while scanning: %s", errs)
 
     # wait for measurement
@@ -797,8 +831,8 @@ def can_proceed_towards_measurements():
     if os.path.exists(base_dir):
 
         button_selected = running_os.message_box("Deleting Previous Results",
-                                      "Running the program will override the results of the previous measurement.\n\n"
-                                      "Are you sure you want to continue?", 4)
+                                                 "Running the program will override the results of the previous measurement.\n\n"
+                                                 "Are you sure you want to continue?", 4)
 
         if button_selected == YES_BUTTON:
             shutil.rmtree(base_dir)  # remove previous data
@@ -849,6 +883,9 @@ def main():
 
     if disable_real_time_protection_during_measurement:
         running_os.change_real_time_protection(should_disable=False)
+
+    if max_timeout_reached:
+        print("Scanned program reached the maximum time so we terminated it")
 
     print("Finished scanning")
 
