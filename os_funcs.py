@@ -324,7 +324,7 @@ class LinuxOS(OSFuncsInterface):
         if res.returncode != 0:
             raise Exception(f'An error occurred while changing screen settings', res.stderr)
 
-        battery_capacity, voltage = res.stdout.decode("utf-8").split("\n")
+        battery_capacity, voltage = LinuxOS.get_value_of_terminal_res(res)
 
         battery_df.loc[len(battery_df.index)] = [
                 time_interval,
