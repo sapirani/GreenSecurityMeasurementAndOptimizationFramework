@@ -1,3 +1,4 @@
+python-dateutil==2.8.2
 document==1.0
 docx==0.2.4
 Jinja2==3.1.2
