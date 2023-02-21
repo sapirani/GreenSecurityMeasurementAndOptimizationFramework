@@ -263,8 +263,11 @@ class WindowsOS(OSFuncsInterface):
 
 
 class LinuxOS(OSFuncsInterface):
-    def get_computer_info(self):
+    @staticmethod
+    def get_value_of_terminal_res(res):
+        return res[res.rfind(":") + 2:].strip()
 
+    def get_computer_info(self):
         res = subprocess.run("dmidecode | grep -A3 '^System Information' | grep Manufacturer",
                              capture_output=True, shell=True)
 
@@ -320,18 +323,18 @@ class LinuxOS(OSFuncsInterface):
         if res.returncode != 0:
             raise Exception(f'An error occurred while changing screen settings', res.stderr)
 
-        capacity_res, voltage_res = res.stdout.decode("utf-8").strip().split("\n")
+        capacity_res, voltage_res = res.stdout.decode("utf-8").split("\n")
 
-        battery_capacity = capacity_res[capacity_res.rfind(":") + 2:].strip()
+        battery_capacity = LinuxOS.get_value_of_terminal_res(capacity_res)
         print(battery_capacity)
-        battery_capacity = voltage_res[voltage_res.rfind(":") + 2:].strip()
+        battery_capacity = LinuxOS.get_value_of_terminal_res(voltage_res)
         print(voltage_res)
 
         battery_df.loc[len(battery_df.index)] = [
                 time_interval,
                 battery_percent,
-                int(battery_capacity.split()[0]),
-                int(voltage_res.split()[0])
+                float(battery_capacity.split()[0]),
+                float(voltage_res.split()[0])
             ]
 
     def change_power_plan(self, name, guid):
