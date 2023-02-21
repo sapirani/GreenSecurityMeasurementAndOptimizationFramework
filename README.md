@@ -82,24 +82,24 @@ It is possible to configure the computer's power plan during measurements. The a
 ## Execution Example:
 1) When you want to run the windows defender antivirus and measure it's energy consumption when scanning a folder (in path dir) once, with no other processes running in the background, while the power mode of the computer should be power saver, you should change the next parameters in the file program_parameters.py:
 
-* main_program_to_scan = ProgramToScan.ANTIVIRUS
-* background_programs_types = []  
-* power_plan = PowerPlan.POWER_SAVER
-* scan_option = ScanMode.ONE_SCAN
-* scan_type = ScanType.CUSTOM_SCAN
-* custom_scan_path = dir
-* disable_real_time_protection_during_measurement = true
+* `main_program_to_scan` = ProgramToScan.ANTIVIRUS
+* `background_programs_types` = []  
+* `power_plan` = PowerPlan.POWER_SAVER
+* `scan_option` = ScanMode.ONE_SCAN
+* `scan_type` = ScanType.CUSTOM_SCAN
+* `custom_scan_path` = dir
+* `disable_real_time_protection_during_measurement` = true
 
-Next, run in the terminal\command line the command - python scanner.py
+Next, run in the terminal\command line the command - `python scanner.py`
 
-2) When you want to run the windows defender antivirus and measure it's energy consumption when executing a full scan once while there are other processes running in the background (Dummy process, performance monitor process), with power mode equals to power saver, you should change the next parameters in the file program_parameters.py:
+2) When you want to run the windows defender antivirus and measure its energy consumption when executing a full scan once while there are other processes running in the background (Dummy process, performance monitor process), with power mode equals to power saver, you should change the next parameters in the file `program_parameters.py`:
 
-* main_program_to_scan = ProgramToScan.ANTIVIRUS
-* background_programs_types = [ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]  
-* power_plan = PowerPlan.POWER_SAVER
-* scan_option = ScanMode.ONE_SCAN
-* scan_type = ScanType.FULL_SCAN
-* custom_scan_path = ""
-* disable_real_time_protection_during_measurement = true
+* `main_program_to_scan` = ProgramToScan.ANTIVIRUS
+* `background_programs_types` = [ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]  
+* `power_plan` = PowerPlan.POWER_SAVER
+* `scan_option` = ScanMode.ONE_SCAN
+* `scan_type` = ScanType.FULL_SCAN
+* `custom_scan_path` = ""
+* `disable_real_time_protection_during_measurement` = true
 
-Next, run in the terminal\command line the command - python scanner.py
+Next, run in the terminal\command line the command - `python scanner.py`
