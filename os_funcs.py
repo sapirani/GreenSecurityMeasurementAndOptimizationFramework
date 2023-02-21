@@ -313,6 +313,27 @@ class LinuxOS(OSFuncsInterface):
             return YES_BUTTON
         return NO_BUTTON
 
+    def insert_battery_state_to_df(self, battery_df, time_interval, battery_percent):
+        res = subprocess.run("upower -i /org/freedesktop/UPower/devices/battery_BAT0 | grep energy:",
+                             capture_output=True, shell=True)
+
+        if res.returncode != 0:
+            raise Exception(f'An error occurred while changing screen settings', res.stderr)
+
+        capacity_res, voltage_res = res.stdout.decode("utf-8").strip().split("\n")
+
+        battery_capacity = capacity_res[capacity_res.rfind(":") + 2:].strip()
+        print(battery_capacity)
+        battery_capacity = voltage_res[voltage_res.rfind(":") + 2:].strip()
+        print(voltage_res)
+
+        battery_df.loc[len(battery_df.index)] = [
+                time_interval,
+                battery_percent,
+                int(battery_capacity.split()[0]),
+                int(voltage_res.split()[0])
+            ]
+
     def change_power_plan(self, name, guid):
         #this is the command to switch to performance plan
         """result = subprocess.run("echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor",
