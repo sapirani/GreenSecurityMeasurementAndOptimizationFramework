@@ -13,10 +13,15 @@ elif platform.system() == "Windows":
 # ======= Power Plan Name and GUID (do not change) =======
 chosen_power_plan_name = power_plan[0]
 chosen_power_plan_guid = power_plan[1]
+chosen_power_plan_linux_identifier = power_plan[2]
 
+# default plan in Windows
 balanced_power_plan_name = PowerPlan.BALANCED[0]
 balanced_power_plan_guid = PowerPlan.BALANCED[1]
 
+# default plan in Linux
+power_save_plan_name = PowerPlan.POWER_SAVER[0]
+power_save_plan_identifier = PowerPlan.POWER_SAVER[2]
 
 # ======= Result Data Paths =======
 

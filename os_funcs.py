@@ -4,9 +4,9 @@ import subprocess
 from abc import ABC, abstractmethod
 
 from general_consts import pc_types, GB, physical_memory_types, disk_types, NEVER_TURN_SCREEN_OFF, \
-    NEVER_GO_TO_SLEEP_MODE, MINUTE, YES_BUTTON, NO_BUTTON
+    NEVER_GO_TO_SLEEP_MODE, MINUTE, YES_BUTTON, NO_BUTTON, PowerPlan
 from powershell_helper import get_powershell_result_list_format
-from program_parameters import DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFORE_SLEEP_MODE
+from program_parameters import DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFORE_SLEEP_MODE, power_plan
 
 
 class OSFuncsInterface:
@@ -79,7 +79,17 @@ class OSFuncsInterface:
 
     @abstractmethod
     # TODO: make balance the default
-    def change_power_plan(self, name, guid):
+    def change_power_plan(self, name, identifier):
+        pass
+
+    @abstractmethod
+    def get_chosen_power_plan_identifier(self):
+        pass
+
+    def get_default_power_plan_name(self):
+        pass
+
+    def get_default_power_plan_identifier(self):
         pass
 
     @abstractmethod
@@ -142,10 +152,19 @@ class WindowsOS(OSFuncsInterface):
         # return bool(re.search("IsTamperProtected\s*:\sTrue", str(result.stdout)))
         return get_powershell_result_list_format(result.stdout)[0]["IsTamperProtected"] == "True"
 
-    def change_power_plan(self, name, guid):
-        result = subprocess.run(["powershell", "-Command", "powercfg /s " + guid], capture_output=True)
+    def change_power_plan(self, name, identifier):
+        result = subprocess.run(["powershell", "-Command", "powercfg /s " + identifier], capture_output=True)
         if result.returncode != 0:
             raise Exception(f'An error occurred while switching to the power plan: {name}', result.stderr)
+
+    def get_chosen_power_plan_identifier(self):
+        return power_plan[1]
+
+    def get_default_power_plan_name(self):
+        return PowerPlan.BALANCED[0]
+
+    def get_default_power_plan_identifier(self):
+        return PowerPlan.BALANCED[1]
 
     def change_real_time_protection(self, should_disable=True):
 
@@ -321,7 +340,7 @@ class LinuxOS(OSFuncsInterface):
                              capture_output=True, shell=True)
 
         if res.returncode != 0:
-            raise Exception(f'An error occurred while changing screen settings', res.stderr)
+            raise Exception(f'An error occurred while reading battery capacity and voltage', res.stderr)
 
         battery_capacity, voltage = LinuxOS.get_value_of_terminal_res(res)
 
@@ -332,10 +351,24 @@ class LinuxOS(OSFuncsInterface):
                 float(voltage.split()[0]) * 1000
             ]
 
-    def change_power_plan(self, name, guid):
-        #this is the command to switch to performance plan
-        """result = subprocess.run("echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor",
-                                       capture_output=True, shell=True)"""
+    def change_power_plan(self, name, identifier):
+        # this is the command to switch to performance plan
+        if identifier is None:
+            raise Exception(f'The power plan "{name}" is not supported in Linux')
 
+        res = subprocess.run(f"echo {identifier} | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor",
+                             capture_output=True, shell=True)
 
-        "echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
+        if res.returncode != 0:
+            raise Exception(f'An error occurred while changing power plan', res.stderr)
+
+        # "echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
+
+    def get_chosen_power_plan_identifier(self):
+        return power_plan[2]
+
+    def get_default_power_plan_name(self):
+        return PowerPlan.POWER_SAVER[0]
+
+    def get_default_power_plan_identifier(self):
+        return PowerPlan.POWER_SAVER[2]

@@ -858,7 +858,7 @@ def main():
         print("Exiting program")
         return
 
-    running_os.change_power_plan(chosen_power_plan_name, chosen_power_plan_guid)
+    running_os.change_power_plan(chosen_power_plan_name, running_os.get_chosen_power_plan_identifier())
 
     if disable_real_time_protection_during_measurement:
         running_os.change_real_time_protection()
@@ -877,7 +877,8 @@ def main():
 
     save_results_to_files()
 
-    running_os.change_power_plan(balanced_power_plan_name, balanced_power_plan_guid)  # return to balanced
+    running_os.change_power_plan(running_os.get_default_power_plan_name(),
+                                 running_os.get_default_power_plan_identifier())  # return to default power plan
 
     running_os.change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
 
