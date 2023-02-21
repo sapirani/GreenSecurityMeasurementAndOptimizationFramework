@@ -463,7 +463,7 @@ def prepare_summary_csv():
 
     # IO Read Count
     all_process_read_count = [pd.to_numeric(df[ProcessesColumns.READ_COUNT]).sum() for df in all_processes_df]
-    total_read_count = sub_disk_df[DiskIOColumns.READ_BYTES].sum()
+    total_read_count = sub_disk_df[DiskIOColumns.READ_COUNT].sum()
     system_read_count = total_read_count - sum(all_process_read_count)
     read_count_total_without_process = [total_read_count - process_read_count for process_read_count in
                                         all_process_read_count]
@@ -483,7 +483,7 @@ def prepare_summary_csv():
 
     # IO Write Count
     all_process_write_count = [pd.to_numeric(df[ProcessesColumns.WRITE_COUNT]).sum() for df in all_processes_df]
-    total_write_count = sub_disk_df[DiskIOColumns.WRITE_BYTES].sum()
+    total_write_count = sub_disk_df[DiskIOColumns.WRITE_COUNT].sum()
     system_write_count = total_write_count - sum(all_process_write_count)
     write_count_total_without_process = [total_write_count - process_write_count for process_write_count in
                                          all_process_write_count]
