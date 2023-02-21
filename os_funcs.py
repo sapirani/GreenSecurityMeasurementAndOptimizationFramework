@@ -265,7 +265,7 @@ class WindowsOS(OSFuncsInterface):
 class LinuxOS(OSFuncsInterface):
     @staticmethod
     def get_value_of_terminal_res(res):
-        res_lst = res.stdout.decode("utf-8").split("\n")
+        res_lst = res.stdout.decode("utf-8").strip().split("\n")
         return list(map(lambda res_line: res_line[res_line.rfind(":") + 2:].strip(), res_lst))
 
     def get_computer_info(self):
@@ -275,8 +275,7 @@ class LinuxOS(OSFuncsInterface):
         if res.returncode != 0:
             raise Exception(f'An error occurred while changing screen settings', res.stderr)
 
-        res_stdout = res.stdout.decode("utf-8").strip()
-        manufacturer = res_stdout[res_stdout.rfind(":") + 2:]
+        manufacturer, = LinuxOS.get_value_of_terminal_res(res)
 
         return f"{manufacturer} {platform.system()} {platform.release()}"
 
