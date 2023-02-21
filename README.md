@@ -8,8 +8,10 @@ We measure the resource usage of the whole system, and of each process separatel
 1. Please use python 3.8.5. 
 
 2. Create python environment with the packages listed in requirements.txt.
-   
+   In windows:
    `pip install -r requirements.txt`
+   In Linux:
+   `sudo pip install -r requirements.txt`
 
 2. To get optimal results, make sure that:
    * Any unnecessary program is closed (including background processes)
@@ -90,7 +92,7 @@ It is possible to configure the computer's power plan during measurements. The a
 * `custom_scan_path` = dir
 * `disable_real_time_protection_during_measurement` = true
 
-Next, run in the terminal\command line the command - `python scanner.py`
+Next, run in Windows, in the command line the command - `python scanner.py` or in Linux in the terminal the command - `sudo python3 scanner.py`
 
 2) When you want to run the windows defender antivirus and measure its energy consumption when executing a full scan once while there are other processes running in the background (Dummy process, performance monitor process), with power mode equals to power saver, you should change the next parameters in the file `program_parameters.py`:
 
@@ -102,4 +104,4 @@ Next, run in the terminal\command line the command - `python scanner.py`
 * `custom_scan_path` = ""
 * `disable_real_time_protection_during_measurement` = true
 
-Next, run in the terminal\command line the command - `python scanner.py`
+Next, run in Windows, in the command line the command - `python scanner.py` or in Linux in the terminal the command - `sudo python3 scanner.py`
