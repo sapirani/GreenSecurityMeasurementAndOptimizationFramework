@@ -314,7 +314,7 @@ class LinuxOS(OSFuncsInterface):
         return NO_BUTTON
 
     def insert_battery_state_to_df(self, battery_df, time_interval, battery_percent):
-        res = subprocess.run("upower -i /org/freedesktop/UPower/devices/battery_BAT0 | grep energy:",
+        res = subprocess.run("upower -i /org/freedesktop/UPower/devices/battery_BAT0 | grep -E 'energy:|voltage'",
                              capture_output=True, shell=True)
 
         if res.returncode != 0:
