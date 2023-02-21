@@ -168,7 +168,7 @@ class SnortProgram(IDSProgram):
         return "Snort IDS"
 
     def get_command(self) -> str:
-        return f"sudo snort -q -l {self.log_dir} -i {self.interface_name} -A fast -c {self.configuration_file_path}"
+        return f"snort -q -l {self.log_dir} -i {self.interface_name} -A fast -c {self.configuration_file_path}"
 
 
 class NoScanProgram(ProgramInterface):
