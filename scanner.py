@@ -49,23 +49,6 @@ def calc_time_interval():
     return time.time() - starting_time
 
 
-def save_battery_stat():
-    """_summary_: take battery information and append it to a dataframe
-
-    Raises:
-        Exception: if the computer is charging or using desktop computer cant get battery information
-    """
-    # Fetch the battery information
-    battery = psutil.sensors_battery()
-    if battery is None:  # if desktop computer (has no battery)
-        return
-
-    if battery.power_plugged:
-        raise Exception("Unplug charging cable during measurements!")
-
-    running_os.insert_battery_state_to_df(battery_df, calc_time_interval(), battery.percent)
-
-
 def save_current_total_memory():
     """_summary_: take memory information and append it to a dataframe
     """
@@ -232,29 +215,11 @@ def continuously_measure():
         # Create a delay
         time.sleep(0.5)
 
-        save_battery_stat()
+        scanner_imp.save_battery_stat(battery_df, calc_time_interval())
         prev_io_per_process = save_current_processes_statistics(prev_io_per_process)
         save_current_total_cpu()
         save_current_total_memory()
         prev_disk_io = save_current_disk_io(prev_disk_io)
-
-
-def save_general_battery(f):
-    """
-    This function writes battery info to a file.
-    On laptop devices, charger must be unplugged!
-    :param f: text file to write the battery info
-    """
-    battery = psutil.sensors_battery()
-    if battery is None:  # if desktop computer (has no battery)
-        return
-
-    if battery.power_plugged:
-        raise Exception("Unplug charging cable during measurements!")
-
-    f.write("----Battery----\n")
-
-    running_os.save_battery_capacity(f)
 
 
 def save_general_disk(f):
@@ -325,7 +290,7 @@ def save_general_information_before_scanning():
         save_general_system_information(f)
 
         f.write('\n======Before Scanning======\n')
-        save_general_battery(f)
+        scanner_imp.save_general_battery(f)
         f.write('\n')
         save_general_disk(f)
         f.write('\n\n')
@@ -846,9 +811,7 @@ def can_proceed_towards_measurements():
 def main():
     print("======== Process Monitor ========")
 
-    battery = psutil.sensors_battery()
-    if battery is not None and battery.power_plugged:  # ensure that charging cable is unplugged in laptop
-        raise Exception("Unplug charging cable during measurements!")
+    scanner_imp.check_if_battery_plugged()
 
     if disable_real_time_protection_during_measurement and running_os.is_tamper_protection_enabled():
         raise Exception("You must disable Tamper Protection manually so that the program could control real "

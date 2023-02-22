@@ -2,13 +2,20 @@ import os.path
 from program_parameters import *
 from program_classes import *
 from os_funcs import *
-
+from scanner_versions_imp import FullScanner, LiteScanner
 
 # ======= Get Operating System Type =======
+running_os = None
 if platform.system() == "Linux":
     running_os = LinuxOS()
 elif platform.system() == "Windows":
     running_os = WindowsOS()
+
+# ====== Get Scanner Version ======
+if scanner_version == ScannerVersion.FULL:
+    scanner_imp = FullScanner(running_os)
+elif scanner_version == ScannerVersion.LITE:
+    scanner_imp = LiteScanner(running_os)
 
 # ======= Power Plan Name and GUID (do not change) =======
 chosen_power_plan_name = power_plan[0]
@@ -24,7 +31,6 @@ power_save_plan_name = PowerPlan.POWER_SAVER[0]
 power_save_plan_identifier = PowerPlan.POWER_SAVER[2]
 
 # ======= Result Data Paths =======
-
 def program_to_scan_factory(program_type):
     """
     Return the class that represents the program that the user wishes to run and send its dedicated parameters

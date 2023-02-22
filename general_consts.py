@@ -56,6 +56,11 @@ class ProgramToScan(Enum):
 class ScanMode(Enum):
     ONE_SCAN = 1
     CONTINUOUS_SCAN = 2
+
+
+class ScannerVersion(Enum):
+    FULL = 1
+    LITE = 2
     
 
 class PowerPlan:

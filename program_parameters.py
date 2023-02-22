@@ -4,6 +4,8 @@ from general_consts import *
 main_program_to_scan = ProgramToScan.DummyANTIVIRUS
 background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]#[ProgramToScan.Perfmon]
 
+scanner_version = ScannerVersion.LITE
+
 power_plan = PowerPlan.POWER_SAVER
 scan_option = ScanMode.ONE_SCAN
 scan_type = ScanType.QUICK_SCAN  # relevant only for one scan or continuous scan
@@ -18,7 +20,7 @@ MAX_SCAN_TIME = None    # insert time (e.g. 0.5 * MINUTE) or type None
 MINIMUM_DELTA_CAPACITY = 20
 MINIMUM_SCAN_TIME = 0.5 * MINUTE
 
-measurement_number = 9000    # write number between 1->inf or type NEW_MEASUREMENT
+measurement_number = 9001    # write number between 1->inf or type NEW_MEASUREMENT
 
 # MUST disable tamper protection manually for this feature to work
 disable_real_time_protection_during_measurement = False  # must use administrator permissions
