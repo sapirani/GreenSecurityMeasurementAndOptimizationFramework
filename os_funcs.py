@@ -32,7 +32,7 @@ class OSFuncsInterface:
         """
         pass
 
-    def save_battery_capacity(self, f):     # did not work in ubuntu
+    def save_battery_capacity(self, f):
         pass
 
     def save_system_information(self, f):   # TODO
@@ -372,3 +372,16 @@ class LinuxOS(OSFuncsInterface):
 
     def get_default_power_plan_identifier(self):
         return PowerPlan.POWER_SAVER[2]
+
+    def save_battery_capacity(self, f):
+        res = subprocess.run("upower -i /org/freedesktop/UPower/devices/battery_BAT0 |"
+                             " grep -E 'energy-full-design|energy-empty'",
+                             capture_output=True, shell=True)
+
+        if res.returncode != 0:
+            raise Exception(f'An error occurred while saving general battery capacity', res.stderr)
+
+        empty_capacity, full_capacity = LinuxOS.get_value_of_terminal_res(res)
+
+        f.write(f'Battery Design Capacity: {float(empty_capacity.split()[0]) * 1000} mWh\n')
+        f.write(f'Battery Fully Charged Capacity: {float(full_capacity.split()[0]) * 1000} mWh\n')
