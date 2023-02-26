@@ -1,7 +1,7 @@
 from general_consts import *
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.DummyANTIVIRUS
+main_program_to_scan = ProgramToScan.Splunk
 background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]#[ProgramToScan.Perfmon]
 
 scanner_version = ScannerVersion.LITE
@@ -15,10 +15,10 @@ directory_type = "Duplicated Files"
 custom_scan_path = fr'"C:\Users\sagib\Downloads"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
 
-MAX_SCAN_TIME = None    # insert time (e.g. 0.5 * MINUTE) or type None
+MAX_SCAN_TIME = 10    # insert time (e.g. 0.5 * MINUTE) or type None
 
 MINIMUM_DELTA_CAPACITY = 20
-MINIMUM_SCAN_TIME = 0.5 * MINUTE
+MINIMUM_SCAN_TIME = 2 * MINUTE
 
 measurement_number = 9001    # write number between 1->inf or type NEW_MEASUREMENT
 

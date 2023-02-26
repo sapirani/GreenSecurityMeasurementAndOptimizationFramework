@@ -1,9 +1,10 @@
 import os
+import re
 import time
-
-from general_consts import *
-
 from typing import Union
+from os_funcs import OSFuncsInterface
+from general_consts import *
+import os
 
 
 class ProgramInterface:
@@ -19,12 +20,17 @@ class ProgramInterface:
 
     def get_command(self) -> str:
         pass
+    
+    def on_exit(self):
+        pass
 
     def path_adjustments(self) -> str:
         return ""
 
     def general_information_before_measurement(self, f):
         pass
+    def should_find_child_id(self):
+        return False
 
     def should_use_powershell(self) -> bool:
         return False
@@ -34,10 +40,15 @@ class ProgramInterface:
 
     def set_processes_ids(self, processes_ids):
         self.processes_ids = processes_ids
+    
+    def kill_process(self, p):
+        # global max_timeout_reached
+        p.terminate()
+        # max_timeout_reached = True
 
     ######## probably not needed anymore because we don't start powershell process if not needed in popen
     ######## so the id of the process we are interested in is the pid returned from popen process
-    def find_child_id(self, process_pid) -> Union[int, None]:  #from python 3.10 - int | None:
+    def find_child_id(self, p) -> Union[int, None]:  #from python 3.10 - int | None:
         # result_screen = subprocess.run(["powershell", "-Command", f'Get-WmiObject Win32_Process -Filter "ParentProcessID={process_pid}" | Select ProcessID'],
         #                               capture_output=True)
         # if result_screen.returncode != 0:
@@ -48,7 +59,8 @@ class ProgramInterface:
 
         try:
             children = []
-            for i in range(300):
+            process_pid = p.pid
+            for i in range(600):
                 children = psutil.Process(process_pid).children()
                 if len(children) != 0:
                     break
@@ -98,7 +110,7 @@ class AntivirusProgram(ProgramInterface):
         from os_funcs import WindowsOS
         WindowsOS.save_antivirus_version(f, self.get_program_name())
 
-    def find_child_id(self, process_pid):
+    def find_child_id(self, p):
         for i in range(3):  # try again and again
             for proc in psutil.process_iter():
                 if proc.name() == self.get_process_name():
@@ -170,6 +182,42 @@ class SnortProgram(IDSProgram):
     def get_command(self) -> str:
         return f"snort -q -l {self.log_dir} -i {self.interface_name} -A fast -c {self.configuration_file_path}"
 
+class SplunkProgram(ProgramInterface):
+    def get_program_name(self):
+        return "Splunk Enterprise SIEM"
+
+    def get_command(self) -> str:
+        return  r"C:\Program Files\Splunk\bin\splunk.exe" + " start" 
+    def kill_process(self, p):
+        print("stopping")
+        OSFuncsInterface.popen( r"C:\Program Files\Splunk\bin\splunk.exe" + " stop", self.find_child_id,
+                                                self.should_use_powershell())
+        print("cleaning")
+        OSFuncsInterface.popen( r"C:\Program Files\Splunk\bin\splunk.exe" + " clean eventdata -index eventgen -f", self.find_child_id,
+                                                self.should_use_powershell())
+    
+    # def should_use_powershell(self) -> bool:
+    #     return True
+    def should_find_child_id(self) -> bool:
+        return True
+
+    
+    def find_child_id(self, p) -> Union[int, None]:  #from python 3.10 - int | None:
+        try:
+            children = None
+            match = re.search(f'(pid\s*(\d+))', p.stdout.read().decode('utf-8'))
+            #TODO print match why it is not working
+            print(match)
+            if match:
+                children = int(match.group(1).split()[1])
+                print(children)
+                return children
+            else:
+                return None
+
+        except psutil.NoSuchProcess:
+            return None
+
 
 class NoScanProgram(ProgramInterface):
     def get_program_name(self) -> str:
@@ -233,5 +281,5 @@ class PerfmonProgram(ProgramInterface):
 
         #return f'Get-Counter gc = "\\PhysicalDisk(_Total)\\Disk Reads/sec", "\\PhysicalDisk(_Total)\\Disk Writes/sec", "\\PhysicalDisk(_Total)\\Disk Read Bytes/sec", "\\PhysicalDisk(_Total)\\Disk Write Bytes/sec", "\\Processor(_Total)\\% Processor Time" Get-Counter -counter $gc -Continuous | Export-Counter -FileFormat "CSV" -Path "{self.results_path}\\perfmon.csv"'
 
-    def find_child_id(self, process_pid) -> Union[int, None]:  #from python 3.10 - int | None:
+    def find_child_id(self, p) -> Union[int, None]:  #from python 3.10 - int | None:
         return None

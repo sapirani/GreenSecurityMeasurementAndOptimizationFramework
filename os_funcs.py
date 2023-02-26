@@ -2,11 +2,15 @@ import ctypes
 import platform
 import subprocess
 from abc import ABC, abstractmethod
+from time import sleep
 
-from general_consts import pc_types, GB, physical_memory_types, disk_types, NEVER_TURN_SCREEN_OFF, \
-    NEVER_GO_TO_SLEEP_MODE, MINUTE, YES_BUTTON, NO_BUTTON, PowerPlan
+from general_consts import (GB, MINUTE, NEVER_GO_TO_SLEEP_MODE,
+                            NEVER_TURN_SCREEN_OFF, NO_BUTTON, YES_BUTTON,
+                            PowerPlan, disk_types, pc_types,
+                            physical_memory_types)
 from powershell_helper import get_powershell_result_list_format
-from program_parameters import DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFORE_SLEEP_MODE, power_plan
+from program_parameters import (DEFAULT_SCREEN_TURNS_OFF_TIME,
+                                DEFAULT_TIME_BEFORE_SLEEP_MODE, power_plan)
 
 
 class OSFuncsInterface:
@@ -56,11 +60,11 @@ class OSFuncsInterface:
         pass
 
     @staticmethod
-    def popen(command, find_child_id_func, should_use_powershell):
+    def popen(command, find_child_id_func, should_use_powershell, should_find_child_id=False):
         def process_obj_and_pid(command_lst):
-            p = subprocess.Popen(command_lst, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            if should_use_powershell:
-                return p, find_child_id_func(p.pid)
+            p = subprocess.Popen(command_lst, stdout=subprocess.PIPE, stderr=subprocess.PIPE)            
+            if should_use_powershell or should_find_child_id:
+                return p, find_child_id_func(p)
             return p, p.pid
 
         if should_use_powershell:

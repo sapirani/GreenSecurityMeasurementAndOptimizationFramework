@@ -650,7 +650,7 @@ def start_process(program_to_scan):
     program_to_scan.set_processes_ids(processes_ids)
 
     shell_process, pid = OSFuncsInterface.popen(program_to_scan.get_command(), program_to_scan.find_child_id,
-                                                program_to_scan.should_use_powershell())
+                                                program_to_scan.should_use_powershell(), program_to_scan.should_find_child_id())
 
     # save the process names and pids in global arrays
     if pid is not None:
@@ -728,12 +728,9 @@ def start_timeout(main_shell_process):
     if MAX_SCAN_TIME is None:
         return
 
-    def kill_process(p):
-        global max_timeout_reached
-        p.terminate()
-        max_timeout_reached = True
 
-    timeout_thread = Timer(MAX_SCAN_TIME, kill_process, [main_shell_process])
+
+    timeout_thread = Timer(MAX_SCAN_TIME, program.kill_process, [main_shell_process])
     timeout_thread.start()
     return timeout_thread
 
@@ -757,6 +754,7 @@ def scan_and_measure():
     global done_scanning
     global starting_time
     global scanning_process_id
+    global max_timeout_reached
     starting_time = time.time()
 
     measurements_thread = Thread(target=continuously_measure, args=())
@@ -767,6 +765,8 @@ def scan_and_measure():
         timeout_timer = start_timeout(main_shell_process)
         background_processes = start_background_processes()
         result = main_shell_process.wait()
+        if not timeout_timer.is_alive():
+           max_timeout_reached = True 
         cancel_timeout_timer(timeout_timer)
 
         # kill background programs after main program finished
@@ -778,7 +778,6 @@ def scan_and_measure():
         if scan_option == ScanMode.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
             # if there is no need in another iteration, exit this while and signal the measurement thread to stop
             done_scanning = True
-
         if result != 0 and max_timeout_reached is False:
             raise Exception("An error occurred while scanning: %s", errs)
 
