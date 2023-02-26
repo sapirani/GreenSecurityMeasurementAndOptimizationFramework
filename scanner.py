@@ -42,11 +42,6 @@ cpu_df = pd.DataFrame(columns=cpu_columns_list)
 finished_scanning_time = []
 
 
-def calc_time_interval():
-    """
-    :return: the time passed since starting the program
-    """
-    return time.time() - starting_time
 
 
 def save_current_total_memory():
@@ -54,7 +49,7 @@ def save_current_total_memory():
     """
     vm = psutil.virtual_memory()
     memory_df.loc[len(memory_df.index)] = [
-        calc_time_interval(),
+        scanner_imp.calc_time_interval(starting_time),
         f'{vm.used / GB:.3f}',
         vm.percent
     ]
@@ -81,7 +76,7 @@ def save_current_disk_io(previous_disk_io):
     """
     disk_io_stat = psutil.disk_io_counters()
     disk_io_each_moment_df.loc[len(disk_io_each_moment_df.index)] = [
-        calc_time_interval(),
+        scanner_imp.calc_time_interval(starting_time),
         disk_io_stat.read_count - previous_disk_io.read_count,
         disk_io_stat.write_count - previous_disk_io.write_count,
         f'{(disk_io_stat.read_bytes - previous_disk_io.read_bytes) / KB:.3f}',
@@ -102,7 +97,7 @@ def save_current_processes_statistics(prev_io_per_process):
     """
     proc = []
 
-    time_of_sample = calc_time_interval()
+    time_of_sample = scanner_imp.calc_time_interval(starting_time)
 
     for p in psutil.process_iter():
         try:
@@ -196,7 +191,7 @@ def save_current_total_cpu():
     This function saves the total cpu usage of the system
     """
     total_cpu = psutil.cpu_percent(percpu=True)
-    cpu_df.loc[len(cpu_df.index)] = [calc_time_interval(), mean(total_cpu)] + total_cpu
+    cpu_df.loc[len(cpu_df.index)] = [scanner_imp.calc_time_interval(starting_time), mean(total_cpu)] + total_cpu
 
 
 def continuously_measure():
@@ -215,7 +210,7 @@ def continuously_measure():
         # Create a delay
         time.sleep(0.5)
 
-        scanner_imp.save_battery_stat(battery_df, calc_time_interval())
+        scanner_imp.save_battery_stat(battery_df, scanner_imp.calc_time_interval(starting_time))
         prev_io_per_process = save_current_processes_statistics(prev_io_per_process)
         save_current_total_cpu()
         save_current_total_memory()
@@ -773,7 +768,7 @@ def scan_and_measure():
         kill_background_processes(background_processes)
         errs = main_shell_process.stderr.read().decode()
 
-        finished_scanning_time.append(calc_time_interval())
+        finished_scanning_time.append(scanner_imp.calc_time_interval(starting_time))
         # check whether another iteration of scan is needed or not
         if scan_option == ScanMode.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
             # if there is no need in another iteration, exit this while and signal the measurement thread to stop
@@ -784,7 +779,7 @@ def scan_and_measure():
     # wait for measurement
     measurements_thread.join()
     if main_program_to_scan == ProgramToScan.NO_SCAN:
-        finished_scanning_time.append(calc_time_interval())
+        finished_scanning_time.append(scanner_imp.calc_time_interval(starting_time))
 
 
 def can_proceed_towards_measurements():

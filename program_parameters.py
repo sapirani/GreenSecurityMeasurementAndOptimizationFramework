@@ -18,7 +18,7 @@ custom_scan_path = fr'"C:\Users\sagib\Downloads"'
 MAX_SCAN_TIME = 10    # insert time (e.g. 0.5 * MINUTE) or type None
 
 MINIMUM_DELTA_CAPACITY = 20
-MINIMUM_SCAN_TIME = 2 * MINUTE
+MINIMUM_SCAN_TIME = 10 * MINUTE
 
 measurement_number = 9001    # write number between 1->inf or type NEW_MEASUREMENT
 

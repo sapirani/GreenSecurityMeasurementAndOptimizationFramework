@@ -1,3 +1,4 @@
+import time
 import psutil
 
 
@@ -42,6 +43,12 @@ class FullScanner:
         f.write("----Battery----\n")
 
         self.running_os.save_battery_capacity(f)
+        
+    def calc_time_interval(self, starting_time):
+        """
+        :return: the time passed since starting the program
+        """
+        return time.time() - starting_time
 
 
 class LiteScanner(FullScanner):
@@ -53,3 +60,8 @@ class LiteScanner(FullScanner):
 
     def save_general_battery(self, f):
         pass
+    def calc_time_interval(self, starting_time):
+        """
+        :return: the time passed since starting the program
+        """
+        return time.time()
