@@ -49,6 +49,8 @@ class FullScanner:
         :return: the time passed since starting the program
         """
         return time.time() - starting_time
+    def scan_sleep(self,sec):
+        time.sleep(sec)
 
 
 class LiteScanner(FullScanner):
@@ -65,3 +67,5 @@ class LiteScanner(FullScanner):
         :return: the time passed since starting the program
         """
         return time.time()
+    def scan_sleep(self, sec):
+        time.sleep(0)

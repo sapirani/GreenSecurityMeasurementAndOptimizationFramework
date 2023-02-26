@@ -208,7 +208,7 @@ def continuously_measure():
     # TODO: think if total tables should be printed only once
     while should_scan():
         # Create a delay
-        time.sleep(0.5)
+        scanner_imp.scan_sleep(0.5)
 
         scanner_imp.save_battery_stat(battery_df, scanner_imp.calc_time_interval(starting_time))
         prev_io_per_process = save_current_processes_statistics(prev_io_per_process)
@@ -664,7 +664,7 @@ def start_background_processes():
     """
     background_processes = [start_process(background_program) for background_program in background_programs]
     # TODO: think how to check if there are errors without sleeping - waiting for process initialization
-    time.sleep(5)
+    scanner_imp.scan_sleep(5)
 
     for (powershell_process, child_process_id), background_program in zip(background_processes, background_programs):
         if powershell_process.poll() is not None:
