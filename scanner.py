@@ -101,7 +101,7 @@ def save_current_processes_statistics(prev_io_per_process):
 
     for p in psutil.process_iter():
         try:
-            if p.pid == SYSTEM_IDLE_PID:  # ignore System Idle Process
+            if (p.pid == SYSTEM_IDLE_PID) or (not p.name().__contains__('splunk')):  # ignore System Idle Process
                 continue
 
             # trigger cpu_percent() the first time will lead to return of 0.0
@@ -766,7 +766,6 @@ def scan_and_measure():
 
         # kill background programs after main program finished
         kill_background_processes(background_processes)
-        errs = main_shell_process.stderr.read().decode()
 
         finished_scanning_time.append(scanner_imp.calc_time_interval(starting_time))
         # check whether another iteration of scan is needed or not
@@ -774,6 +773,7 @@ def scan_and_measure():
             # if there is no need in another iteration, exit this while and signal the measurement thread to stop
             done_scanning = True
         if result != 0 and max_timeout_reached is False:
+            errs = main_shell_process.stderr.read().decode()
             raise Exception("An error occurred while scanning: %s", errs)
 
     # wait for measurement

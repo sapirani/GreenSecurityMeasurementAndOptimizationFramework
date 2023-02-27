@@ -3,6 +3,7 @@ import platform
 import subprocess
 from abc import ABC, abstractmethod
 from time import sleep
+import psutil
 
 from general_consts import (GB, MINUTE, NEVER_GO_TO_SLEEP_MODE,
                             NEVER_TURN_SCREEN_OFF, NO_BUTTON, YES_BUTTON,
@@ -64,7 +65,8 @@ class OSFuncsInterface:
         def process_obj_and_pid(command_lst):
             p = subprocess.Popen(command_lst, stdout=subprocess.PIPE, stderr=subprocess.PIPE)            
             if should_use_powershell or should_find_child_id:
-                return p, find_child_id_func(p)
+                pid = find_child_id_func(p)
+                p = psutil.Process(pid)
             return p, p.pid
 
         if should_use_powershell:

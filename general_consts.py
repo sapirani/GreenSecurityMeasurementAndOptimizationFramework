@@ -123,6 +123,12 @@ class ProcessesColumns:
     WRITE_COUNT = "WRITE_IO(#)"
     READ_BYTES = "READ_IO(KB)"
     WRITE_BYTES = "WRITE_IO(KB)"
+    
+class TableNames():
+    CPU = "total_cpu"
+    DISK = "disk_io_each_moment"
+    MEMORY = "total_memory_each_moment"
+    ALL_PROCESSES = "processes_data"
 
 
 def get_core_name(core_number):
