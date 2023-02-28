@@ -9,9 +9,6 @@ from datetime import date
 from pathlib import Path
 import screen_brightness_control as sbc
 
-# ======= Constants =======
-SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
-SYSTEM_IDLE_PID = 0
 
 base_dir, GRAPHS_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
 BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, SUMMARY_CSV = result_paths()
@@ -101,7 +98,7 @@ def save_current_processes_statistics(prev_io_per_process):
 
     for p in psutil.process_iter():
         try:
-            if (p.pid == SYSTEM_IDLE_PID) or (not p.name().__contains__('splunk')):  # ignore System Idle Process
+            if program.process_ignore_cond(p):  # ignore System Idle Process
                 continue
 
             # trigger cpu_percent() the first time will lead to return of 0.0

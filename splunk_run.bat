@@ -10,7 +10,8 @@ for /f "delims=" %%d in ('dir /ad /b /o-d "%output_dir%"') do (
 )
 :done
 
-"C:\Program Files\Splunk\bin\splunk.exe" search "index=eventgen" -output csv -maxout 20000 > "%newest_dir%\output.csv" -auth shoueii:sH231294
+"C:\Program Files\Splunk\bin\splunk.exe" search "index=eventgen" -output csv -maxout 20000000 > "%newest_dir%\output.csv" -auth shoueii:sH231294
+timeout /t 120
 "C:\Program Files\Splunk\bin\splunk.exe" stop
 "C:\Program Files\Splunk\bin\splunk.exe" clean eventdata -index eventgen -f
 pause

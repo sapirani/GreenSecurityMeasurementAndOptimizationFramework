@@ -19,6 +19,10 @@ NEVER_GO_TO_SLEEP_MODE = 0
 YES_BUTTON = 6
 NO_BUTTON = 7
 
+# ======= Constants =======
+SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"
+SYSTEM_IDLE_PID = 0
+
 pc_types = ["Unspecified", "Desktop", "Mobile Device", "Workstation",
                 "EnterpriseServer", "SOHOServer", "AppliancePC", "PerformanceServer"]
 

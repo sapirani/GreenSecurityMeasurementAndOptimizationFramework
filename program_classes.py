@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import time
 from typing import Union
 from os_funcs import OSFuncsInterface
@@ -45,6 +46,8 @@ class ProgramInterface:
         # global max_timeout_reached
         p.terminate()
         # max_timeout_reached = True
+    def process_ignore_cond(self, p):
+        return (p.pid == SYSTEM_IDLE_PID)
 
     ######## probably not needed anymore because we don't start powershell process if not needed in popen
     ######## so the id of the process we are interested in is the pid returned from popen process
@@ -187,14 +190,27 @@ class SplunkProgram(ProgramInterface):
         return "Splunk Enterprise SIEM"
 
     def get_command(self) -> str:
-        return  r"C:\Program Files\Splunk\bin\splunk.exe" + " start" 
+        return "splunk start" 
+    
     def kill_process(self, p):
+        print("extracting")
+        #TODO Extraction doesnt working!
+        print(f'splunk search "index=eventgen" -output csv -maxout 20000000 > "{self.results_path}\output.csv" -auth shoueii:sH231294')
+        extract_process, pid = OSFuncsInterface.popen( f'splunk search "index=eventgen" -output csv -maxout 20000000 >'+ r'"C:\Users\Administrator\Repositories\GreenSecurity-FirstExperiment\{self.results_path}\output.csv" -auth shoueii:sH231294', self.find_child_id,
+                                                self.should_use_powershell())
+        # result = extract_process.wait()
+        # print(extract_process.stderr.read().decode('utf-8'))
+        time.sleep(40)
         print("stopping")
-        OSFuncsInterface.popen( r"C:\Program Files\Splunk\bin\splunk.exe" + " stop", self.find_child_id,
+        OSFuncsInterface.popen( "splunk stop", self.find_child_id,
                                                 self.should_use_powershell())
+        time.sleep(40)
         print("cleaning")
-        OSFuncsInterface.popen( r"C:\Program Files\Splunk\bin\splunk.exe" + " clean eventdata -index eventgen -f", self.find_child_id,
+        OSFuncsInterface.popen("splunk clean eventdata -index eventgen -f", self.find_child_id,
                                                 self.should_use_powershell())
+    
+    def process_ignore_cond(self, p):
+        return super(SplunkProgram, self).process_ignore_cond(p) or (not p.name().__contains__('splunk'))
     
     # def should_use_powershell(self) -> bool:
     #     return True
@@ -207,10 +223,9 @@ class SplunkProgram(ProgramInterface):
             children = None
             match = re.search(f'(pid\s*(\d+))', p.stdout.read().decode('utf-8'))
             #TODO print match why it is not working
-            print(match)
             if match:
                 children = int(match.group(1).split()[1])
-                print(children)
+                print(f"pid: {children}")
                 return children
             else:
                 return None
