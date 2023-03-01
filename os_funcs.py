@@ -4,7 +4,7 @@ import subprocess
 from abc import ABC, abstractmethod
 from time import sleep
 import psutil
-
+import shlex
 from general_consts import (GB, MINUTE, NEVER_GO_TO_SLEEP_MODE,
                             NEVER_TURN_SCREEN_OFF, NO_BUTTON, YES_BUTTON,
                             PowerPlan, disk_types, pc_types,
@@ -61,9 +61,10 @@ class OSFuncsInterface:
         pass
 
     @staticmethod
-    def popen(command, find_child_id_func, should_use_powershell, should_find_child_id=False):
+    def popen(command, find_child_id_func, should_use_powershell, should_find_child_id=False, f=subprocess.PIPE):
         def process_obj_and_pid(command_lst):
-            p = subprocess.Popen(command_lst, stdout=subprocess.PIPE, stderr=subprocess.PIPE)            
+            p = subprocess.Popen(command_lst, stdout=f, stderr=subprocess.PIPE)
+            print(p)            
             if should_use_powershell or should_find_child_id:
                 pid = find_child_id_func(p)
                 p = psutil.Process(pid)
@@ -71,8 +72,10 @@ class OSFuncsInterface:
 
         if should_use_powershell:
             command = ["powershell", "-Command", command]
-        else:
-            command = list(map(lambda s: s.strip('"'), command.split()))
+        # else:
+            
+        #     command = shlex.split(command)
+        #     # command = list(map(lambda s: s.strip('"'), shlex.split(command)))
 
         try:
             return process_obj_and_pid(command)

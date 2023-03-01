@@ -195,13 +195,17 @@ class SplunkProgram(ProgramInterface):
     def kill_process(self, p):
         print("extracting")
         #TODO Extraction doesnt working!
-        extract_command = f'splunk search "index=eventgen" -output csv -maxout 20000000 >'+ rf'"C:\Users\Administrator\Repositories\GreenSecurity-FirstExperiment\{self.results_path}\output.csv"'+ ' -auth shoueii:sH231294'
+        extract_command = f'splunk search "index=eventgen" -output csv -maxout 20000000 -auth shoueii:sH231294'
         print(extract_command)
-        extract_process, pid = OSFuncsInterface.popen(extract_command , self.find_child_id,
-                                                self.should_use_powershell())
-        # result = extract_process.wait()
+        with open(rf"{self.results_path}\output.csv", 'w') as f:
+            extract_process, pid = OSFuncsInterface.popen(extract_command , self.find_child_id,
+                                                    self.should_use_powershell(), f)
+            stdout, stderr = extract_process.communicate()
+            print(stdout)
+            print(stderr)
+            f.flush()
         # print(extract_process.stderr.read().decode('utf-8'))
-        time.sleep(100)
+        time.sleep(80)
         print("stopping")
         OSFuncsInterface.popen( "splunk stop", self.find_child_id,
                                                 self.should_use_powershell())
@@ -222,6 +226,7 @@ class SplunkProgram(ProgramInterface):
     def find_child_id(self, p) -> Union[int, None]:  #from python 3.10 - int | None:
         try:
             children = None
+            # p.wait()
             match = re.search(f'(pid\s*(\d+))', p.stdout.read().decode('utf-8'))
             #TODO print match why it is not working
             if match:
@@ -235,7 +240,7 @@ class SplunkProgram(ProgramInterface):
             return None
     
     def should_use_powershell(self) -> bool:
-        return True
+        return False
 
 
 class NoScanProgram(ProgramInterface):

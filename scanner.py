@@ -775,6 +775,7 @@ def scan_and_measure():
 
     # wait for measurement
     measurements_thread.join()
+    timeout_timer.join()
     if main_program_to_scan == ProgramToScan.NO_SCAN:
         finished_scanning_time.append(scanner_imp.calc_time_interval(starting_time))
 

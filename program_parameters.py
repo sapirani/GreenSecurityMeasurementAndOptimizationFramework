@@ -12,13 +12,13 @@ scan_type = ScanType.QUICK_SCAN  # relevant only for one scan or continuous scan
 
 file_type = "pdf"
 directory_type = "Duplicated Files"
-custom_scan_path = fr'"C:\Users\sagib\Downloads"'
+custom_scan_path = fr'"C:\Users\Administrator\Downloads"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
 
-MAX_SCAN_TIME = 3 * MINUTE    # insert time (e.g. 0.5 * MINUTE) or type None
+MAX_SCAN_TIME = 1 * MINUTE    # insert time (e.g. 0.5 * MINUTE) or type None
 
 MINIMUM_DELTA_CAPACITY = 20
-MINIMUM_SCAN_TIME = 3 * MINUTE
+MINIMUM_SCAN_TIME = 1 * MINUTE
 
 measurement_number = NEW_MEASUREMENT    # write number between 1->inf or type NEW_MEASUREMENT
 
