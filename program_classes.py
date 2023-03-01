@@ -163,9 +163,10 @@ class UserActivityProgram(ProgramInterface):
 
 
 class IDSProgram(ProgramInterface):
-    def __init__(self, interface_name, log_dir, configuration_file_path=None, installation_dir="C:\Program Files"):
+    def __init__(self, interface_name, pcap_list_dirs, log_dir, configuration_file_path=None, installation_dir="C:\Program Files"):
         super().__init__()
         self.interface_name = interface_name
+        self.pcap_list_dirs = pcap_list_dirs
         self.log_dir = log_dir
         self.installation_dir = installation_dir
         self.configuration_file_path = configuration_file_path
@@ -184,7 +185,15 @@ class SnortProgram(IDSProgram):
         return "Snort IDS"
 
     def get_command(self) -> str:
-        return f"snort -q -l {self.log_dir} -i {self.interface_name} -A fast -c {self.configuration_file_path}"
+        base_command = f"snort -q -l {self.log_dir} -A fast -c {self.configuration_file_path} "
+        if self.interface_name is not None:
+            return base_command + f"-i {self.interface_name}"
+
+        elif self.pcap_list_dirs is not None and len(self.pcap_list_dirs > 0):
+            return base_command + f'--pcap-list="{" ".join(self.pcap_list_dirs)}"'
+
+        # return f"snort -q -l {self.log_dir} -i {self.interface_name} -A fast -c {self.configuration_file_path}"
+
 
 class SplunkProgram(ProgramInterface):
     def get_program_name(self):
