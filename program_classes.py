@@ -195,12 +195,13 @@ class SplunkProgram(ProgramInterface):
     def kill_process(self, p):
         print("extracting")
         #TODO Extraction doesnt working!
-        print(f'splunk search "index=eventgen" -output csv -maxout 20000000 > "{self.results_path}\output.csv" -auth shoueii:sH231294')
-        extract_process, pid = OSFuncsInterface.popen( f'splunk search "index=eventgen" -output csv -maxout 20000000 >'+ r'"C:\Users\Administrator\Repositories\GreenSecurity-FirstExperiment\{self.results_path}\output.csv" -auth shoueii:sH231294', self.find_child_id,
+        extract_command = f'splunk search "index=eventgen" -output csv -maxout 20000000 >'+ rf'"C:\Users\Administrator\Repositories\GreenSecurity-FirstExperiment\{self.results_path}\output.csv"'+ ' -auth shoueii:sH231294'
+        print(extract_command)
+        extract_process, pid = OSFuncsInterface.popen(extract_command , self.find_child_id,
                                                 self.should_use_powershell())
         # result = extract_process.wait()
         # print(extract_process.stderr.read().decode('utf-8'))
-        time.sleep(40)
+        time.sleep(100)
         print("stopping")
         OSFuncsInterface.popen( "splunk stop", self.find_child_id,
                                                 self.should_use_powershell())
@@ -232,6 +233,9 @@ class SplunkProgram(ProgramInterface):
 
         except psutil.NoSuchProcess:
             return None
+    
+    def should_use_powershell(self) -> bool:
+        return True
 
 
 class NoScanProgram(ProgramInterface):
