@@ -163,7 +163,7 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
 
 
 def min_scan_time_passed():
-    return time.time() - starting_time >= MINIMUM_SCAN_TIME
+    return time.time() - starting_time >= RUNNING_TIME
 
 
 def should_scan():

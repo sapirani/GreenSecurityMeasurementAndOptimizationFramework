@@ -9,7 +9,6 @@ from datetime import date
 from pathlib import Path
 import screen_brightness_control as sbc
 
-
 base_dir, GRAPHS_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
 BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, SUMMARY_CSV = result_paths()
 
@@ -37,8 +36,6 @@ battery_df = pd.DataFrame(columns=battery_columns_list)
 cpu_df = pd.DataFrame(columns=cpu_columns_list)
 
 finished_scanning_time = []
-
-
 
 
 def save_current_total_memory():
@@ -160,13 +157,13 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
     return prev_io_per_process
 
 
-def min_scan_time_passed():
+def scan_time_passed():
     """_summary_: check if the minimum scan time has passed
 
     Returns:
         bool: True if the minimum scan time has passed, False otherwise
     """
-    return time.time() - starting_time >= MINIMUM_SCAN_TIME
+    return time.time() - starting_time >= RUNNING_TIME
 
 
 def should_scan():
@@ -176,11 +173,12 @@ def should_scan():
         True if measurement thread should perform another iteration or False if it should terminate
     """
     if main_program_to_scan == ProgramToScan.NO_SCAN:
-        return not min_scan_time_passed()
+        return not scan_time_passed()
     elif scan_option == ScanMode.ONE_SCAN:
         return not done_scanning
     elif scan_option == ScanMode.CONTINUOUS_SCAN:
-        return not min_scan_time_passed() and not is_delta_capacity_achieved()
+        return not (scan_time_passed() and is_delta_capacity_achieved())
+        # return not scan_time_passed() and not is_delta_capacity_achieved()
 
 
 def save_current_total_cpu():
@@ -320,7 +318,7 @@ def save_general_information_after_scanning():
 
         f.write(f'{BACKGROUND_ID_PHRASE}: ')
         for background_process_id, background_process_name in zip(processes_ids[1:-1], processes_names[1:-1]):
-            f.write(f'{background_process_name}({background_process_id}),')
+            f.write(f'{background_process_name}({background_process_id}), ')
 
         if len(processes_ids) > 1:  # not just main program
             f.write(f"{processes_names[-1]}({processes_ids[-1]})\n\n")
@@ -559,6 +557,7 @@ def prepare_summary_csv():
                ['background-color: #cc66ff' for _ in range(2)] + ['background-color: #ffc000' for _ in range(2)] + \
                ['background-color: #FFFFFF']
 
+    summary_df.to_excel(SUMMARY_CSV)
     styled_summary_df = summary_df.style.apply(colors_func, axis=0)
 
     styled_summary_df.to_excel(SUMMARY_CSV, engine='openpyxl', index=False)
@@ -616,6 +615,7 @@ def calc_delta_capacity():
 
     before_scanning_percent = battery_df.iloc[0].at[BatteryColumns.PERCENTS]
     current_capacity_percent = battery_df.iloc[len(battery_df) - 1].at[BatteryColumns.PERCENTS]
+
     return before_scanning_capacity - current_capacity, before_scanning_percent - current_capacity_percent
 
 
@@ -642,12 +642,16 @@ def start_process(program_to_scan):
     program_to_scan.set_processes_ids(processes_ids)
 
     shell_process, pid = OSFuncsInterface.popen(program_to_scan.get_command(), program_to_scan.find_child_id,
-                                                program_to_scan.should_use_powershell(), program_to_scan.should_find_child_id())
+                                                program_to_scan.should_use_powershell(),
+                                                program_to_scan.should_find_child_id())
 
     # save the process names and pids in global arrays
     if pid is not None:
         processes_ids.append(pid)
-        processes_names.append(program_to_scan.get_program_name())
+        original_program_name = program_to_scan.get_program_name()
+        iteration_num = len(finished_scanning_time) + 1
+        processes_names.append(original_program_name if iteration_num == 1 else
+                               f"{original_program_name} - iteration {iteration_num}")
 
     return shell_process, pid
 
@@ -717,12 +721,10 @@ def start_timeout(main_shell_process):
     :param main_shell_process: the process to terminate  
     :return: a timer thread (as returned from Timer function)
     """
-    if MAX_SCAN_TIME is None:
+    if RUNNING_TIME is None or scan_option != ScanMode.ONE_SCAN:
         return
 
-
-
-    timeout_thread = Timer(MAX_SCAN_TIME, program.kill_process, [main_shell_process])
+    timeout_thread = Timer(RUNNING_TIME, program.kill_process, [main_shell_process])
     timeout_thread.start()
     return timeout_thread
 
@@ -733,8 +735,16 @@ def cancel_timeout_timer(timeout_timer):
      exceeded maximum allowed running time
     :param timeout_timer: the timer thread returned from start_timeout
     """
-    if timeout_timer is not None:
-        timeout_timer.cancel()
+    global max_timeout_reached
+
+    if timeout_timer is None:
+        return
+
+    if not timeout_timer.is_alive():
+        max_timeout_reached = True
+
+    timeout_timer.cancel()
+    timeout_timer.join()
 
 
 def scan_and_measure():
@@ -757,8 +767,6 @@ def scan_and_measure():
         timeout_timer = start_timeout(main_shell_process)
         background_processes = start_background_processes()
         result = main_shell_process.wait()
-        if not timeout_timer.is_alive():
-           max_timeout_reached = True 
         cancel_timeout_timer(timeout_timer)
 
         # kill background programs after main program finished
@@ -766,7 +774,7 @@ def scan_and_measure():
 
         finished_scanning_time.append(scanner_imp.calc_time_interval(starting_time))
         # check whether another iteration of scan is needed or not
-        if scan_option == ScanMode.ONE_SCAN or (min_scan_time_passed() and is_delta_capacity_achieved()):
+        if scan_option == ScanMode.ONE_SCAN or (scan_time_passed() and is_delta_capacity_achieved()):
             # if there is no need in another iteration, exit this while and signal the measurement thread to stop
             done_scanning = True
         if result != 0 and max_timeout_reached is False:
@@ -775,7 +783,6 @@ def scan_and_measure():
 
     # wait for measurement
     measurements_thread.join()
-    timeout_timer.join()
     if main_program_to_scan == ProgramToScan.NO_SCAN:
         finished_scanning_time.append(scanner_imp.calc_time_interval(starting_time))
 

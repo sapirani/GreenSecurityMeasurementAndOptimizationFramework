@@ -4,7 +4,7 @@ from general_consts import *
 main_program_to_scan = ProgramToScan.DummyANTIVIRUS
 background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]#[ProgramToScan.Perfmon]
 
-scanner_version = ScannerVersion.LITE
+scanner_version = ScannerVersion.FULL
 
 power_plan = PowerPlan.POWER_SAVER
 scan_option = ScanMode.ONE_SCAN
@@ -15,10 +15,9 @@ directory_type = "Duplicated Files"
 custom_scan_path = fr'"C:\Users\sagib\Downloads"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
 
-MAX_SCAN_TIME = None    # insert time (e.g. 0.5 * MINUTE) or type None
+RUNNING_TIME = None    # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
-MINIMUM_DELTA_CAPACITY = 20
-MINIMUM_SCAN_TIME = 0.5 * MINUTE
+MINIMUM_DELTA_CAPACITY = 20     # in mWh
 
 measurement_number = 9001    # write number between 1->inf or type NEW_MEASUREMENT
 

@@ -138,6 +138,11 @@ if (pcap_list_dirs is None or len(pcap_list_dirs) == 0) and interface_name is No
 if (pcap_list_dirs is not None and len(pcap_list_dirs) > 0) and interface_name is not None:
     raise Exception("Choose either interface to listen on or pcap files when using IDS, not both")
 
+# ======= Scan Time Checks =======
+if (scan_option == ScanMode.CONTINUOUS_SCAN or main_program_to_scan == ProgramToScan.NO_SCAN) and RUNNING_TIME is None:
+    raise Exception("MAXIMUM_SCAN_TIME is allowed to be None  only when performing running a regular main program"
+                    " in ONE_SCAN mode - the meaning of None is to wait until the main process ends")
+
 # ======= Prepare dataframes titles =======
 battery_columns_list = [BatteryColumns.TIME, BatteryColumns.PERCENTS, BatteryColumns.CAPACITY, BatteryColumns.VOLTAGE]
 
