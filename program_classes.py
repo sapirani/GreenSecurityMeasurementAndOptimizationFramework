@@ -1,11 +1,12 @@
 import os
 import re
+import subprocess
 import sys
 import time
 from typing import Union
-from os_funcs import OSFuncsInterface
+
 from general_consts import *
-import os
+from os_funcs import OSFuncsInterface
 
 
 class ProgramInterface:
@@ -207,21 +208,15 @@ class SplunkProgram(ProgramInterface):
         extract_command = f'splunk search "index=eventgen" -output csv -maxout 20000000 -auth shoueii:sH231294'
         print(extract_command)
         with open(rf"{self.results_path}\output.csv", 'w') as f:
-            extract_process, pid = OSFuncsInterface.popen(extract_command , self.find_child_id,
-                                                    self.should_use_powershell(), f)
-            stdout, stderr = extract_process.communicate()
-            print(stdout)
-            print(stderr)
+            subprocess.run(extract_command, stdout=f)
             f.flush()
         # print(extract_process.stderr.read().decode('utf-8'))
-        time.sleep(80)
+        # time.sleep(80)
         print("stopping")
-        OSFuncsInterface.popen( "splunk stop", self.find_child_id,
-                                                self.should_use_powershell())
+        subprocess.run( "splunk stop")
         time.sleep(40)
         print("cleaning")
-        OSFuncsInterface.popen("splunk clean eventdata -index eventgen -f", self.find_child_id,
-                                                self.should_use_powershell())
+        subprocess.run("splunk clean eventdata -index eventgen -f")
     
     def process_ignore_cond(self, p):
         return super(SplunkProgram, self).process_ignore_cond(p) or (not p.name().__contains__('splunk'))
