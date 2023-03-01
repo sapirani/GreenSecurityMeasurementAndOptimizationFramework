@@ -30,6 +30,7 @@ balanced_power_plan_guid = PowerPlan.BALANCED[1]
 power_save_plan_name = PowerPlan.POWER_SAVER[0]
 power_save_plan_identifier = PowerPlan.POWER_SAVER[2]
 
+
 # ======= Result Data Paths =======
 def program_to_scan_factory(program_type):
     """
@@ -40,9 +41,9 @@ def program_to_scan_factory(program_type):
     if program_type == ProgramToScan.ANTIVIRUS:
         return AntivirusProgram(scan_type, custom_scan_path)
     if program_type == ProgramToScan.IDS and ids_type == IDSType.SURICATA:
-        return SuricataProgram(interface_name, log_path)
+        return SuricataProgram(interface_name, pcap_list_dirs, log_path)
     if program_type == ProgramToScan.IDS and ids_type == IDSType.SNORT:
-        return SnortProgram(interface_name, log_path, configuration_file_path=configuration_file_path)
+        return SnortProgram(interface_name, pcap_list_dirs, log_path, configuration_file_path=configuration_file_path)
     if program_type == ProgramToScan.DummyANTIVIRUS:
         return DummyAntivirusProgram(custom_scan_path)
     if program_type == ProgramToScan.NO_SCAN:
@@ -129,6 +130,13 @@ def result_paths(is_scanner=True):
 if main_program_to_scan == ProgramToScan.ANTIVIRUS and ProgramToScan.DummyANTIVIRUS not in background_programs_types \
         and scan_type != ScanType.CUSTOM_SCAN and custom_scan_path != '""':
     raise Exception("custom_scan_path must be empty when running scans other than custom scan")
+
+# ======= IDS Checks =======
+if (pcap_list_dirs is None or len(pcap_list_dirs) == 0) and interface_name is None:
+    raise Exception("Choose interface for IDS to listen on or provide pcap directories list to analyse")
+
+if (pcap_list_dirs is not None and len(pcap_list_dirs) > 0) and interface_name is not None:
+    raise Exception("Choose either interface to listen on or pcap files when using IDS, not both")
 
 # ======= Prepare dataframes titles =======
 battery_columns_list = [BatteryColumns.TIME, BatteryColumns.PERCENTS, BatteryColumns.CAPACITY, BatteryColumns.VOLTAGE]
