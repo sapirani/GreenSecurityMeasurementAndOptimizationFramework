@@ -191,7 +191,7 @@ class SnortProgram(IDSProgram):
         if self.interface_name is not None:
             return base_command + f"-i {self.interface_name}"
 
-        elif self.pcap_list_dirs is not None and len(self.pcap_list_dirs > 0):
+        elif self.pcap_list_dirs:
             return base_command + f'--pcap-list="{" ".join(self.pcap_list_dirs)}"'
 
         # return f"snort -q -l {self.log_dir} -i {self.interface_name} -A fast -c {self.configuration_file_path}"
