@@ -166,12 +166,23 @@ def scan_time_passed():
     return time.time() - starting_time >= RUNNING_TIME
 
 
+def save_data_when_too_low_battery():
+    with open(GENERAL_INFORMATION_FILE, 'a') as f:
+        f.write("EARLY TERMINATION DUE TO LOW BATTERY!!!!!!!!!!\n\n")
+    finished_scanning_time.append(scanner_imp.calc_time_interval(starting_time))
+    save_results_to_files()
+
+
 def should_scan():
     """_summary_: check what is the scan option
 
     Returns:
         True if measurement thread should perform another iteration or False if it should terminate
     """
+    if scanner_imp.is_battery_too_low(battery_df):
+        save_data_when_too_low_battery()
+        return False
+
     if main_program_to_scan == ProgramToScan.NO_SCAN:
         return not scan_time_passed()
     elif scan_option == ScanMode.ONE_SCAN:
@@ -698,6 +709,7 @@ def terminate_due_to_exception(background_processes, program_name, err):
     kill_background_processes(background_processes)
 
     # stop measuring - raise exception to user
+    after_scanning_operations(should_save_results=False)
     raise Exception("An error occurred in child program %s: %s", program_name, err)
 
 
@@ -780,6 +792,7 @@ def scan_and_measure():
             done_scanning = True
         if result != 0 and max_timeout_reached is False:
             errs = main_shell_process.stderr.read().decode()
+            after_scanning_operations(should_save_results=False)
             raise Exception("An error occurred while scanning: %s", errs)
 
     # wait for measurement
@@ -808,9 +821,7 @@ def can_proceed_towards_measurements():
         return True
 
 
-def main():
-    print("======== Process Monitor ========")
-
+def before_scanning_operations():
     scanner_imp.check_if_battery_plugged()
 
     if disable_real_time_protection_during_measurement and running_os.is_tamper_protection_enabled():
@@ -836,9 +847,10 @@ def main():
 
     save_general_information_before_scanning()
 
-    scan_and_measure()
 
-    save_results_to_files()
+def after_scanning_operations(should_save_results=True):
+    if should_save_results:
+        save_results_to_files()
 
     running_os.change_power_plan(running_os.get_default_power_plan_name(),
                                  running_os.get_default_power_plan_identifier())  # return to default power plan
@@ -850,6 +862,16 @@ def main():
 
     if max_timeout_reached:
         print("Scanned program reached the maximum time so we terminated it")
+
+
+def main():
+    print("======== Process Monitor ========")
+
+    before_scanning_operations()
+
+    scan_and_measure()
+
+    after_scanning_operations()
 
     print("Finished scanning")
 

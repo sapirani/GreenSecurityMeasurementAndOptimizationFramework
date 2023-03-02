@@ -1,6 +1,8 @@
 import time
 import psutil
 
+from general_consts import BatteryColumns
+
 
 class FullScanner:
     def __init__(self, running_os):
@@ -53,6 +55,13 @@ class FullScanner:
     def scan_sleep(self,sec):
         time.sleep(sec)
 
+    def is_battery_too_low(self, battery_df):
+        if len(battery_df) == 0:
+            return False
+
+        current_mwh = battery_df.iloc[len(battery_df) - 1].at[BatteryColumns.CAPACITY]
+        return current_mwh <= 1500
+
 
 class LiteScanner(FullScanner):
     def check_if_battery_plugged(self):
@@ -70,6 +79,9 @@ class LiteScanner(FullScanner):
         """
         return time.time()
 
+    def is_battery_too_low(self, mwh):
+        return False
+
     def scan_sleep(self, sec):
         time.sleep(0)
 
@@ -84,3 +96,5 @@ class WithoutBatteryScanner(FullScanner):
     def save_general_battery(self, f):
         pass
 
+    def is_battery_too_low(self, mwh):
+        return False
