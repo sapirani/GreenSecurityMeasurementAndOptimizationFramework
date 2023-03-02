@@ -654,7 +654,7 @@ def start_process(program_to_scan):
     program_to_scan.set_processes_ids(processes_ids)
 
     shell_process, pid = OSFuncsInterface.popen(program_to_scan.get_command(), program_to_scan.find_child_id,
-                                                program_to_scan.should_use_powershell(),
+                                                program_to_scan.should_use_powershell(), running_os.is_posix(),
                                                 program_to_scan.should_find_child_id())
 
     # save the process names and pids in global arrays

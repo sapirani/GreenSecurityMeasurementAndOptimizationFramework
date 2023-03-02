@@ -61,7 +61,7 @@ class OSFuncsInterface:
         pass
 
     @staticmethod
-    def popen(command, find_child_id_func, should_use_powershell, should_find_child_id=False, f=subprocess.PIPE):
+    def popen(command, find_child_id_func, should_use_powershell, is_posix, should_find_child_id=False, f=subprocess.PIPE):
         def process_obj_and_pid(command_lst):
             p = subprocess.Popen(command_lst, stdout=f, stderr=subprocess.PIPE)
             if should_use_powershell or should_find_child_id:
@@ -71,10 +71,9 @@ class OSFuncsInterface:
 
         if should_use_powershell:
             command = ["powershell", "-Command", command]
-        # else:
-            
-        #     command = shlex.split(command)
-        #     # command = list(map(lambda s: s.strip('"'), shlex.split(command)))
+        else:
+            # command = shlex.split(command, posix=is_posix)
+            command = list(map(lambda s: s.strip('"'), shlex.split(command, posix=is_posix)))
 
         try:
             return process_obj_and_pid(command)
@@ -103,6 +102,9 @@ class OSFuncsInterface:
     @abstractmethod
     def change_sleep_and_turning_screen_off_settings(self, screen_time=DEFAULT_SCREEN_TURNS_OFF_TIME,
                                                      sleep_time=DEFAULT_TIME_BEFORE_SLEEP_MODE):
+        pass
+
+    def is_posix(self):
         pass
 
 
@@ -288,6 +290,9 @@ class WindowsOS(OSFuncsInterface):
     def message_box(self, title, text, style):
         return ctypes.windll.user32.MessageBoxW(0, text, title, style)
 
+    def is_posix(self):
+        return False
+
 
 class LinuxOS(OSFuncsInterface):
     @staticmethod
@@ -393,3 +398,6 @@ class LinuxOS(OSFuncsInterface):
 
         f.write(f'Battery Design Capacity: {float(empty_capacity.split()[0]) * 1000} mWh\n')
         f.write(f'Battery Fully Charged Capacity: {float(full_capacity.split()[0]) * 1000} mWh\n')
+
+    def is_posix(self):
+        return True
