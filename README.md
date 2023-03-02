@@ -83,7 +83,7 @@ It is possible to configure the computer's power plan during measurements. The a
 3. Power Saver
 
 ### Available Programs
-This project currently supports the following programs (it is very easy to add another program):
+This project currently supports the following programs (it is very easy to add another program - [perform the following steps](#supporting-additional-programs)):
 1. Windows Defender Antivirus
 2. Snort Intrusion Detection System (IDS)
 3. Suricata Intrusion Detection System (IDS)
@@ -95,6 +95,12 @@ This project currently supports the following programs (it is very easy to add a
 ### For Developers:
 * use "git update-index --skip-worktree program_parameters.py" command to ignore changes in this file.
 * use "git update-index --no-skip-worktree program_parameters.py" command to resume tracking changes
+
+#### Supporting Additional Programs:
+1. in `general_consts.py` file - add your program in the enum called *ProgramToScan*
+2. in `program_parameters` file - add all the parameters that the user can configure in your program
+3. in `program class` file - add a class that represents your program and inherits from *ProgramInterface*. You ***MUST*** implement the funtions:  *get_program_name* and *get_command*. The function *get_command* returns a string which is the shell command that runs your program. You can implement any other function of *ProgramInterface*. Note that if you want to run your command in powershell (for Windows programs), implement the function *should_use_powershell* and return True.
+4. in `initialization_helper.py` file - add your program in the function called *program_to_scan_factory*
 
 ## Execution Example:
 1) When you want to run the windows defender antivirus and measure it's energy consumption when scanning a folder (in path dir) once, with no other processes running in the background, while the power mode of the computer should be power saver, you should change the next parameters in the file program_parameters.py:
