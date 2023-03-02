@@ -44,7 +44,7 @@ class ProgramInterface:
     def set_processes_ids(self, processes_ids):
         self.processes_ids = processes_ids
     
-    def kill_process(self, p):
+    def kill_process(self, p, is_posix):
         # global max_timeout_reached
         p.terminate()
         # max_timeout_reached = True
@@ -54,7 +54,7 @@ class ProgramInterface:
 
     ######## probably not needed anymore because we don't start powershell process if not needed in popen
     ######## so the id of the process we are interested in is the pid returned from popen process
-    def find_child_id(self, p) -> Union[int, None]:  #from python 3.10 - int | None:
+    def find_child_id(self, p, is_posix) -> Union[int, None]:  #from python 3.10 - int | None:
         # result_screen = subprocess.run(["powershell", "-Command", f'Get-WmiObject Win32_Process -Filter "ParentProcessID={process_pid}" | Select ProcessID'],
         #                               capture_output=True)
         # if result_screen.returncode != 0:
@@ -116,7 +116,7 @@ class AntivirusProgram(ProgramInterface):
         from os_funcs import WindowsOS
         WindowsOS.save_antivirus_version(f, self.get_program_name())
 
-    def find_child_id(self, p):
+    def find_child_id(self, p, is_posix):
         for i in range(3):  # try again and again
             for proc in psutil.process_iter():
                 if proc.name() == self.get_process_name():
@@ -204,21 +204,21 @@ class SplunkProgram(ProgramInterface):
     def get_command(self) -> str:
         return "splunk start" 
     
-    def kill_process(self, p):
+    def kill_process(self, p, is_posix):
         print("extracting")
         #TODO Extraction doesnt working!
-        extract_command = f'splunk search "index=eventgen" -output csv -maxout 20000000 -auth shoueii:sH231294'
+        extract_command = f'splunk search "index=eventgen" -output csv -maxout 20000000 -auth shoueii:!sH231294'
         print(extract_command)
         with open(rf"{self.results_path}\output.csv", 'w') as f:
-            subprocess.run(extract_command, stdout=f)
+            OSFuncsInterface.run(extract_command, self.should_use_powershell(), is_posix=is_posix, f=f)
             f.flush()
         # print(extract_process.stderr.read().decode('utf-8'))
         # time.sleep(80)
         print("stopping")
-        subprocess.run( "splunk stop")
-        time.sleep(40)
+        OSFuncsInterface.run( "splunk stop", self.should_use_powershell(), is_posix=is_posix)
+        time.sleep(30)
         print("cleaning")
-        subprocess.run("splunk clean eventdata -index eventgen -f")
+        OSFuncsInterface.run("splunk clean eventdata -index eventgen -f", self.should_use_powershell(), is_posix=is_posix)
     
     def process_ignore_cond(self, p):
         return super(SplunkProgram, self).process_ignore_cond(p) or (not p.name().__contains__('splunk'))
@@ -228,19 +228,29 @@ class SplunkProgram(ProgramInterface):
     def should_find_child_id(self) -> bool:
         return True
 
-    def find_child_id(self, p) -> Union[int, None]:  #from python 3.10 - int | None:
+    
+    def find_child_id(self, p, is_posix) -> Union[int, None]:  #from python 3.10 - int | None:
         try:
             children = None
+            time.sleep(25)
             # p.wait()
-            match = re.search(f'(pid\s*(\d+))', p.stdout.read().decode('utf-8'))
-            #TODO print match why it is not working
-            if match:
-                children = int(match.group(1).split()[1])
+            result = OSFuncsInterface.run( "splunk status", self.should_use_powershell(), is_posix=is_posix)
+            print(result)
+            
+            stdout = result.stdout.decode('utf-8')
+            if is_posix:
+                run_match = re.search(f'(PID:\s*(\d+))',stdout)
+            else:
+                run_match = re.search(f'(pid\s*(\d+))',stdout)
+                
+            # stop_match_linux = re.search(f'splunkd is not running.', stdout)
+            # stop_match_windows = re.search(f'Splunkd: Stopped', stdout)
+            if run_match:
+                children = int(run_match.group(1).split()[1])
                 print(f"pid: {children}")
                 return children
             else:
-                return None
-
+                raise Exception("Splunk didn't started correctly!")
         except psutil.NoSuchProcess:
             return None
     
@@ -310,5 +320,5 @@ class PerfmonProgram(ProgramInterface):
 
         #return f'Get-Counter gc = "\\PhysicalDisk(_Total)\\Disk Reads/sec", "\\PhysicalDisk(_Total)\\Disk Writes/sec", "\\PhysicalDisk(_Total)\\Disk Read Bytes/sec", "\\PhysicalDisk(_Total)\\Disk Write Bytes/sec", "\\Processor(_Total)\\% Processor Time" Get-Counter -counter $gc -Continuous | Export-Counter -FileFormat "CSV" -Path "{self.results_path}\\perfmon.csv"'
 
-    def find_child_id(self, p) -> Union[int, None]:  #from python 3.10 - int | None:
+    def find_child_id(self, p, is_posix) -> Union[int, None]:  #from python 3.10 - int | None:
         return None

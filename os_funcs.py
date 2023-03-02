@@ -66,16 +66,16 @@ class OSFuncsInterface:
             p = subprocess.Popen(command_lst, stdout=f, stderr=subprocess.PIPE)
 
             if should_use_powershell or should_find_child_id:
-                pid = find_child_id_func(p)
+                pid = find_child_id_func(p, is_posix)
+                print(pid)
                 if pid is not None:
                     p = psutil.Process(pid)
-
             return p, p.pid
 
         if should_use_powershell:
             command = ["powershell", "-Command", command]
         else:
-            # command = shlex.split(command, posix=is_posix)
+            # command = shlex.split(commnd, posix=is_posix)
             command = list(map(lambda s: s.strip('"'), shlex.split(command, posix=is_posix)))
 
         try:
@@ -84,6 +84,23 @@ class OSFuncsInterface:
             if command[0] == "python":
                 command[0] = "python3"
                 return process_obj_and_pid(command)
+            else:
+                raise e
+    
+    @staticmethod
+    def run(command, should_use_powershell, is_posix, f=subprocess.PIPE):
+        if should_use_powershell:
+            command = ["powershell", "-Command", command]
+        else:
+            # command = shlex.split(command, posix=is_posix)
+            command = list(map(lambda s: s.strip('"'), shlex.split(command, posix=is_posix)))
+
+        try:
+            return subprocess.run(command,stdout=f)
+        except FileNotFoundError as e:
+            if command[0] == "python":
+                command[0] = "python3"
+                return subprocess.run(command, stdout=f)
             else:
                 raise e
 

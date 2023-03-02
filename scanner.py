@@ -728,7 +728,7 @@ def kill_background_processes(background_processes):
         powershell_process.wait()
 
 
-def start_timeout(main_shell_process):
+def start_timeout(main_shell_process,is_posix):
     """
     This function terminates the main process if its running time exceeds maximum allowed time
     :param main_shell_process: the process to terminate  
@@ -737,7 +737,7 @@ def start_timeout(main_shell_process):
     if RUNNING_TIME is None or scan_option != ScanMode.ONE_SCAN:
         return
 
-    timeout_thread = Timer(RUNNING_TIME, program.kill_process, [main_shell_process])
+    timeout_thread = Timer(RUNNING_TIME, program.kill_process, [main_shell_process, is_posix])
     timeout_thread.start()
     return timeout_thread
 
@@ -777,7 +777,7 @@ def scan_and_measure():
 
     while not main_program_to_scan == ProgramToScan.NO_SCAN and not done_scanning:
         main_process, main_process_id = start_process(program)
-        timeout_timer = start_timeout(main_process)
+        timeout_timer = start_timeout(main_process, running_os.is_posix())
         background_processes = start_background_processes()
         result = main_process.wait()
         cancel_timeout_timer(timeout_timer)
@@ -791,6 +791,8 @@ def scan_and_measure():
             # if there is no need in another iteration, exit this while and signal the measurement thread to stop
             done_scanning = True
         if result != 0 and max_timeout_reached is False:
+            print(result)
+            print(main_process)
             errs = main_process.stderr.read().decode()
             after_scanning_operations(should_save_results=False)
             raise Exception("An error occurred while scanning: %s", errs)
