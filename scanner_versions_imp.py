@@ -60,7 +60,7 @@ class FullScanner:
             return False
 
         current_mwh = battery_df.iloc[len(battery_df) - 1].at[BatteryColumns.CAPACITY]
-        return current_mwh <= 1500
+        return current_mwh <= 2500
 
 
 class LiteScanner(FullScanner):

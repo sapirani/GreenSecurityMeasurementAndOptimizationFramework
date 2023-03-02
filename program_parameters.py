@@ -32,7 +32,7 @@ DEFAULT_TIME_BEFORE_SLEEP_MODE = 4
 
 # ==== IDS configurations
 ids_type = IDSType.SNORT
-pcap_list_dirs = ["path-to-pcap"]         # enter list of pcap diretories. If you to wish sniff packets instead, enter empty list or None.
+pcap_list_dirs = ["/home/user/Downloads/Friday-WorkingHours.pcap"]         # enter list of pcap diretories. If you to wish sniff packets instead, enter empty list or None.
 interface_name = None    # "ens33"     # enter interface name to listen on or None if you want to use pcap files
 log_path = "/var/log/snort"
 configuration_file_path = "/etc/snort/snort.conf"

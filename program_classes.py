@@ -31,6 +31,7 @@ class ProgramInterface:
 
     def general_information_before_measurement(self, f):
         pass
+
     def should_find_child_id(self):
         return False
 
@@ -47,6 +48,7 @@ class ProgramInterface:
         # global max_timeout_reached
         p.terminate()
         # max_timeout_reached = True
+
     def process_ignore_cond(self, p):
         return (p.pid == SYSTEM_IDLE_PID)
 
@@ -226,7 +228,6 @@ class SplunkProgram(ProgramInterface):
     def should_find_child_id(self) -> bool:
         return True
 
-    
     def find_child_id(self, p) -> Union[int, None]:  #from python 3.10 - int | None:
         try:
             children = None
