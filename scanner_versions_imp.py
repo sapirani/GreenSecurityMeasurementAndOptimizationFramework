@@ -52,7 +52,7 @@ class FullScanner:
         """
         return time.time() - starting_time
 
-    def scan_sleep(self,sec):
+    def scan_sleep(self, sec):
         time.sleep(sec)
 
     def is_battery_too_low(self, battery_df):

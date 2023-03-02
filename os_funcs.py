@@ -64,9 +64,12 @@ class OSFuncsInterface:
     def popen(command, find_child_id_func, should_use_powershell, is_posix, should_find_child_id=False, f=subprocess.PIPE):
         def process_obj_and_pid(command_lst):
             p = subprocess.Popen(command_lst, stdout=f, stderr=subprocess.PIPE)
+
             if should_use_powershell or should_find_child_id:
                 pid = find_child_id_func(p)
-                p = psutil.Process(pid)
+                if pid is not None:
+                    p = psutil.Process(pid)
+
             return p, p.pid
 
         if should_use_powershell:

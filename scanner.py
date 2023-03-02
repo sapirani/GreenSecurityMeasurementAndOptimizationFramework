@@ -17,7 +17,7 @@ program.set_results_dir(base_dir)
 # ======= Program Global Parameters =======
 done_scanning = False
 starting_time = 0
-scanning_process_id = None
+main_process_id = None
 max_timeout_reached = False
 
 # include main programs and background
@@ -325,8 +325,8 @@ def save_general_information_after_scanning():
     """
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
         f.write('======After Scanning======\n')
-        if scanning_process_id is not None:
-            f.write(f'{PROCESS_ID_PHRASE}: {processes_names[0]}({scanning_process_id})\n')
+        if main_process_id is not None:
+            f.write(f'{PROCESS_ID_PHRASE}: {processes_names[0]}({main_process_id})\n')
 
         f.write(f'{BACKGROUND_ID_PHRASE}: ')
         for background_process_id, background_process_name in zip(processes_ids[1:-1], processes_names[1:-1]):
@@ -679,9 +679,9 @@ def start_background_processes():
     # TODO: think how to check if there are errors without sleeping - waiting for process initialization
     scanner_imp.scan_sleep(5)
 
-    for (powershell_process, child_process_id), background_program in zip(background_processes, background_programs):
-        if powershell_process.poll() is not None:
-            err = powershell_process.stderr.read().decode()
+    for (background_process, child_process_id), background_program in zip(background_processes, background_programs):
+        if background_process.poll() is not None:   # if process has not terminated
+            err = background_process.stderr.read().decode()
             if err:
                 terminate_due_to_exception(background_processes, background_program.get_program_name(), err)
 
@@ -700,7 +700,7 @@ def terminate_due_to_exception(background_processes, program_name, err):
 
     # terminate the main process if it still exists
     try:
-        p = psutil.Process(scanning_process_id)
+        p = psutil.Process(main_process_id)
         p.terminate()  # or p.kill()
     except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
@@ -768,7 +768,7 @@ def scan_and_measure():
     """
     global done_scanning
     global starting_time
-    global scanning_process_id
+    global main_process_id
     global max_timeout_reached
     starting_time = time.time()
 
@@ -776,10 +776,10 @@ def scan_and_measure():
     measurements_thread.start()
 
     while not main_program_to_scan == ProgramToScan.NO_SCAN and not done_scanning:
-        main_shell_process, scanning_process_id = start_process(program)
-        timeout_timer = start_timeout(main_shell_process)
+        main_process, main_process_id = start_process(program)
+        timeout_timer = start_timeout(main_process)
         background_processes = start_background_processes()
-        result = main_shell_process.wait()
+        result = main_process.wait()
         cancel_timeout_timer(timeout_timer)
 
         # kill background programs after main program finished
@@ -791,7 +791,7 @@ def scan_and_measure():
             # if there is no need in another iteration, exit this while and signal the measurement thread to stop
             done_scanning = True
         if result != 0 and max_timeout_reached is False:
-            errs = main_shell_process.stderr.read().decode()
+            errs = main_process.stderr.read().decode()
             after_scanning_operations(should_save_results=False)
             raise Exception("An error occurred while scanning: %s", errs)
 

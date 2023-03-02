@@ -30,7 +30,7 @@ program.set_results_dir(base_dir)
 # ======= Program Global Parameters =======
 done_scanning = False
 starting_time = 0
-scanning_process_id = None
+main_process_id = None
 processes_ids = []
 processes_names = []
 
@@ -354,8 +354,8 @@ def convert_mwh_to_other_metrics(amount_of_mwh):
 def save_general_information_after_scanning():
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
         f.write('======After Scanning======\n')
-        if scanning_process_id is not None:
-            f.write(f'{PROCESS_ID_PHRASE}: {scanning_process_id}\n\n')
+        if main_process_id is not None:
+            f.write(f'{PROCESS_ID_PHRASE}: {main_process_id}\n\n')
 
         save_general_disk(f)
 
@@ -582,7 +582,7 @@ def terminate_due_to_exception(background_processes, program_name, err):
     done_scanning = True
 
     try:
-        p = psutil.Process(scanning_process_id)
+        p = psutil.Process(main_process_id)
         p.terminate()  # or p.kill()
     except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
@@ -594,7 +594,7 @@ def terminate_due_to_exception(background_processes, program_name, err):
 def scan_and_measure():
     global done_scanning
     global starting_time
-    global scanning_process_id
+    global main_process_id
     starting_time = time.time()
     while not main_program_to_scan == ProgramToScan.NO_SCAN and not done_scanning:
         main_powershell_process, scanning_process_id = start_process(program)
