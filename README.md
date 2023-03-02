@@ -1,8 +1,8 @@
 # GreenSecurity-FirstExperiment
 
-The main goal of this project is to understand the energy consumption of different antivirus scans, on each of the hardware components separately.
-This project measures various metrics of computer resource usage (such as: CPU usage, memory, disk and battery) while running anti virus scans. 
-We measure the resource usage of the whole system, and of each process separately. It is possible to easily configure program parameters inside the configuration file as detailed below.
+The main goal of this project is to understand the energy consumption of different cyber-security solutions (e.g. antivirus scans), on each of the hardware components separately.
+This project measures various metrics of computer resource usage (such as: CPU usage, memory, disk and battery) while running cyber-security scans. 
+We measure the resource usage of the whole system, and of each process separately. It is possible to easily configure program parameters inside the configuration file as detailed below. You can run multiple programs simultaneously. Both Windows and POSIX operation systems are supported.
 
 ## Preliminaries:
 1. Please use python 3.8.5. 
@@ -38,7 +38,7 @@ The main components of the code:
 9. Code will disable real time protection.
 10. Code will prevent device from sleeping and turning the screen off.
 11. Code will set screen brightness according to configuration file.
-12. Code will start defender scan and measure the device's resource consumption.
+12. Code will start the selected programs and measure the device's resource consumption.
 13. Code will save results into files.
 14. Code will back to default settings.
 
@@ -50,10 +50,11 @@ The main components of the code:
 5. `scan_type` - the type of antivirus scan, [see options](#scan-types).
 6. `custom_scan_path` - the directory / file to scan (for Custom scan only)
 7. `MINIMUM_DELTA_CAPACITY` - enables to define the minimum battery drop required before the code ends. Relevant only in continuous scan mode.
-8. `MINIMUM_SCAN_TIME` - enables to define the minimum time required for antivirus scans before the code ends. Relevant only in continuous scan mode.
+8. `RUNNING_TIME` - enables to define the exact time of measurements in one scan mode. in continuous scam it will be the minimum time for the measurements [see modes of execution](#modes-of-execution).
 9. `measurement_number` - if equals to NEW_MEASUREMENT, result will be saved in new folder. It is possible to define specific number
 10. `disable_real_time_protection_during_measurement` - if True, code will disable defender's real time protection during measurements and turn it on before ending. IMPORTANT - in this case, Tamper Protection MUST be turned off manually, and Scanner.py must run in admin mode
 11. `screen_brightness_level` - enables to define the brightness of screen - a value between 0 and 100
+12. `scanner_version` - define the metrics that will be measured [see options](#measurement-versions)
 
 ### Modes of Execution
 There are 3 modes of execution:
@@ -68,18 +69,38 @@ The results are saved in the relevant folders. the raw resource usage data is sa
 2. Quick scan - looks at all the locations where there could be malware registered to start with the system, such as registry keys and known Windows startup folders. Provides strong protection against malware that starts with the system and kernel-level malware. May take a few seconds or minutes.
 3. Custom scan - enables to scan exactly the files and folders that you select.
 
+
+### Measurement Versions
+1. FULL - measures battery, and for each process separately:  CPU usage, RAM usage, number of disk io reads and writes, size of disk io reads and writes
+2. LITE - identical to the full version except that this version does not measure the battery capacity
+3. WITHOUT_BATTERY - identical to the full version except that this version does not measure the battery capacity
+
+
 ### Power plans
 It is possible to configure the computer's power plan during measurements. The available plans:
 1. High Performance
 2. Balanced
 3. Power Saver
 
-
+### Available Programs
+This project currently supports the following programs (it is very easy to add another program - [perform the following steps](#supporting-additional-programs)):
+1. Windows Defender Antivirus
+2. Snort Intrusion Detection System (IDS)
+3. Suricata Intrusion Detection System (IDS)
+4. Windows Performance Monitor (another source to validate the measurements results)
+5. Typical User Activity (web browsing, edit a word document, etc.)
+6. Splunk
 
 
 ### For Developers:
 * use "git update-index --skip-worktree program_parameters.py" command to ignore changes in this file.
 * use "git update-index --no-skip-worktree program_parameters.py" command to resume tracking changes
+
+#### Supporting Additional Programs:
+1. in `general_consts.py` file - add your program in the enum called *ProgramToScan*
+2. in `program_parameters` file - add all the parameters that the user can configure in your program
+3. in `program class` file - add a class that represents your program and inherits from *ProgramInterface*. You ***MUST*** implement the funtions:  *get_program_name* and *get_command*. The function *get_command* returns a string which is the shell command that runs your program. You can implement any other function of *ProgramInterface*. Note that if you want to run your command in powershell (for Windows programs), implement the function *should_use_powershell* and return True.
+4. in `initialization_helper.py` file - add your program in the function called *program_to_scan_factory*
 
 ## Execution Example:
 1) When you want to run the windows defender antivirus and measure it's energy consumption when scanning a folder (in path dir) once, with no other processes running in the background, while the power mode of the computer should be power saver, you should change the next parameters in the file program_parameters.py:
