@@ -2,7 +2,7 @@ import os.path
 from program_parameters import *
 from program_classes import *
 from os_funcs import *
-from scanner_versions_imp import FullScanner, LiteScanner
+from scanner_versions_imp import FullScanner, LiteScanner, WithoutBatteryScanner
 
 # ======= Get Operating System Type =======
 running_os = None
@@ -16,6 +16,8 @@ if scanner_version == ScannerVersion.FULL:
     scanner_imp = FullScanner(running_os)
 elif scanner_version == ScannerVersion.LITE:
     scanner_imp = LiteScanner(running_os)
+elif scanner_version == ScannerVersion.WITHOUT_BATTERY:
+    scanner_imp = WithoutBatteryScanner(running_os)
 
 # ======= Power Plan Name and GUID (do not change) =======
 chosen_power_plan_name = power_plan[0]

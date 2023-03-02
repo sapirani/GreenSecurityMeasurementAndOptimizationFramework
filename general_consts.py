@@ -66,6 +66,7 @@ class ScanMode(Enum):
 class ScannerVersion(Enum):
     FULL = 1
     LITE = 2
+    WITHOUT_BATTERY = 3
     
 
 class PowerPlan:
@@ -127,7 +128,8 @@ class ProcessesColumns:
     WRITE_COUNT = "WRITE_IO(#)"
     READ_BYTES = "READ_IO(KB)"
     WRITE_BYTES = "WRITE_IO(KB)"
-    
+
+
 class TableNames():
     CPU = "total_cpu"
     DISK = "disk_io_each_moment"
@@ -137,3 +139,11 @@ class TableNames():
 
 def get_core_name(core_number):
     return f"{CPUColumns.CORE} {core_number}(%)"
+
+
+def get_scanner_version_name(scanner_version):
+    return {
+        ScannerVersion.FULL: "Full Scanner",
+        ScannerVersion.LITE: "Lite Scanner",
+        ScannerVersion.WITHOUT_BATTERY: "Without Battery Scanner"
+    }[scanner_version]

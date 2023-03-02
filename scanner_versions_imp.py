@@ -49,6 +49,7 @@ class FullScanner:
         :return: the time passed since starting the program
         """
         return time.time() - starting_time
+
     def scan_sleep(self,sec):
         time.sleep(sec)
 
@@ -62,10 +63,24 @@ class LiteScanner(FullScanner):
 
     def save_general_battery(self, f):
         pass
+
     def calc_time_interval(self, starting_time):
         """
         :return: the time passed since starting the program
         """
         return time.time()
+
     def scan_sleep(self, sec):
         time.sleep(0)
+
+
+class WithoutBatteryScanner(FullScanner):
+    def check_if_battery_plugged(self):
+        pass
+
+    def save_battery_stat(self, battery_df, time_interval):
+        pass
+
+    def save_general_battery(self, f):
+        pass
+

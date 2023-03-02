@@ -272,7 +272,8 @@ def save_general_information_before_scanning():
     """
     with open(GENERAL_INFORMATION_FILE, 'w') as f:
         # dd/mm/YY
-        f.write(f'Date: {date.today().strftime("%d/%m/%Y")}\n\n')
+        f.write(f'Date: {date.today().strftime("%d/%m/%Y")}\n')
+        f.write(f'Scanner Version: {get_scanner_version_name(scanner_version)}\n\n')
 
         # TODO: add background_programs general_information_before_measurement(f)
         program.general_information_before_measurement(f)
