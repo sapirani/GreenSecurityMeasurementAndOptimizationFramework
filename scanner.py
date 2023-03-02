@@ -790,7 +790,7 @@ def scan_and_measure():
         if scan_option == ScanMode.ONE_SCAN or (scan_time_passed() and is_delta_capacity_achieved()):
             # if there is no need in another iteration, exit this while and signal the measurement thread to stop
             done_scanning = True
-        if result != 0 and max_timeout_reached is False:
+        if result and max_timeout_reached is False:
             print(result)
             print(main_process)
             errs = main_process.stderr.read().decode()

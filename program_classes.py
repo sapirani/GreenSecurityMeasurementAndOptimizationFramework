@@ -207,9 +207,9 @@ class SplunkProgram(ProgramInterface):
     def kill_process(self, p, is_posix):
         print("extracting")
         #TODO Extraction doesnt working!
-        extract_command = f'splunk search "index=eventgen" -output csv -maxout 20000000 -auth shoueii:!sH231294'
+        extract_command = f'splunk search "index=eventgen" -output csv -maxout 20000000 -auth shoueii:sH231294'
         print(extract_command)
-        with open(rf"{self.results_path}\output.csv", 'w') as f:
+        with open(os.path.join(self.results_path,"output.csv"), 'w') as f:
             OSFuncsInterface.run(extract_command, self.should_use_powershell(), is_posix=is_posix, f=f)
             f.flush()
         # print(extract_process.stderr.read().decode('utf-8'))
@@ -232,8 +232,8 @@ class SplunkProgram(ProgramInterface):
     def find_child_id(self, p, is_posix) -> Union[int, None]:  #from python 3.10 - int | None:
         try:
             children = None
-            time.sleep(25)
-            # p.wait()
+            # time.sleep(25)
+            p.wait()
             result = OSFuncsInterface.run( "splunk status", self.should_use_powershell(), is_posix=is_posix)
             print(result)
             
