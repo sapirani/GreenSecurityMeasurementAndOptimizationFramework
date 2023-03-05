@@ -346,11 +346,11 @@ class LinuxOS(OSFuncsInterface):
         res_dimming = subprocess.run(f'sudo -H -u $SUDO_USER DISPLAY:=0 DBUS_SESSION_BUS_ADDRESS='
                                      f'unix:path=/run/user/$SUDO_UID/bus '
                                      f'gsettings set org.gnome.settings-daemon.plugins.power '
-                                     f'idle-dim {False if sleep_time == NEVER_GO_TO_SLEEP_MODE else True}',
+                                     f'idle-dim {"false" if sleep_time == NEVER_GO_TO_SLEEP_MODE else "true"}',
                                      capture_output=True, shell=True)
 
         if res_dimming.returncode != 0:
-            raise Exception(f'An error occurred while changing screen settings', res_dimming.stderr)
+            raise Exception(f'An error occurred while changing dimming settings', res_dimming.stderr)
 
         # avoid from going to sleep
         result_sleep = subprocess.run(f'sudo systemctl {"mask" if sleep_time == NEVER_GO_TO_SLEEP_MODE else "unmask"} '
