@@ -15,11 +15,11 @@ directory_type = "Duplicated Files"
 custom_scan_path = fr'"C:\Users\sagib\Downloads"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
 
-RUNNING_TIME = 1 * MINUTE    # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
+RUNNING_TIME = 30 * MINUTE    # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
 MINIMUM_DELTA_CAPACITY = 20     # in mWh
 
-measurement_number = 9001    # write number between 1->inf or type NEW_MEASUREMENT
+measurement_number = NEW_MEASUREMENT    # write number between 1->inf or type NEW_MEASUREMENT
 
 # MUST disable tamper protection manually for this feature to work
 disable_real_time_protection_during_measurement = False  # must use administrator permissions
