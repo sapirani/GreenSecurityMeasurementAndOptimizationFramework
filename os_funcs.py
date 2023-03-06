@@ -68,7 +68,7 @@ class OSFuncsInterface:
             if should_use_powershell or should_find_child_id:
                 pid = find_child_id_func(p, is_posix)
                 print(pid)
-                if pid is not None:
+                if pid is not None and not should_use_powershell:
                     p = psutil.Process(pid)
             return p, p.pid
 
@@ -333,7 +333,7 @@ class LinuxOS(OSFuncsInterface):
 
     def change_sleep_and_turning_screen_off_settings(self, screen_time=DEFAULT_SCREEN_TURNS_OFF_TIME,
                                                      sleep_time=DEFAULT_TIME_BEFORE_SLEEP_MODE):
-
+        # avoid turning the screen off (avoid suspend)
         result_screen = subprocess.run(f'sudo -H -u $SUDO_USER DISPLAY:=0 DBUS_SESSION_BUS_ADDRESS='
                                        f'unix:path=/run/user/$SUDO_UID/bus gsettings set org.gnome.desktop.session '
                                        f'idle-delay {screen_time * MINUTE}',
@@ -342,6 +342,17 @@ class LinuxOS(OSFuncsInterface):
         if result_screen.returncode != 0:
             raise Exception(f'An error occurred while changing screen settings', result_screen.stderr)
 
+        # avoid dimming when inactive
+        res_dimming = subprocess.run(f'sudo -H -u $SUDO_USER DISPLAY:=0 DBUS_SESSION_BUS_ADDRESS='
+                                     f'unix:path=/run/user/$SUDO_UID/bus '
+                                     f'gsettings set org.gnome.settings-daemon.plugins.power '
+                                     f'idle-dim {"false" if sleep_time == NEVER_GO_TO_SLEEP_MODE else "true"}',
+                                     capture_output=True, shell=True)
+
+        if res_dimming.returncode != 0:
+            raise Exception(f'An error occurred while changing dimming settings', res_dimming.stderr)
+
+        # avoid from going to sleep
         result_sleep = subprocess.run(f'sudo systemctl {"mask" if sleep_time == NEVER_GO_TO_SLEEP_MODE else "unmask"} '
                                       f'sleep.target suspend.target hibernate.target hybrid-sleep.target',
                                       capture_output=True, shell=True)
