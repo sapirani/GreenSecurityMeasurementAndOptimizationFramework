@@ -10,6 +10,6 @@ for index, p in enumerate(packets):
     clk = next_time
     sendp(p, verbose=False)
 
-    if (index + 1) % 40 == 0:
+    if (index + 1) % 500 == 0:
         print(f"sent {index + 1} packets (in total)")
 
