@@ -9,7 +9,7 @@ from datetime import date
 from pathlib import Path
 import screen_brightness_control as sbc
 
-base_dir, GRAPHS_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
+base_dir, GRAPHS_DIR, STDOUT_FILES_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
 BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, SUMMARY_CSV = result_paths()
 
 program.set_results_dir(base_dir)
@@ -653,9 +653,13 @@ def start_process(program_to_scan):
 
     program_to_scan.set_processes_ids(processes_ids)
 
-    shell_process, pid = OSFuncsInterface.popen(program_to_scan.get_command(), program_to_scan.find_child_id,
-                                                program_to_scan.should_use_powershell(), running_os.is_posix(),
-                                                program_to_scan.should_find_child_id())
+    # create file for stdout text
+    with open(f"{os.path.join(STDOUT_FILES_DIR, program_to_scan.get_program_name() + ' Stdout.txt')}", "a") as f:
+        shell_process, pid = OSFuncsInterface.popen(program_to_scan.get_command(), program_to_scan.find_child_id,
+                                                    program_to_scan.should_use_powershell(), running_os.is_posix(),
+                                                    program_to_scan.should_find_child_id(), f)
+
+        f.write(f"Process ID: {pid}\n\n")
 
     # save the process names and pids in global arrays
     if pid is not None:
@@ -664,6 +668,7 @@ def start_process(program_to_scan):
         iteration_num = len(finished_scanning_time) + 1
         processes_names.append(original_program_name if iteration_num == 1 else
                                f"{original_program_name} - iteration {iteration_num}")
+
 
     return shell_process, pid
 
@@ -846,6 +851,8 @@ def before_scanning_operations():
     psutil.cpu_percent()  # first call is meaningless
 
     Path(GRAPHS_DIR).mkdir(parents=True, exist_ok=True)  # create empty results dirs
+
+    Path(STDOUT_FILES_DIR).mkdir(parents=True, exist_ok=True)  # create empty results dirs
 
     save_general_information_before_scanning()
 
