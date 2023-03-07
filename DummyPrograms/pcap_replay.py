@@ -18,7 +18,7 @@ def send_packets(p):
     global packet_counter
     #print(p, packet_counter)
     if len(p) <= mtu:
-        sendp(p)
+        sendp(p, verbose=False)
     else:
         print(f"message is too long: {len(p)} bytes. Index: {packet_counter}")
     packet_counter += 1
