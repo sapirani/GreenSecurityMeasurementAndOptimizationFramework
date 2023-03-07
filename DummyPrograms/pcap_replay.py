@@ -2,7 +2,19 @@ from scapy.all import *
 import time
 import sys
 
-packets = rdpcap(sys.argv[1])
+packet_counter = 0
+
+
+def send_packets(p):
+    global packet_counter
+    print(p, packet_counter)
+    sendp(p)
+    packet_counter += 1
+
+
+sniff(offline=sys.argv[1], prn=send_packets)
+
+"""packets = rdpcap(sys.argv[1])
 clk = float(packets[0].time)
 for index, p in enumerate(packets):
     next_time = float(p.time)
@@ -11,5 +23,5 @@ for index, p in enumerate(packets):
     sendp(p, verbose=False)
 
     if (index + 1) % 500 == 0:
-        print(f"sent {index + 1} packets (in total)")
+        print(f"sent {index + 1} packets (in total)")"""
 
