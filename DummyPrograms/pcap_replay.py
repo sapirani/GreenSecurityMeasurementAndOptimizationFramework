@@ -2,7 +2,7 @@ from scapy.all import *
 import time
 import sys
 
-INTERFACE_NAME = ""
+INTERFACE_NAME = "wlp0s20f3"
 
 res = subprocess.run(f'cat /sys/class/net/{INTERFACE_NAME}/mtu', capture_output=True, shell=True)
 if res.returncode != 0:
