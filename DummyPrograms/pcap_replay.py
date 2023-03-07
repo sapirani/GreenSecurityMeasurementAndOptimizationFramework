@@ -7,8 +7,11 @@ packet_counter = 0
 
 def send_packets(p):
     global packet_counter
-    print(p, packet_counter)
-    sendp(p)
+    #print(p, packet_counter)
+    try:
+        sendp(p)
+    except OSError:
+        print(f"message is too long: {len(p)} bytes. Index: {packet_counter}")
     packet_counter += 1
 
 
