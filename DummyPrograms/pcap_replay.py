@@ -2,14 +2,14 @@ from scapy.all import *
 import time
 import sys
 
-"""INTERFACE_NAME = "wlp0s20f3"
+INTERFACE_NAME = "wlp0s20f3"
 
 res = subprocess.run(f'cat /sys/class/net/{INTERFACE_NAME}/mtu', capture_output=True, shell=True)
 if res.returncode != 0:
     raise Exception("cannot get the value of MTU", res.stderr)
 
-mtu = int(res.stdout.decode("utf-8"))"""
-mtu=1500
+mtu = int(res.stdout.decode("utf-8"))
+#mtu=1500
 clk = None
 
 packet_counter = 0
