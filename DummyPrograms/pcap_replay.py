@@ -2,15 +2,24 @@ from scapy.all import *
 import time
 import sys
 
+INTERFACE_NAME = ""
+
+res = subprocess.run(f'cat /sys/class/net/{INTERFACE_NAME}/mtu', capture_output=True, shell=True)
+if res.returncode != 0:
+    raise Exception("cannot get the value of MTU", res.stderr)
+
+mtu = int(res.stdout.decode("utf-8"))
+print(mtu)
+
 packet_counter = 0
 
 
 def send_packets(p):
     global packet_counter
     #print(p, packet_counter)
-    try:
+    if len(p) <= mtu:
         sendp(p)
-    except OSError:
+    else:
         print(f"message is too long: {len(p)} bytes. Index: {packet_counter}")
     packet_counter += 1
 
