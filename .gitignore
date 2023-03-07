@@ -7,4 +7,5 @@ ASUSTeK* COMPUTER*
 data
 session_log.log
 *.csv
+*.json
 .vscode

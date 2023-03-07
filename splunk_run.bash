@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# regex hadoop: ^[^,\n]*,\d+\s+(?P<log_level>\w+)\s+\[(?P<node_name>[^\]]+)\]\s+(?P<class_name>[^:]+)(:\s)(?P<msg>.*)$
 #run this bash like this: sudo -E env "PATH=$PATH" bash run.bash 
 export SPLUNK_HOME=/opt/splunk
 export PATH=$SPLUNK_HOME/bin:$PATH
@@ -21,4 +21,5 @@ for time_multiple in "${TIME_MULTIPLE_VALUES[@]}"; do
 
     # Wait for a few seconds before continuing the loop
     sleep 5
+    sudo chmod -R 777 Dell\ Inc.\ Linux\ 5.15.0-67-generic/
 done
