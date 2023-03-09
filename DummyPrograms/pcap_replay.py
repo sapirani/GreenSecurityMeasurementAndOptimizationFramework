@@ -3,6 +3,8 @@ import time
 import sys
 import platform
 
+from scapy.layers.inet import IP, ICMP, TCP
+
 INTERFACE_NAME = "wlp0s20f3"
 
 if platform.system() == "Linux":
@@ -25,6 +27,8 @@ def send_packets(p):
     global packet_counter
     global first_time
     global first_pcap_time
+    #print(p)
+    p[IP].src = '172.16.54.240'
 
     if len(p) <= mtu:
         next_time = float(p.time)
@@ -38,6 +42,9 @@ def send_packets(p):
         if wait_time > 0:
             time.sleep(wait_time)
         sendp(p, verbose=False)
+        #send(IP(src='172.16.3.10', dst='1.1.12.1') / ICMP())
+        #send(IP(dst='www.google.com') / TCP(dport=80, flags='S'))
+        print(p)
 
         if (packet_counter + 1) % 10 == 0:
             print(f"sent {packet_counter + 1} packets (in total)")
@@ -55,8 +62,9 @@ for index, p in enumerate(packets):
     next_time = float(p.time)
     time.sleep(next_time - clk)
     clk = next_time
+    #p[IP].src = '172.16.54.240'
     sendp(p, verbose=False)
 
-    if (index + 1) % 500 == 0:
+    if (index + 1) % 10 == 0:
         print(f"sent {index + 1} packets (in total)")"""
 
