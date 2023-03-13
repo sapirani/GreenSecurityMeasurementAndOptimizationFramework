@@ -111,6 +111,7 @@ def result_paths(is_scanner=True):
     """
     measurements_dir = os.path.join(base_dir, f"{MEASUREMENT_NAME_DIR} {calc_measurement_number(is_scanner)}")
     graphs_dir = os.path.join(measurements_dir, "graphs")
+    stdout_files_dir = os.path.join(measurements_dir, "stdouts")
 
     processes_csv = os.path.join(measurements_dir, 'processes_data.csv')
     total_memory_each_moment_csv = os.path.join(measurements_dir, 'total_memory_each_moment.csv')
@@ -124,7 +125,7 @@ def result_paths(is_scanner=True):
     for background_program in background_programs:
         background_program.set_results_dir(measurements_dir)
 
-    return measurements_dir, graphs_dir, processes_csv, total_memory_each_moment_csv, disk_io_each_moment,\
+    return measurements_dir, graphs_dir, stdout_files_dir, processes_csv, total_memory_each_moment_csv, disk_io_each_moment,\
         battery_status_csv, general_information_file, total_cpu_csv, summary_csv
 
 
