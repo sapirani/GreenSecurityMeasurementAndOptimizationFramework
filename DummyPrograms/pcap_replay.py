@@ -6,14 +6,17 @@ import psutil
 
 from threading import Timer
 
-sleep_times = [i / 20 for i in range(10)]
+max_packets_per_second = 20  # sending 20 packets every second
+number_of_levels = 10
+added_packets_in_each_level = max_packets_per_second / number_of_levels
+transmission_rate = 1 / max_packets_per_second
 
-from scapy.layers.inet import IP, ICMP, TCP
+sleep_times = [(transmission_rate * level) / (max_packets_per_second - level * added_packets_in_each_level)
+               for level in range(number_of_levels)]
 
-from scapy.layers.inet import ICMP
 MINUTE = 60
 TIME_LIMIT = 1 * MINUTE
-SLEEP_TIME_BETWEEN_PACKETS = sleep_times[9]   # 0 will send the packets with no sleep at all. 9 will send the packets in the lowest speed.
+SLEEP_TIME_BETWEEN_PACKETS = sleep_times[1]   # 0 will send the packets with no sleep at all. 9 will send the packets in the lowest speed.
 
 INTERFACE_NAME = "wlp0s20f3"
 
@@ -56,7 +59,7 @@ def send_packets(p):
         if wait_time > 0:
             time.sleep(wait_time)"""
         time.sleep(SLEEP_TIME_BETWEEN_PACKETS)
-        send(p.payload, verbose=False)
+        sendp(p, verbose=False)
         #send(IP(src='172.16.3.10', dst='1.1.12.1') / ICMP())
         #send(IP(dst='www.google.com') / TCP(dport=80, flags='S'))
 
