@@ -2,8 +2,16 @@ from scapy.all import *
 import time
 import sys
 import platform
+import psutil
+
+from threading import Timer
 
 from scapy.layers.inet import IP, ICMP, TCP
+
+from scapy.layers.inet import ICMP
+MINUTE = 60
+TIME_LIMIT = 10 * MINUTE
+SLEEP_TIME_BETWEEN_PACKETS = 0
 
 INTERFACE_NAME = "wlp0s20f3"
 
@@ -23,15 +31,19 @@ first_pcap_time = None
 packet_counter = 0
 
 
+t = Timer(TIME_LIMIT, lambda p: p.terminate(), [psutil.Process()])
+t.start()
+
+print("start")
+
+
 def send_packets(p):
     global packet_counter
     global first_time
     global first_pcap_time
-    #print(p)
-    p[IP].src = '172.16.54.240'
 
     if len(p) <= mtu:
-        next_time = float(p.time)
+        """next_time = float(p.time)
 
         if first_time is None:
             first_time = time.time()
@@ -40,13 +52,13 @@ def send_packets(p):
 
         wait_time = (next_time - first_pcap_time) - (time.time() - first_time)
         if wait_time > 0:
-            time.sleep(wait_time)
+            time.sleep(wait_time)"""
+        time.sleep(SLEEP_TIME_BETWEEN_PACKETS)
         sendp(p, verbose=False)
         #send(IP(src='172.16.3.10', dst='1.1.12.1') / ICMP())
         #send(IP(dst='www.google.com') / TCP(dport=80, flags='S'))
-        print(p)
 
-        if (packet_counter + 1) % 10 == 0:
+        if (packet_counter + 1) % 500 == 0:
             print(f"sent {packet_counter + 1} packets (in total)")
 
     else:
@@ -63,8 +75,8 @@ for index, p in enumerate(packets):
     time.sleep(next_time - clk)
     clk = next_time
     #p[IP].src = '172.16.54.240'
-    sendp(p, verbose=False)
+    send(p.payload, verbose=False)
+    print(p.payload)
 
     if (index + 1) % 10 == 0:
         print(f"sent {index + 1} packets (in total)")"""
-
