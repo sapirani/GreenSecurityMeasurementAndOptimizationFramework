@@ -13,7 +13,7 @@ from scapy.layers.inet import IP, ICMP, TCP
 from scapy.layers.inet import ICMP
 MINUTE = 60
 TIME_LIMIT = 1 * MINUTE
-SLEEP_TIME_BETWEEN_PACKETS = sleep_times[9]   # 0 will send the packets with no sleep at all. 9 will send the packets in the lowest speed.
+SLEEP_TIME_BETWEEN_PACKETS = sleep_times[1]   # 0 will send the packets with no sleep at all. 9 will send the packets in the lowest speed.
 
 INTERFACE_NAME = "wlp0s20f3"
 
@@ -56,11 +56,11 @@ def send_packets(p):
         if wait_time > 0:
             time.sleep(wait_time)"""
         time.sleep(SLEEP_TIME_BETWEEN_PACKETS)
-        send(p.payload, verbose=False)
+        sendp(p, verbose=False)
         #send(IP(src='172.16.3.10', dst='1.1.12.1') / ICMP())
         #send(IP(dst='www.google.com') / TCP(dport=80, flags='S'))
 
-        if (packet_counter + 1) % 10 == 0:
+        if (packet_counter + 1) % 500 == 0:
             print(f"sent {packet_counter + 1} packets (in total)")
 
     else:
