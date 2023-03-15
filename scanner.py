@@ -733,7 +733,7 @@ def kill_background_processes(background_processes):
         powershell_process.wait()
 
 
-def start_timeout(main_shell_process,is_posix):
+def start_timeout(main_shell_process, is_posix):
     """
     This function terminates the main process if its running time exceeds maximum allowed time
     :param main_shell_process: the process to terminate  
