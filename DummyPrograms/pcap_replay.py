@@ -6,8 +6,9 @@ import psutil
 
 from threading import Timer
 
-SPEED_LEVEL = 9     # 0 will send the packets with no sleep at all. 9 will send the packets in the lowest speed.
+SPEED_LEVEL = 5     # 0 will send the packets with no sleep at all. 9 will send the packets in the lowest speed.
 TO_PRINT_AFTER_NUMER_OF_PACKETS = 500
+
 
 max_packets_per_second = 20  # sending 20 packets every second
 number_of_levels = 10
