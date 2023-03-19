@@ -6,14 +6,21 @@ import psutil
 
 from threading import Timer
 
-sleep_times = [i / 20 for i in range(10)]
+SPEED_LEVEL = 5     # 0 will send the packets with no sleep at all. 9 will send the packets in the lowest speed.
+TO_PRINT_AFTER_NUMER_OF_PACKETS = 500
 
-from scapy.layers.inet import IP, ICMP, TCP
 
-from scapy.layers.inet import ICMP
+max_packets_per_second = 20  # sending 20 packets every second
+number_of_levels = 10
+added_packets_in_each_level = max_packets_per_second / number_of_levels
+transmission_rate = 1 / max_packets_per_second
+
+sleep_times = [(transmission_rate * level) / (max_packets_per_second - level * added_packets_in_each_level)
+               for level in range(number_of_levels)]
+
 MINUTE = 60
 TIME_LIMIT = 1 * MINUTE
-SLEEP_TIME_BETWEEN_PACKETS = sleep_times[1]   # 0 will send the packets with no sleep at all. 9 will send the packets in the lowest speed.
+SLEEP_TIME_BETWEEN_PACKETS = sleep_times[SPEED_LEVEL]
 
 INTERFACE_NAME = "wlp0s20f3"
 
@@ -33,7 +40,15 @@ first_pcap_time = None
 packet_counter = 0
 
 
-t = Timer(TIME_LIMIT, lambda p: p.terminate(), [psutil.Process()])
+def terminate_program(p):
+    global packet_counter
+    print("=====================================")
+    print("     total packets sent:", packet_counter + 1)
+    print("=====================================")
+    p.terminate()
+
+
+t = Timer(TIME_LIMIT, terminate_program, [psutil.Process()])
 t.start()
 
 print("start")
@@ -60,7 +75,7 @@ def send_packets(p):
         #send(IP(src='172.16.3.10', dst='1.1.12.1') / ICMP())
         #send(IP(dst='www.google.com') / TCP(dport=80, flags='S'))
 
-        if (packet_counter + 1) % 500 == 0:
+        if (packet_counter + 1) % TO_PRINT_AFTER_NUMER_OF_PACKETS == 0:
             print(f"sent {packet_counter + 1} packets (in total)")
 
     else:
