@@ -6,23 +6,27 @@ import psutil
 
 from threading import Timer
 
-SPEED_LEVEL = 5     # 0 will send the packets with no sleep at all. 9 will send the packets in the lowest speed.
+MINUTE = 60
+
+########## Parametrs To Change ##########
+TIME_LIMIT = 30 * MINUTE
+SPEED_LEVEL = 1  # 0 will send the packets with no sleep at all. 9 will send the packets in the lowest speed.
 TO_PRINT_AFTER_NUMER_OF_PACKETS = 500
+#########################################
 
 
-max_packets_per_second = 20  # sending 20 packets every second
+max_packets_per_second = 23.33333333  # sending 20 packets every second
 number_of_levels = 10
 added_packets_in_each_level = max_packets_per_second / number_of_levels
 transmission_rate = 1 / max_packets_per_second
 
-sleep_times = [(transmission_rate * level) / (max_packets_per_second - level * added_packets_in_each_level)
+sleep_times = [(transmission_rate * level * added_packets_in_each_level) / (max_packets_per_second - level * added_packets_in_each_level)
                for level in range(number_of_levels)]
 
-MINUTE = 60
-TIME_LIMIT = 1 * MINUTE
+
 SLEEP_TIME_BETWEEN_PACKETS = sleep_times[SPEED_LEVEL]
 
-INTERFACE_NAME = "wlp0s20f3"
+INTERFACE_NAME = "enx089204846f61"
 
 if platform.system() == "Linux":
     res = subprocess.run(f'cat /sys/class/net/{INTERFACE_NAME}/mtu', capture_output=True, shell=True)
