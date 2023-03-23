@@ -8,9 +8,9 @@ from threading import Timer
 
 MINUTE = 60
 
-########## Parametrs To Change ##########
-TIME_LIMIT = 30 * MINUTE
-SPEED_LEVEL = 1  # 0 will send the packets with no sleep at all. 9 will send the packets in the lowest speed.
+########## Parameters To Change ##########
+TIME_LIMIT = 20
+SPEED_LEVEL = 0  # 0 will send the packets with no sleep at all. 9 will send the packets in the lowest speed.
 TO_PRINT_AFTER_NUMER_OF_PACKETS = 500
 #########################################
 
@@ -42,13 +42,20 @@ else:
 first_time = None
 first_pcap_time = None
 packet_counter = 0
+big_packets_counter = 0
+
+
+def print_summary():
+    global big_packets_counter
+    global packet_counter
+    print("=====================================")
+    print("     total of packets sniffed:", packet_counter + 1)
+    print("     total of too big packets:", big_packets_counter + 1)
+    print("=====================================")
 
 
 def terminate_program(p):
-    global packet_counter
-    print("=====================================")
-    print("     total packets sent:", packet_counter + 1)
-    print("=====================================")
+    print_summary()
     p.terminate()
 
 
@@ -62,33 +69,26 @@ def send_packets(p):
     global packet_counter
     global first_time
     global first_pcap_time
+    global big_packets_counter
 
     if len(p) <= mtu:
-        """next_time = float(p.time)
-
-        if first_time is None:
-            first_time = time.time()
-            first_pcap_time = next_time
-            print("start")
-
-        wait_time = (next_time - first_pcap_time) - (time.time() - first_time)
-        if wait_time > 0:
-            time.sleep(wait_time)"""
-        time.sleep(SLEEP_TIME_BETWEEN_PACKETS)
         sendp(p, verbose=False)
-        #send(IP(src='172.16.3.10', dst='1.1.12.1') / ICMP())
-        #send(IP(dst='www.google.com') / TCP(dport=80, flags='S'))
+        time.sleep(SLEEP_TIME_BETWEEN_PACKETS)
 
         if (packet_counter + 1) % TO_PRINT_AFTER_NUMER_OF_PACKETS == 0:
             print(f"sent {packet_counter + 1} packets (in total)")
 
     else:
+        big_packets_counter += 1
         print(f"message is too long: {len(p)} bytes. Index: {packet_counter}")
     packet_counter += 1
 
 
 sniff(offline=sys.argv[1], prn=send_packets)
 t.cancel()
+print_summary()
+
+
 """packets = rdpcap(sys.argv[1])
 clk = float(packets[0].time)
 for index, p in enumerate(packets):
