@@ -56,6 +56,7 @@ class ProgramToScan(Enum):
     UserActivity = 6
     LogAnomalyDetection = 7
     Splunk = 8
+    CPUConsumer = 9
 
 
 class ScanMode(Enum):

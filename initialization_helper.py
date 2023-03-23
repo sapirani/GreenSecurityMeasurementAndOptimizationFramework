@@ -58,6 +58,8 @@ def program_to_scan_factory(program_type):
         return LogAnomalyDetection(model_name, model_action, script_relative_path, installation_dir)
     if program_type == ProgramToScan.Splunk:
         return SplunkProgram()
+    if program_type == ProgramToScan.CPUConsumer:
+        return CPUConsumer()
 
     raise Exception("choose program to scan from ProgramToScan enum")
 
