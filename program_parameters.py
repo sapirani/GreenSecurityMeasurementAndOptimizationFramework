@@ -2,9 +2,10 @@ from general_consts import *
 
 # ======= Scanner Parameters =======
 main_program_to_scan = ProgramToScan.ANTIVIRUS
-background_programs_types = [ProgramToScan.CPUConsumer, ProgramToScan.UserActivity]  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]#[ProgramToScan.Perfmon]
+background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]#[ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = False
+summary_version = SummaryVersion.DUDU
 
 scanner_version = ScannerVersion.FULL
 

@@ -1,4 +1,6 @@
 import os.path
+
+import SummaryVersionImp
 from program_parameters import *
 from program_classes import *
 from os_funcs import *
@@ -18,6 +20,12 @@ elif scanner_version == ScannerVersion.LITE:
     scanner_imp = LiteScanner(running_os)
 elif scanner_version == ScannerVersion.WITHOUT_BATTERY:
     scanner_imp = WithoutBatteryScanner(running_os)
+
+# ====== Get Summary Version ======
+if summary_version == SummaryVersion.DUDU:
+    summary_version_imp = SummaryVersionImp.DuduSummary()
+elif summary_version == SummaryVersion.OTHER:
+    summary_version_imp = SummaryVersionImp.OtherSummary()
 
 # ======= Power Plan Name and GUID (do not change) =======
 chosen_power_plan_name = power_plan[0]

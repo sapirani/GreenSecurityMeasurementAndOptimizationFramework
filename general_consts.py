@@ -68,7 +68,12 @@ class ScannerVersion(Enum):
     FULL = 1
     LITE = 2
     WITHOUT_BATTERY = 3
-    
+
+
+class SummaryVersion(Enum):
+    DUDU = 1
+    OTHER = 2
+
 
 class PowerPlan:
     BALANCED = ("Balanced Plan", "381b4222-f694-41f0-9685-ff5bb260df2e", None)

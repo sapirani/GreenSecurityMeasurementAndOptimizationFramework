@@ -9,7 +9,7 @@ from general_consts import (GB, MINUTE, NEVER_GO_TO_SLEEP_MODE,
                             NEVER_TURN_SCREEN_OFF, NO_BUTTON, YES_BUTTON,
                             PowerPlan, disk_types, pc_types,
                             physical_memory_types)
-from powershell_helper import get_powershell_result_list_format
+from general_functions import get_powershell_result_list_format
 from program_parameters import (DEFAULT_SCREEN_TURNS_OFF_TIME,
                                 DEFAULT_TIME_BEFORE_SLEEP_MODE, power_plan)
 
@@ -143,8 +143,8 @@ class WindowsOS(OSFuncsInterface):
         if result.returncode != 0:
             raise Exception(f'Could not get {program_name} version', result.stderr)
 
-        import powershell_helper
-        version_dict = powershell_helper.get_powershell_result_list_format(result.stdout)[0]
+        import general_functions
+        version_dict = general_functions.get_powershell_result_list_format(result.stdout)[0]
         f.write(f"Anti Malware Engine Version: {version_dict['AMEngineVersion']}\n")
         f.write(f"Anti Malware Client Version: {version_dict['AMProductVersion']}\n")
         f.write(f"Anti Malware Service Version: {version_dict['AMServiceVersion']}\n\n")

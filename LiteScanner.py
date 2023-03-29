@@ -12,7 +12,7 @@ import ctypes
 from datetime import date
 from pathlib import Path
 import screen_brightness_control as sbc
-from powershell_helper import get_powershell_result_list_format
+from general_functions import get_powershell_result_list_format
 import sys
 # ======= Constants =======
 logging.basicConfig(filename='session_log.log', encoding='utf-8', level=logging.DEBUG)
