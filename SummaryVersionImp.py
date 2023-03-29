@@ -31,6 +31,25 @@ class SummaryVersionInterface:
     def colors_func(self, df):
         return None
 
+    @staticmethod
+    def add_general_info(summary_df, num_of_processes, battery_df, sub_disk_df):
+        # TODO: merge cells to one
+
+        none_list = [None for _ in range(num_of_processes - 1)]
+
+        total_disk_read_time = sub_disk_df[DiskIOColumns.READ_TIME].sum()
+        total_disk_write_time = sub_disk_df[DiskIOColumns.WRITE_TIME].sum()
+        summary_df.loc[len(summary_df.index)] = ["Disk IO Read Time (ms - sum)", total_disk_read_time, *none_list]
+        summary_df.loc[len(summary_df.index)] = ["Disk IO Write Time (ms - sum)", total_disk_write_time, *none_list]
+
+        battery_drop = calc_delta_capacity(battery_df)
+        summary_df.loc[len(summary_df.index)] = ["Energy consumption - total energy(mwh)", battery_drop[0], *none_list]
+        summary_df.loc[len(summary_df.index)] = ["Battery Drop (%)", battery_drop[1], *none_list]
+        other_metrics = convert_mwh_to_other_metrics(battery_drop[0])
+        summary_df.loc[len(summary_df.index)] = ["Trees (KG)", other_metrics[3], *none_list]
+
+        return summary_df
+
 
 class DuduSummary(SummaryVersionInterface):
     def prepare_summary_csv(self, processes_df, cpu_df, memory_df, disk_io_each_moment_df, battery_df,
@@ -107,23 +126,7 @@ class DuduSummary(SummaryVersionInterface):
         summary_df.loc[len(summary_df.index)] = ["IO Write Count System (total - process) (# - sum)",
                                                  *write_count_total_without_process, system_write_count]
 
-        # TODO: merge cells to one
-        total_disk_read_time = sub_disk_df[DiskIOColumns.READ_TIME].sum()
-        total_disk_write_time = sub_disk_df[DiskIOColumns.WRITE_TIME].sum()
-        summary_df.loc[len(summary_df.index)] = ["Disk IO Read Time (ms - sum)",
-                                                 *([total_disk_read_time for _ in range(num_of_processes)])]
-        summary_df.loc[len(summary_df.index)] = ["Disk IO Write Time (ms - sum)",
-                                                 *([total_disk_write_time for _ in range(num_of_processes)])]
-
-        battery_drop = calc_delta_capacity(battery_df)
-        summary_df.loc[len(summary_df.index)] = ["Energy consumption - total energy(mwh)",
-                                                 *([battery_drop[0] for _ in range(num_of_processes)])]
-        summary_df.loc[len(summary_df.index)] = ["Battery Drop( %)",
-                                                 *([battery_drop[1] for _ in range(num_of_processes)])]
-        other_metrics = convert_mwh_to_other_metrics(battery_drop[0])
-        summary_df.loc[len(summary_df.index)] = ["Trees (KG)", *([other_metrics[3] for _ in range(num_of_processes)])]
-
-        return summary_df
+        return SummaryVersionInterface.add_general_info(summary_df, num_of_processes, battery_df, sub_disk_df)
 
     def colors_func(self, df):
         return ['background-color: #FFFFFF'] + \
@@ -181,23 +184,7 @@ class OtherSummary(SummaryVersionInterface):
         total_write_count = sub_disk_df[DiskIOColumns.WRITE_COUNT].sum()
         summary_df.loc[len(summary_df.index)] = ["IO Write Count (# - sum)", *all_process_write_count, total_write_count]
 
-        # TODO: merge cells to one
-        total_disk_read_time = sub_disk_df[DiskIOColumns.READ_TIME].sum()
-        total_disk_write_time = sub_disk_df[DiskIOColumns.WRITE_TIME].sum()
-        summary_df.loc[len(summary_df.index)] = ["Disk IO Read Time (ms - sum)",
-                                                 *([total_disk_read_time for _ in range(num_of_processes)])]
-        summary_df.loc[len(summary_df.index)] = ["Disk IO Write Time (ms - sum)",
-                                                 *([total_disk_write_time for _ in range(num_of_processes)])]
-
-        battery_drop = calc_delta_capacity(battery_df)
-        summary_df.loc[len(summary_df.index)] = ["Energy consumption - total energy(mwh)",
-                                                 *([battery_drop[0] for _ in range(num_of_processes)])]
-        summary_df.loc[len(summary_df.index)] = ["Battery Drop( %)",
-                                                 *([battery_drop[1] for _ in range(num_of_processes)])]
-        other_metrics = convert_mwh_to_other_metrics(battery_drop[0])
-        summary_df.loc[len(summary_df.index)] = ["Trees (KG)", *([other_metrics[3] for _ in range(num_of_processes)])]
-
-        return summary_df
+        return SummaryVersionInterface.add_general_info(summary_df, num_of_processes, battery_df, sub_disk_df)
 
 
     def colors_func(self, df):
