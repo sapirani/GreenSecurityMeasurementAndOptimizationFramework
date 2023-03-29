@@ -718,19 +718,46 @@ def terminate_due_to_exception(background_processes, program_name, err):
     raise Exception("An error occurred in child program %s: %s", program_name, err)
 
 
+def kill_process(child_process_id, powershell_process):
+    try:
+        if child_process_id is None:
+            powershell_process.kill()
+
+        else:
+            p = psutil.Process(child_process_id)
+            p.terminate()  # or p.kill()
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+
+
+def wait_and_write_running_time_to_file(child_process_id, powershell_process):
+    try:
+        if child_process_id is None:
+            powershell_process.wait()
+
+        else:
+            p = psutil.Process(child_process_id)
+            p.wait()  # or p.kill()
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+
+    print(scanner_imp.calc_time_interval(starting_time))
+
+
 def kill_background_processes(background_processes):
+    waiting_threads = []
     for (powershell_process, child_process_id), background_program in zip(background_processes, background_programs):
-        try:
-            if child_process_id is None:
-                powershell_process.kill()
+        if kill_background_process_when_main_finished:
+            kill_process(child_process_id, powershell_process)
 
-            else:
-                p = psutil.Process(child_process_id)
-                p.terminate()  # or p.kill()
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            pass
+        else:
+            wait_to_process_thread = Thread(target=wait_and_write_running_time_to_file, args=(child_process_id, powershell_process))
+            wait_to_process_thread.start()
+            waiting_threads.append(wait_to_process_thread)
 
-        powershell_process.wait()
+    for waiting_thread in waiting_threads:
+        waiting_thread.join()
+        # powershell_process.wait()
 
 
 def start_timeout(main_shell_process, is_posix):
@@ -785,6 +812,7 @@ def scan_and_measure():
         timeout_timer = start_timeout(main_process, running_os.is_posix())
         background_processes = start_background_processes()
         result = main_process.wait()
+
         cancel_timeout_timer(timeout_timer)
 
         # kill background programs after main program finished
