@@ -1,13 +1,13 @@
 from general_consts import *
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.ANTIVIRUS
+main_program_to_scan = ProgramToScan.IDS
 background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]#[ProgramToScan.Perfmon]
 
-kill_background_process_when_main_finished = False
+kill_background_process_when_main_finished = True
 summary_version = SummaryVersion.DUDU
 
-scanner_version = ScannerVersion.FULL
+scanner_version = ScannerVersion.WITHOUT_BATTERY
 
 power_plan = PowerPlan.POWER_SAVER
 scan_option = ScanMode.ONE_SCAN
@@ -17,9 +17,12 @@ file_type = "pdf"
 directory_type = "Duplicated Files"
 custom_scan_path = '""'
 #custom_scan_path = fr'"C:\Users\Administrator\Downloads"'
+
+custom_scan_path = '""'
+#custom_scan_path = fr'"C:\Users\Administrator\Downloads"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
 
-RUNNING_TIME = None # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
+RUNNING_TIME = 0.5 * MINUTE # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
 MINIMUM_DELTA_CAPACITY = 20     # in mWh
 
@@ -36,8 +39,8 @@ DEFAULT_TIME_BEFORE_SLEEP_MODE = 4
 
 # ==== IDS configurations
 ids_type = IDSType.SNORT
-pcap_list_dirs = ["/home/user/Downloads/Friday-WorkingHours.pcap"]         # enter list of pcap diretories. If you to wish sniff packets instead, enter empty list or None.
-interface_name = None    # "ens33"  #wlp0s20f3     # enter interface name to listen on or None if you want to use pcap files
+pcap_list_dirs = [] #["/home/user/Downloads/Friday-WorkingHours.pcap"]         # enter list of pcap diretories. If you to wish sniff packets instead, enter empty list or None.
+interface_name = "wlp0s20f3"    # "ens33"  #wlp0s20f3     # enter interface name to listen on or None if you want to use pcap files
 log_path = "/var/log/snort"
 configuration_file_path = "/etc/snort/snort.conf"
 
