@@ -22,7 +22,7 @@ class ProgramInterface:
 
     def get_command(self) -> str:
         pass
-    
+
     def on_exit(self):
         pass
 
@@ -43,7 +43,7 @@ class ProgramInterface:
 
     def set_processes_ids(self, processes_ids):
         self.processes_ids = processes_ids
-    
+
     def kill_process(self, p, is_posix):
         # global max_timeout_reached
         p.terminate()
@@ -54,7 +54,7 @@ class ProgramInterface:
 
     ######## probably not needed anymore because we don't start powershell process if not needed in popen
     ######## so the id of the process we are interested in is the pid returned from popen process
-    def find_child_id(self, p, is_posix) -> Union[int, None]:  #from python 3.10 - int | None:
+    def find_child_id(self, p, is_posix) -> Union[int, None]:  # from python 3.10 - int | None:
         # result_screen = subprocess.run(["powershell", "-Command", f'Get-WmiObject Win32_Process -Filter "ParentProcessID={process_pid}" | Select ProcessID'],
         #                               capture_output=True)
         # if result_screen.returncode != 0:
@@ -102,9 +102,9 @@ class AntivirusProgram(ProgramInterface):
     def get_command(self) -> Union[str, list]:
         custom_scan_query = "" if self.custom_scan_path is None else f" -ScanPath {self.custom_scan_path}"
         return f"Start-MpScan -ScanType {self.scan_type}" + custom_scan_query
-        #return ["powershell", "-Command", f"Start-MpScan -ScanType {self.scan_type}" + custom_scan_query]
-        #["powershell", "-Command", command]
-        #return '"C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.2210.6-0\\MpCmdRun.exe" -Scan -ScanType 1'
+        # return ["powershell", "-Command", f"Start-MpScan -ScanType {self.scan_type}" + custom_scan_query]
+        # ["powershell", "-Command", command]
+        # return '"C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.2210.6-0\\MpCmdRun.exe" -Scan -ScanType 1'
 
     def path_adjustments(self):
         return self.scan_type
@@ -164,8 +164,17 @@ class UserActivityProgram(ProgramInterface):
                f'"{os.path.join(self.results_path, "tasks_times.csv")}"'
 
 
+class CPUConsumer(ProgramInterface):
+    def get_program_name(self):
+        return "CPU Consumer"
+
+    def get_command(self) -> str:
+        return r"python DummyPrograms\CPUConsumer.py"
+
+
 class IDSProgram(ProgramInterface):
-    def __init__(self, interface_name, pcap_list_dirs, log_dir, configuration_file_path=None, installation_dir="C:\Program Files"):
+    def __init__(self, interface_name, pcap_list_dirs, log_dir, configuration_file_path=None,
+                 installation_dir="C:\Program Files"):
         super().__init__()
         self.interface_name = interface_name
         self.pcap_list_dirs = pcap_list_dirs
@@ -202,47 +211,47 @@ class SplunkProgram(ProgramInterface):
         return "Splunk Enterprise SIEM"
 
     def get_command(self) -> str:
-        return "splunk start" 
-    
+        return "splunk start"
+
     def kill_process(self, p, is_posix):
         print("extracting")
-        #TODO Extraction doesnt working!
+        # TODO Extraction doesnt working!
         extract_command = f'splunk search "index=eventgen" -output csv -maxout 20000000 -auth shoueii:sH231294'
         print(extract_command)
-        with open(os.path.join(self.results_path,"output.csv"), 'w') as f:
+        with open(os.path.join(self.results_path, "output.csv"), 'w') as f:
             OSFuncsInterface.run(extract_command, self.should_use_powershell(), is_posix=is_posix, f=f)
             f.flush()
         # print(extract_process.stderr.read().decode('utf-8'))
         # time.sleep(80)
         print("stopping")
-        OSFuncsInterface.run( "splunk stop", self.should_use_powershell(), is_posix=is_posix)
+        OSFuncsInterface.run("splunk stop", self.should_use_powershell(), is_posix=is_posix)
         time.sleep(30)
         print("cleaning")
-        OSFuncsInterface.run("splunk clean eventdata -index eventgen -f", self.should_use_powershell(), is_posix=is_posix)
-    
+        OSFuncsInterface.run("splunk clean eventdata -index eventgen -f", self.should_use_powershell(),
+                             is_posix=is_posix)
+
     def process_ignore_cond(self, p):
         return super(SplunkProgram, self).process_ignore_cond(p) or (not p.name().__contains__('splunk'))
-    
+
     # def should_use_powershell(self) -> bool:
     #     return True
     def should_find_child_id(self) -> bool:
         return True
 
-    
-    def find_child_id(self, p, is_posix) -> Union[int, None]:  #from python 3.10 - int | None:
+    def find_child_id(self, p, is_posix) -> Union[int, None]:  # from python 3.10 - int | None:
         try:
             children = None
             # time.sleep(25)
             p.wait()
-            result = OSFuncsInterface.run( "splunk status", self.should_use_powershell(), is_posix=is_posix)
+            result = OSFuncsInterface.run("splunk status", self.should_use_powershell(), is_posix=is_posix)
             print(result)
-            
+
             stdout = result.stdout.decode('utf-8')
             if is_posix:
-                run_match = re.search(f'(PID:\s*(\d+))',stdout)
+                run_match = re.search(f'(PID:\s*(\d+))', stdout)
             else:
-                run_match = re.search(f'(pid\s*(\d+))',stdout)
-                
+                run_match = re.search(f'(pid\s*(\d+))', stdout)
+
             # stop_match_linux = re.search(f'splunkd is not running.', stdout)
             # stop_match_windows = re.search(f'Splunkd: Stopped', stdout)
             if run_match:
@@ -253,7 +262,7 @@ class SplunkProgram(ProgramInterface):
                 raise Exception("Splunk didn't started correctly!")
         except psutil.NoSuchProcess:
             return None
-    
+
     def should_use_powershell(self) -> bool:
         return False
 
@@ -280,7 +289,7 @@ class PerfmonProgram(ProgramInterface):
 
     def get_command(self) -> str:
         def process_counters_variables(process_id):
-            #name = process_name.replace(".exe", "")
+            # name = process_name.replace(".exe", "")
 
             return f"""$proc_id{process_id}={process_id}
             $proc_path{process_id}=((Get-Counter "\\Process(*)\\ID Process").CounterSamples | ? {{$_.RawValue -eq $proc_id{process_id}}}).Path
@@ -318,7 +327,7 @@ class PerfmonProgram(ProgramInterface):
         "\\Power Meter(_Total)\\Power"
         Get-Counter -counter $gc -Continuous | Export-Counter -FileFormat "CSV" -Path "C:{self.results_path}\\perfmon.csv"'''
 
-        #return f'Get-Counter gc = "\\PhysicalDisk(_Total)\\Disk Reads/sec", "\\PhysicalDisk(_Total)\\Disk Writes/sec", "\\PhysicalDisk(_Total)\\Disk Read Bytes/sec", "\\PhysicalDisk(_Total)\\Disk Write Bytes/sec", "\\Processor(_Total)\\% Processor Time" Get-Counter -counter $gc -Continuous | Export-Counter -FileFormat "CSV" -Path "{self.results_path}\\perfmon.csv"'
+        # return f'Get-Counter gc = "\\PhysicalDisk(_Total)\\Disk Reads/sec", "\\PhysicalDisk(_Total)\\Disk Writes/sec", "\\PhysicalDisk(_Total)\\Disk Read Bytes/sec", "\\PhysicalDisk(_Total)\\Disk Write Bytes/sec", "\\Processor(_Total)\\% Processor Time" Get-Counter -counter $gc -Continuous | Export-Counter -FileFormat "CSV" -Path "{self.results_path}\\perfmon.csv"'
 
-    def find_child_id(self, p, is_posix) -> Union[int, None]:  #from python 3.10 - int | None:
+    def find_child_id(self, p, is_posix) -> Union[int, None]:  # from python 3.10 - int | None:
         return None

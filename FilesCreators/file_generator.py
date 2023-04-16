@@ -12,7 +12,7 @@ JPG_NAME = "jpg files"
 POWERPOINT_NAME = "power point files"
 TEXT_DIR_NAME = "text files"
 DOC_DIR_NAME = "doc files"
-NUMBER_OF_FILES = 10000
+NUMBER_OF_FILES = 1000000
 
 KB = 2**10
 MB = 2**20
@@ -35,7 +35,7 @@ def generator(generate_file_func, dir_name, base_file_name, file_ending):
 
 def generate_text(full_dir):
     with open(f'{full_dir}', 'w') as f:
-        f.write(rand_letters(random.randint(0.5 * MB, MB)))
+        f.write(rand_letters(random.randint(0.5 * KB, KB)))
 
 
 def generate_jpg(full_dir):
