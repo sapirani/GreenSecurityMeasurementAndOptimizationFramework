@@ -13,14 +13,14 @@ power_plan = PowerPlan.POWER_SAVER
 scan_option = ScanMode.ONE_SCAN
 scan_type = ScanType.CUSTOM_SCAN  # relevant only for one scan or continuous scan
 
-antivirus_type = AntivirusType.DEFENDER
+antivirus_type = AntivirusType.ClamAV
 
 file_type = "pdf"
 directory_type = "Duplicated Files"
 #custom_scan_path = r'""'
 #custom_scan_path = r'"C:\Users\sagib\Downloads"'
 #custom_scan_path = r'"C:\Users\sagib\OneDrive\Desktop"'
-custom_scan_path = fr'"C:\Users\Administrator\Downloads"'
+custom_scan_path = fr'"C:\Program Files\ClamAV"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
 
 RUNNING_TIME = None # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode

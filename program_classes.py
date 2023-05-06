@@ -148,7 +148,7 @@ class ClamAVProgram(AntivirusProgram):
         else:
             raise Exception(f"{self.scan_type} is not supported in {self.get_program_name()}")
 
-        return f"clamscan.exe --recursive {path_to_scan}"
+        return fr'"C:\Program Files\ClamAV\clamscan.exe" --recursive {path_to_scan}'
 
 
 class LogAnomalyDetection(ProgramInterface):
