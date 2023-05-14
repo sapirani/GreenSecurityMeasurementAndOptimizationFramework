@@ -1,3 +1,4 @@
+import array
 arr = [1] * 10000
 
 while True:

@@ -198,6 +198,26 @@ class CPUConsumer(ProgramInterface):
         return r"python DummyPrograms\CPUConsumer.py"
 
 
+class MemoryConsumer(ProgramInterface):
+    def get_program_name(self):
+        return "Memory Consumer"
+
+    def get_command(self) -> str:
+        return r"python DummyPrograms\DummyMemoryConsumer.py"
+
+
+class IOWriteConsumer(ProgramInterface):
+    def __init__(self, directory_path):
+        super().__init__()
+        self.directory_path = directory_path
+
+    def get_program_name(self):
+        return "IO Write Dummy"
+
+    def get_command(self) -> str:
+        return f"python {os.path.join('FilesCreators', 'file_generator.py')} {self.directory_path}"
+
+
 class IDSProgram(ProgramInterface):
     def __init__(self, interface_name, pcap_list_dirs, log_dir, configuration_file_path=None,
                  installation_dir="C:\Program Files"):
