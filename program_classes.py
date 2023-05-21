@@ -191,11 +191,52 @@ class UserActivityProgram(ProgramInterface):
 
 
 class CPUConsumer(ProgramInterface):
+    def __init__(self, cpu_percent_to_consume, running_time):
+        super().__init__()
+        self.cpu_percent_to_consume = cpu_percent_to_consume
+        if running_time is None:
+            self.running_time = 10 * MINUTE
+        else:
+            self.running_time = running_time
+
     def get_program_name(self):
         return "CPU Consumer"
 
     def get_command(self) -> str:
-        return r"python DummyPrograms\CPUConsumer.py"
+        return rf"python DummyPrograms\CPUConsumer.py {self.cpu_percent_to_consume} {self.running_time}"
+
+
+class MemoryConsumer(ProgramInterface):
+    def __init__(self, memory_chunk_size, consumption_speed, running_time):
+        super().__init__()
+        self.memory_chunk_size = memory_chunk_size
+        self.consumption_speed = consumption_speed
+        if running_time is None:
+            self.running_time = 10 * MINUTE
+        else:
+            self.running_time = running_time
+
+    def general_information_before_measurement(self, f):
+        f.write(f"Memory Consumer - chunk size: {self.memory_chunk_size} bytes,"
+                f" speed: {self.consumption_speed} bytes per second\n\n")
+
+    def get_program_name(self):
+        return "Memory Consumer"
+
+    def get_command(self) -> str:
+        return fr"python DummyPrograms\DummyMemoryConsumer.py {self.memory_chunk_size} {self.consumption_speed} {self.running_time}"
+
+
+class IOWriteConsumer(ProgramInterface):
+    def __init__(self, directory_path):
+        super().__init__()
+        self.directory_path = directory_path
+
+    def get_program_name(self):
+        return "IO Write Dummy"
+
+    def get_command(self) -> str:
+        return f"python {os.path.join('FilesCreators', 'file_generator.py')} {self.directory_path}"
 
 
 class IDSProgram(ProgramInterface):
@@ -244,7 +285,13 @@ class SplunkProgram(ProgramInterface):
         # TODO Extraction doesnt working!
         extract_command = f'splunk search "index=eventgen" -output csv -maxout 20000000 -auth shoueii:sH231294'
         print(extract_command)
-        with open(os.path.join(self.results_path, "output.csv"), 'w') as f:
+        with open(os.path.join(self.results_path,"processes.txt"), 'w') as f:
+            OSFuncsInterface.run( "pgrep -a splunk", self.should_use_powershell(), is_posix=is_posix, f=f)
+        with open(os.path.join(self.results_path,"logs_output.csv"), 'w') as f:
+            OSFuncsInterface.run(extract_command, self.should_use_powershell(), is_posix=is_posix, f=f)
+            f.flush()
+        extract_command = f'splunk search "index=main" -output csv -maxout 20000000 -auth shoueii:sH231294'
+        with open(os.path.join(self.results_path,"alerts_output.csv"), 'w') as f:
             OSFuncsInterface.run(extract_command, self.should_use_powershell(), is_posix=is_posix, f=f)
             f.flush()
         # print(extract_process.stderr.read().decode('utf-8'))
@@ -253,9 +300,9 @@ class SplunkProgram(ProgramInterface):
         OSFuncsInterface.run("splunk stop", self.should_use_powershell(), is_posix=is_posix)
         time.sleep(30)
         print("cleaning")
-        OSFuncsInterface.run("splunk clean eventdata -index eventgen -f", self.should_use_powershell(),
-                             is_posix=is_posix)
-
+        OSFuncsInterface.run("splunk clean eventdata -index eventgen -f", self.should_use_powershell(), is_posix=is_posix)
+        OSFuncsInterface.run("splunk clean eventdata -index main -f", self.should_use_powershell(), is_posix=is_posix)
+    
     def process_ignore_cond(self, p):
         return super(SplunkProgram, self).process_ignore_cond(p) or (not p.name().__contains__('splunk'))
 
@@ -267,7 +314,7 @@ class SplunkProgram(ProgramInterface):
     def find_child_id(self, p, is_posix) -> Union[int, None]:  # from python 3.10 - int | None:
         try:
             children = None
-            # time.sleep(25)
+            # time.sleep(40)
             p.wait()
             result = OSFuncsInterface.run("splunk status", self.should_use_powershell(), is_posix=is_posix)
             print(result)
@@ -275,6 +322,7 @@ class SplunkProgram(ProgramInterface):
             stdout = result.stdout.decode('utf-8')
             if is_posix:
                 run_match = re.search(f'(PID:\s*(\d+))', stdout)
+                print(run_match)
             else:
                 run_match = re.search(f'(pid\s*(\d+))', stdout)
 

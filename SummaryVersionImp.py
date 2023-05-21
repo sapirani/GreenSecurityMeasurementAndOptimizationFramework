@@ -86,6 +86,12 @@ class DuduSummary(SummaryVersionInterface):
         summary_df.loc[len(summary_df.index)] = ["Memory Total (total - process) (MB)", *memory_total_without_process,
                                                  system_memory]
 
+        # Page Faults
+        my_processes_page_faults = [pd.to_numeric(df[ProcessesColumns.PAGE_FAULTS]).sum() for df in all_processes_df]
+        page_faults_all_processes = pd.to_numeric(processes_df[ProcessesColumns.PAGE_FAULTS]).sum()
+        page_faults_system = page_faults_all_processes - sum(my_processes_page_faults)
+        summary_df.loc[len(summary_df.index)] = ["Page Faults", *my_processes_page_faults, page_faults_system]
+
         # IO Read Bytes
         all_process_read_bytes = [pd.to_numeric(df[ProcessesColumns.READ_BYTES]).sum() for df in all_processes_df]
         total_read_bytes = sub_disk_df[DiskIOColumns.READ_BYTES].sum()
@@ -130,7 +136,7 @@ class DuduSummary(SummaryVersionInterface):
 
     def colors_func(self, df):
         return ['background-color: #FFFFFF'] + \
-               ['background-color: #ffff00' for _ in range(2)] + ['background-color: #9CC2E5' for _ in range(2)] + \
+               ['background-color: #ffff00' for _ in range(2)] + ['background-color: #9CC2E5' for _ in range(3)] + \
                ['background-color: #66ff66' for _ in range(4)] + ['background-color: #70ad47' for _ in range(4)] + \
                ['background-color: #cc66ff' for _ in range(2)] + ['background-color: #ffc000' for _ in range(2)] + \
                ['background-color: #FFFFFF']
@@ -164,6 +170,11 @@ class OtherSummary(SummaryVersionInterface):
         total_memory = sub_memory_df[MemoryColumns.USED_MEMORY].mean() * KB
         summary_df.loc[len(summary_df.index)] = ["Memory (MB)", *all_process_memory, total_memory]
 
+        # Page Faults
+        my_processes_page_faults = [pd.to_numeric(df[ProcessesColumns.PAGE_FAULTS]).sum() for df in all_processes_df]
+        page_faults_all_processes = pd.to_numeric(processes_df[ProcessesColumns.PAGE_FAULTS]).sum()
+        summary_df.loc[len(summary_df.index)] = ["Page Faults", *my_processes_page_faults, page_faults_all_processes]
+
         # IO Read Bytes
         all_process_read_bytes = [pd.to_numeric(df[ProcessesColumns.READ_BYTES]).sum() for df in all_processes_df]
         total_read_bytes = sub_disk_df[DiskIOColumns.READ_BYTES].sum()
@@ -189,7 +200,7 @@ class OtherSummary(SummaryVersionInterface):
 
     def colors_func(self, df):
         return ['background-color: #FFFFFF'] + \
-               ['background-color: #ffff00' for _ in range(1)] + ['background-color: #9CC2E5' for _ in range(1)] + \
+               ['background-color: #ffff00' for _ in range(1)] + ['background-color: #9CC2E5' for _ in range(2)] + \
                ['background-color: #66ff66' for _ in range(2)] + ['background-color: #70ad47' for _ in range(2)] + \
                ['background-color: #cc66ff' for _ in range(2)] + ['background-color: #ffc000' for _ in range(2)] + \
                ['background-color: #FFFFFF']
