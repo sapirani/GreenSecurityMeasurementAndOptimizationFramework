@@ -191,11 +191,19 @@ class UserActivityProgram(ProgramInterface):
 
 
 class CPUConsumer(ProgramInterface):
+    def __init__(self, cpu_percent_to_consume, running_time):
+        super().__init__()
+        self.cpu_percent_to_consume = cpu_percent_to_consume
+        if running_time is None:
+            self.running_time = 10 * MINUTE
+        else:
+            self.running_time = running_time
+
     def get_program_name(self):
         return "CPU Consumer"
 
     def get_command(self) -> str:
-        return r"python DummyPrograms\CPUConsumer.py"
+        return rf"python DummyPrograms\CPUConsumer.py {self.cpu_percent_to_consume} {self.running_time}"
 
 
 class IDSProgram(ProgramInterface):

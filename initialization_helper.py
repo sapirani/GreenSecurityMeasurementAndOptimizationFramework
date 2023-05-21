@@ -69,7 +69,7 @@ def program_to_scan_factory(program_type):
     if program_type == ProgramToScan.Splunk:
         return SplunkProgram()
     if program_type == ProgramToScan.CPUConsumer:
-        return CPUConsumer()
+        return CPUConsumer(cpu_percent_to_consume, RUNNING_TIME)
 
     raise Exception("choose program to scan from ProgramToScan enum")
 
