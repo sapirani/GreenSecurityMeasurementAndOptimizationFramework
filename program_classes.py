@@ -203,7 +203,7 @@ class CPUConsumer(ProgramInterface):
         return "CPU Consumer"
 
     def get_command(self) -> str:
-        return rf"python DummyPrograms\CPUConsumer.py {self.cpu_percent_to_consume} {self.running_time}"
+        return rf"python {os.path.join('DummyPrograms', 'CPUConsumer.py')} {self.cpu_percent_to_consume} {self.running_time}"
 
 
 class MemoryConsumer(ProgramInterface):
@@ -224,7 +224,7 @@ class MemoryConsumer(ProgramInterface):
         return "Memory Consumer"
 
     def get_command(self) -> str:
-        return fr"python DummyPrograms\DummyMemoryConsumer.py {self.memory_chunk_size} {self.consumption_speed} {self.running_time}"
+        return fr"python {os.path.join('DummyPrograms', 'DummyMemoryConsumer.py')} {self.memory_chunk_size} {self.consumption_speed} {self.running_time}"
 
 
 class IOWriteConsumer(ProgramInterface):
