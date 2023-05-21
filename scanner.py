@@ -682,4 +682,5 @@ def main():
 
 
 if __name__ == '__main__':
+    running_os.get_page_faults(1)
     main()

@@ -409,6 +409,19 @@ class LinuxOS(OSFuncsInterface):
 
         # "echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
 
+    def get_page_faults(self, pid):
+        # this is the command to switch to performance plan
+        res = subprocess.run(f"ps -o min_flt, maj_flt {pid}",
+                             capture_output=True, shell=True)
+
+        faults_res = res.stdout.decode("utf-8").strip().split("\n")[1].split()
+        minor_faults, major_faults = int(faults_res[0].strip()), int(faults_res[1].strip())
+        print("minor_faults", minor_faults)
+        print("major_faults", major_faults)
+
+        if res.returncode != 0:
+            raise Exception(f'An error occurred while changing power plan', res.stderr)
+
     def get_chosen_power_plan_identifier(self):
         return power_plan[2]
 
