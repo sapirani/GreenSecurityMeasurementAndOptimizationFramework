@@ -70,6 +70,11 @@ def program_to_scan_factory(program_type):
         return SplunkProgram()
     if program_type == ProgramToScan.CPUConsumer:
         return CPUConsumer(cpu_percent_to_consume, RUNNING_TIME)
+        return CPUConsumer()
+    if program_type == ProgramToScan.MemoryConsumer:
+        return MemoryConsumer()
+    if program_type == ProgramToScan.IOWriteConsumer:
+        return IOWriteConsumer(custom_scan_path)
 
     raise Exception("choose program to scan from ProgramToScan enum")
 
