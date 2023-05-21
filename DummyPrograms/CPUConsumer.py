@@ -40,7 +40,7 @@ def consume_cpu(percentage):
     desired_consumption_between_0_to_1 = percentage / 100
     while True:
         inter_num += 1
-        if time.time() - initial_time > int(sys.argv[2]):   # exit program -
+        if time.time() - initial_time > int(sys.argv[2]):   # exit program
             return
 
         start_time = time.time()
@@ -76,6 +76,8 @@ def divide_consumption_to_processes(cpu_consumption):
         return processes_num + 3, process_cpu
 
 
+# First argument - cpu_percent
+# Second argument - running time
 if __name__ == '__main__':
     processes = []
     num_of_processes, cpu_consumption_per_process = divide_consumption_to_processes(int(sys.argv[1]))

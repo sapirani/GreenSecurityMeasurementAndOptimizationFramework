@@ -207,11 +207,24 @@ class CPUConsumer(ProgramInterface):
 
 
 class MemoryConsumer(ProgramInterface):
+    def __init__(self, memory_chunk_size, consumption_speed, running_time):
+        super().__init__()
+        self.memory_chunk_size = memory_chunk_size
+        self.consumption_speed = consumption_speed
+        if running_time is None:
+            self.running_time = 10 * MINUTE
+        else:
+            self.running_time = running_time
+
+    def general_information_before_measurement(self, f):
+        f.write(f"Memory Consumer - chunk size: {self.memory_chunk_size} bytes,"
+                f" speed: {self.consumption_speed} bytes per second\n\n")
+
     def get_program_name(self):
         return "Memory Consumer"
 
     def get_command(self) -> str:
-        return r"python DummyPrograms\DummyMemoryConsumer.py"
+        return fr"python DummyPrograms\DummyMemoryConsumer.py {self.memory_chunk_size} {self.consumption_speed} {self.running_time}"
 
 
 class IOWriteConsumer(ProgramInterface):

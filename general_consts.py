@@ -11,6 +11,7 @@ PROCESS_ID_PHRASE = "Main Process ID"
 BACKGROUND_ID_PHRASE = "Background Processes IDs"
 NUMBER_OF_CORES = psutil.cpu_count()
 
+SECOND = 1
 MINUTE = 60
 
 NEVER_TURN_SCREEN_OFF = 0
@@ -141,6 +142,7 @@ class ProcessesColumns:
     WRITE_COUNT = "WRITE_IO(#)"
     READ_BYTES = "READ_IO(KB)"
     WRITE_BYTES = "WRITE_IO(KB)"
+    PAGE_FAULTS = "PAGE_FAULTS"
 
 
 class TableNames():

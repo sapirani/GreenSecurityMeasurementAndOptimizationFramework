@@ -1,8 +1,8 @@
 from general_consts import *
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.CPUConsumer
-background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]#[ProgramToScan.Perfmon]
+main_program_to_scan = ProgramToScan.MemoryConsumer
+background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = True
 summary_version = SummaryVersion.OTHER
@@ -23,7 +23,7 @@ directory_type = "Duplicated Files"
 custom_scan_path = fr'"C:\Users\Administrator\Desktop\GreenSecurity-FirstExperiment"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
 
-RUNNING_TIME = 120 # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
+RUNNING_TIME = 60 # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
 MINIMUM_DELTA_CAPACITY = 20     # in mWh
 
@@ -51,4 +51,9 @@ script_relative_path = r"demo.deeplog"
 installation_dir = r"C:\Users\Administrator\Repositories"
 model_action = 'predict'# train or predict
 
+# For CPU CONSUMER program
 cpu_percent_to_consume = 20
+
+# For MEMORY CONSUMER program
+memory_chunk_size = 1 * MB
+consumption_speed = 10 * MB / SECOND
