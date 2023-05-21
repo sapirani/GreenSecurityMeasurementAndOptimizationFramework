@@ -421,7 +421,7 @@ class LinuxOS(OSFuncsInterface):
         res = subprocess.run(f"ps -o min_flt,maj_flt {psutil_process.pid}",
                              capture_output=True, shell=True)
 
-        if res.returncode != 0:
+        if res.returncode != 0 and psutil.pid_exists(psutil_process.pid):
             raise Exception(f'An error occurred while getting process {psutil_process.pid} page faults', res.stderr)
 
         faults_res = res.stdout.decode("utf-8").strip().split("\n")[1].split()
