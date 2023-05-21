@@ -60,6 +60,10 @@ class OSFuncsInterface:
     def get_computer_info(self):
         pass
 
+    @abstractmethod
+    def get_page_faults(self, psutil_process):
+        pass
+
     @staticmethod
     def popen(command, find_child_id_func, should_use_powershell, is_posix, should_find_child_id=False, f=subprocess.PIPE):
         def process_obj_and_pid(command_lst):
@@ -182,6 +186,9 @@ class WindowsOS(OSFuncsInterface):
 
         # return bool(re.search("IsTamperProtected\s*:\sTrue", str(result.stdout)))
         return get_powershell_result_list_format(result.stdout)[0]["IsTamperProtected"] == "True"
+
+    def get_page_faults(self, psutil_process):
+        return psutil_process.memory_info().num_page_faults
 
     def change_power_plan(self, name, identifier):
         result = subprocess.run(["powershell", "-Command", "powercfg /s " + identifier], capture_output=True)
@@ -409,18 +416,17 @@ class LinuxOS(OSFuncsInterface):
 
         # "echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
 
-    def get_page_faults(self, pid):
+    def get_page_faults(self, psutil_process):
         # this is the command to switch to performance plan
-        res = subprocess.run(f"ps -o min_flt, maj_flt {pid}",
+        res = subprocess.run(f"ps -o min_flt,maj_flt {psutil_process.pid}",
                              capture_output=True, shell=True)
+
+        if res.returncode != 0:
+            raise Exception(f'An error occurred while getting process {psutil_process.pid} page faults', res.stderr)
 
         faults_res = res.stdout.decode("utf-8").strip().split("\n")[1].split()
         minor_faults, major_faults = int(faults_res[0].strip()), int(faults_res[1].strip())
-        print("minor_faults", minor_faults)
-        print("major_faults", major_faults)
-
-        if res.returncode != 0:
-            raise Exception(f'An error occurred while changing power plan', res.stderr)
+        return minor_faults + major_faults
 
     def get_chosen_power_plan_identifier(self):
         return power_plan[2]

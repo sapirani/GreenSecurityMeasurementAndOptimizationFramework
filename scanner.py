@@ -128,7 +128,7 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_data_per_process):
             # oneshot to improve info retrieve efficiency
             with p.oneshot():
                 io_stat = p.io_counters()
-                page_faults = p.memory_info().num_page_faults
+                page_faults = running_os.get_page_faults(p)
 
                 if (p.pid, p.name()) not in prev_data_per_process:
                     prev_data_per_process[(p.pid, p.name())] = io_stat, page_faults
@@ -683,5 +683,4 @@ def main():
 
 
 if __name__ == '__main__':
-    running_os.get_page_faults(1)
     main()
