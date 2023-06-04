@@ -1,4 +1,5 @@
 import shutil
+import warnings
 
 from statistics import mean
 from prettytable import PrettyTable
@@ -597,7 +598,8 @@ def scan_and_measure():
             print(main_process)
             errs = main_process.stderr.read().decode()
             after_scanning_operations(should_save_results=False)
-            raise Exception("An error occurred while scanning: %s", errs)
+            #raise Exception("An error occurred while scanning: %s", errs)
+            warnings.warn(f"An error occurred while scanning: {errs}", RuntimeWarning)
 
     # wait for measurement
     measurements_thread.join()
