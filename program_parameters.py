@@ -13,6 +13,7 @@ power_plan = PowerPlan.POWER_SAVER
 scan_option = ScanMode.ONE_SCAN
 scan_type = ScanType.QUICK_SCAN  # relevant only for one scan or continuous scan
 
+no_process_programs = {ProgramToScan.NO_SCAN, ProgramToScan.Splunk}
 file_type = "pdf"
 directory_type = "Duplicated Files"
 custom_scan_path = '""'
@@ -24,7 +25,7 @@ custom_scan_path = '""'
 # Set the running time in minutes
 
 # Convert the running time to seconds
-RUNNING_TIME = 34
+RUNNING_TIME = 15
 RUNNING_TIME *= MINUTE # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
 MINIMUM_DELTA_CAPACITY = 20     # in mWh

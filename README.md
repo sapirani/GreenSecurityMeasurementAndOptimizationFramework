@@ -12,7 +12,7 @@ We measure the resource usage of the whole system, and of each process separatel
    `pip install -r requirements.txt`
    In Linux:
    `sudo pip install -r requirements.txt`
-
+   (For ignoring failing use: `cat requirements.txt | xargs -n 1 pip install`)
 2. To get optimal results, make sure that:
    * Any unnecessary program is closed (including background processes)
    * All result files are closed

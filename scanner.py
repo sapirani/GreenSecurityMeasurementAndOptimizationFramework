@@ -170,7 +170,7 @@ def scan_time_passed():
 def save_data_when_too_low_battery():
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
         f.write("EARLY TERMINATION DUE TO LOW BATTERY!!!!!!!!!!\n\n")
-    finished_scanning_time.append(scanner_imp.calc_time_interval(starting_time))
+    finished_scanning_time.append(FullScanner.calc_time_interval(scanner_imp, starting_time))
     save_results_to_files()
 
 
@@ -184,7 +184,7 @@ def should_scan():
         save_data_when_too_low_battery()
         return False
 
-    if main_program_to_scan == ProgramToScan.NO_SCAN:
+    if main_program_to_scan in no_process_programs:
         return not scan_time_passed()
     elif scan_option == ScanMode.ONE_SCAN:
         return not done_scanning
@@ -328,7 +328,7 @@ def save_general_information_after_scanning():
             f.write(f'  Number of smartphone charged: {conversions[2]}\n')
             f.write(f'  Kilograms of wood burned: {conversions[3]}\n')
 
-        if main_program_to_scan == ProgramToScan.NO_SCAN:
+        if main_program_to_scan in no_process_programs:
             measurement_time = finished_scanning_time[-1]
             f.write(f'\nMeasurement duration: {measurement_time} seconds, '
                     f'{measurement_time / 60} minutes\n')
@@ -537,7 +537,7 @@ def start_timeout(main_shell_process, is_posix):
     if RUNNING_TIME is None or scan_option != ScanMode.ONE_SCAN:
         return
 
-    timeout_thread = Timer(RUNNING_TIME, program.kill_process, [main_shell_process, is_posix])
+    timeout_thread = Timer(RUNNING_TIME, program.kill_process, [main_shell_process, is_posix, RUNNING_TIME])
     timeout_thread.start()
     return timeout_thread
 
@@ -574,8 +574,8 @@ def scan_and_measure():
 
     measurements_thread = Thread(target=continuously_measure, args=())
     measurements_thread.start()
-
-    while not main_program_to_scan == ProgramToScan.NO_SCAN and not done_scanning:
+    
+    while not main_program_to_scan in no_process_programs and not done_scanning:
         main_process, main_process_id = start_process(program)
         timeout_timer = start_timeout(main_process, running_os.is_posix())
         background_processes = start_background_processes()
@@ -600,7 +600,7 @@ def scan_and_measure():
 
     # wait for measurement
     measurements_thread.join()
-    if main_program_to_scan == ProgramToScan.NO_SCAN:
+    if main_program_to_scan in no_process_programs:
         finished_scanning_time.append(scanner_imp.calc_time_interval(starting_time))
 
 
@@ -635,14 +635,14 @@ def before_scanning_operations():
         print("Exiting program")
         return
 
-    running_os.change_power_plan(chosen_power_plan_name, running_os.get_chosen_power_plan_identifier())
+    # running_os.change_power_plan(chosen_power_plan_name, running_os.get_chosen_power_plan_identifier())
 
     if disable_real_time_protection_during_measurement:
         running_os.change_real_time_protection()
 
-    running_os.change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
+    # running_os.change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
 
-    sbc.set_brightness(screen_brightness_level)
+    # sbc.set_brightness(screen_brightness_level)
 
     psutil.cpu_percent()  # first call is meaningless
 
@@ -657,10 +657,10 @@ def after_scanning_operations(should_save_results=True):
     if should_save_results:
         save_results_to_files()
 
-    running_os.change_power_plan(running_os.get_default_power_plan_name(),
-                                 running_os.get_default_power_plan_identifier())  # return to default power plan
+    # running_os.change_power_plan(running_os.get_default_power_plan_name(),
+    #                              running_os.get_default_power_plan_identifier())  # return to default power plan
 
-    running_os.change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
+    # running_os.change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
 
     if disable_real_time_protection_during_measurement:
         running_os.change_real_time_protection(should_disable=False)
@@ -673,13 +673,13 @@ def main():
     print("======== Process Monitor ========")
 
     before_scanning_operations()
-
+    sys.stdout.flush()
     scan_and_measure()
-
+    sys.stdout.flush()
     after_scanning_operations()
 
     print("Finished scanning")
-
+    sys.stdout.flush()
 
 if __name__ == '__main__':
     main()

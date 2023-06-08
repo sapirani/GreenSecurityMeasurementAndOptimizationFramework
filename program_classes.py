@@ -44,7 +44,7 @@ class ProgramInterface:
     def set_processes_ids(self, processes_ids):
         self.processes_ids = processes_ids
 
-    def kill_process(self, p, is_posix):
+    def kill_process(self, p, is_posix, kill_process):
         # global max_timeout_reached
         p.terminate()
         # max_timeout_reached = True
@@ -237,30 +237,30 @@ class SplunkProgram(ProgramInterface):
         return "Splunk Enterprise SIEM"
 
     def get_command(self) -> str:
-        return "splunk start"
+        return ""
+        # return "splunk start"
 
-    def kill_process(self, p, is_posix):
-        print("extracting")
-        # TODO Extraction doesnt working!
-        extract_command = f'splunk search "index=eventgen" -output csv -maxout 20000000 -auth shoueii:sH231294'
-        print(extract_command)
-        with open(os.path.join(self.results_path,"processes.txt"), 'w') as f:
-            OSFuncsInterface.run( "pgrep -a splunk", self.should_use_powershell(), is_posix=is_posix, f=f)
-        with open(os.path.join(self.results_path,"logs_output.csv"), 'w') as f:
-            OSFuncsInterface.run(extract_command, self.should_use_powershell(), is_posix=is_posix, f=f)
-            f.flush()
-        extract_command = f'splunk search "index=main" -output csv -maxout 20000000 -auth shoueii:sH231294'
-        with open(os.path.join(self.results_path,"alerts_output.csv"), 'w') as f:
-            OSFuncsInterface.run(extract_command, self.should_use_powershell(), is_posix=is_posix, f=f)
-            f.flush()
+    # def kill_process(self, p, is_posix, running_time):
+    #     print("extracting")
+    #     with open(os.path.join(self.results_path,"processes.txt"), 'w') as f:
+    #         OSFuncsInterface.run( "splunk status", self.should_use_powershell(), is_posix=is_posix, f=f)
+        
+    #     # a spl command for extracting logs from main index to csv file from running time to current time
+    #     extract_command = f'splunk search "index=main where earliest=-{running_time}m@m" -output csv -maxout 20000000 -auth shouei:sH231294'
+    #     with open(os.path.join(self.results_path,"logs.csv"), 'w') as f:
+    #         OSFuncsInterface.run(extract_command, self.should_use_powershell(), is_posix=is_posix, f=f)
+    #         f.flush()
+            
         # print(extract_process.stderr.read().decode('utf-8'))
         # time.sleep(80)
-        print("stopping")
-        OSFuncsInterface.run("splunk stop", self.should_use_powershell(), is_posix=is_posix)
-        time.sleep(30)
-        print("cleaning")
-        OSFuncsInterface.run("splunk clean eventdata -index eventgen -f", self.should_use_powershell(), is_posix=is_posix)
-        OSFuncsInterface.run("splunk clean eventdata -index main -f", self.should_use_powershell(), is_posix=is_posix)
+        
+        '''splunk stop commands'''
+        # print("stopping")
+        # OSFuncsInterface.run("splunk stop", self.should_use_powershell(), is_posix=is_posix)
+        # time.sleep(30)
+        # print("cleaning")
+        # OSFuncsInterface.run("splunk clean eventdata -index eventgen -f", self.should_use_powershell(), is_posix=is_posix)
+        # OSFuncsInterface.run("splunk clean eventdata -index main -f", self.should_use_powershell(), is_posix=is_posix)
     
     def process_ignore_cond(self, p):
         return super(SplunkProgram, self).process_ignore_cond(p) or (not p.name().__contains__('splunk'))

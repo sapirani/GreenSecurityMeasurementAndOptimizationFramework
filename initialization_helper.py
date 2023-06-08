@@ -83,6 +83,7 @@ def calc_base_dir():
     :return: A string represents the directory hierarchy of the results
     """
     computer_info = running_os.get_computer_info()
+    # computer_info = "dt-splunk"
 
     if main_program_to_scan == ProgramToScan.NO_SCAN:
         return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name)
@@ -154,7 +155,7 @@ if (pcap_list_dirs is not None and len(pcap_list_dirs) > 0) and interface_name i
     raise Exception("Choose either interface to listen on or pcap files when using IDS, not both")
 
 # ======= Scan Time Checks =======
-if (scan_option == ScanMode.CONTINUOUS_SCAN or main_program_to_scan == ProgramToScan.NO_SCAN) and RUNNING_TIME is None:
+if (scan_option == ScanMode.CONTINUOUS_SCAN or main_program_to_scan in no_process_programs) and RUNNING_TIME is None:
     raise Exception("MAXIMUM_SCAN_TIME is allowed to be None  only when performing running a regular main program"
                     " in ONE_SCAN mode - the meaning of None is to wait until the main process ends")
 
