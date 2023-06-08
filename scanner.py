@@ -1,4 +1,5 @@
 import shutil
+import warnings
 
 from statistics import mean
 from prettytable import PrettyTable
@@ -83,10 +84,10 @@ def save_current_disk_io(previous_disk_io):
     return disk_io_stat
 
 
-def save_current_processes_statistics(prev_io_per_process):
+def save_current_processes_statistics(prev_data_per_process):
     """
     This function gets all processes running in the system and order them by thier cpu usage
-    :param prev_io_per_process: previous read of all processes from io_counters.
+    :param prev_data_per_process: previous read of all processes from io_counters.
     It is dictionary where the key is (pid, name) and the value is the io_counters() read
     :return: a new dictionary that contains the new values from io_counters() for each process
     """
@@ -108,15 +109,15 @@ def save_current_processes_statistics(prev_io_per_process):
 
     proc = sorted(proc, key=lambda x: x[1], reverse=True)
 
-    return add_to_processes_dataframe(time_of_sample, proc, prev_io_per_process)
+    return add_to_processes_dataframe(time_of_sample, proc, prev_data_per_process)
 
 
-def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
+def add_to_processes_dataframe(time_of_sample, top_list, prev_data_per_process):
     """
     This function saves the relevant data from the process in dataframe (will be saved later as csv files)
     :param time_of_sample: time since starting the program
     :param top_list: list of all processes sorted by cpu usage
-    :param prev_io_per_process: previous read of all processes from io_counters.
+    :param prev_data_per_process: previous read of all processes from io_counters.
     It is dictionary where the key is (pid, name) and the value is the io_counters() read
     :return:
     """
@@ -128,13 +129,13 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
             # oneshot to improve info retrieve efficiency
             with p.oneshot():
                 io_stat = p.io_counters()
+                page_faults = running_os.get_page_faults(p)
 
-                if (p.pid, p.name()) not in prev_io_per_process:
-                    prev_io_per_process[(p.pid, p.name())] = io_stat
+                if (p.pid, p.name()) not in prev_data_per_process:
+                    prev_data_per_process[(p.pid, p.name())] = io_stat, page_faults
                     continue  # remove first sample of process (because cpu_percent is meaningless 0)
 
-                prev_io = prev_io_per_process[(p.pid, p.name())]
-
+                prev_io = prev_data_per_process[(p.pid, p.name())][0]
                 # TODO - does io_counters return only disk operations or all io operations (include network etc..)
                 processes_df.loc[len(processes_df.index)] = [
                     time_of_sample,
@@ -148,14 +149,15 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_io_per_process):
                     io_stat.write_count - prev_io.write_count,
                     f'{(io_stat.read_bytes - prev_io.read_bytes) / KB:.3f}',
                     f'{(io_stat.write_bytes - prev_io.write_bytes) / KB:.3f}',
+                    page_faults - prev_data_per_process[(p.pid, p.name())][1]
                 ]
 
-                prev_io_per_process[(p.pid, p.name())] = io_stat  # after finishing loop
+                prev_data_per_process[(p.pid, p.name())] = io_stat, page_faults  # after finishing loop
 
         except psutil.NoSuchProcess:
             pass
 
-    return prev_io_per_process
+    return prev_data_per_process
 
 
 def scan_time_passed():
@@ -210,7 +212,7 @@ def continuously_measure():
     # init prev_disk_io by first disk io measurements (before scan)
     # TODO: lock thread until process starts
     prev_disk_io = psutil.disk_io_counters()
-    prev_io_per_process = {}
+    prev_data_per_process = {}
 
     # TODO: think if total tables should be printed only once
     while should_scan():
@@ -218,7 +220,7 @@ def continuously_measure():
         scanner_imp.scan_sleep(0.5)
 
         scanner_imp.save_battery_stat(battery_df, scanner_imp.calc_time_interval(starting_time))
-        prev_io_per_process = save_current_processes_statistics(prev_io_per_process)
+        prev_data_per_process = save_current_processes_statistics(prev_data_per_process)
         save_current_total_cpu()
         save_current_total_memory()
         prev_disk_io = save_current_disk_io(prev_disk_io)
@@ -596,7 +598,8 @@ def scan_and_measure():
             print(main_process)
             errs = main_process.stderr.read().decode()
             after_scanning_operations(should_save_results=False)
-            raise Exception("An error occurred while scanning: %s", errs)
+            #raise Exception("An error occurred while scanning: %s", errs)
+            warnings.warn(f"An error occurred while scanning: {errs}", RuntimeWarning)
 
     # wait for measurement
     measurements_thread.join()

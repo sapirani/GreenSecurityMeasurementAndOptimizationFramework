@@ -69,7 +69,11 @@ def program_to_scan_factory(program_type):
     if program_type == ProgramToScan.Splunk:
         return SplunkProgram()
     if program_type == ProgramToScan.CPUConsumer:
-        return CPUConsumer()
+        return CPUConsumer(cpu_percent_to_consume, RUNNING_TIME)
+    if program_type == ProgramToScan.MemoryConsumer:
+        return MemoryConsumer(memory_chunk_size, consumption_speed, RUNNING_TIME)
+    if program_type == ProgramToScan.IOWriteConsumer:
+        return IOWriteConsumer(custom_scan_path)
 
     raise Exception("choose program to scan from ProgramToScan enum")
 
@@ -175,5 +179,6 @@ disk_io_columns_list = [DiskIOColumns.TIME, DiskIOColumns.READ_COUNT, DiskIOColu
 processes_columns_list = [
     ProcessesColumns.TIME, ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME, ProcessesColumns.CPU_CONSUMPTION,
     ProcessesColumns.NUMBER_OF_THREADS, ProcessesColumns.USED_MEMORY, ProcessesColumns.MEMORY_PERCENT,
-    ProcessesColumns.READ_COUNT, ProcessesColumns.WRITE_COUNT, ProcessesColumns.READ_BYTES, ProcessesColumns.WRITE_BYTES
+    ProcessesColumns.READ_COUNT, ProcessesColumns.WRITE_COUNT, ProcessesColumns.READ_BYTES, ProcessesColumns.WRITE_BYTES,
+    ProcessesColumns.PAGE_FAULTS
 ]
