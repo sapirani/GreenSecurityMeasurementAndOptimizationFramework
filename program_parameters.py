@@ -1,13 +1,13 @@
 from general_consts import *
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.IDS
-background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]#[ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = True
 summary_version = SummaryVersion.DUDU
+main_program_to_scan = ProgramToScan.Splunk
+background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]#[ProgramToScan.Perfmon]
 
-scanner_version = ScannerVersion.WITHOUT_BATTERY
+scanner_version = ScannerVersion.LITE
 
 power_plan = PowerPlan.POWER_SAVER
 scan_option = ScanMode.ONE_SCAN
@@ -21,8 +21,11 @@ custom_scan_path = '""'
 custom_scan_path = '""'
 #custom_scan_path = fr'"C:\Users\Administrator\Downloads"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
+# Set the running time in minutes
 
-RUNNING_TIME = 0.5 * MINUTE # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
+# Convert the running time to seconds
+RUNNING_TIME = 34
+RUNNING_TIME *= MINUTE # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
 MINIMUM_DELTA_CAPACITY = 20     # in mWh
 
