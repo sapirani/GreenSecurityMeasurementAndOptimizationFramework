@@ -90,6 +90,20 @@ class AntivirusProgram(ProgramInterface):
             self.custom_scan_path = custom_scan_path
         self.scan_type = scan_type
 
+    def path_adjustments(self):
+        return self.scan_type
+
+    def general_information_before_measurement(self, f):
+        if self.scan_type == ScanType.CUSTOM_SCAN:
+            f.write(f'Scan Path: {self.custom_scan_path}\n\n')
+
+        self.save_av_version(f)
+
+    def save_av_version(self, f):
+        pass
+
+
+class DefenderProgram(AntivirusProgram):
     def get_program_name(self):
         return "Windows Defender"
 
@@ -106,13 +120,7 @@ class AntivirusProgram(ProgramInterface):
         # ["powershell", "-Command", command]
         # return '"C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.2210.6-0\\MpCmdRun.exe" -Scan -ScanType 1'
 
-    def path_adjustments(self):
-        return self.scan_type
-
-    def general_information_before_measurement(self, f):
-        if self.scan_type == ScanType.CUSTOM_SCAN:
-            f.write(f'Scan Path: {self.custom_scan_path}\n\n')
-
+    def save_av_version(self, f):
         from os_funcs import WindowsOS
         WindowsOS.save_antivirus_version(f, self.get_program_name())
 
@@ -123,6 +131,24 @@ class AntivirusProgram(ProgramInterface):
                     return proc.pid
 
         return None
+
+
+class ClamAVProgram(AntivirusProgram):
+    def get_program_name(self):
+        return "ClamAV"
+
+    def get_process_name(self) -> str:
+        return "clamscan.exe"
+
+    def get_command(self) -> Union[str, list]:
+        if self.scan_type == ScanType.FULL_SCAN:
+            path_to_scan = "C:\\"
+        elif self.scan_type == ScanType.CUSTOM_SCAN:
+            path_to_scan = self.custom_scan_path
+        else:
+            raise Exception(f"{self.scan_type} is not supported in {self.get_program_name()}")
+
+        return fr'"C:\Program Files\ClamAV\clamscan.exe" --recursive {path_to_scan}'
 
 
 class LogAnomalyDetection(ProgramInterface):

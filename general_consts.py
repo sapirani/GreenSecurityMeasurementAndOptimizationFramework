@@ -92,6 +92,11 @@ class IDSType:
     SNORT = "Snort"
 
 
+class AntivirusType:
+    DEFENDER = "Defender"
+    ClamAV = "ClamAV"
+
+
 # ======= Tables Column Names =======
 class BatteryColumns:
     TIME = "Time(sec)"
