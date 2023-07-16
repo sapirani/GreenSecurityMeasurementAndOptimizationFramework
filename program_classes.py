@@ -304,7 +304,7 @@ class SplunkProgram(ProgramInterface):
         # OSFuncsInterface.run("splunk clean eventdata -index main -f", self.should_use_powershell(), is_posix=is_posix)
     
     def process_ignore_cond(self, p):
-        return super(SplunkProgram, self).process_ignore_cond(p) or (not p.name().__contains__('splunk'))
+        return (not p.name().__contains__('splunk')) or super(SplunkProgram, self).process_ignore_cond(p) 
 
     # def should_use_powershell(self) -> bool:
     #     return True

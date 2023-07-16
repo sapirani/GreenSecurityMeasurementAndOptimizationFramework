@@ -418,15 +418,15 @@ class LinuxOS(OSFuncsInterface):
 
     def get_page_faults(self, psutil_process):
         # this is the command to switch to performance plan
-        res = subprocess.run(f"ps -o min_flt,maj_flt {psutil_process.pid}",
-                             capture_output=True, shell=True)
-
+        res = subprocess.run(f"ps -o min_flt,maj_flt {psutil_process.pid}", capture_output=True, shell=True)
+        if not psutil.pid_exists(psutil_process.pid):
+            raise Exception(f'An error occurred while getting process {psutil_process.name()} {psutil_process.pid} page faults', res.stderr)    
         if res.returncode != 0 and psutil.pid_exists(psutil_process.pid):
             raise Exception(f'An error occurred while getting process {psutil_process.pid} page faults', res.stderr)
-
         faults_res = res.stdout.decode("utf-8").strip().split("\n")[1].split()
         minor_faults, major_faults = int(faults_res[0].strip()), int(faults_res[1].strip())
         return minor_faults + major_faults
+
 
     def get_chosen_power_plan_identifier(self):
         return power_plan[2]
