@@ -5,29 +5,11 @@ import pandas as pd
 from Scanner.initialization_helper import *
 import re
 
+from ConstantsForGraphs import *
+
 base_dir, GRAPHS_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
 BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, SUMMARY_CSV = result_paths(is_scanner=False)
 
-
-class AxisInfo:
-    def __init__(self, label, unit, axis):
-        self.axis = axis
-        self.label = label
-        self.unit = unit
-
-
-class Units:
-    TIME = "Seconds"
-    PERCENT = "% out of 100"
-    CAPACITY = "mWatt/hour"
-    VOLTAGE = "mVolt"
-    COUNT = "#"
-    MEMORY_TOTAL = "GB"
-    MEMORY_PROCESS = "MB"
-    IO_BYTES = "KB"
-
-
-DEFAULT = "default"
 
 
 def get_process_id():
