@@ -1,19 +1,18 @@
 import logging
 import shutil
-import time
 
 import pythoncom
 from statistics import mean
 from prettytable import PrettyTable
 from threading import Thread
 import pandas as pd
-from initialization_helper import *
+from Scanner.initialization_helper import *
 import ctypes
 from datetime import date
 from pathlib import Path
 import screen_brightness_control as sbc
-from general_functions import get_powershell_result_list_format
-import sys
+from Scanner.general_functions import get_powershell_result_list_format
+
 # ======= Constants =======
 logging.basicConfig(filename='session_log.log', encoding='utf-8', level=logging.DEBUG)
 SYSTEM_IDLE_PROCESS_NAME = "System Idle Process"

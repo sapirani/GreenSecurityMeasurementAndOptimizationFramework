@@ -1,11 +1,9 @@
 import os
 import re
-import subprocess
-import sys
 import time
 from typing import Union
 
-from general_consts import *
+from Scanner.general_consts import *
 from os_funcs import OSFuncsInterface
 
 
@@ -175,7 +173,7 @@ class DummyAntivirusProgram(ProgramInterface):
         return "Dummy Antivirus"
 
     def get_command(self) -> str:
-        return f"python {os.path.join('DummyPrograms', 'FilesReader.py')} {self.scan_path}"
+        return f"python {os.path.join('../DummyPrograms', 'FilesReader.py')} {self.scan_path}"
 
     def general_information_before_measurement(self, f):
         f.write(f'Scan Path: {self.scan_path}\n\n')
@@ -186,7 +184,7 @@ class UserActivityProgram(ProgramInterface):
         return "User Activity"
 
     def get_command(self) -> str:
-        return f'python {os.path.join("UserActivity", "user_activity.py")} ' \
+        return f'python {os.path.join("../UserActivity", "user_activity.py")} ' \
                f'"{os.path.join(self.results_path, "tasks_times.csv")}"'
 
 
@@ -203,7 +201,7 @@ class CPUConsumer(ProgramInterface):
         return "CPU Consumer"
 
     def get_command(self) -> str:
-        return rf"python {os.path.join('DummyPrograms', 'CPUConsumer.py')} {self.cpu_percent_to_consume} {self.running_time}"
+        return rf"python {os.path.join('../DummyPrograms', 'CPUConsumer.py')} {self.cpu_percent_to_consume} {self.running_time}"
 
 
 class MemoryConsumer(ProgramInterface):
@@ -224,7 +222,7 @@ class MemoryConsumer(ProgramInterface):
         return "Memory Consumer"
 
     def get_command(self) -> str:
-        return fr"python {os.path.join('DummyPrograms', 'DummyMemoryConsumer.py')} {self.memory_chunk_size} {self.consumption_speed} {self.running_time}"
+        return fr"python {os.path.join('../DummyPrograms', 'DummyMemoryConsumer.py')} {self.memory_chunk_size} {self.consumption_speed} {self.running_time}"
 
 
 class IOWriteConsumer(ProgramInterface):
@@ -236,7 +234,7 @@ class IOWriteConsumer(ProgramInterface):
         return "IO Write Dummy"
 
     def get_command(self) -> str:
-        return f"python {os.path.join('FilesCreators', 'file_generator.py')} {self.directory_path}"
+        return f"python {os.path.join('../FilesCreators', 'file_generator.py')} {self.directory_path}"
 
 
 class IDSProgram(ProgramInterface):

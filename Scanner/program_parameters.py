@@ -1,6 +1,8 @@
-from general_consts import *
+from Scanner.general_consts import *
 
 # ======= Scanner Parameters =======
+main_program_to_scan = ProgramToScan.NO_SCAN
+background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = True
 summary_version = SummaryVersion.DUDU
@@ -16,24 +18,21 @@ scan_type = ScanType.QUICK_SCAN  # relevant only for one scan or continuous scan
 no_process_programs = {ProgramToScan.NO_SCAN, ProgramToScan.Splunk}
 file_type = "pdf"
 directory_type = "Duplicated Files"
-custom_scan_path = '""'
-#custom_scan_path = fr'"C:\Users\Administrator\Downloads"'
-
-custom_scan_path = '""'
-#custom_scan_path = fr'"C:\Users\Administrator\Downloads"'
+#custom_scan_path = r'""'
+#custom_scan_path = r'"C:\Users\sagib\Downloads"'
+#custom_scan_path = r'"C:\Users\Administrator\Downloads"'
+custom_scan_path = fr'"C:\Users\Administrator\Desktop\GreenSecurity-FirstExperiment"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
 # Set the running time in minutes
 
-# Convert the running time to seconds
-RUNNING_TIME = 15
-RUNNING_TIME *= MINUTE # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
+RUNNING_TIME = 30 # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
 MINIMUM_DELTA_CAPACITY = 20     # in mWh
 
 measurement_number = NEW_MEASUREMENT    # write number between 1->inf or type NEW_MEASUREMENT
 
 # MUST disable tamper protection manually for this feature to work
-disable_real_time_protection_during_measurement = False  # must use administrator permissions
+disable_real_time_protection_during_measurement = True  # must use administrator permissions
 
 screen_brightness_level = 75    # A number between 0 and 100
 
@@ -53,3 +52,10 @@ model_name = "logdeep"
 script_relative_path = r"demo.deeplog"
 installation_dir = r"C:\Users\Administrator\Repositories"
 model_action = 'predict'# train or predict
+
+# For CPU CONSUMER program
+cpu_percent_to_consume = 90
+
+# For MEMORY CONSUMER program
+memory_chunk_size = 1 * MB
+consumption_speed = 10 * MB / SECOND

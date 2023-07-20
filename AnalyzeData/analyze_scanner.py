@@ -2,7 +2,7 @@ import math
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from initialization_helper import *
+from Scanner.initialization_helper import *
 import re
 
 base_dir, GRAPHS_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
