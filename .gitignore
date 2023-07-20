@@ -13,3 +13,4 @@ session_log.log
 green_sec_env
 visualization*
 screenlog.*
+.env
