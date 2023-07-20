@@ -1,5 +1,5 @@
 #!/bin/bash
-# #run this bash like this: screen -L sudo bash splunk_run.bash
+# # cd in SplunkResearch and run this bash like this: screen -L sudo bash splunk_run.bash
 # Set environment variables
 export SPLUNK_HOME=/opt/splunk
 export PATH=$SPLUNK_HOME/bin:$PATH
@@ -57,7 +57,7 @@ for extraction_state in "${EXTRACTION_STATES[@]}"; do
         
         # Wait for a few seconds before continuing the loop
         sleep 5
-        chmod -R 777 ../VMware\,\ Inc.\ Linux\ 3.10.0-1160.88.1.el7.x86_64/
+        chmod -R 777 VMware\,\ Inc.\ Linux\ 3.10.0-1160.88.1.el7.x86_64/
 
         latest_folder=$(ls -td -- ../../GreenSecurity-FirstExperiment/VMware\,\ Inc.\ Linux\ 3.10.0-1160.88.1.el7.x86_64/Splunk\ Enterprise\ SIEM/Power\ Saver\ Plan/One\ Scan/* | head -n 1)
         # echo "Latest folder: $latest_folder"

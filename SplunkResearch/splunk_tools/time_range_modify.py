@@ -1,6 +1,8 @@
 import re
 import sys
-from  SplunkResearch.splunk_tools.get_searches_names import get_saved_search_names
+# caution: path[0] is reserved for script path (or '' in REPL)
+sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
+from  splunk_tools.get_searches_names import get_saved_search_names
 
             
 def change_search_time_range(filepath, search_name, earliest_time, latest_time):
