@@ -1,31 +1,29 @@
 from general_consts import *
 
 # ======= Scanner Parameters =======
+main_program_to_scan = ProgramToScan.Splunk
+background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = True
-summary_version = SummaryVersion.DUDU
-main_program_to_scan = ProgramToScan.Splunk
-background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]#[ProgramToScan.Perfmon]
+summary_version = SummaryVersion.OTHER
 
 scanner_version = ScannerVersion.LITE
 
 power_plan = PowerPlan.POWER_SAVER
 scan_option = ScanMode.ONE_SCAN
-scan_type = ScanType.QUICK_SCAN  # relevant only for one scan or continuous scan
+scan_type = ScanType.CUSTOM_SCAN  # relevant only for one scan or continuous scan
 
 no_process_programs = {ProgramToScan.NO_SCAN, ProgramToScan.Splunk}
 file_type = "pdf"
 directory_type = "Duplicated Files"
-custom_scan_path = '""'
-#custom_scan_path = fr'"C:\Users\Administrator\Downloads"'
-
-custom_scan_path = '""'
-#custom_scan_path = fr'"C:\Users\Administrator\Downloads"'
+#custom_scan_path = r'""'
+#custom_scan_path = r'"C:\Users\sagib\Downloads"'
+#custom_scan_path = r'"C:\Users\Administrator\Downloads"'
+custom_scan_path = fr'"C:\Users\Administrator\Desktop\GreenSecurity-FirstExperiment"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
-# Set the running time in minutes
 
 # Convert the running time to seconds
-RUNNING_TIME = 15
+RUNNING_TIME = 0.1
 RUNNING_TIME *= MINUTE # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
 MINIMUM_DELTA_CAPACITY = 20     # in mWh
@@ -53,3 +51,10 @@ model_name = "logdeep"
 script_relative_path = r"demo.deeplog"
 installation_dir = r"C:\Users\Administrator\Repositories"
 model_action = 'predict'# train or predict
+
+# For CPU CONSUMER program
+cpu_percent_to_consume = 20
+
+# For MEMORY CONSUMER program
+memory_chunk_size = 1 * MB
+consumption_speed = 10 * MB / SECOND
