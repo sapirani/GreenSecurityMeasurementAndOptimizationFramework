@@ -64,7 +64,6 @@ def on_button_energy_click(n_clicks_energy, performed_scan, number_of_current_sc
 
     # check if the scan ended successfully
     # TODO: when doing real scan, avoid the second condition only
-    print(f"!!!!!!!!!!Perfomed scan {performed_scan}")
     if not performed_scan or (number_of_current_scans >= number_of_available_experiments):
         return "You should perform scan first", f"Total Files: ", \
             f"Total Size of Scanned Files: ", f"Total Scans: "

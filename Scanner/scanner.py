@@ -1,15 +1,15 @@
 import shutil
+import sys
 import warnings
 
 from statistics import mean
 from prettytable import PrettyTable
 from threading import Thread, Timer
 import pandas as pd
-from initialization_helper import *
+from Scanner.initialization_helper import *
 from datetime import date
 from pathlib import Path
-import screen_brightness_control as sbc
-from general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
+from Scanner.general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
 
 base_dir, GRAPHS_DIR, STDOUT_FILES_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
 BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, SUMMARY_CSV = result_paths()
