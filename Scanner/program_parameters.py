@@ -1,11 +1,7 @@
 from Scanner.general_consts import *
 
 # ======= Scanner Parameters =======
-<<<<<<< HEAD:program_parameters.py
 main_program_to_scan = ProgramToScan.Splunk
-=======
-main_program_to_scan = ProgramToScan.NO_SCAN
->>>>>>> 95dc48ba8e8c5ff58133b520fd617bdeb5078858:Scanner/program_parameters.py
 background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = True
@@ -26,13 +22,9 @@ directory_type = "Duplicated Files"
 custom_scan_path = fr'"C:\Users\Administrator\Desktop\GreenSecurity-FirstExperiment"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
 
-<<<<<<< HEAD:program_parameters.py
 # Convert the running time to seconds
 RUNNING_TIME = 0.1
 RUNNING_TIME *= MINUTE # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
-=======
-RUNNING_TIME = 30 # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
->>>>>>> 95dc48ba8e8c5ff58133b520fd617bdeb5078858:Scanner/program_parameters.py
 
 MINIMUM_DELTA_CAPACITY = 20     # in mWh
 
@@ -61,11 +53,7 @@ installation_dir = r"C:\Users\Administrator\Repositories"
 model_action = 'predict'# train or predict
 
 # For CPU CONSUMER program
-<<<<<<< HEAD:program_parameters.py
-cpu_percent_to_consume = 20
-=======
 cpu_percent_to_consume = 90
->>>>>>> 95dc48ba8e8c5ff58133b520fd617bdeb5078858:Scanner/program_parameters.py
 
 # For MEMORY CONSUMER program
 memory_chunk_size = 1 * MB
