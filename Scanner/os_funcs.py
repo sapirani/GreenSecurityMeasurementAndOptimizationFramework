@@ -9,7 +9,7 @@ from Scanner.general_consts import (GB, MINUTE, NEVER_GO_TO_SLEEP_MODE,
                                     PowerPlan, disk_types, pc_types,
                                     physical_memory_types)
 from Scanner.general_functions import get_powershell_result_list_format
-from program_parameters import (DEFAULT_SCREEN_TURNS_OFF_TIME,
+from Scanner.program_parameters import (DEFAULT_SCREEN_TURNS_OFF_TIME,
                                 DEFAULT_TIME_BEFORE_SLEEP_MODE, power_plan)
 
 

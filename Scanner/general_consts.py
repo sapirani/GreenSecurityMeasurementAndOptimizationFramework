@@ -61,6 +61,7 @@ class ProgramToScan(Enum):
     MemoryConsumer = 10
     IOWriteConsumer = 11
 
+no_process_programs = {ProgramToScan.NO_SCAN, ProgramToScan.Splunk}
 
 class ScanMode(Enum):
     ONE_SCAN = 1
