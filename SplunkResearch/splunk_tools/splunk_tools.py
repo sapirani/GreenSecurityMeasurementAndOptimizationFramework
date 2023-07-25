@@ -1,5 +1,6 @@
 import json
 from multiprocessing import Pool
+import random
 import re
 import subprocess
 from dotenv import load_dotenv
@@ -129,3 +130,45 @@ class SplunkTools:
         # Parse the JSON response
         results = json.loads(response.text)
         return results
+        
+        
+    def extract_logs(self, logsource, eventcode, time_range=("-24h@h", "now")):
+        # Define your SPL query
+        spl_query = f'search index=main source="{logsource}" EventCode={eventcode} earliest="{time_range[0]}" latest="{time_range[1]}"'
+
+        # Define the REST API endpoint
+        url = f"{self.base_url}/services/search/jobs/export"
+
+        # Define the headers for the HTTP request
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        data = {'output_mode': 'raw', 'search': spl_query}
+        
+        response = requests.post(url, headers=headers, data=data, auth=self.auth, verify=False)
+        
+        if response.status_code != 200:
+            print(f'Error: {response.text}')
+            return None
+        # Split the response by lines and parse each line as a separate JSON object
+        if 'Sysmon' not in logsource:
+            results = re.split(r'(?m)^(?=\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2} (?:AM|PM))', response.text)
+        else:
+            results = response.text.split('\n')
+        # Remove any empty lines
+        results = [line for line in results if line.strip()]
+        return results    
+    
+    def sample_log(self, logs, action_value):
+        if len(logs) > 0:
+            logs = random.sample(logs, min(len(logs), action_value))
+            print(logs)
+            return logs
+        else:
+            print('No results found or results is not a list.')
+            print(logs)
+            return None            
+
+if __name__ == "__main__":
+    splunk_tools = SplunkTools()
+    print(splunk_tools.extract_logs('WinEventLog:Security', '4624'))

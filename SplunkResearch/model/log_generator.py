@@ -14,7 +14,7 @@ class LogGenerator:
         end_date = datetime.strptime(end_date, '%m/%d/%Y:%H:%M:%S') 
         time = Faker().date_time_between(start_date, end_date, tzinfo=None)      
                         
-        if log_source == 'WinEventLog':
+        if log_source.split(':')[0] == 'WinEventLog':
             new_log = re.sub(r"^\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2} [APM]{2}", time.strftime("%m/%d/%Y %I:%M:%S %p"), log, flags=re.MULTILINE)
             new_log += '\nIsFakeLog=True'
             for field, new_value in replacements_dict.items():
@@ -42,15 +42,4 @@ class LogGenerator:
                 print('added')
             new_log = ET.tostring(xml, encoding='unicode')
         return new_log
-    
-    def compare_distributions(self, dist1, dist2):
-        # Placeholder for your distribution comparison function
-        # This could use a metric like KL divergence
-        pass
-    
-    def get_reward(self, alerts_status, rules_energy_df, dist_distance):
-        pass
-    
-    def perform_action(self, action, log, log_type, replacement_dict, time_range):
-        # TODO according to the action, generate logs and insert them to splunk
-        pass
+
