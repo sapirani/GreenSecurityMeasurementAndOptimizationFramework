@@ -1,5 +1,7 @@
 import os
+import re
 from datetime import datetime
+from os.path import isfile, join
 from pathlib import Path
 
 import pandas as pd
@@ -8,23 +10,88 @@ import matplotlib.dates as mdates
 
 from ConstantsForGraphs import *
 
-PATH = r"C:\Users\Administrator\Desktop\green security\documents\Signature Statistics\changed signatures.csv"
 GRAPHS_DIR = r"C:\Users\Administrator\Desktop\green security\documents\Signature Statistics\Graphs"
+SIGNATURES_DIR = r"C:\Users\Administrator\Desktop\green security\documents\Signature Statistics\clamav-main\signatures"
 
 SIGNATURE_NAME_COL = "signature"
-DATABASE_COL = "database"
-DATE_COL = "buildtime"
-VERSION_COL = "version"
-VIRUS_TYPE_COL = "virusType"
-OPERATION_SYSTEM_COL = "system"
+FILE_TYPE_COL = "fileType"
+VIRUS_NAME_STRING = "VIRUS NAME: "
 
-VIRUS_TYPE_INDEX = 1
-OPERATION_SYSTEM_INDEX = 0
 
-def preprocess_data(df):
-    df = df[df[DATE_COL].str.contains("Jul")]
-    df[DATE_COL] = pd.to_datetime(df[DATE_COL], format='mixed', dayfirst=True)
-    df[DATE_COL] = df[DATE_COL].dt.date
+class TargetString:
+    first = "TARGET TYPE:"
+    second = "Target:"
+
+
+class TargetType:
+    any = "ANY FILE"
+    portable_executable = "PE"
+    ole = "OLE2"
+    html = "HTML"
+    mail = "MAIL"
+    graphics = "GRAPHICS"
+    elf = "ELF"
+    ascii = "NORMALIZED ASCII TEXT"
+    unused = "UNUSED"
+    macho = "MACHO"
+    pdf = "PDF"
+    flash = "FLASH"
+    java = "JAVA CLASS"
+
+
+def convert_file_type_to_str(type):
+    if bool(re.search(r'\d', type)):
+        match int(type):
+            case 0:
+                return TargetType.any
+            case 1:
+                return TargetType.portable_executable
+            case 2:
+                return TargetType.ole
+            case 3:
+                return TargetType.html
+            case 4:
+                return TargetType.mail
+            case 5:
+                return TargetType.graphics
+            case 6:
+                return TargetType.elf
+            case 7:
+                return TargetType.ascii
+            case 8:
+                return TargetType.unused
+            case 9:
+                return TargetType.macho
+            case 10:
+                return TargetType.pdf
+            case 11:
+                return TargetType.flash
+            case 12:
+                return TargetType.java
+    else:
+        return type
+
+
+def preprocess_data():
+    df = pd.DataFrame(columns=[FILE_TYPE_COL, SIGNATURE_NAME_COL])
+    print("Start reading files")
+    for f in os.listdir(SIGNATURES_DIR):
+        path = join(SIGNATURES_DIR, f)
+        if isfile(path):
+            try:
+                with open(path, "r") as file:
+                    lines = file.readlines()
+                    line_with_target = list(filter(lambda l: TargetString.first in l or TargetString.second in l, lines))
+                    line_split = re.split(TargetString.first + "|" + TargetString.second, line_with_target[0].strip())
+                    target_type = convert_file_type_to_str(line_split[1]).strip()
+                    virus_type_name = re.split(VIRUS_NAME_STRING, lines[0].strip())[1]
+                    df = df._append({FILE_TYPE_COL: target_type, SIGNATURE_NAME_COL: virus_type_name},
+                               ignore_index=True)
+            except:
+                continue
+
+    print("End of reading files")
+
     return df
 
 
@@ -47,7 +114,7 @@ def design_and_plot(x_info, y_info, graph_name, path_to_save=GRAPHS_DIR):
     plt.rc('legend', fontsize=6)  # Set the legend font size
     plt.xticks(fontsize=8, color='black')  # change x ticks color
     plt.yticks(fontsize=8, color='darkgray')  # change y ticks color
-    plt.rcParams["figure.figsize"] = (10, 10)  # change figure size
+    plt.rcParams["figure.figsize"] = (20, 20)  # change figure size
 
     # save graph as picture
     plt.savefig(os.path.join(path_to_save, graph_name))
@@ -56,69 +123,26 @@ def design_and_plot(x_info, y_info, graph_name, path_to_save=GRAPHS_DIR):
     plt.show()
 
 
-def get_statistics_per_date(df):
-    # graph of number of signatures per date
-    df_grouped_by_date = df.groupby(DATE_COL)[SIGNATURE_NAME_COL].count()
-    df_grouped_by_date.plot(kind='bar')
-    x_info = AxisInfo("Dates", "", DATE_COL)
-    y_info = AxisInfo("Number of signatures", Units.COUNT, df_grouped_by_date.keys())
-    design_and_plot(x_info, y_info, "Number of signatures per day")
-
-    # graph of number of signatures per date and version
-    df_grouped_by_date_version = df.groupby([DATE_COL, VERSION_COL])[SIGNATURE_NAME_COL].count()
-    df_grouped_by_date_version.plot(kind='bar')
-    x_info = AxisInfo("Dates and Versions", "", DATE_COL)
-    y_info = AxisInfo("Number of signatures", Units.COUNT, df_grouped_by_date_version.keys())
-    design_and_plot(x_info, y_info, "Number of signatures per day and version")
-
-    # graph of number of signatures per date and database type
-    df_grouped_by_date_database = df.groupby([DATE_COL, DATABASE_COL])[SIGNATURE_NAME_COL].count()
-    df_grouped_by_date_database.plot(kind='bar')
-    x_info = AxisInfo("Dates and Database", "", DATE_COL)
-    y_info = AxisInfo("Number of signatures", Units.COUNT, df_grouped_by_date_database.keys())
-    design_and_plot(x_info, y_info, "Number of signatures per day and database type")
-
-def get_statistics_per_virus_type(df):
-    # convert signature name to 2 new cols
-    df[VIRUS_TYPE_COL] = df[SIGNATURE_NAME_COL].apply(lambda name: name.split('.')[VIRUS_TYPE_INDEX])
-    df[OPERATION_SYSTEM_COL] = df[SIGNATURE_NAME_COL].apply(lambda name: name.split('.')[OPERATION_SYSTEM_INDEX])
-
-    # graph of number of signatures per virus type
-    df_grouped_by_virus = df.groupby(VIRUS_TYPE_COL)[SIGNATURE_NAME_COL].count()
+def get_statistics_per_file_type(df):
+    df_grouped_by_virus = df.groupby(FILE_TYPE_COL)[SIGNATURE_NAME_COL].count()
     df_grouped_by_virus.plot(kind='bar')
-    x_info = AxisInfo("Virus type", "", VIRUS_TYPE_COL)
+    x_info = AxisInfo("File type", "", FILE_TYPE_COL)
     y_info = AxisInfo("Number of signatures", Units.COUNT, df_grouped_by_virus.keys())
-    design_and_plot(x_info, y_info, "Number of signatures per virus type")
-
-    # graph of number of signatures per virus operating system
-    df_grouped_by_system = df.groupby(OPERATION_SYSTEM_COL)[SIGNATURE_NAME_COL].count()
-    df_grouped_by_system.plot(kind='bar')
-    x_info = AxisInfo("Operation system", "", OPERATION_SYSTEM_COL)
-    y_info = AxisInfo("Number of signatures", Units.COUNT, df_grouped_by_system.keys())
-    design_and_plot(x_info, y_info, "Number of signatures per system")
-
-    # graph of number of signatures per virus type and operating system
-    df_grouped_by_system = df.groupby([OPERATION_SYSTEM_COL, VIRUS_TYPE_COL])[SIGNATURE_NAME_COL].count()
-    df_grouped_by_system.plot(kind='bar')
-    x_info = AxisInfo("Operation system and virus type", "", OPERATION_SYSTEM_COL)
-    y_info = AxisInfo("Number of signatures", Units.COUNT, df_grouped_by_system.keys())
-    design_and_plot(x_info, y_info, "Number of signatures per system and virus type")
+    design_and_plot(x_info, y_info, "Number of signatures per file type")
 
 
 def main():
-
     # if there are already available statistics
     """if any(os.scandir(GRAPHS_DIR)):
         print("There are files in signature statistics directory. Replacing the files now.")
         [f.unlink() for f in Path(GRAPHS_DIR).glob("*") if f.is_file()]
 """
 
-    df = pd.read_csv(PATH)  # read signatures csv
+    df = preprocess_data()  # preprocess the date column
     print(df.columns)
-    df = preprocess_data(df)  # preprocess the date column
-
-    get_statistics_per_date(df)
-    get_statistics_per_virus_type(df)
+    print(df)
+    print("Getting statistics")
+    get_statistics_per_file_type(df)
 
 
 if __name__ == '__main__':
