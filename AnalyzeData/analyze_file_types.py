@@ -68,6 +68,7 @@ def main():
 
 
     df = read_file_to_df()
+    df.to_csv("Files_dataset.csv")
     get_statistics_per_file(df)
 
 

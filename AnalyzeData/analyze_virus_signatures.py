@@ -141,6 +141,7 @@ def main():
     df = preprocess_data()  # preprocess the date column
     print(df.columns)
     print(df)
+    df.to_csv("Signatures_dataset.csv")
     print("Getting statistics")
     get_statistics_per_file_type(df)
 

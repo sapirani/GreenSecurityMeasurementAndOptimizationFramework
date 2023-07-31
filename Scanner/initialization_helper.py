@@ -1,10 +1,10 @@
 import os.path
 
-from Scanner import SummaryVersionImp 
-from Scanner.program_parameters import *
-from Scanner.program_classes import *
-from Scanner.os_funcs import *
-from Scanner.scanner_versions_imp import FullScanner, LiteScanner, WithoutBatteryScanner
+import SummaryVersionImp
+from program_parameters import *
+from program_classes import *
+from os_funcs import *
+from scanner_versions_imp import FullScanner, LiteScanner, WithoutBatteryScanner
 
 # ======= Get Operating System Type =======
 running_os = None
@@ -48,10 +48,10 @@ def program_to_scan_factory(program_type):
     :param program_type: The program specified by the user
     :return: The dedicated class
     """
-    if program_type == ProgramToScan.ANTIVIRUS and antivirus_type == AntivirusType.DEFENDER:
+    """if program_type == ProgramToScan.ANTIVIRUS and antivirus_type == AntivirusType.DEFENDER:
         return DefenderProgram(scan_type, custom_scan_path)
     if program_type == ProgramToScan.ANTIVIRUS and antivirus_type == AntivirusType.ClamAV:
-        return ClamAVProgram(scan_type, custom_scan_path)
+        return ClamAVProgram(scan_type, custom_scan_path)"""
     if program_type == ProgramToScan.IDS and ids_type == IDSType.SURICATA:
         return SuricataProgram(interface_name, pcap_list_dirs, log_path)
     if program_type == ProgramToScan.IDS and ids_type == IDSType.SNORT:
