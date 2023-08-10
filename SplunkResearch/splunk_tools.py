@@ -1,0 +1,309 @@
+from datetime import datetime
+import itertools
+import json
+import logging
+from multiprocessing import Pool
+import random
+import re
+import subprocess
+from dotenv import load_dotenv
+import os
+import requests
+
+load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/.env')
+# Precompile the regex pattern
+pattern = re.compile(r"'(.*?)' (\D+) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} IDT) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \s+(\d+)\s+(\d+\.\d+)")
+savedsearches_path = '/opt/splunk/etc/users/shouei/search/local/savedsearches.conf'
+APP = 'search'
+HEADERS = {
+    "Content-Type": "application/x-www-form-urlencoded"
+}
+PREFIX_PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/'
+
+class SplunkTools:
+    def __init__(self):
+        self.splunk_host = os.getenv("SPLUNK_HOST")
+        self.splunk_port = os.getenv("SPLUNK_PORT")
+        self.base_url = f"https://{self.splunk_host}:{self.splunk_port}"
+        self.splunk_username = os.getenv("SPLUNK_USERNAME")
+        self.splunk_password = os.getenv("SPLUNK_PASSWORD")
+        self.index_name = os.getenv("INDEX_NAME")
+        self.hec_token = os.getenv('HEC_TOKEN')
+        self.auth = requests.auth.HTTPBasicAuth(self.splunk_username, self.splunk_password)
+        
+    def get_saved_search_names(self, get_only_enabled=True):
+        names = []
+        with open(savedsearches_path, 'r') as f:
+            content = f.read()
+            search_names = re.findall(r'^\[(.*?)\]', content, flags=re.MULTILINE)
+            for name in search_names:
+                match = re.search(rf"^\[{name}\][^\[]*?disabled = (0|1)", content, re.MULTILINE | re.DOTALL)
+                if match is not None and get_only_enabled:
+                    # logging.info(f'Saved search "{name}" is disabled. Skipping.')
+                    continue
+                names.append(name)
+        return names
+    
+    def _send_post_request(self, url, data):
+        response = requests.post(url, headers=HEADERS, data=data, auth=self.auth, verify=False)
+        return response.status_code
+
+    def _update_search(self, saved_search_name, data):
+        url = f"{self.base_url}/servicesNS/{self.splunk_username}/{APP}/saved/searches/{saved_search_name}"
+        response_code = self._send_post_request(url, data)
+        # if response_code == 200:
+        #     logging.info(f'Successfully updated saved search "{saved_search_name}".')
+        # else:
+        if response_code != 200:
+            logging.info(f'Failed to update saved search "{saved_search_name}". HTTP status code: {response_code}.')
+
+    def enable_search(self, saved_search_name):
+        data = {"disabled": 0}
+        self._update_search(saved_search_name, data)
+    
+    def disable_search(self, saved_search_name):
+        data = {"disabled": 1}
+        self._update_search(saved_search_name, data)
+    
+    def update_search_cron_expression(self, saved_search_name, new_schedule):
+        data = {"cron_schedule": new_schedule}
+        self._update_search(saved_search_name, data)
+
+    def update_search_time_range(self, saved_search_name, time_range):
+        earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
+        # earliest_time = time_range[0]
+        latest_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').timestamp()
+        data = {
+            "dispatch.earliest_time": earliest_time,
+            "dispatch.latest_time": latest_time
+        }
+        self._update_search(saved_search_name, data)
+
+    def update_all_searches(self, update_func, update_arg):
+        searches_names = self.get_saved_search_names()  # Assuming savedsearches_path is defined
+        with Pool() as pool:
+            pool.starmap(update_func, [(search_name, update_arg) for search_name in searches_names])
+   
+    def insert_logs(self, logs, log_source):
+        if len(logs) == 0:
+            return
+        headers = {
+            "Authorization": f"Splunk {self.hec_token}",
+            "Content-Type": "application/x-www-form-urlencoded",
+            } 
+        url = f"http://{self.splunk_host}:8088/services/collector/event?auto_extract_timestamp=true"
+        events= []
+        for i, log in enumerate(logs):
+            events.append(json.dumps({'event': log, 'source': log_source, 'sourcetype': log_source.split(':')[0]}))
+        # data = json.dumps({'event': events})
+        response = requests.post(url, headers=headers, data="\n".join(events), verify=False)
+        if response.status_code == 200:
+            logging.info(f'Logs successfully sent to Splunk. {len(logs)} logs of source {log_source} were sent.')
+        else:
+            logging.info('Failed to send log entry to Splunk.')
+            logging.info(response.text)
+            logging.info("\n".join(events))
+            
+            
+    def insert_log(self, log_entry, log_source):
+        # BUG: Splunk split this log: b'06/13/2023 05:53:49 PM\nLogName=Application\nEventCode=16384\nEventType=4\nComputerName=LB-111-4.auth.ad.bgu.ac.il\nSourceName=Microsoft-Windows-Security-SPP\nType=Information\nRecordNumber=700003\nKeywords=Classic\nTaskCategory=Logoff\nOpCode=None\nMessage=Successfully scheduled Software Protection service for re-start at 2023-06-18T06:23:05Z. Reason: RulesEngine.\n\nIsFakeLog=True'
+        source = log_source
+        sourcetype = log_source.split(':')[0]
+        # Splunk REST API endpoint
+        url = f"{self.base_url}/services/receivers/simple"
+        if log_entry is None:
+            logging.info('Log entry is None. Skipping.')
+            return
+        # Send the log entry to Splunk
+        response = requests.post(f"{url}?sourcetype={sourcetype}&source={source}&index={self.index_name}", data=log_entry.encode('utf-8'), headers=HEADERS, auth=(self.splunk_username, self.splunk_password), verify=False)
+        # Check the response status
+        if response.status_code == 200:
+            return 'Log entry successfully sent to Splunk.'
+        else:
+            return 'Failed to send log entry to Splunk.'
+            
+    def extract_distribution(self, start_time, end_time):
+        # Placeholder for your Splunk extraction script
+        # This should be replaced with your existing script
+        command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}")|stats count by source EventCode | eventstats sum(count) as totalCount" -maxout 0 -auth shouei:sH231294'
+        cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
+        
+        res_dict = {}
+        if len(cmd.stdout.split('\n')) > 2:
+            for row in cmd.stdout.split('\n')[2:-1]:
+                row = row.split()
+                source = row[0]
+                event_code = row[1]
+                count = row[2]
+                total_count = row[3]
+                res_dict[f"{source.lower()} {event_code}"] = int(count)
+            res_dict['total_count'] = int(total_count)
+        return res_dict
+    
+    def get_search_details(self, search, res_dict, search_endpoint):
+        search_id = search
+        rule_name = res_dict[search][0].strip()
+        time = res_dict[search][1]
+        total_events = res_dict[search][2]
+        total_run_time = res_dict[search][3]
+
+        results_response = requests.get(f"{search_endpoint}/{search_id}", params={"output_mode": "json"}, auth=self.auth, verify=False)
+        results_data = json.loads(results_response.text)
+        try:
+            pid = results_data['entry'][0]['content']['pid']
+            runDuration = results_data['entry'][0]['content']['runDuration']
+            return (rule_name, (search_id, int(pid), time, runDuration, total_events, total_run_time))
+        except KeyError as e:
+            logging.info(f'KeyError - {str(e)}')
+        except IndexError as e:
+            logging.info(f'IndexError - {str(e)}')
+        except Exception as e:
+            logging.info('Unexpected error:', str(e))
+        logging.info(results_data)
+
+    def get_rules_pids(self, time):
+        format = "%Y-%m-%d %H:%M:%S"
+        query = f'index=_audit action=search app=search search_type=scheduled info=completed  earliest=-{time}m@m latest=now | regex search_id=\\"scheduler.*\\"| eval executed_time=strftime(exec_time, \\"{format}\\") | table search_id savedsearch_name _time executed_time event_count total_run_time'
+        command = f'echo sH231294| sudo -S -E env "PATH"="$PATH" /opt/splunk/bin/splunk search "{query}" -maxout 0 -auth shouei:sH231294'
+        cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
+        res = cmd.stdout.split('\n')[2:-1]
+        res_dict = {re.findall(pattern, line)[0][0]: re.findall(pattern, line)[0][1:] for line in res}
+        logging.info(f'stderr {cmd.stderr}')
+        search_endpoint = f"{self.base_url}/services/search/jobs"
+        # Use a multiprocessing pool to get details of all searches in parallel
+        with Pool() as pool:
+            results = pool.starmap(self.get_search_details, [(search, res_dict, search_endpoint) for search in res_dict])
+
+        pids = {}
+        for res in results:
+            if res is None:
+                continue
+            rule_name, details = res
+            if rule_name not in pids:
+                pids[rule_name] = [details]
+            else:
+                pids[rule_name].append(details)
+
+        return pids
+    
+    def get_alert_count(self, time_range):
+        spl_query = f'search index=_internal sourcetype=scheduler thread_id=AlertNotifier* user="shouei" earliest={time_range[0]} latest=={time_range[1]}|stats count'
+        # spl_query = 'search index=_internal sourcetype=scheduler thread_id=AlertNotifier* user="shouei"|stats count by savedsearch_name sid'
+        url = f"{self.base_url}/services/search/jobs"
+        data = {
+            "search": spl_query,
+            "exec_mode": "oneshot",
+            "output_mode": "json"
+        }
+
+        response = requests.post(url, headers=HEADERS, data=data, auth=(self.splunk_username, self.splunk_password), verify=False)
+        results = json.loads(response.text)
+        results = int(results['results'][0]['count'])
+        return results
+        
+    # def split_logs(self, log_source, logs):
+    #     # # Split the response by lines and parse each line as a separate JSON object
+    #     # if log_source.split(':')[0] == 'wineventlog':
+    #     #     return re.split(r'(?m)^(?=\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2} (?:AM|PM))', logs)
+    #     # else:
+    #     #     pattern_start = re.compile("<Event xmlns='http://schemas.microsoft.com/win/2004/08/events/event'>")
+    #     #     pattern_end = re.compile('/Event>')
+    #     #     # Split by '<Event'
+    #     #     parts = pattern_start.split(logs)
+    #     #     # Further split each part by '</Event>'
+    #     #     parts = [pattern_end.split(part) for part in parts]
+    #     #     # Flatten the list
+    #     #     parts = list(itertools.chain(*parts))
+    #     #     # Remove empty strings
+    #     #     parts = [part for part in parts if part]
+    #     #     # Add the '<Event' and '</Event>' tags to the corresponding parts
+    #     #     parts = [f'{pattern_start.pattern}{part}{pattern_end.pattern}' for i, part in enumerate(parts) if (i-1) % 3 == 0 ]
+    #     #     return parts
+    #     return logs.split('[EOF]')
+            
+                           
+    def extract_logs(self, log_source, time_range=("-24h@h", "now"), eventcode='*', limit=0):
+        if  os.path.exists(f'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/logs_to_duplicate_files/{log_source.replace("/", "__")}_{eventcode}.txt'):
+            return None        
+        # Define your SPL query
+        spl_query = f'search index=main source="{log_source}" EventCode={eventcode} earliest="{time_range[0]}" latest="{time_range[1]}"'
+        if limit > 0:
+            spl_query += f' | head {limit}'
+        # Define the REST API endpoint
+        url = f"{self.base_url}/services/search/jobs/export"
+        data = {'output_mode': 'json', 'search': spl_query}
+        headers = {
+            "Content-Type": "application/json",
+        }
+        response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
+        
+        if response.status_code != 200:
+            logging.info(f'Error: {response}')
+            return None
+        json_objects = response.text.splitlines()
+        if 'result' not in json_objects[0]:
+            results = []
+        else:
+            # Parse each line as JSON
+            results = [json.loads(obj)['result']['_raw'] for obj in json_objects]
+        # if len(results) == 0:
+        #     return None
+        # results = self.split_logs(log_source, response.text)
+        # Remove any empty lines
+        # results = [line for line in results if line.strip()]
+        # create the directory if it doesn't exist
+        self.save_logs(log_source, eventcode, results)
+        return results
+        
+    def save_logs(self, log_source, eventcode, logs):
+        path = f'{PREFIX_PATH}logs_to_duplicate_files'
+        if not os.path.exists(path):
+            os.makedirs(path)
+        # replace / char with '__'
+        log_source = log_source.replace('/', '__')
+        with open(f'{path}/{log_source}_{eventcode}.txt', 'w') as f:
+            for log in logs:
+                f.write(f'{log}\n[EOF]\n')
+        logging.info(f'Saved {len(logs)} logs to {path}/{log_source}_{eventcode}.txt')
+                   
+    def load_logs_to_duplicate_dict(self, logtypes):
+        # load the logs to duplicate from disk
+        logs_to_duplicate_dict = {(logtype[0].lower(), logtype[1]): [] for logtype in logtypes}
+        for logtype in logtypes:
+            source = logtype[0].lower()
+            eventcode = logtype[1]
+            if not os.path.exists(f'{PREFIX_PATH}logs_to_duplicate_files/{source.replace("/", "__")}_{eventcode}.txt'):
+                continue
+            with open(f'{PREFIX_PATH}logs_to_duplicate_files/{source.replace("/", "__")}_{eventcode}.txt', 'r') as f:
+                text = f.read()
+                results = text.split('\n[EOF]\n')
+                # results = self.split_logs(source, text)                
+                for log in results:
+                     if log != '':
+                         logs_to_duplicate_dict[(source, eventcode)].append(log)  
+        return logs_to_duplicate_dict   
+     
+    
+    def sample_log(self, logs, action_value):
+        if len(logs) > 0:
+            logs = random.sample(logs, min(len(logs), action_value))
+            return logs
+        else:
+            # logging.info('No results found or results is not a list.')
+            return None  
+    
+    def delete_fake_logs(self, time_range):
+        url = f"{self.base_url}/services/search/jobs/export"
+        data = {
+            "search": f'search index=main IsFakeLog earliest="{time_range[0]}" latest="{time_range[1]}" | delete',
+            "exec_mode": "oneshot",
+            "output_mode": "json"
+        }
+        response = requests.post(url, headers=HEADERS, data=data, auth=self.auth, verify=False)
+        results = response.text
+        return results          
+
+if __name__ == "__main__":
+    splunk_tools = SplunkTools()
+    # logging.info(splunk_tools.get_rules_pids(60))
+    # logging.info(splunk_tools.extract_logs('WinEventLog:Security', '4624'))

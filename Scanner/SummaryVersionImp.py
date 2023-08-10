@@ -1,7 +1,7 @@
 import pandas as pd
 
-from Scanner.general_consts import ProcessesColumns, CPUColumns, MemoryColumns, KB, DiskIOColumns
-from Scanner.general_functions import calc_delta_capacity, convert_mwh_to_other_metrics
+from general_consts import ProcessesColumns, CPUColumns, MemoryColumns, KB, DiskIOColumns
+from general_functions import calc_delta_capacity, convert_mwh_to_other_metrics
 
 
 def slice_df(df, percent):

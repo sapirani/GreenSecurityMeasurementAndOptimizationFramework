@@ -6,26 +6,26 @@ sysmon_log = "<Event xmlns='http://schemas.microsoft.com/win/2004/08/events/even
 
 # Define some possible replacement values
 replacement_values_wineventlog_security = {
-'EventCode': [str(num) for num in range(1000, 1005)],
+# 'EventCode': [str(num) for num in range(1000, 1005)],
 'ComputerName': ['LB-111-4.auth.ad.bgu.ac.il', 'LB-222-8.auth.ad.bgu.ac.il', 'LB-333-2.auth.ad.bgu.ac.il'],
 'RecordNumber': [str(num) for num in range(700000, 700005)],
 'TaskCategory': ['Logoff', 'Logon', 'System', 'Security']
 }
 replacement_values_wineventlog_system = {
-'EventCode': [str(num) for num in range(1000, 1005)],
+# 'EventCode': [str(num) for num in range(1000, 1005)],
 'ComputerName': ['LB-111-4.auth.ad.bgu.ac.il', 'LB-222-8.auth.ad.bgu.ac.il', 'LB-333-2.auth.ad.bgu.ac.il'],
 'RecordNumber': [str(num) for num in range(700000, 700005)],
 'TaskCategory': ['Logoff', 'Logon', 'System', 'Security']
 }
 replacement_values_wineventlog_application = {
-'EventCode': [str(num) for num in range(1000, 1005)],
+# 'EventCode': [str(num) for num in range(1000, 1005)],
 'ComputerName': ['LB-111-4.auth.ad.bgu.ac.il', 'LB-222-8.auth.ad.bgu.ac.il', 'LB-333-2.auth.ad.bgu.ac.il'],
 'RecordNumber': [str(num) for num in range(700000, 700005)],
 'TaskCategory': ['Logoff', 'Logon', 'System', 'Security']
 }
 # Define some possible replacement values
 replacement_values_sysmon = {
-'EventID': ['1', '2', '3', '4', '5'],
+# 'EventID': ['1', '2', '3', '4', '5'],
 'Version': ['1', '2', '3', '4', '5'],
 'Level': ['1', '2', '3', '4', '5'],
 'Task': ['1', '2', '3', '4', '5'],
@@ -41,8 +41,8 @@ replacement_values_sysmon = {
 'OriginalFileName': ['file1.exe', 'file2.exe', 'file3.exe', 'file4.exe', 'file5.exe']
 }
 
-replacment_dicts = {'WinEventLog:Security': replacement_values_wineventlog_security,
-                    'WinEventLog:System': replacement_values_wineventlog_system,
-                    'WinEventLog:Application': replacement_values_wineventlog_application,
-                    'XmlWinEventLog:Microsoft-Windows-Sysmon': replacement_values_sysmon
+replacement_dicts = {'wineventLog:security': replacement_values_wineventlog_security,
+                    'wineventLog:system': replacement_values_wineventlog_system,
+                    'wineventLog:application': replacement_values_wineventlog_application,
+                    'xmlwineventlog:microsoft-windows-sysmon/operational': replacement_values_sysmon
                     }

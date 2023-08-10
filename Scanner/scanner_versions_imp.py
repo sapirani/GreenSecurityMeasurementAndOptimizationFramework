@@ -1,7 +1,7 @@
 import time
 import psutil
 
-from Scanner.general_consts import BatteryColumns
+from general_consts import BatteryColumns
 
 
 class FullScanner:

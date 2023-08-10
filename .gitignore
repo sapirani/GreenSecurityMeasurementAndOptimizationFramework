@@ -14,3 +14,4 @@ green_sec_env
 visualization*
 screenlog.*
 .env
+SplunkResearch/logs_to_duplicate_files

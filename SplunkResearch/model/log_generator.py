@@ -1,27 +1,39 @@
 
 from datetime import datetime
+import logging
+import random
 import re
 from xml.etree import ElementTree as ET
 from faker import Faker
-
+import sys
+sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
 
 class LogGenerator:
+    
+    def __init__(self, logtypes, big_replacement_dicts, splunk_tools_instance):
+        self.big_replacement_dicts = big_replacement_dicts
+        self.splunk_tools = splunk_tools_instance
+        self.logs_to_duplicate_dict = self.init_logs_to_duplicate_dict(logtypes)
 
-    def replace_fields_in_log(self, log, log_source, time_range, replacements_dict):
+    
+    def replace_fields_in_log(self, log, log_source, time_range, replacement_dict):
         # random time from time_range
         start_date, end_date=time_range
         start_date = datetime.strptime(start_date, '%m/%d/%Y:%H:%M:%S') 
         end_date = datetime.strptime(end_date, '%m/%d/%Y:%H:%M:%S') 
         time = Faker().date_time_between(start_date, end_date, tzinfo=None)      
-                        
-        if log_source.split(':')[0] == 'WinEventLog':
+        if log_source.split(':')[0] == 'wineventlog':
             new_log = re.sub(r"^\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2} [APM]{2}", time.strftime("%m/%d/%Y %I:%M:%S %p"), log, flags=re.MULTILINE)
             new_log += '\nIsFakeLog=True'
-            for field, new_value in replacements_dict.items():
+            for field, new_value in replacement_dict.items():
                 new_log = re.sub(f"{field}=\S+", f"{field}={new_value}", new_log, flags=re.MULTILINE)
         else:
-            xml = ET.fromstring(log)
-            for field, new_value in replacements_dict.items():
+            try:
+                xml = ET.fromstring(log)
+            except ET.ParseError:
+                logging.info('ParseError', log)
+                return None
+            for field, new_value in replacement_dict.items():
                 for elem in xml.iter():
                     if elem.attrib.get('Name') == field:
                         elem.text = new_value
@@ -39,7 +51,85 @@ class LogGenerator:
             event_data_elem = xml.find('{http://schemas.microsoft.com/win/2004/08/events/event}EventData')
             if event_data_elem is not None:
                 ET.SubElement(event_data_elem, 'Data', {'Name': 'IsFakeLog'}).text = 'True'
-                print('added')
             new_log = ET.tostring(xml, encoding='unicode')
         return new_log
+    
+    def init_logs_to_duplicate_dict(self, logtypes):
+        logs_to_duplicate_dict = {(logtype[0].lower(), logtype[1]): self.splunk_tools.extract_logs(logtype[0].lower(),time_range=("-7d", "now"), eventcode=logtype[1], limit=100) for logtype in logtypes}
+        return self.splunk_tools.load_logs_to_duplicate_dict(logtypes)
+        
+    def generate_log(self, logsource, eventcode, replacement_dict, time_range):
+        logs_to_duplicate_dict = self.logs_to_duplicate_dict[(logsource, eventcode)]
+        if logs_to_duplicate_dict is None or len(logs_to_duplicate_dict) == 0:
+            return None
+        log = random.choice(logs_to_duplicate_dict)
+        return self.replace_fields_in_log(log, logsource, time_range, replacement_dict)
+    
+    def get_replacement_values(self, logsource):
+        replacement_dict = self.random_replacement_values()    
+        return replacement_dict[logsource]
 
+    def random_replacement_values(self):
+        replacement_dict = {field.lower():{key: random.choice(value) for key, value in self.big_replacement_dicts[field].items()} for field in self.big_replacement_dicts}
+        return replacement_dict
+        
+    def generate_logs(self, logsource, eventcode, time_range, num_logs):
+        logsource_replacement_dict = self.get_replacement_values(logsource)
+        logs = []
+        for i in range(num_logs):
+            log = self.generate_log(logsource, eventcode, logsource_replacement_dict, time_range)
+            if log is not None:
+                logs.append(log)
+        return logs
+    
+# if __name__=='__main__':
+#     log_generator = LogGenerator()
+#     # test generation of sysmon log:
+#     log = """<Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event">
+#     <System>
+#         <Provider Name="Microsoft-Windows-Sysmon" Guid="{5770385F-C22A-43E0-BF4C-06F5698FFBD9}" />
+#         <EventID>1</EventID>
+#         <Version>5</Version>
+#         <Level>4</Level>
+#         <Task>1</Task>
+#         <Opcode>0</Opcode>
+#         <Keywords>0x8000000000000000</Keywords>
+#         <TimeCreated SystemTime="2021-06-15T08:00:00.0000000Z" />
+#         <EventRecordID>1</EventRecordID>
+#         <Correlation />
+#         <Execution ProcessID="4" ThreadID="8" />
+#         <Channel>Microsoft-Windows-Sysmon/Operational</Channel>
+#         <Computer>DESKTOP-1</Computer>
+#         <Security UserID="S-1-5-18" />
+#     </System>
+#     <EventData>
+#         <Data Name="RuleName">CreateRemoteThread</Data>
+#         <Data Name="UtcTime">2021-06-15 08:00:00.000</Data>
+#         <Data Name="ProcessGuid">{00000000-0000-0000-0000-000000000000}</Data>
+#         <Data Name="ProcessId">0</Data>
+#         <Data Name="Image">-</Data>
+#         <Data Name="TargetProcessGuid">{00000000-0000-0000-0000-000000000000}</Data>
+#         <Data Name="TargetProcessId">0</Data>
+#         <Data Name="TargetImage">-</Data>
+#         <Data Name="NewThreadId">0</Data>
+#         <Data Name="StartAddress">-</Data>
+#         <Data Name="StartModule">-</Data>
+#         <Data Name="StartFunction">-</Data>
+#         <Data Name="StartFunctionName">-</Data>
+#         <Data Name="Type">-</Data>
+#         <Data Name="TypeDescription">-</Data>
+#         <Data Name="CreationUtcTime">-</Data>
+#         <Data Name="CreationTime">-</Data>
+#         <Data Name="CreationProcessGuid">{00000000-0000-0000-0000-000000000000}</Data>
+#         <Data Name="CreationProcessId">0</Data>
+#         <Data Name="CreationImage">-</Data>
+#         <Data Name="CreationCommandLine">-</Data>
+#         <Data Name="CreationCurrentDirectory">-</Data>
+#         <Data Name="CreationUser">-</Data>
+#     </EventData>
+#     </Event>"""
+#     log_source = 'xmlwineventlog:Microsoft-Windows-Sysmon/Operational'
+#     time_range = ('06/12/2023:20:00:00', '06/15/2023:08:00:00')
+#     replacement_dicts = {field.lower():{key: random.choice(value) for key, value in replacement_dicts[field].items()} for field in replacement_dicts}    
+#     logging.info(replacement_dicts)
+#     logging.info(log_generator.replace_fields_in_log(log, log_source, time_range, replacement_dicts['xmlwineventlog:microsoft-windows-sysmon/operational']))

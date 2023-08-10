@@ -1,10 +1,10 @@
 import os.path
 
-from Scanner import SummaryVersionImp 
-from Scanner.program_parameters import *
-from Scanner.program_classes import *
-from Scanner.os_funcs import *
-from Scanner.scanner_versions_imp import FullScanner, LiteScanner, WithoutBatteryScanner
+import SummaryVersionImp 
+from program_parameters import *
+from program_classes import *
+from os_funcs import *
+from scanner_versions_imp import FullScanner, LiteScanner, WithoutBatteryScanner
 
 # ======= Get Operating System Type =======
 running_os = None

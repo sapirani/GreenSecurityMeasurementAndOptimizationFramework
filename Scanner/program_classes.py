@@ -3,8 +3,8 @@ import re
 import time
 from typing import Union
 
-from Scanner.general_consts import *
-from Scanner.os_funcs import OSFuncsInterface
+from general_consts import *
+from os_funcs import OSFuncsInterface
 
 
 class ProgramInterface:

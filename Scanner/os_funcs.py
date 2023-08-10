@@ -4,12 +4,12 @@ import subprocess
 from abc import abstractmethod
 import psutil
 import shlex
-from Scanner.general_consts import (GB, MINUTE, NEVER_GO_TO_SLEEP_MODE,
+from general_consts import (GB, MINUTE, NEVER_GO_TO_SLEEP_MODE,
                                     NO_BUTTON, YES_BUTTON,
                                     PowerPlan, disk_types, pc_types,
                                     physical_memory_types)
-from Scanner.general_functions import get_powershell_result_list_format
-from Scanner.program_parameters import (DEFAULT_SCREEN_TURNS_OFF_TIME,
+from general_functions import get_powershell_result_list_format
+from program_parameters import (DEFAULT_SCREEN_TURNS_OFF_TIME,
                                 DEFAULT_TIME_BEFORE_SLEEP_MODE, power_plan)
 
 
