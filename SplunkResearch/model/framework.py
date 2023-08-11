@@ -1,6 +1,6 @@
 import datetime
 import subprocess
-from threading import Thread
+from threading import Thread, Timer
 import time
 import numpy as np
 import pandas as pd
@@ -40,6 +40,7 @@ class Framework(gym.Env):
         self.action_space = spaces.Box(low=1/max_actions_value, high=1, shape=(1,), dtype=np.float64)
         self.max_actions_value = max_actions_value
         self.observation_space = spaces.Box(low=np.array([0]*((len(logtypes)+2))), high=np.array([INFINITY] * len(logtypes)+[len(logtypes)]+[1]))
+        self.current_time = self.time_range[0]
         self.current_action = None
         self.state = None  # Initialize state
         self.gamma = 1/2
@@ -50,8 +51,11 @@ class Framework(gym.Env):
         self.sum_of_action_values = 0
         self.current_step = 0
         self.max_steps = 100
-        self.waiting_thread = None
-        self.reward_dict = {'energy': 0, 'alerts': 0, 'distributions': 0, 'fraction': 0, 'total': 0}
+        self.measure_thread = None
+        self.time_left_till_next_measurement = None
+        self.reward_dict = {'energy': [], 'alerts': [], 'distributions': [], 'fraction': [], 'total': []}
+        self.reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'fraction': []}
+        self.fake_distribution = [0]*len(logtypes)
     
     def logtype_index_counter(self):
         self.logtype_index += 1
@@ -77,7 +81,7 @@ class Framework(gym.Env):
         
     def update_state(self):
         state = []
-        current_distribution = self.splunk_tools.extract_distribution(*self.time_range)
+        current_distribution = self.splunk_tools.extract_distribution(self.time_range[0], self.current_time)
         for logtype in logtypes:
             logtype = f"{logtype[0].lower()} {logtype[1]}"
             if logtype in current_distribution:
@@ -92,10 +96,11 @@ class Framework(gym.Env):
 
   
     def get_energy_reward_component(self):
-        if self.waiting_thread.is_alive() and self.logtype_index < len(logtypes)-1:
+        if self.logtype_index < len(logtypes)-1:
                 return self.previous_energy_reward_component
-        self.waiting_thread.join()
+        self.measure_thread.join()
         current_energy = self.measure(self.rule_frequency)
+        self.reward_values_dict['energy'].append(current_energy)
         energy_reward = self.calculate_energy_reward(current_energy)
         self.after_measure_clean()
         return energy_reward
@@ -107,22 +112,25 @@ class Framework(gym.Env):
         return energy_reward
         
     def get_alerts_reward_component(self):
-        if self.waiting_thread.is_alive() and self.logtype_index < len(logtypes): # continue to learn till the next measurement
+        if self.logtype_index < len(logtypes)-1: # continue to learn till the next measurement
             return self.previous_alert_reward_component
         alert_reward = self.calculate_alert_reward()
         return alert_reward
 
     def calculate_alert_reward(self):
         alert_count = self.splunk_tools.get_alert_count(self.time_range)
+        self.reward_values_dict['alerts'].append(alert_count)
         alert_reward = (alert_count - self.previous_alert)/(self.previous_alert + 1/1000000)
         self.previous_alert_reward_component = -alert_reward
         self.previous_alert = alert_count
         return -alert_reward
     
     def get_distributions_reward_component(self):
-        fake_distribution = self.get_fake_distribution()
+        real_distribution = self.state[:len(logtypes)]
+        fake_distribution = real_distribution + self.fake_distribution
         # TODO: should the right distribution be the current distribution or the current with out the fake logs?
-        distributions_distance = self.compare_distributions(self.state[:len(logtypes)], fake_distribution)
+        distributions_distance = self.compare_distributions(real_distribution, fake_distribution)
+        self.reward_values_dict['distributions'].append(distributions_distance)
         return -distributions_distance
     
     def get_fraction_reward_component(self):
@@ -133,6 +141,7 @@ class Framework(gym.Env):
             fraction_reward = -fraction_reward
         else:
             fraction_reward = 1
+        self.reward_values_dict['fraction'].append(self.sum_of_action_values)
         self.previous_sum_of_action_values = self.sum_of_action_values
         self.sum_of_action_values = 0
         return fraction_reward
@@ -147,11 +156,11 @@ class Framework(gym.Env):
     def get_reward(self):
         energy_reward, alerts_reward, distributions_reward, fraction_reward = self.get_reward_componnents()
         reward = self.alpha  * energy_reward + self.beta *fraction_reward  + self.gamma*distributions_reward  + self.delta * alerts_reward
-        self.reward_dict['energy'] += energy_reward
-        self.reward_dict['alerts'] += alerts_reward
-        self.reward_dict['distributions'] += distributions_reward
-        self.reward_dict['fraction'] += fraction_reward
-        self.reward_dict['total'] += reward
+        self.reward_dict['energy'].append(energy_reward)
+        self.reward_dict['alerts'].append(alerts_reward)
+        self.reward_dict['distributions'].append(distributions_reward)
+        self.reward_dict['fraction'].append(fraction_reward)
+        self.reward_dict['total'].append(reward)
         logging.info(f"energy reward: {energy_reward}")
         logging.info(f"fraction reward: {fraction_reward}")
         logging.info(f"alerts reward: {alerts_reward}")
@@ -161,9 +170,13 @@ class Framework(gym.Env):
 
     def step(self, action):
         self.current_step += 1
-        if self.waiting_thread is None:
-            self.waiting_thread = Thread(target=self.wait_to_measure)
-            self.waiting_thread.start()
+        print(f"current time: {self.current_time}")
+        if self.measure_thread is None:
+            self.calculate_time_to_next_step()
+            self.timer_thread = Thread(target=self.update_current_time)
+            self.measure_thread = Timer(self.time_left_till_next_measurement-20, self.measure, kwargs={'time_delta': self.rule_frequency})
+            self.timer_thread.start()
+            self.measure_thread.start()
         if self.current_step == 1:
             self.before_first_step()
             return self.state, 0, False, {}       
@@ -179,43 +192,54 @@ class Framework(gym.Env):
 
     def before_first_step(self):
         logging.info("waiting for first measurement")
-        self.waiting_thread.join()
+        self.measure_thread.join()
         first_alert_reward = self.get_alerts_reward_component()
         first_energy_reward = self.get_energy_reward_component()
         logging.info(f"first energy reward: {first_energy_reward}")
         logging.info(f"first alert reward: {first_alert_reward}")
     
+    def update_current_time(self):
+        while True:
+            self.calculate_time_to_next_step()
+            self.current_time = self.change_time(self.time_range[1], seconds=-self.time_left_till_next_measurement)
+            time.sleep(1)
+            if self.measure_thread is None:
+                return  
+            
     def perform_action(self, action):
+        # calculate the current time range according to the time left till the next measurement
+        time_range = (self.change_time(self.current_time), self.change_time(self.current_time, seconds=1))
         self.current_action = action[0]
         logtype = logtypes[self.logtype_index]
         logsource = logtype[0].lower()
         eventcode = logtype[1]
         action_value = int(self.current_action*self.max_actions_value)
         logging.info(f"action: {self.current_action}, action value: {action_value}, logtype: {logtype}")
-        fake_logs = self.log_generator.generate_logs(logsource, eventcode, self.time_range, action_value)
+        fake_logs = self.log_generator.generate_logs(logsource, eventcode, time_range, action_value)
         logging.info(f"{len(fake_logs)}: fake logs were generated")
         self.sum_of_action_values += self.current_action
+        self.fake_distribution[self.logtype_index] += action_value
         self.splunk_tools.insert_logs(fake_logs, logsource)
             
-    def get_fake_distribution(self): #tool
-        fake_distribution = self.state[:len(logtypes)].copy()
-        # logging.info(f"current distribution: {self.state[:len(logtypes)]}")
-        fake_distribution[self.logtype_index] += int(self.current_action*self.max_actions_value)
-        # logging.info(f"fake distribution: {fake_distribution}")
-        return fake_distribution
+    # def get_fake_distribution(self): #tool
+    #     fake_distribution = self.state[:len(logtypes)].copy()
+    #     # logging.info(f"current distribution: {self.state[:len(logtypes)]}")
+    #     fake_distribution[self.logtype_index] += int(self.current_action*self.max_actions_value)
+    #     # logging.info(f"fake distribution: {fake_distribution}")
+    #     return fake_distribution
     
     def calculate_time_to_next_step(self): #tool
         now = datetime.datetime.now()
         seconds_since_hour = (now.minute * 60) + now.second
         seconds_into_step = seconds_since_hour % (self.rule_frequency * 60)
         seconds_until_next_step = (self.rule_frequency * 60) - seconds_into_step
-        return seconds_until_next_step
+        self.time_left_till_next_measurement = seconds_until_next_step
         
-    def wait_to_measure(self): #tool
-        seconds_until_next_step = self.calculate_time_to_next_step()
-        # Display a countdown timer while we wait
-        for i in range(seconds_until_next_step-20, 0, -1):
-            time.sleep(1)
+    # def wait_to_measure(self): #tool
+    #     self.calculate_time_to_next_step()
+    #     # Display a countdown timer while we wait
+    #     for i in range(seconds_until_next_step-20, 0, -1):
+    #         time.sleep(1)
         
     def measure(self, time_delta=60): #tool
         # self.measurement()
@@ -237,13 +261,17 @@ class Framework(gym.Env):
         current_energy = grouped_rules_enegry_df['CPU(J)'].sum()
         return current_energy
     
+    def change_time(self, original_time, hours=0, minutes=0, seconds=0):
+        return (pd.to_datetime(original_time,format='%m/%d/%Y:%H:%M:%S') + datetime.timedelta(hours=hours, minutes=minutes, seconds=seconds)).strftime('%m/%d/%Y:%H:%M:%S')
+    
     def after_measure_clean(self): #tool
         # update time range of rules with rule frequency
-        self.time_range = ((pd.to_datetime(self.time_range[0],format='%m/%d/%Y:%H:%M:%S') + datetime.timedelta(minutes=self.rule_frequency)).strftime('%m/%d/%Y:%H:%M:%S'), (pd.to_datetime(self.time_range[1],format='%m/%d/%Y:%H:%M:%S') + datetime.timedelta(minutes=self.rule_frequency)).strftime('%m/%d/%Y:%H:%M:%S'))
+        self.time_range = (self.change_time(self.time_range[0], seconds=self.rule_frequency*60), self.change_time(self.time_range[1], seconds=self.rule_frequency*60))
         logging.info('update time range of rules')
-        self.splunk_tools.update_all_searches(self.splunk_tools.update_search_time_range, self.time_range)   
+        self.splunk_tools.update_all_searches(self.splunk_tools.update_search_time_range, self.time_range) 
+        self.fake_distribution = [0]*len(logtypes)  
         self.current_measurement_path = None
-        self.waiting_thread = None
+        self.measure_thread = None
     
     def aggregate_rules_energy(self, rules_energy_df):
         time_field = 'Time(sec)'

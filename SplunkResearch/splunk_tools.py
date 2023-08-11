@@ -122,10 +122,11 @@ class SplunkTools:
         else:
             return 'Failed to send log entry to Splunk.'
             
-    def extract_distribution(self, start_time, end_time):
+    def extract_distribution(self, start_time, end_time, fake=False):
         # Placeholder for your Splunk extraction script
         # This should be replaced with your existing script
-        command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}")|stats count by source EventCode | eventstats sum(count) as totalCount" -maxout 0 -auth shouei:sH231294'
+        fake_flag = 'IsFakeLog' if fake else 'NOT IsFakeLog'            
+        command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}") {fake_flag} |stats count by source EventCode | eventstats sum(count) as totalCount" -maxout 0 -auth shouei:sH231294'
         cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
         
         res_dict = {}
