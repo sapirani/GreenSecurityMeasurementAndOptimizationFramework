@@ -8,6 +8,7 @@ from logtypes import logtypes
 from config import replacement_dicts
 import logging
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
+from experiment_manager import ExperimentManager
 from splunk_tools import SplunkTools
 import random
 import subprocess
@@ -20,9 +21,7 @@ from log_generator import LogGenerator
 from config import replacement_dicts as big_replacement_dicts
 urllib3.disable_warnings()
 
-now = datetime.datetime.now()
-fake_start_datetime = datetime.datetime(2023,6,22, now.hour, now.minute, now.second)
-dt_manager = MockedDatetimeManager(fake_start_datetime=fake_start_datetime)
+
 
 def update_running_time(running_time, env_file_path):
     command = f'sed -i "s/RUNNING_TIME=.*/RUNNING_TIME={running_time}/" "{env_file_path}"'
@@ -55,18 +54,20 @@ if __name__ == "__main__":
     max_actions_value = 400
     num_of_searches = 5
     running_time="1" #in minutes
-    num_of_experiments = 1000
+    num_of_experiments = 10000
     baseline = False
     env_file_path = "/home/shouei/GreenSecurity-FirstExperiment/Scanner/.env"
     
+    manager = ExperimentManager()
+    # Create a new experiment directory
+    new_dir = manager.create_experiment_dir()
+    print(f"New experiment directory: {new_dir}")
     
-    
-    
-    
-    # print(dt_manager.get_current_datetime())  # Mocked datetime
-    # time.sleep(5)  # Wait for 5 seconds
-    # print(dt_manager.get_current_datetime())  # Mocked datetime, 5 seconds later
-    # dt_manager.log("This should use the real datetime.")  # Real datetime
+    now = datetime.datetime.now()
+    fake_start_datetime = datetime.datetime(2023,6,22, now.hour, now.minute, now.second)
+    global dt_manager
+    dt_manager = MockedDatetimeManager(fake_start_datetime=fake_start_datetime, log_file_path=f"{new_dir}/log.txt")
+  
     
     splunk_tools_instance = SplunkTools()
     # splunk_tools_instance.update_all_searches(splunk_tools_instance._update_search, {"disabled": 1})
@@ -79,7 +80,9 @@ if __name__ == "__main__":
     dt_manager.log('wait till the time is rounded to the next rule frequency')
     dt_manager.wait_til_next_rule_frequency(rule_frequency)
     fake_now = dt_manager.get_current_datetime()
-    time_range = (dt_manager.add_time(fake_now, seconds=20), dt_manager.add_time(fake_now, minutes=rule_frequency))
+    end_time = dt_manager.add_time(fake_now, seconds=20)
+    start_time = dt_manager.subtract_time(end_time, minutes=rule_frequency)
+    time_range = (start_time, end_time)
     update_rules_frequency_and_time_range(splunk_tools_instance, rule_frequency, time_range)
     gym.register(
             id='splunk_attack-v0',
@@ -108,8 +111,8 @@ if __name__ == "__main__":
         # mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
         # dt_manager.log(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
         dt_manager.log('finish learning, saving model')
-        model.save("ppo_splunk_attack")
-        with open('reward_dict.json', 'w') as fp:
+        model.save(f"{new_dir}/ppo_splunk_attack")
+        with open(f'{new_dir}/reward_dict.json', 'w') as fp:
             json.dump(env.reward_dict, fp)
     else:
         env.reset()

@@ -15,3 +15,4 @@ visualization*
 screenlog.*
 .env
 SplunkResearch/logs_to_duplicate_files
+experiments

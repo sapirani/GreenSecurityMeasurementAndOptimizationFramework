@@ -17,20 +17,31 @@ class MockedDatetimeManager:
     _initial_real_datetime = datetime.datetime.utcnow()
     _fake_start_datetime = datetime.datetime(2023, 1, 1, 12, 0, 0)
     
-    def __init__(self, fake_start_datetime=None):
+    def __init__(self, fake_start_datetime=None, log_file_path=None):
         if fake_start_datetime:
             MockedDatetimeManager._fake_start_datetime = fake_start_datetime
         
-        # Setting up logging
-        logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
+       
+        
         self.logger = logging.getLogger(__name__)
+         # Create a formatter
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        self.logger.setLevel(logging.INFO)
+
+        if log_file_path:
+            file_handler = logging.FileHandler(log_file_path)
+            # Set the formatter for the file handler
+            file_handler.setFormatter(formatter)
+            self.logger.addHandler(file_handler)
         
         # Ensure that logging uses the real datetime functions
         for handler in self.logger.handlers:
             handler.formatter.converter = self._real_now
     
     def _real_now(self, *args, **kwargs):
-        return self._initial_real_datetime.timetuple()
+        fake_dt = self.get_current_datetime()
+        return datetime.datetime.strptime(fake_dt, '%m/%d/%Y:%H:%M:%S').timetuple()
+
     
     def get_current_datetime(self):
         with patch('datetime.datetime', MockedDatetime):
@@ -94,3 +105,9 @@ class MockedDatetimeManager:
             fake_now = self.get_current_datetime()
             split_fake_now = fake_now.split(':')            
             time.sleep(1)
+            
+if __name__ == "__main__":
+    manager = MockedDatetimeManager(log_file_path="test.log")
+    for i in range(5):
+        manager.log("This is a test message.")
+        time.sleep(1)
