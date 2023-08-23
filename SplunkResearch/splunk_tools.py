@@ -21,7 +21,7 @@ HEADERS = {
 PREFIX_PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/'
 
 class SplunkTools:
-    def __init__(self):
+    def __init__(self, dt_manager):
         self.splunk_host = os.getenv("SPLUNK_HOST")
         self.splunk_port = os.getenv("SPLUNK_PORT")
         self.base_url = f"https://{self.splunk_host}:{self.splunk_port}"
@@ -30,7 +30,7 @@ class SplunkTools:
         self.index_name = os.getenv("INDEX_NAME")
         self.hec_token = os.getenv('HEC_TOKEN')
         self.auth = requests.auth.HTTPBasicAuth(self.splunk_username, self.splunk_password)
-        
+        self.dt_manager = dt_manager
     def get_saved_search_names(self, get_only_enabled=True):
         names = []
         with open(savedsearches_path, 'r') as f:
@@ -98,11 +98,11 @@ class SplunkTools:
         # data = json.dumps({'event': events})
         response = requests.post(url, headers=headers, data="\n".join(events), verify=False)
         if response.status_code == 200:
-            logging.info(f'Logs successfully sent to Splunk. {len(logs)} logs of source {log_source} were sent.')
+            self.dt_manager.log(f'Logs successfully sent to Splunk. {len(logs)} logs of source {log_source} were sent.')
         else:
-            logging.info('Failed to send log entry to Splunk.')
-            logging.info(response.text)
-            logging.info("\n".join(events))
+            self.dt_manager.log('Failed to send log entry to Splunk.')
+            self.dt_manager.log(response.text)
+            self.dt_manager.log("\n".join(events))
             
             
     def insert_log(self, log_entry, log_source):
@@ -112,7 +112,7 @@ class SplunkTools:
         # Splunk REST API endpoint
         url = f"{self.base_url}/services/receivers/simple"
         if log_entry is None:
-            logging.info('Log entry is None. Skipping.')
+            self.dt_manager.log('Log entry is None. Skipping.')
             return
         # Send the log entry to Splunk
         response = requests.post(f"{url}?sourcetype={sourcetype}&source={source}&index={self.index_name}", data=log_entry.encode('utf-8'), headers=HEADERS, auth=(self.splunk_username, self.splunk_password), verify=False)
@@ -155,12 +155,12 @@ class SplunkTools:
             runDuration = results_data['entry'][0]['content']['runDuration']
             return (rule_name, (search_id, int(pid), time, runDuration, total_events, total_run_time))
         except KeyError as e:
-            logging.info(f'KeyError - {str(e)}')
+            self.dt_manager.log(f'KeyError - {str(e)}')
         except IndexError as e:
-            logging.info(f'IndexError - {str(e)}')
+            self.dt_manager.log(f'IndexError - {str(e)}')
         except Exception as e:
-            logging.info('Unexpected error:', str(e))
-        logging.info(results_data)
+            self.dt_manager.log('Unexpected error:', str(e))
+        self.dt_manager.log(results_data)
 
     def get_rules_pids(self, time):
         format = "%Y-%m-%d %H:%M:%S"
@@ -169,7 +169,7 @@ class SplunkTools:
         cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
         res = cmd.stdout.split('\n')[2:-1]
         res_dict = {re.findall(pattern, line)[0][0]: re.findall(pattern, line)[0][1:] for line in res}
-        logging.info(f'stderr {cmd.stderr}')
+        self.dt_manager.log(f'stderr {cmd.stderr}')
         search_endpoint = f"{self.base_url}/services/search/jobs"
         # Use a multiprocessing pool to get details of all searches in parallel
         with Pool() as pool:
@@ -239,7 +239,7 @@ class SplunkTools:
         response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
         
         if response.status_code != 200:
-            logging.info(f'Error: {response}')
+            self.dt_manager.log(f'Error: {response}')
             return None
         json_objects = response.text.splitlines()
         if 'result' not in json_objects[0]:
@@ -265,7 +265,7 @@ class SplunkTools:
         with open(f'{path}/{log_source}_{eventcode}.txt', 'w') as f:
             for log in logs:
                 f.write(f'{log}\n[EOF]\n')
-        logging.info(f'Saved {len(logs)} logs to {path}/{log_source}_{eventcode}.txt')
+        self.dt_manager.log(f'Saved {len(logs)} logs to {path}/{log_source}_{eventcode}.txt')
                    
     def load_logs_to_duplicate_dict(self, logtypes):
         # load the logs to duplicate from disk
@@ -290,7 +290,7 @@ class SplunkTools:
             logs = random.sample(logs, min(len(logs), action_value))
             return logs
         else:
-            # logging.info('No results found or results is not a list.')
+            # self.dt_manager.log('No results found or results is not a list.')
             return None  
     
     def delete_fake_logs(self, time_range):
@@ -302,9 +302,9 @@ class SplunkTools:
         }
         response = requests.post(url, headers=HEADERS, data=data, auth=self.auth, verify=False)
         results = response.text
-        return results          
+        self.dt_manager.log(results)
 
 if __name__ == "__main__":
     splunk_tools = SplunkTools()
-    # logging.info(splunk_tools.get_rules_pids(60))
-    # logging.info(splunk_tools.extract_logs('WinEventLog:Security', '4624'))
+    # self.dt_manager.log(splunk_tools.get_rules_pids(60))
+    # self.dt_manager.log(splunk_tools.extract_logs('WinEventLog:Security', '4624'))

@@ -39,7 +39,7 @@ class Framework(gym.Env):
         self.action_space = spaces.Box(low=1/max_actions_value, high=1, shape=(1,), dtype=np.float64)
         self.max_actions_value = max_actions_value
         self.observation_space = spaces.Box(low=np.array([0]*((len(logtypes)+2))), high=np.array([INFINITY] * len(logtypes)+[len(logtypes)]+[1]))
-        # self.current_time = self.time_range[0]
+        self.action_duration = self.rule_frequency*60/len(logtypes)
         self.current_action = None
         self.state = None  # Initialize state
         self.gamma = 1/2
@@ -50,7 +50,6 @@ class Framework(gym.Env):
         self.sum_of_action_values = 0
         self.current_step = 0
         self.max_steps = 100
-        self.measure_thread = None
         self.time_left_till_next_measurement = None
         self.reward_dict = {'energy': [], 'alerts': [], 'distributions': [], 'fraction': [], 'total': []}
         self.reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'fraction': []}
@@ -85,7 +84,6 @@ class Framework(gym.Env):
     def get_energy_reward_component(self):
         # if not self.done:
         #         return self.previous_energy_reward_component
-        # self.measure_thread.join()
         current_energy = self.measure(self.rule_frequency)
         self.reward_values_dict['energy'].append(current_energy)
         energy_reward = self.calculate_energy_reward(current_energy)
@@ -101,14 +99,8 @@ class Framework(gym.Env):
    
     def get_distributions_reward_component(self):
         # TODO: Change to percentage of logs 
-        # epsilon = 0.0000001
-        # real_distribution = self.state[:len(logtypes)]
-        # for i in range(len(real_distribution)):
-        #     real_distribution[i] += epsilon
-        # fake_distribution = real_distribution + self.fake_distribution
-
         # TODO: should the right distribution be the current distribution or the current with out the fake logs?
-        distributions_distance = self.compare_distributions(self.real_distribution, self.fake_distribution)
+        distributions_distance = self.compare_distributions(self.real_distribution, self.state[:len(logtypes)])
         self.reward_values_dict['distributions'].append(distributions_distance)
         return -distributions_distance
     
@@ -131,35 +123,7 @@ class Framework(gym.Env):
         return energy_reward, alerts_reward, distributions_reward, fraction_reward
     
     
-    
-    # def update_current_time(self):
-    #     while True:
-    #         self.calculate_time_to_next_step()
-    #         self.current_time = self.change_time(self.time_range[1], seconds=-self.time_left_till_next_measurement)
-    #         time.sleep(1)
-    #         if self.measure_thread is None:
-    #             return 
-    # def get_fake_distribution(self): #tool
-    #     fake_distribution = self.state[:len(logtypes)].copy()
-    #     # self.dt_manager.log(f"current distribution: {self.state[:len(logtypes)]}")
-    #     fake_distribution[self.logtype_index] += int(self.current_action*self.max_actions_value)
-    #     # self.dt_manager.log(f"fake distribution: {fake_distribution}")
-    #     return fake_distribution
-    
-    # def calculate_time_to_next_step(self): #tool
-    #     now = self.dt_manager.get_current_datetime()
-    #     datetime_now = datetime.datetime.strptime(now, '%m/%d/%Y:%H:%M:%S')
-    #     seconds_since_hour = (datetime_now.minute * 60) + datetime_now.second
-    #     seconds_into_step = seconds_since_hour % (self.rule_frequency * 60)
-    #     seconds_until_next_step = (self.rule_frequency * 60) - seconds_into_step
-    #     self.time_left_till_next_measurement = seconds_until_next_step
-        
-    # def wait_to_measure(self): #tool
-    #     self.calculate_time_to_next_step()
-    #     # Display a countdown timer while we wait
-    #     for i in range(seconds_until_next_step-20, 0, -1):
-    #         time.sleep(1)
-        
+
     def measure(self, time_delta=60): #tool
         # self.measurement()
         # run the measurement script with subprocess
@@ -180,26 +144,7 @@ class Framework(gym.Env):
         current_energy = grouped_rules_enegry_df['CPU(J)'].sum()
         return current_energy
     
-    # def change_time(self, original_time, hours=0, minutes=0, seconds=0):
-    #     return (pd.to_datetime(original_time,format='%m/%d/%Y:%H:%M:%S') + datetime.timedelta(hours=hours, minutes=minutes, seconds=seconds)).strftime('%m/%d/%Y:%H:%M:%S')
-    
-    def after_measure_clean(self): #tool
-        # update time range of rules with rule frequency
-        minutes = int(self.time_range[0].split(':')[2])
-        seconds = int(self.time_range[0].split(':')[3])
-        self.dt_manager.log(f'current time_range: {self.time_range}')
-        start_time = self.dt_manager.subtract_time(self.time_range[0], minutes=(minutes%self.rule_frequency), seconds=seconds%60)
-        self.dt_manager.log(f'update start_time to {start_time}')
-        start_time = self.dt_manager.add_time(start_time, minutes=self.rule_frequency)
-        self.dt_manager.log(f'update start_time to {start_time}')
-        end_time = self.dt_manager.add_time(start_time, minutes=self.rule_frequency)
-        self.dt_manager.log(f'update end_time to {end_time}')
-        self.time_range = (start_time, end_time)
-        self.dt_manager.log(f'update time_range to {self.time_range}')
-        self.splunk_tools.update_all_searches(self.splunk_tools.update_search_time_range, self.time_range) 
-        self.fake_distribution = [0]*len(logtypes)  
-        self.current_measurement_path = None
-        self.measure_thread = None
+  
     
     def aggregate_rules_energy(self, rules_energy_df):
         time_field = 'Time(sec)'
@@ -254,7 +199,7 @@ class Framework(gym.Env):
         return reward
 
     def step(self, action):
-        print(f"current time: {self.dt_manager.get_current_datetime()}")      
+        self.dt_manager.log(f"Current time: {self.dt_manager.get_fake_current_datetime()}")      
         self.perform_action(action)
         self.update_state()
         # self.calculate_time_to_next_step()
@@ -269,7 +214,6 @@ class Framework(gym.Env):
 
     def before_first_step(self):
         self.dt_manager.log("waiting for first measurement")
-        # self.measure_thread.join()
         first_alert_reward = self.get_alerts_reward_component()
         first_energy_reward = self.get_energy_reward_component()
         self.dt_manager.log(f"first energy reward: {first_energy_reward}")
@@ -278,8 +222,8 @@ class Framework(gym.Env):
     
     def perform_action(self, action):
         # calculate the current time range according to the time left till the next measurement
-        now = self.dt_manager.get_current_datetime()
-        time_range = (now, self.dt_manager.add_time(now, seconds=1))
+        now = self.dt_manager.get_fake_current_datetime()
+        time_range = (now, self.dt_manager.add_time(now, seconds=self.action_duration))
         self.current_action = action[0]
         logtype = logtypes[self.logtype_index]
         logsource = logtype[0].lower()
@@ -292,6 +236,8 @@ class Framework(gym.Env):
         self.sum_of_fractions += self.current_action
         self.fake_distribution[self.logtype_index] += action_value
         self.splunk_tools.insert_logs(fake_logs, logsource)
+        new_current_fake_time = self.dt_manager.add_time(now, seconds=self.action_duration)
+        self.dt_manager.set_fake_current_datetime(new_current_fake_time)
     
     def check_done(self):
         # Define the termination conditions based on the current state or other criteria
@@ -299,6 +245,7 @@ class Framework(gym.Env):
             return True
         else:
             return False
+        
     def reset(self):
         self.dt_manager.log("resetting")
         self.current_log_type = 0
@@ -310,10 +257,27 @@ class Framework(gym.Env):
         # define time range to delete
         date = self.time_range[1].split(':')[0]
         time_range = (f'{date}:00:00:00', f'{date}:23:59:59')
-        delete_response = self.splunk_tools.delete_fake_logs(time_range)
-        self.dt_manager.log(delete_response)
+        self.splunk_tools.delete_fake_logs(time_range)
         
-        self.after_measure_clean()
+        self.dt_manager.round_to_next_rule_frequency(self.rule_frequency)
+        new_start_time = self.dt_manager.get_fake_current_datetime()
+        new_end_time = self.dt_manager.add_time(new_start_time, minutes=self.rule_frequency)
+        # FIXME: problem with the time range modification
+        # # update time range of rules with rule frequency
+        # minutes = int(self.time_range[0].split(':')[2])
+        # seconds = int(self.time_range[0].split(':')[3])
+        self.dt_manager.log(f'current time_range: {self.time_range}')
+        # start_time = self.dt_manager.subtract_time(self.time_range[0], minutes=(minutes%self.rule_frequency), seconds=seconds%60)
+        self.dt_manager.log(f'update start_time to {new_start_time}')
+        # start_time = self.dt_manager.add_time(start_time, minutes=self.rule_frequency)
+        # self.dt_manager.log(f'update start_time to {start_time}')
+        self.dt_manager.log(f'update end_time to {new_end_time}')
+        self.time_range = (new_start_time, new_end_time)
+        self.dt_manager.log(f'update time_range to {self.time_range}')        
+        self.splunk_tools.update_all_searches(self.splunk_tools.update_search_time_range, self.time_range) 
+        self.fake_distribution = [0]*len(logtypes)  
+        self.current_measurement_path = None     
+        
         return self.state  # reward, done, info can't be included
     
     def render(self, mode='human'):
@@ -322,22 +286,12 @@ class Framework(gym.Env):
         
     def update_state(self):
         state = []
-        real_distribution = self.splunk_tools.extract_distribution(self.time_range[0], self.dt_manager.get_current_datetime())
+        real_distribution = self.splunk_tools.extract_distribution(self.time_range[0], self.dt_manager.get_fake_current_datetime())
         self.dt_manager.log(f"extraceted real {real_distribution}")
-        fake_distribution = self.splunk_tools.extract_distribution(self.time_range[0], self.dt_manager.get_current_datetime(), fake=True)
-        self.dt_manager.log(f"extraceted fake {fake_distribution}")
-        # for logtype in logtypes:
-        #     logtype = f"{logtype[0].lower()} {logtype[1]}"
-        #     if logtype in real_distribution and logtype in fake_distribution:
-        #         state.append(real_distribution[logtype] + fake_distribution[logtype])
-        #     elif logtype in fake_distribution:
-        #         state.append(fake_distribution[logtype])
-        #     elif logtype in real_distribution:
-        #         state.append(real_distribution[logtype])
-        #     else:
-        #         state.append(0)
+        # fake_distribution = self.splunk_tools.extract_distribution(self.time_range[0], self.dt_manager.get_fake_current_datetime(), fake=True)
+        # self.dt_manager.log(f"extraceted fake {fake_distribution}")
         epsilon = 0.0000001
-        self.fake_distribution = [fake_distribution[f"{logtype[0].lower()} {logtype[1]}"]+epsilon if f"{logtype[0].lower()} {logtype[1]}" in fake_distribution else epsilon for logtype in logtypes]
+        self.fake_distribution = [self.fake_distribution[i] if i else epsilon for i in range(len(logtypes)) ]
         self.real_distribution = [real_distribution[f"{logtype[0].lower()} {logtype[1]}"]+epsilon if f"{logtype[0].lower()} {logtype[1]}" in real_distribution else epsilon for logtype in logtypes]
         self.dt_manager.log(f"real distribution: {self.real_distribution}")
         self.dt_manager.log(f"fake distribution: {self.fake_distribution}")
