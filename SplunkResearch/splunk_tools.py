@@ -128,7 +128,6 @@ class SplunkTools:
         fake_flag = 'IsFakeLog' if fake else 'NOT IsFakeLog'            
         command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}") {fake_flag} |stats count by source EventCode | eventstats sum(count) as totalCount" -maxout 0 -auth shouei:sH231294'
         cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
-        
         res_dict = {}
         if len(cmd.stdout.split('\n')) > 2:
             for row in cmd.stdout.split('\n')[2:-1]:
@@ -188,7 +187,7 @@ class SplunkTools:
         return pids
     
     def get_alert_count(self, time_range):
-        spl_query = f'search index=_internal sourcetype=scheduler thread_id=AlertNotifier* user="shouei" earliest={time_range[0]} latest=={time_range[1]}|stats count'
+        spl_query = f'search index=_internal sourcetype=scheduler thread_id=AlertNotifier* user="shouei" earliest={time_range[0]} latest={time_range[1]}|stats count'
         # spl_query = 'search index=_internal sourcetype=scheduler thread_id=AlertNotifier* user="shouei"|stats count by savedsearch_name sid'
         url = f"{self.base_url}/services/search/jobs"
         data = {
@@ -308,3 +307,5 @@ if __name__ == "__main__":
     splunk_tools = SplunkTools()
     # self.dt_manager.log(splunk_tools.get_rules_pids(60))
     # self.dt_manager.log(splunk_tools.extract_logs('WinEventLog:Security', '4624'))
+    # test loading logs from disk
+    splunk_tools.load_logs_to_duplicate_dict([('WinEventLog:Security', '2005')])  
