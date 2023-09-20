@@ -84,7 +84,7 @@ class MockedDatetimeManager:
         """
         fake_now = self.get_fake_current_datetime()
         split_fake_now = fake_now.split(':')
-        fake_now = self.add_time(fake_now, minutes=int(rule_frequency) - int(split_fake_now[2]) % int(rule_frequency))
+        fake_now = self.add_time(fake_now, minutes=(int(rule_frequency) - int(split_fake_now[2])) % int(rule_frequency))
         fake_now = self.subtract_time(fake_now, seconds=int(split_fake_now[3]))
         self.set_fake_current_datetime(fake_now)
         

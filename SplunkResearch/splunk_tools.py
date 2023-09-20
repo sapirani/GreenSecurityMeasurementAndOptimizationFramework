@@ -144,15 +144,16 @@ class SplunkTools:
         search_id = search
         rule_name = res_dict[search][0].strip()
         time = res_dict[search][1]
-        total_events = res_dict[search][2]
-        total_run_time = res_dict[search][3]
+        executed_time = res_dict[search][2]
+        total_events = res_dict[search][3]
+        total_run_time = res_dict[search][4]
 
         results_response = requests.get(f"{search_endpoint}/{search_id}", params={"output_mode": "json"}, auth=self.auth, verify=False)
         results_data = json.loads(results_response.text)
         try:
             pid = results_data['entry'][0]['content']['pid']
             runDuration = results_data['entry'][0]['content']['runDuration']
-            return (rule_name, (search_id, int(pid), time, runDuration, total_events, total_run_time))
+            return (rule_name, (search_id, int(pid), executed_time, runDuration, total_events, total_run_time))
         except KeyError as e:
             self.dt_manager.log(f'KeyError - {str(e)}')
         except IndexError as e:
@@ -163,7 +164,8 @@ class SplunkTools:
 
     def get_rules_pids(self, time):
         format = "%Y-%m-%d %H:%M:%S"
-        query = f'index=_audit action=search app=search search_type=scheduled info=completed  earliest=-{time}m@m latest=now | regex search_id=\\"scheduler.*\\"| eval executed_time=strftime(exec_time, \\"{format}\\") | table search_id savedsearch_name _time executed_time event_count total_run_time'
+        query = f'index=_audit action=search app=search search_type=scheduled info=completed  earliest=-{time}m@m latest=now | regex search_id=\\"scheduler.*\\"| eval executed_time=strftime(exec_time, \\"{format}\\")\
+        | table search_id savedsearch_name _time executed_time event_count total_run_time'
         command = f'echo sH231294| sudo -S -E env "PATH"="$PATH" /opt/splunk/bin/splunk search "{query}" -maxout 0 -auth shouei:sH231294'
         cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
         res = cmd.stdout.split('\n')[2:-1]
