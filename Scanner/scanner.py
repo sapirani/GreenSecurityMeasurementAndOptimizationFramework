@@ -7,13 +7,14 @@ from statistics import mean
 from prettytable import PrettyTable
 from threading import Thread, Timer
 import pandas as pd
+
 from initialization_helper import *
 from datetime import date
 from pathlib import Path
 from general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
 
 base_dir, GRAPHS_DIR, STDOUT_FILES_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
-BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, SUMMARY_CSV = result_paths()
+BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, SUMMARY_CSV, HARDWARE_CSV = result_paths()
 
 program.set_results_dir(base_dir)
 
@@ -37,6 +38,8 @@ disk_io_each_moment_df = pd.DataFrame(columns=disk_io_columns_list)
 battery_df = pd.DataFrame(columns=battery_columns_list)
 
 cpu_df = pd.DataFrame(columns=cpu_columns_list)
+
+hardware_df = pd.DataFrame()
 
 finished_scanning_time = []
 
@@ -252,39 +255,62 @@ def save_general_system_information(f):
     :param f:
     :return:
     """
+    global hardware_df
     platform_system = platform.uname()
 
     f.write("======System Information======\n")
 
-    running_os.save_system_information(f)
+    hardware_df = running_os.save_system_information(f, hardware_df)
 
     f.write(f"Machine Type: {platform_system.machine}\n")
     f.write(f"Device Name: {platform_system.node}\n")
+
+    hardware_df[HardwareColumns.MACHINE_TYPE] = [platform_system.machine]
+    hardware_df[HardwareColumns.DEVICE_NAME] = [platform_system.node]
 
     f.write("\n----Operating System Information----\n")
     f.write(f"Operating System: {platform_system.system}\n")
     f.write(f"Release: {platform_system.release}\n")
     f.write(f"Version: {platform_system.version}\n")
 
+    hardware_df[HardwareColumns.OPERATING_SYSTEM] = [platform_system.system]
+    hardware_df[HardwareColumns.OPERATING_SYSTEM_RELEASE] = [platform_system.release]
+    hardware_df[HardwareColumns.OPERATING_SYSTEM_VERSION] = [platform_system.version]
+
     f.write("\n----CPU Information----\n")
     f.write(f"Processor: {platform_system.processor}\n")
-    f.write(f"Physical cores: {psutil.cpu_count(logical=False)}\n")
+
+    number_of_physical_cores = psutil.cpu_count(logical=False)
+    f.write(f"Physical cores: {number_of_physical_cores}\n")
     f.write(f"Total cores: {NUMBER_OF_CORES}\n")
     cpufreq = psutil.cpu_freq()
     f.write(f"Max Frequency: {cpufreq.max:.2f} MHz\n")
     f.write(f"Min Frequency: {cpufreq.min:.2f} MHz\n")
 
+    hardware_df[HardwareColumns.PROCESSOR_NAME] = [platform_system.processor]
+    hardware_df[HardwareColumns.PROCESSOR_PHYSICAL_CORES] = [number_of_physical_cores]
+    hardware_df[HardwareColumns.PROCESSOR_TOTAL_CORES] = [NUMBER_OF_CORES]
+    hardware_df[HardwareColumns.PROCESSOR_MAX_FREQ] = [cpufreq.max]
+    hardware_df[HardwareColumns.PROCESSOR_MIN_FREQ] = [cpufreq.min]
+
     f.write("\n----RAM Information----\n")
-    f.write(f"Total RAM: {psutil.virtual_memory().total / GB} GB\n")
+    total_ram = psutil.virtual_memory().total / GB
+    f.write(f"Total RAM: {total_ram} GB\n")
+
+    hardware_df[HardwareColumns.TOTAL_RAM] = [total_ram]
 
     running_os.save_physical_memory(f)
-    running_os.save_disk_information(f)
+    running_os.save_disk_information(f, hardware_df)
+
+
 
 
 def save_general_information_before_scanning():
     """
     This function writes general battery, disk, ram, os, etc. information
     """
+
+    global hardware_df
     with open(GENERAL_INFORMATION_FILE, 'w') as f:
         # dd/mm/YY
         f.write(f'Date: {date.today().strftime("%d/%m/%Y")}\n')
@@ -296,10 +322,13 @@ def save_general_information_before_scanning():
         save_general_system_information(f)
 
         f.write('\n======Before Scanning======\n')
-        scanner_imp.save_general_battery(f)
+        hardware_df = scanner_imp.save_general_battery(f, hardware_df)
         f.write('\n')
         save_general_disk(f)
         f.write('\n\n')
+
+    if not os.path.exists(HARDWARE_CSV):
+        hardware_df.to_csv(HARDWARE_CSV, index=False)
 
 
 def save_general_information_after_scanning():

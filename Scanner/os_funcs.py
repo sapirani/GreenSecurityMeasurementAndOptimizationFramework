@@ -5,9 +5,9 @@ from abc import abstractmethod
 import psutil
 import shlex
 from general_consts import (GB, MINUTE, NEVER_GO_TO_SLEEP_MODE,
-                                    NO_BUTTON, YES_BUTTON,
-                                    PowerPlan, disk_types, pc_types,
-                                    physical_memory_types)
+                            NO_BUTTON, YES_BUTTON,
+                            PowerPlan, disk_types, pc_types,
+                            physical_memory_types, HardwareColumns)
 from general_functions import get_powershell_result_list_format
 from program_parameters import (DEFAULT_SCREEN_TURNS_OFF_TIME,
                                 DEFAULT_TIME_BEFORE_SLEEP_MODE, power_plan)
@@ -36,7 +36,7 @@ class OSFuncsInterface:
         """
         pass
 
-    def save_battery_capacity(self, f):
+    def save_battery_capacity(self, f, df):
         pass
 
     def save_system_information(self, f):   # TODO
@@ -245,22 +245,37 @@ class WindowsOS(OSFuncsInterface):
                 b.Voltage
             ]
 
-    def save_battery_capacity(self, f):
+    def save_battery_capacity(self, f, df):
         batts1 = self.c.CIM_Battery(Caption='Portable Battery')
         for i, b in enumerate(batts1):
-            f.write('Battery %d Design Capacity: %d mWh\n' % (i, b.DesignCapacity or 0))
+            empty_capacity_after = b.DesignCapacity or 0
+            f.write('Battery %d Design Capacity: %d mWh\n' % (i, empty_capacity_after))
+            df[HardwareColumns.BATTERY_DESIGN_CAPACITY] = [empty_capacity_after]
 
         batts = self.t.ExecQuery('Select * from BatteryFullChargedCapacity')
         for i, b in enumerate(batts):
             f.write('Battery %d Fully Charged Capacity: %d mWh\n' % (i, b.FullChargedCapacity))
+            df[HardwareColumns.FULLY_CHARGED_BATTERY_CAPACITY] = [b.FullChargedCapacity]
 
-    def save_system_information(self, f):
+        return df
+
+    def save_system_information(self, f, df):
         wmi_system = self.c.Win32_ComputerSystem()[0]
+        pc_type = pc_types[wmi_system.PCSystemType]
+        manufacturer = wmi_system.Manufacturer
+        system_family = wmi_system.SystemFamily
+        model = wmi_system.Model
 
-        f.write(f"PC Type: {pc_types[wmi_system.PCSystemType]}\n")
-        f.write(f"Manufacturer: {wmi_system.Manufacturer}\n")
-        f.write(f"System Family: {wmi_system.SystemFamily}\n")
-        f.write(f"Model: {wmi_system.Model}\n")
+        df[HardwareColumns.PC_TYPE] = [pc_type]
+        df[HardwareColumns.PC_MANUFACTURER] = [manufacturer]
+        df[HardwareColumns.SYSTEM_FAMILY] = [system_family]
+        df[HardwareColumns.PC_MODEL] = [model]
+
+        f.write(f"PC Type: {pc_type}\n")
+        f.write(f"Manufacturer: {manufacturer}\n")
+        f.write(f"System Family: {system_family}\n")
+        f.write(f"Model: {model}\n")
+        return df
 
     def save_physical_memory(self, f):
         wmi_physical_memory = self.c.Win32_PhysicalMemory()
@@ -272,7 +287,7 @@ class WindowsOS(OSFuncsInterface):
             f.write(f"Memory Type: {physical_memory_types[physical_memory.SMBIOSMemoryType]}\n")
             f.write(f"Speed: {physical_memory.Speed} MHz\n")
 
-    def save_disk_information(self, f):
+    def save_disk_information(self, f, df):
         wmi_logical_disks = self.c.Win32_LogicalDisk()
         result = subprocess.run(["powershell", "-Command",
                                  "Get-Disk | Select FriendlyName, Manufacturer, Model,  PartitionStyle, NumberOfPartitions,"
@@ -291,12 +306,18 @@ class WindowsOS(OSFuncsInterface):
         physical_disks_info = get_powershell_result_list_format(result.stdout)
 
         f.write("\n----Physical Disk Information----\n")
-        for physical_disk_info in physical_disks_info:
+        for index, physical_disk_info in enumerate(physical_disks_info):
             f.write(f"\nName: {physical_disk_info['FriendlyName']}\n")
             f.write(f"Manufacturer: {physical_disk_info['Manufacturer']}\n")
             f.write(f"Model: {physical_disk_info['Model']}\n")
             f.write(f"Media Type: {physical_disk_info['MediaType']}\n")
             f.write(f"Disk Firmware Version: {physical_disk_info['FirmwareVersion']}\n")
+
+            df[HardwareColumns.PHYSICAL_DISK_NAME + f"{index}"] = [physical_disk_info['FriendlyName']]
+            df[HardwareColumns.PHYSICAL_DISK_MANUFACTURER + f"{index}"] = [physical_disk_info['Manufacturer']]
+            df[HardwareColumns.PHYSICAL_DISK_MODEL + f"{index}"] = [physical_disk_info['Model']]
+            df[HardwareColumns.PHYSICAL_DISK_MEDIA_TYPE + f"{index}"] = [physical_disk_info['MediaType']]
+            df[HardwareColumns.PHYSICAL_DISK_FIRMWARE_VERSION + f"{index}"] = [physical_disk_info['FirmwareVersion']]
 
         f.write("\n----Logical Disk Information----\n")
         try:
@@ -311,8 +332,23 @@ class WindowsOS(OSFuncsInterface):
                 f.write(f"Logical Sector Size: {logical_disk_info['LogicalSectorSize']}  bytes\n")
                 f.write(f"Bus Type: {logical_disk_info['BusType']}\n")
                 f.write(f"FileSystem: {wmi_logical_disks[index].FileSystem}\n")
+
+                df[HardwareColumns.LOGICAL_DISK_NAME + f"{index}"] = [logical_disk_info['FriendlyName']]
+                df[HardwareColumns.LOGICAL_DISK_MANUFACTURER + f"{index}"] = [logical_disk_info['Manufacturer']]
+                df[HardwareColumns.LOGICAL_DISK_MODEL + f"{index}"] = [logical_disk_info['Model']]
+                df[HardwareColumns.LOGICAL_DISK_DISK_TYPE + f"{index}"] = [disk_types[wmi_logical_disks[index].DriveType]]
+                df[HardwareColumns.LOGICAL_DISK_PARTITION_STYLE + f"{index}"] = [logical_disk_info['PartitionStyle']]
+                df[HardwareColumns.LOGICAL_DISK_NUMBER_OF_PARTITIONS + f"{index}"] = [logical_disk_info['NumberOfPartitions']]
+                df[HardwareColumns.PHYSICAL_SECTOR_SIZE + f"{index}"] = [logical_disk_info['PhysicalSectorSize']]
+                df[HardwareColumns.LOGICAL_SECTOR_SIZE + f"{index}"] = [logical_disk_info['LogicalSectorSize']]
+                df[HardwareColumns.BUS_TYPE + f"{index}"] = [logical_disk_info['BusType']]
+                df[HardwareColumns.FILESYSTEM + f"{index}"] = [wmi_logical_disks[index].FileSystem]
+
+            return df
         except Exception:
             pass
+
+        return df
 
     def message_box(self, title, text, style):
         return ctypes.windll.user32.MessageBoxW(0, text, title, style)
@@ -436,7 +472,7 @@ class LinuxOS(OSFuncsInterface):
     def get_default_power_plan_identifier(self):
         return PowerPlan.POWER_SAVER[2]
 
-    def save_battery_capacity(self, f):
+    def save_battery_capacity(self, f, df):
         res = subprocess.run("upower -i /org/freedesktop/UPower/devices/battery_BAT0 |"
                              " grep -E 'energy-full-design|energy-empty'",
                              capture_output=True, shell=True)
@@ -446,8 +482,15 @@ class LinuxOS(OSFuncsInterface):
 
         empty_capacity, full_capacity = LinuxOS.get_value_of_terminal_res(res)
 
-        f.write(f'Battery Design Capacity: {float(empty_capacity.split()[0]) * 1000} mWh\n')
-        f.write(f'Battery Fully Charged Capacity: {float(full_capacity.split()[0]) * 1000} mWh\n')
+        empty_capacity_after = float(empty_capacity.split()[0]) * 1000
+        f.write(f'Battery Design Capacity: {empty_capacity_after} mWh\n')
+
+        full_capacity_after = float(full_capacity.split()[0]) * 1000
+        f.write(f'Battery Fully Charged Capacity: {full_capacity_after} mWh\n')
+
+        df[HardwareColumns.BATTERY_DESIGN_CAPACITY] = [empty_capacity_after]
+        df[HardwareColumns.FULLY_CHARGED_BATTERY_CAPACITY] = [full_capacity_after]
+        return df
 
     def is_posix(self):
         return True
