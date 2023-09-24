@@ -16,7 +16,16 @@ echo sH231294 | sudo -S sed -i 's/^max_searches_per_process = .*/max_searches_pe
 
 
 echo "running"
-# eval "$(conda shell.bash hook)"
-echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" $1 $2
-wait
+# if $2 == "test" run the test script else only train
+if [ $2 == "test" ]; then
+    echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" $1
+    wait
+    echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test last
+    wait
+else
+    echo "Test last"
+    echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" $1 $2
+    wait
+fi
+
 echo sH231294 | sudo -S chmod -R 777 VMware\,\ Inc.\ Linux\ 3.10.0-1160.88.1.el7.x86_64/

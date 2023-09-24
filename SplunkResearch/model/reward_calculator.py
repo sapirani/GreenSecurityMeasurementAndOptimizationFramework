@@ -1,0 +1,216 @@
+import os
+import subprocess
+from scipy.stats import entropy
+from scipy.stats import wasserstein_distance
+import pandas as pd
+CPU_TDP=200
+PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. Linux 3.10.0-1160.92.1.el7.x86_64/Splunk Enterprise SIEM/Power Saver Plan/One Scan/'
+
+class RewardCalc:
+    def __init__(self, relevant_logtypes, dt_manager, splunk_tools, rule_frequency):
+        self.previous_energy = 1
+        self.previous_alert = 0
+        self.epsilon = 0
+        self.reward_dict = {'energy': [0], 'alerts': [0], 'distributions': [], 'fraction': [], 'total': []}
+        self.reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'fraction': [], 'duration': [], "num_of_rules":[]}
+        self.relevant_logtypes = relevant_logtypes
+        self.dt_manager = dt_manager
+        self.splunk_tools = splunk_tools
+        self.rule_frequency = rule_frequency
+        self.time_rules_energy_dict = {}
+        self.current_measurement_path = ''
+      
+    def get_previous_full_reward(self):
+        return self.reward_dict['alerts'][-1], self.reward_dict['energy'][-1]
+
+    def get_partial_reward(self, real_distribution, current_state):
+        fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
+        if fraction_val > 1:
+            return -100
+        if distributions_val > 0.2:
+            return -distributions_val
+        if distributions_val < 0.2:
+            return 1-distributions_val
+
+
+            
+        # if fraction_val > 1:
+        #     fraction_reward = -100*fraction_val
+        # elif fraction_val == 0:
+        #     fraction_reward = -200
+        # # elif fraction_val == 1:
+        # #     fraction_reward = 100
+        # else:
+        #     fraction_reward = fraction_val*100
+        # if distributions_val > 0.2:
+        #     distributions_reward = -100*distributions_val
+        # else:
+        #     distributions_reward = (1-distributions_val)*100
+
+        # self.reward_dict['distributions'].append(distributions_reward)
+        # self.reward_dict['fraction'].append(fraction_reward)
+        # self.dt_manager.log(f"distributions reward: {distributions_reward}")
+        # self.dt_manager.log(f"fraction reward: {fraction_reward}")
+
+        # return fraction_reward,distributions_reward
+      
+    def get_full_reward(self, time_range, real_distribution, current_state):
+        fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
+        alert_val, energy_val, energy_increase = self.get_full_reward_values(time_range=time_range)
+        # if distributions_val >= 0.2 or fraction_val > 1:
+        #     return -(abs(energy_increase)**3)
+        # elif distributions_val < 0.2 and fraction_val <= 1:
+        #     return energy_increase**3
+        # formulation of reward function that maximize the energy while minimizing the difference between the distributions
+        if fraction_val > 1:
+            return -(fraction_val-1)*100
+        return energy_val
+        # if distributions_val >= 0.5:
+        #     return -distributions_val*100
+        # if energy_increase > 0:
+        #     return (energy_increase*100)**2
+        # else:
+        #     return -((energy_increase*100)**2)
+                    
+        # if  (distributions_val >= 0.2 and energy_increase < 0) or (distributions_val < 0.2):
+        #     return energy_increase**3
+
+        # if alert_val > 0 or fraction_val > 1:
+        #     return -100
+        # if energy_increase > 0 and distributions_val <= 0.1:
+        #     return energy_increase**3
+        # elif energy_increase > 0 and distributions_val > 0.1:
+        #     return energy_increase
+        # elif energy_increase <= 0 and distributions_val <= 0.1:
+        #     return energy_increase
+        # elif energy_increase < 0 and distributions_val > 0.1:
+        #     return energy_increase**3
+        # else:
+        #     return 0
+        ###########
+        # if alert_val:
+        #     alert_reward = 0
+        # else:
+        #     alert_reward = 1
+        # if energy_increase > 0.4:
+        #     energy_reward = 1000*energy_increase
+        # else:   
+        #     energy_reward = energy_increase*100
+            
+        # self.reward_dict['energy'].append(energy_reward)
+        # self.reward_dict['alerts'].append(alert_reward)
+        # self.dt_manager.log(f"energy reward: {energy_reward}")
+        # self.dt_manager.log(f"alert reward: {alert_reward}")
+        # return alert_reward, energy_reward
+
+    def get_full_reward_values(self, time_range):
+        alert_val = self.splunk_tools.get_alert_count(time_range)
+        self.dt_manager.wait_til_next_rule_frequency(self.rule_frequency)
+        energy_val = self.measure(time_range=time_range, time_delta=2*self.rule_frequency//3)
+        energy_increase = (energy_val - self.previous_energy)/(self.previous_energy+self.epsilon)
+        self.previous_energy = energy_val        
+        self.reward_values_dict['alerts'].append(alert_val)
+        self.dt_manager.log(f"incease in energy: {energy_increase}")
+        self.dt_manager.log(f"alert value: {alert_val}")
+        return alert_val, energy_val, energy_increase
+    
+
+    def get_partial_reward_values(self, real_distribution, current_state):
+        fraction_val = int(current_state[-1])
+        distributions_val = self.compare_distributions(real_distribution, current_state[:len(self.relevant_logtypes)])     
+        self.reward_values_dict['distributions'].append(distributions_val)
+        self.reward_values_dict['fraction'].append(fraction_val)
+        self.dt_manager.log(f"distributions value: {distributions_val}")
+        self.dt_manager.log(f"fraction value: {fraction_val}")
+        return fraction_val,distributions_val
+        
+    def measure(self, time_range, time_delta=60): #tool
+        # self.measurement()
+        # run the measurement script with subprocess
+        self.dt_manager.log('measuring')
+        cmd = subprocess.run('python ../Scanner/scanner.py', shell=True, capture_output=True, text=True)
+        self.dt_manager.log(cmd.stdout)
+        self.dt_manager.log(cmd.stderr)
+        # find the latest measurement folder
+        measurement_num = max([int(folder.split(' ')[1]) for folder in os.listdir(PATH) if folder.startswith('Measurement')])
+        self.current_measurement_path = os.path.join(PATH,f'Measurement {measurement_num}')
+        self.dt_manager.log(self.current_measurement_path)
+        
+
+        rules_enegry_df = self.get_rule_total_energy(time_delta, time_range)
+        current_energy = rules_enegry_df['CPU(J)'].sum()
+        duration = rules_enegry_df['run_duration'].sum()
+        self.reward_values_dict['energy'].append(current_energy)
+        self.reward_values_dict['duration'].append(duration)
+        self.dt_manager.log(f"energy value: {current_energy}")
+        return current_energy
+    
+  
+    
+    def get_rule_total_energy(self, time_delta, time_range):
+        rules_energy_df = self.extract_energy_per_rule(time_delta) 
+        rule_duration = rules_energy_df.groupby('name')['run_duration'].mean()      
+        self.energy_equation(rules_energy_df)
+        rule_total_energy = rules_energy_df.groupby('name')[['CPU(J)']].sum().reset_index()
+        rule_total_energy = pd.merge(rule_total_energy, rule_duration, left_on='name', right_on='name')
+        rule_total_energy.to_csv(os.path.join(self.current_measurement_path, 'grouped_rules_energy.csv'))
+        self.time_rules_energy_dict[str(time_range)] = rule_total_energy[['name', 'CPU(J)', 'run_duration']].to_dict('records')
+        return rule_total_energy
+
+    def energy_equation(self, rules_energy_df):
+        # rules_energy_df['delta_time'] = rules_energy_df.groupby('name')["Time(sec)"].diff().dt.total_seconds().fillna(0)
+        rules_energy_df['CPU(W)'] = rules_energy_df['CPU(%)'] * CPU_TDP / 100
+        rules_energy_df['CPU(J)'] = rules_energy_df['CPU(W)'] * rules_energy_df['delta_time']
+    
+    def extract_energy_per_rule(self, time_delta): 
+        pids_energy_df = self.fetch_energy_data()
+        rules_pids_df = self.get_rules_data(time_delta)
+        rules_energy_df = self.merge_energy_and_rule_data(pids_energy_df, rules_pids_df)
+        num_of_rules = len(rules_energy_df['name'].unique())
+        self.reward_values_dict['num_of_rules'].append(num_of_rules)
+        self.dt_manager.log(f"num of extracted rules data: {num_of_rules}")
+        rules_energy_df.to_csv(os.path.join(self.current_measurement_path, 'rules_energy.csv'))
+        return rules_energy_df
+
+    def merge_energy_and_rule_data(self, pids_energy_df, rules_pids_df):
+        splunk_pids_energy_df = pids_energy_df[pids_energy_df['PID'].isin(rules_pids_df.pid.values)].sort_values('Time(sec)') 
+        rules_energy_df = pd.merge(splunk_pids_energy_df, rules_pids_df, left_on='PID', right_on='pid')
+        # create a new column for the time interval
+        rules_energy_df["Time(sec)"] = pd.to_datetime(rules_energy_df["Time(sec)"])
+        rules_energy_df = rules_energy_df.sort_values(by=['name', "Time(sec)"])
+        return rules_energy_df
+
+    def get_rules_data(self, time_delta):
+        rules_pids = self.splunk_tools.get_rules_pids(time_delta)
+        data = []
+        for name, rules in rules_pids.items():
+            for e in rules:
+                sid, pid, time, run_duration, total_events, total_run_time = e 
+                data.append((name, sid, pid, time, run_duration, total_events, total_run_time)) 
+        rules_pids_df = pd.DataFrame(data, columns=['name', 'sid', 'pid', 'time', 'run_duration', 'total_events', 'total_run_time'])
+        rules_pids_df.time = pd.to_datetime(rules_pids_df.time)
+        rules_pids_df.sort_values('time', inplace=True)
+        return rules_pids_df
+
+    def fetch_energy_data(self):
+        processes_data = pd.read_csv(os.path.join(self.current_measurement_path, 'processes_data.csv'))
+        
+        time_differences = []
+        previous_time = None
+        for time in processes_data['Time(sec)'].unique():
+            if previous_time is None:
+                previous_time = time
+            for i in processes_data[processes_data['Time(sec)'] == time].index:
+                time_differences.append(time - previous_time)
+            previous_time = time
+        processes_data['delta_time'] = time_differences
+        
+        processes_data['Time(sec)'] = pd.to_datetime(processes_data['Time(sec)'], unit='s').dt.to_pydatetime()
+        return processes_data
+
+             
+    def compare_distributions(self, dist1, dist2):#tool
+        # Placeholder for your distribution comparison function
+        # This could use a metric like KL divergence
+        # return entropy(dist1, dist2)
+        return wasserstein_distance(dist1, dist2)

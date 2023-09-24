@@ -29,7 +29,11 @@ class ExperimentManager:
     def list_experiments(self):
         """Lists all experiments."""
         return [os.path.join(self.base_dir, exp) for exp in os.listdir(self.base_dir) if os.path.isdir(os.path.join(self.base_dir, exp))]
-
+    
+    def get_last_experiment_dir(self):
+        """Returns the last experiment directory."""
+        return max(self.list_experiments(), key=os.path.getctime)
+    
 if __name__ == "__main__":
     manager = ExperimentManager()
 
