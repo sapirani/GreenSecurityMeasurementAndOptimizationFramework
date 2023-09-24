@@ -327,9 +327,6 @@ def save_general_information_before_scanning():
         save_general_disk(f)
         f.write('\n\n')
 
-    if not os.path.exists(HARDWARE_CSV):
-        hardware_df.to_csv(HARDWARE_CSV, index=False)
-
 
 def save_general_information_after_scanning():
     """
