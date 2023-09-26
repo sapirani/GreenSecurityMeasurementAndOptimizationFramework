@@ -105,6 +105,24 @@ def read_directories(df, main_directory, is_train):
     return df
 
 
+def initialize_dataset(is_train=True):
+    cols = DATASET_COLUMNS + [ProcessColumns.ENERGY_USAGE_PROCESS_COL] if is_train else DATASET_COLUMNS
+    return pd.DataFrame(columns=cols)
+
+
+def main():
+    print("======== Creating Train Dataset ========")
+    train_df = initialize_dataset(True)
+    train_df = read_directories(train_df, TRAIN_MEASUREMENTS_DIR_PATH, is_train=True)
+    print(train_df)
+
+    print("======== Creating Test Dataset ========")
+    test_df = initialize_dataset(False)
+    test_df = read_directories(test_df, TEST_MEASUREMENTS_DIR_PATH, is_train=False)
+    print(test_df)
+
+if __name__ == '__main__':
+    main()
 
 
 

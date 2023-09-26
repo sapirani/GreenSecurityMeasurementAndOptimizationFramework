@@ -22,13 +22,13 @@ def predict(test_df, model):
 def main():
     print("======== Creating Train Dataset ========")
     train_df = initialize_dataset()
-    train_df = read_directories(train_df, MEASUREMENTS_DIR_PATH, is_train=True)
+    train_df = read_directories(train_df, TRAIN_MEASUREMENTS_DIR_PATH, is_train=True)
     model = MeasurementModel()
     print("======== Training the Model ========")
     fit(train_df, model)
     print("======== Creating Test Dataset ========")
     test_df = initialize_dataset(False)
-    test_df = read_directories(test_df, MEASUREMENTS_DIR_PATH, is_train=False)
+    test_df = read_directories(test_df, TRAIN_MEASUREMENTS_DIR_PATH, is_train=False)
     print("======== Predicting Energy using the model ========")
     predict(test_df, model)
 
