@@ -28,31 +28,43 @@ class LogGenerator:
             for field, new_value in replacement_dict.items():
                 new_log = re.sub(f"{field}=\S+", f"{field}={new_value}", new_log, flags=re.MULTILINE)
         else:
+            ET.register_namespace('', "http://schemas.microsoft.com/win/2004/08/events/event")
+            
             try:
                 xml = ET.fromstring(log)
             except ET.ParseError:
                 logging.info('ParseError', log)
                 return None
+            # data_elem = xml.find('EventData')
+            # if data_elem is None:
+            #     logging.info('No EventData', log)
+            #     return None
+            #     try:
+            #         data_elem.set(field, new_value)
+            #         print(field, new_value)
+            #     except ValueError:
+            #         logging.info('ValueError', log)
+            #         continue
             for field, new_value in replacement_dict.items():
                 for elem in xml.iter():
                     if elem.attrib.get('Name') == field:
                         elem.text = new_value
             for elem in xml.iter():
-                if elem.attrib.get('Name') == 'UtcTime':
-                    elem.text = time.isoformat() 
+                if elem.attrib.get('Name') == 'UtcTime' or elem.attrib.get('Name') == 'CreationUtcTime':
+                    elem.text = time.isoformat()
             # Find the 'TimeCreated' element and set the 'SystemTime' attribute
-            time_created_elem = xml.find('{http://schemas.microsoft.com/win/2004/08/events/event}System')
-            if time_created_elem is not None:
-                time_created_elem.set('SystemTime', time.isoformat())  # 'Z' is added to indicate UTC time
-       
-            # Register the namespace with a prefix
-            ET.register_namespace('', 'http://schemas.microsoft.com/win/2004/08/events/event')
-            # Use the registered prefix in your XPath query
-            event_data_elem = xml.find('{http://schemas.microsoft.com/win/2004/08/events/event}EventData')
-            if event_data_elem is not None:
-                ET.SubElement(event_data_elem, 'Data', {'Name': 'IsFakeLog'}).text = 'True'
+            system_elem = xml.find('{http://schemas.microsoft.com/win/2004/08/events/event}System')
+            if system_elem is not None:
+                time_created_elem = system_elem.find('{http://schemas.microsoft.com/win/2004/08/events/event}TimeCreated')
+                if time_created_elem is not None:
+                    time_created_elem.set('SystemTime', time.isoformat())
+                ET.SubElement(system_elem, 'IsFakeLog').text = 'True'
+            # ET.register_namespace('', "http://schemas.microsoft.com/win/2004/08/events/event")
             new_log = ET.tostring(xml, encoding='unicode')
-        return new_log
+            # print(new_log)
+            # print(log)
+            # print(xml)
+        return log,time.timestamp()
     
     def init_logs_to_duplicate_dict(self, logtypes):
         logs_to_duplicate_dict = {(logtype[0].lower(), logtype[1]): self.splunk_tools.extract_logs(logtype[0].lower(),time_range=("-7d", "now"), eventcode=logtype[1], limit=100) for logtype in logtypes}

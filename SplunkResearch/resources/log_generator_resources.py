@@ -41,8 +41,8 @@ replacement_values_sysmon = {
 'OriginalFileName': ['file1.exe', 'file2.exe', 'file3.exe', 'file4.exe', 'file5.exe']
 }
 
-replacement_dicts = {'wineventLog:security': replacement_values_wineventlog_security,
-                    'wineventLog:system': replacement_values_wineventlog_system,
-                    'wineventLog:application': replacement_values_wineventlog_application,
+replacement_dicts = {'wineventlog:security': replacement_values_wineventlog_security,
+                    'wineventlog:system': replacement_values_wineventlog_system,
+                    'wineventlog:application': replacement_values_wineventlog_application,
                     'xmlwineventlog:microsoft-windows-sysmon/operational': replacement_values_sysmon
                     }
