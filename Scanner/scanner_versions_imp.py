@@ -29,7 +29,7 @@ class FullScanner:
 
         self.running_os.insert_battery_state_to_df(battery_df, time_interval, battery.percent)
 
-    def save_general_battery(self, f):
+    def save_general_battery(self, f, df):
         """
         This function writes battery info to a file.
         On laptop devices, charger must be unplugged!
@@ -44,7 +44,7 @@ class FullScanner:
 
         f.write("----Battery----\n")
 
-        self.running_os.save_battery_capacity(f)
+        return self.running_os.save_battery_capacity(f, df)
         
     def calc_time_interval(self, starting_time):
         """
@@ -70,7 +70,7 @@ class LiteScanner(FullScanner):
     def save_battery_stat(self, battery_df, time_interval):
         pass
 
-    def save_general_battery(self, f):
+    def save_general_battery(self, f, df):
         pass
 
     def calc_time_interval(self, starting_time):
@@ -93,7 +93,7 @@ class WithoutBatteryScanner(FullScanner):
     def save_battery_stat(self, battery_df, time_interval):
         pass
 
-    def save_general_battery(self, f):
+    def save_general_battery(self, f, df):
         pass
 
     def is_battery_too_low(self, mwh):

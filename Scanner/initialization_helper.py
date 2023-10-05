@@ -137,13 +137,14 @@ def result_paths(is_scanner=True):
     general_information_file = os.path.join(measurements_dir, 'general_information.txt')
     total_cpu_csv = os.path.join(measurements_dir, 'total_cpu.csv')
     summary_csv = os.path.join(measurements_dir, 'summary.xlsx')
+    hardware_csv = os.path.join(measurements_dir, 'hardware_information.csv')
 
     program.set_results_dir(measurements_dir)
     for background_program in background_programs:
         background_program.set_results_dir(measurements_dir)
 
     return measurements_dir, graphs_dir, stdout_files_dir, processes_csv, total_memory_each_moment_csv, disk_io_each_moment,\
-        battery_status_csv, general_information_file, total_cpu_csv, summary_csv
+        battery_status_csv, general_information_file, total_cpu_csv, summary_csv, hardware_csv
 
 
 # ======= Custom Scan Query (do not change) =======
