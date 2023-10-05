@@ -59,7 +59,7 @@ class Framework(gym.Env):
         self.real_distribution = [0]*len(self.relevant_logtypes)
         self.done = False
         self.epsilon = 0
-        self.reward_calculator = RewardCalc(self.relevant_logtypes, self.dt_manager, self.splunk_tools, self.rule_frequency)
+        self.reward_calculator = RewardCalc(self.relevant_logtypes, self.dt_manager, self.logger, self.splunk_tools, self.rule_frequency)
         self.experiment_name = f"{self.search_window}_{self.max_actions_value}"
                                            
     def get_reward(self):
@@ -126,7 +126,7 @@ class Framework(gym.Env):
         # action_value = int(self.current_action*self.max_actions_value)
         action_value= int((action/100)*self.max_actions_value)
         
-        self.time_action_dict[-1].append(str(self.time_range), self.experiment_name,str(logtype),action_value)
+        self.time_action_dict[-1].append([str(self.time_range), self.experiment_name,str(logtype),action_value])
         self.logger.info(f"action: {self.current_action}, action value: {action_value}, logtype: {logtype}")
         fake_logs = self.log_generator.generate_logs(logsource, eventcode, time_range, action_value)
         self.logger.info(f"{len(fake_logs)}: fake logs were generated")

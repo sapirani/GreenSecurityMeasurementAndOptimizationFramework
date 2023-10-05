@@ -6,7 +6,7 @@
 # export PATH=/home/shouei/anaconda3/bin:$PATH
 # export PATH=/home/shouei/anaconda3/envs/py38/bin:$PATH
 export PATH=$PATH:/home/shouei/local/dmidecode
-PYTHON_SCRIPT=src/main_1.py
+PYTHON_SCRIPT=src/main_2.py
 limits_path="/opt/splunk/etc/system/local/limits.conf"
 saved_searches_path="/opt/splunk/etc/users/shouei/search/local/savedsearches.conf"
 # conda init bash
