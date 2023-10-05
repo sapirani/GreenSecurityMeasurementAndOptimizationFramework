@@ -1,5 +1,6 @@
 import logging
 import os
+import pickle
 import shutil
 import datetime
 import smtplib
@@ -28,7 +29,16 @@ class ExperimentManager:
         self.logger.addHandler(file_handler)
         return self.logger
     
+    def save_experiment(self, experiment_dir):
+        # save experiment object in a pickle file
+        with open(f'{experiment_dir}/experiment.pkl', 'wb') as f:
+            pickle.dump(self, f)
     
+    def load_experiment(self, experiment_dir):
+        # load experiment object from a pickle file
+        with open(f'{experiment_dir}/experiment.pkl', 'rb') as f:
+            return pickle.load(f)
+
     
     def create_experiment_dir(self):
         """Creates a new directory for the experiment based on the current timestamp."""

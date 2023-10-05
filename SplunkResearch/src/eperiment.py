@@ -1,4 +1,5 @@
 import os
+import pickle
 import urllib3
 from SplunkResearch.src.datetime_manager import MockedDatetimeManager
 import datetime
@@ -24,10 +25,8 @@ urllib3.disable_warnings()
 
 
 class Experiment:
-    def __init__(self, name, experiment_manager, logger):
-        self.name = name
-        self.experiment_manager = experiment_manager
-        self.experiment_dir = self.experiment_manager.create_experiment_dir()
+    def __init__(self, experiment_dir, logger):
+        self.experiment_dir = experiment_dir
         self.logger = logger
 
     def update_running_time(self, running_time, env_file_path):
@@ -53,26 +52,6 @@ class Experiment:
         self.logger.info('update time range of rules')
         splunk_tools_instance.update_all_searches(splunk_tools_instance.update_search_time_range, time_range)   
 
-
-    def run_baseline_method(self, method, fake_start_datetime, dt_manager, splunk_tools_instance, time_range, log_generator_instance, rule_frequency, search_window, reward_parameter_dict, relevant_logtypes, max_actions_value, num_of_episodes, current_dir):
-        dt_manager.set_fake_current_datetime(fake_start_datetime.strftime("%m/%d/%Y:%H:%M:%S"))
-        # clean_env(splunk_tools_instance, time_range)
-        for j in range(3):
-            env = gym.make('splunk_attack-v0', log_generator_instance=log_generator_instance, splunk_tools_instance=splunk_tools_instance, dt_manager=dt_manager, time_range=time_range, rule_frequency=rule_frequency, search_window=search_window, reward_parameter_dict=reward_parameter_dict, relevant_logtypes=relevant_logtypes, max_actions_value=max_actions_value)
-            for i in range(num_of_episodes):
-                env.reset()
-                # done = False
-                # while not done:
-                #     action = 0 if method == "0" else random.uniform(1, (100-env.sum_of_fractions))
-                #     obs, reward, done, info = env.step(action)
-                #     env.render()
-                env.done = True
-                env.update_state()
-                env.get_reward()
-            self.save_assets(current_dir, env, mode=f'test_baseline{method}{j}')
-            env.update_timerange()#remove
-            time_range = env.time_range#remove
-
     def save_assets(self, current_dir, env, mode='train'):
         print(env.reward_calculator.reward_values_dict)
         # create a directory for the assets if not exists
@@ -95,17 +74,21 @@ class Experiment:
         return time_range
     
     def setup_environment(self, parameters):
-        # create a datetime manager instance
-        dt_manager = MockedDatetimeManager(fake_start_datetime=datetime.datetime(2023, 1, 1, 12, 0, 0), log_file_path="test.log")
-        # create a splunk tools instance
-        splunk_tools_instance = SplunkTools(logger=self.logger)
         # create a list of relevant logtypes
         num_of_searches = parameters['num_of_searches']
         rule_frequency = parameters['rule_frequency']
         search_window = parameters['search_window']
         reward_parameter_dict = parameters['reward_parameter_dict']
         max_actions_value = parameters['max_actions_value']
-
+        fake_start_datetime = parameters['fake_start_datetime']
+        end_time = dt_manager.get_fake_current_datetime()
+        start_time = dt_manager.subtract_time(end_time, minutes=search_window)
+        time_range = (start_time, end_time)
+        # create a datetime manager instance
+        dt_manager = MockedDatetimeManager(fake_start_datetime=fake_start_datetime, log_file_path="test.log")
+        # create a splunk tools instance
+        splunk_tools_instance = SplunkTools(logger=self.logger)
+        
         savedsearches = sorted(self.choose_random_rules(splunk_tools_instance, num_of_searches, get_only_enabled=True))
         relevant_logtypes =  list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]})
         relevant_logtypes = [logtype for logtype in logtypes if logtype not in section_logtypes]
@@ -140,14 +123,36 @@ class Experiment:
         self.save_assets(self.experiment_dir, env)
         return model
     
-    def test_model(self, parameters):
+    def test_model(self, num_of_episodes):
+        self.logger.info('test the model')
         model = A2C.load(f"{self.experiment_dir}/A2C_splunk_attack")
         env = self.load_environment()
-        mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=parameters['episodes'])
+        mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=num_of_episodes)
         self.logger.info(f"mean_reward:{mean_reward}, std_reward:{std_reward}")
         self.save_assets(self.experiment_dir, env, mode='test')
         return env
     
-    # def run_baselines(self):
+    def test_baseline_agent(self, num_of_episodes, agent_type='random'):
+        env = self.load_environment()
+        for i in range(num_of_episodes):
+            env.reset()
+            done = False
+            self.run_manual_episode(agent_type, env, done)
+        self.save_assets(self.experiment_dir, env, mode=f'test_{agent_type}_agent')
+        return env
+
+    def run_manual_episode(self, agent_type, env, done):
+        while not done:
+            if agent_type == 'random':
+                action = random.uniform(0, (100-env.sum_of_fractions))
+            elif agent_type == 'passive':
+                action = 0
+            elif agent_type == 'uniform':
+                action = 100/len(env.relevant_logtypes)                    
+            obs, reward, done, info = env.blind_step(action)
+            env.render()
+    
+
+          
 
     # def retrain_model(self):

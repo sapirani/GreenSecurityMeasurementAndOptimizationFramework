@@ -28,11 +28,11 @@ urllib3.disable_warnings()
 def update_running_time(running_time, env_file_path):
     command = f'sed -i "s/RUNNING_TIME=.*/RUNNING_TIME={running_time}/" "{env_file_path}"'
     res = subprocess.run(command, shell=True, capture_output=True, text=True)
-    self.logger.info(res.stdout)
-    self.logger.info(res.stderr)
+    logger.info(res.stdout)
+    logger.info(res.stderr)
 
 def choose_random_rules(splunk_tools_instance, num_of_searches, get_only_enabled=True):
-    self.logger.info('enable random rules')
+    logger.info('enable random rules')
     savedsearches = splunk_tools_instance.get_saved_search_names(get_only_enabled=get_only_enabled)
     # random_savedsearch = random.sample(savedsearches, num_of_searches)
     random_savedsearch = ['Monitor for Additions to Firewall Rules', 'Detected Registry Modification', 'Detect Network Connections to Non-Standard Ports', 'Detect Network Connections from Non-Browser or Non-Email Client', 'Disabled Security Tool', 'Multiple Network Connections to Same Port on External Hosts', 'Process Opened a Network Connection', 'Suspicious Remote Thread Creation', 'Modification of Executable File']
@@ -44,9 +44,9 @@ def choose_random_rules(splunk_tools_instance, num_of_searches, get_only_enabled
     return random_savedsearch
 
 def update_rules_frequency_and_time_range(splunk_tools_instance, rule_frequency, time_range):
-    self.logger.info('update rules frequency')
+    logger.info('update rules frequency')
     splunk_tools_instance.update_all_searches(splunk_tools_instance.update_search_cron_expression, f'*/{rule_frequency} * * * *')
-    self.logger.info('update time range of rules')
+    logger.info('update time range of rules')
     splunk_tools_instance.update_all_searches(splunk_tools_instance.update_search_time_range, time_range)   
 
 
@@ -77,10 +77,11 @@ def permutation_experiment():
     env_file_path = "/home/shouei/GreenSecurity-FirstExperiment/Scanner/.env"
     fake_start_datetime = datetime.datetime(2023,6,22, 8, 30, 0)
     manager = ExperimentManager() 
-    global dt_manager
+    global logger
      # Create a new experiment directory
     current_dir = manager.create_experiment_dir()
     log_file_name = "log_train"
+    logger = manager.setup_logging(f"{current_dir}/{log_file_name}.txt")
     dt_manager = MockedDatetimeManager(fake_start_datetime=fake_start_datetime, log_file_path=f"{current_dir}/{log_file_name}.txt")
     splunk_tools_instance = SplunkTools(dt_manager=dt_manager)
     print(f"New experiment directory: {current_dir}")
@@ -103,9 +104,9 @@ def permutation_experiment():
                 end_time = dt_manager.get_fake_current_datetime()
                 start_time = dt_manager.subtract_time(end_time, minutes=search_window)
                 time_range = (start_time, end_time)  
-                self.logger.info(f'current time range: {time_range}')              
+                logger.info(f'current time range: {time_range}')              
                 # print all the rules that are running and the current parameters
-                self.logger.info(f'current parameters:\ntime range:{time_range} \nfake_start_datetime: {fake_start_datetime}\nrule frequency: {rule_frequency}\nsearch_window:{search_window}\nrunning time: {running_time}\nnumber of searches: {num_of_searches}\nnumber of episodes: {num_of_episodes}\nmax action value: {max_actions_value}\nreward parameter dict: {reward_parameter_dict}\nsavedsearches: {savedsearches}\nrelevantlog_types: {relevant_logtypes}')
+                logger.info(f'current parameters:\ntime range:{time_range} \nfake_start_datetime: {fake_start_datetime}\nrule frequency: {rule_frequency}\nsearch_window:{search_window}\nrunning time: {running_time}\nnumber of searches: {num_of_searches}\nnumber of episodes: {num_of_episodes}\nmax action value: {max_actions_value}\nreward parameter dict: {reward_parameter_dict}\nsavedsearches: {savedsearches}\nrelevantlog_types: {relevant_logtypes}')
                 # save parameters to file
                 with open(f'{current_dir}/parameters_{mode}.json', 'w') as fp:
                     json.dump({'fake_start_datetime': str(fake_start_datetime), 'rule_frequency': rule_frequency, 'search_window': search_window, 'running_time': running_time, 'num_of_searches': num_of_searches, 'num_of_episodes': num_of_episodes, 'max_actions_value': max_actions_value, 'reward_parameter_dict': reward_parameter_dict, 'savedsearches': savedsearches, 'relevantlog_types': relevant_logtypes}, fp)
@@ -136,9 +137,9 @@ def permutation_experiment():
                 # inserted_logs = min(inserted_logs, max(action_values))
                 save_assets(current_dir, env, mode=f'test_baseline_{search_window}_{max_actions_value}')               
                 # clean_env(splunk_tools_instance, time_range) 
-                self.logger.info('reset the rules frequency')
+                logger.info('reset the rules frequency')
                 splunk_tools_instance.update_all_searches(splunk_tools_instance.update_search_cron_expression,'*/60 * * * *')
-                self.logger.info('\n\n\n\n')
+                logger.info('\n\n\n\n')
 
                 
 def clean_env(splunk_tools_instance, time_range=('06/22/2023:00:00:00', '06/22/2023:23:59:59')):

@@ -52,7 +52,7 @@ class Framework(gym.Env):
         self.logtype_index = -1
         self.sum_of_action_values = 0
         self.sum_of_fractions = 0
-        self.time_action_dict= {}
+        self.time_action_dict= [[]]
         self.current_step = 0
         self.max_steps = 100
         self.fake_distribution = [0]*len(self.relevant_logtypes)
@@ -90,13 +90,24 @@ class Framework(gym.Env):
             self.done = True
             asyncio.run(self.perform_action(max(self.action_upper_bound-self.sum_of_fractions,0)))
             self.update_state()           
-            # self.dt_manager.round_to_next_rule_frequency(self.rule_frequency)
-            # self.dt_manager.wait_til_next_rule_frequency(self.rule_frequency)
             reward = self.get_reward()
         else:
             reward = 0
             asyncio.run(self.perform_action(action))
             self.update_state()
+        
+        self.logger.info(f"########################################################################################################################")
+        return self.state, reward, self.done, {}
+    
+    def blind_step(self, action):
+        if self.logtype_index == len(self.relevant_logtypes):
+            self.done = True
+            self.logtype_index_counter()           
+            reward = self.get_reward()
+        else:
+            reward = 0
+            self.perform_action(action)
+            self.logtype_index_counter()           
         
         self.logger.info(f"########################################################################################################################")
         return self.state, reward, self.done, {}
@@ -115,7 +126,7 @@ class Framework(gym.Env):
         # action_value = int(self.current_action*self.max_actions_value)
         action_value= int((action/100)*self.max_actions_value)
         
-        self.time_action_dict[str(self.time_range)][self.experiment_name][str(logtype)] = action_value
+        self.time_action_dict[-1].append(str(self.time_range), self.experiment_name,str(logtype),action_value)
         self.logger.info(f"action: {self.current_action}, action value: {action_value}, logtype: {logtype}")
         fake_logs = self.log_generator.generate_logs(logsource, eventcode, time_range, action_value)
         self.logger.info(f"{len(fake_logs)}: fake logs were generated")
@@ -167,12 +178,12 @@ class Framework(gym.Env):
         self.sum_of_fractions = 0
         self.done = False
         self.sum_of_action_values = 0
-        # self.update_timerange()
+        self.update_timerange()
         self.dt_manager.set_fake_current_datetime(self.time_range[0])
         # Reset the environment to an initial state
         self.fake_distribution = [0]*len(self.relevant_logtypes)  
         self.update_state()   
-        self.time_action_dict[str(self.time_range)][self.experiment_name] = {}
+        self.time_action_dict.append([])
         # self.time_action_dict[str(self.time_range)] = {}
         self.splunk_tools.update_all_searches(self.splunk_tools.update_search_time_range, self.time_range) 
         return self.state 
