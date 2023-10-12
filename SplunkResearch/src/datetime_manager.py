@@ -23,20 +23,7 @@ class MockedDatetimeManager:
         
        
         self.current_fake_time = fake_start_datetime
-        self.logger = logging.getLogger(__name__)
-         # Create a formatter
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        self.logger.setLevel(logging.INFO)
 
-        if log_file_path:
-            file_handler = logging.FileHandler(log_file_path)
-            # Set the formatter for the file handler
-            file_handler.setFormatter(formatter)
-            self.logger.addHandler(file_handler)
-        
-        # Ensure that logging uses the real datetime functions
-        for handler in self.logger.handlers:
-            handler.formatter.converter = self._real_now
     
     def _real_now(self, *args, **kwargs):
         real_dt = self.get_real_current_datetime()
@@ -55,9 +42,6 @@ class MockedDatetimeManager:
         # with patch('datetime.datetime', MockedDatetime):
         #     current_dt = datetime.datetime.now()
         #     return current_dt.strftime('%m/%d/%Y:%H:%M:%S')
-        
-    def log(self, message):
-        self.logger.info(message)
         
     def add_time(self, initial_datetime_str, hours=0, minutes=0, seconds=0):
         delta = datetime.timedelta(hours=hours, minutes=minutes, seconds=seconds)
@@ -97,7 +81,7 @@ class MockedDatetimeManager:
         self.log(f"waiting for next measurement")
         fake_now = self.get_real_current_datetime()
         split_fake_now = fake_now.split(':')
-        while ((int(split_fake_now[2])+1) % int(rule_frequency) != 0) or (int(split_fake_now[3]) < (60 - (rule_frequency * 60) //15)):
+        while ((int(split_fake_now[2])+1) % int(rule_frequency) != 0) or (int(split_fake_now[3]) < 55):
             fake_now = self.get_real_current_datetime()
             split_fake_now = fake_now.split(':')            
             time.sleep(1)

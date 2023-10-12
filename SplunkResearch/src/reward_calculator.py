@@ -1,3 +1,4 @@
+import datetime
 import os
 import subprocess
 from scipy.stats import entropy
@@ -7,7 +8,7 @@ CPU_TDP=200
 PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. Linux 3.10.0-1160.92.1.el7.x86_64/Splunk Enterprise SIEM/Power Saver Plan/One Scan/'
 
 class RewardCalc:
-    def __init__(self, relevant_logtypes, dt_manager, splunk_tools, rule_frequency):
+    def __init__(self, relevant_logtypes, dt_manager, logger, splunk_tools, rule_frequency):
         self.previous_energy = 1
         self.previous_alert = 0
         self.epsilon = 0
@@ -15,9 +16,10 @@ class RewardCalc:
         self.reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'fraction': [], 'duration': [], "num_of_rules":[]}
         self.relevant_logtypes = relevant_logtypes
         self.dt_manager = dt_manager
+        self.logger = logger
         self.splunk_tools = splunk_tools
         self.rule_frequency = rule_frequency
-        self.time_rules_energy_dict = {}
+        self.time_rules_energy = []
         self.current_measurement_path = ''
       
     def get_previous_full_reward(self):
@@ -49,8 +51,8 @@ class RewardCalc:
 
         # self.reward_dict['distributions'].append(distributions_reward)
         # self.reward_dict['fraction'].append(fraction_reward)
-        # self.dt_manager.log(f"distributions reward: {distributions_reward}")
-        # self.dt_manager.log(f"fraction reward: {fraction_reward}")
+        # self.logger.info(f"distributions reward: {distributions_reward}")
+        # self.logger.info(f"fraction reward: {fraction_reward}")
 
         # return fraction_reward,distributions_reward
       
@@ -62,9 +64,11 @@ class RewardCalc:
         # elif distributions_val < 0.2 and fraction_val <= 1:
         #     return energy_increase**3
         # formulation of reward function that maximize the energy while minimizing the difference between the distributions
-        if fraction_val > 1:
-            return -(fraction_val-1)*100
-        return energy_val
+        if fraction_val > 100:
+            return -(fraction_val-100)*1000
+        if energy_increase > 0.5:
+            return energy_val*energy_increase*1000
+        return energy_val*100
         # if distributions_val >= 0.5:
         #     return -distributions_val*100
         # if energy_increase > 0:
@@ -99,42 +103,43 @@ class RewardCalc:
             
         # self.reward_dict['energy'].append(energy_reward)
         # self.reward_dict['alerts'].append(alert_reward)
-        # self.dt_manager.log(f"energy reward: {energy_reward}")
-        # self.dt_manager.log(f"alert reward: {alert_reward}")
+        # self.logger.info(f"energy reward: {energy_reward}")
+        # self.logger.info(f"alert reward: {alert_reward}")
         # return alert_reward, energy_reward
 
     def get_full_reward_values(self, time_range):
-        alert_val = self.splunk_tools.get_alert_count(time_range)
         self.dt_manager.wait_til_next_rule_frequency(self.rule_frequency)
-        energy_val = self.measure(time_range=time_range, time_delta=2*self.rule_frequency//3)
-        energy_increase = (energy_val - self.previous_energy)/(self.previous_energy+self.epsilon)
+        energy_val = self.measure(time_range=time_range, time_delta=self.rule_frequency)
+        energy_increase =  (energy_val - self.previous_energy)/(self.previous_energy+self.epsilon) if self.previous_energy else 0
+        alert_val = self.splunk_tools.get_alert_count(time_range)
+        
         self.previous_energy = energy_val        
         self.reward_values_dict['alerts'].append(alert_val)
-        self.dt_manager.log(f"incease in energy: {energy_increase}")
-        self.dt_manager.log(f"alert value: {alert_val}")
+        self.logger.info(f"incease in energy: {energy_increase}")
+        self.logger.info(f"alert value: {alert_val}")
         return alert_val, energy_val, energy_increase
     
 
     def get_partial_reward_values(self, real_distribution, current_state):
-        fraction_val = int(current_state[-1])
+        fraction_val = float(current_state[-1])
         distributions_val = self.compare_distributions(real_distribution, current_state[:len(self.relevant_logtypes)])     
         self.reward_values_dict['distributions'].append(distributions_val)
         self.reward_values_dict['fraction'].append(fraction_val)
-        self.dt_manager.log(f"distributions value: {distributions_val}")
-        self.dt_manager.log(f"fraction value: {fraction_val}")
+        self.logger.info(f"distributions value: {distributions_val}")
+        self.logger.info(f"fraction value: {fraction_val}")
         return fraction_val,distributions_val
         
     def measure(self, time_range, time_delta=60): #tool
         # self.measurement()
         # run the measurement script with subprocess
-        self.dt_manager.log('measuring')
+        self.logger.info('measuring')
         cmd = subprocess.run('python ../Scanner/scanner.py', shell=True, capture_output=True, text=True)
-        self.dt_manager.log(cmd.stdout)
-        self.dt_manager.log(cmd.stderr)
+        self.logger.info(cmd.stdout)
+        self.logger.info(cmd.stderr)
         # find the latest measurement folder
         measurement_num = max([int(folder.split(' ')[1]) for folder in os.listdir(PATH) if folder.startswith('Measurement')])
         self.current_measurement_path = os.path.join(PATH,f'Measurement {measurement_num}')
-        self.dt_manager.log(self.current_measurement_path)
+        self.logger.info(self.current_measurement_path)
         
 
         rules_enegry_df = self.get_rule_total_energy(time_delta, time_range)
@@ -142,20 +147,25 @@ class RewardCalc:
         duration = rules_enegry_df['run_duration'].sum()
         self.reward_values_dict['energy'].append(current_energy)
         self.reward_values_dict['duration'].append(duration)
-        self.dt_manager.log(f"energy value: {current_energy}")
-        return current_energy
+        self.logger.info(f"energy value: {current_energy}")
+        return duration # current_energy
     
   
     
     def get_rule_total_energy(self, time_delta, time_range):
+        # exec_time = time_range[-1]
+        # exec_time_timestamp = datetime.datetime.strptime(exec_time, '%m/%d/%Y:%H:%M:%S').timestamp()
         rules_energy_df = self.extract_energy_per_rule(time_delta) 
         rule_duration = rules_energy_df.groupby('name')['run_duration'].mean()      
         self.energy_equation(rules_energy_df)
         rule_total_energy = rules_energy_df.groupby('name')[['CPU(J)']].sum().reset_index()
         rule_total_energy = pd.merge(rule_total_energy, rule_duration, left_on='name', right_on='name')
         rule_total_energy.to_csv(os.path.join(self.current_measurement_path, 'grouped_rules_energy.csv'))
-        self.time_rules_energy_dict[str(time_range)] = rule_total_energy[['name', 'CPU(J)', 'run_duration']].to_dict('records')
+        rule_total_energy_dict = rule_total_energy[['name', 'CPU(J)', 'run_duration']].to_dict('records')
+        # rule_total_energy_dict['time_range'] = str(time_range)
+        self.time_rules_energy.append({'time_range':str(time_range), 'rules':rule_total_energy_dict})
         return rule_total_energy
+
 
     def energy_equation(self, rules_energy_df):
         # rules_energy_df['delta_time'] = rules_energy_df.groupby('name')["Time(sec)"].diff().dt.total_seconds().fillna(0)
@@ -168,7 +178,7 @@ class RewardCalc:
         rules_energy_df = self.merge_energy_and_rule_data(pids_energy_df, rules_pids_df)
         num_of_rules = len(rules_energy_df['name'].unique())
         self.reward_values_dict['num_of_rules'].append(num_of_rules)
-        self.dt_manager.log(f"num of extracted rules data: {num_of_rules}")
+        self.logger.info(f"num of extracted rules data: {num_of_rules}")
         rules_energy_df.to_csv(os.path.join(self.current_measurement_path, 'rules_energy.csv'))
         return rules_energy_df
 
