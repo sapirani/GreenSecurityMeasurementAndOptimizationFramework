@@ -6,7 +6,10 @@ from Scanner.general_consts import HardwareColumns
 # Paths
 TRAIN_MEASUREMENTS_DIR_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Project\Scanner\LENOVO Yoga 7 15ITL5 82BJ Windows 10\No Scan\Power Saver Plan"
 TEST_MEASUREMENTS_DIR_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Project\Scanner\LENOVO Yoga 7 15ITL5 82BJ Windows 10\No Scan\Power Saver Plan"
-IDLE_DIRECTORY_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Project\Scanner\LENOVO Yoga 7 15ITL5 82BJ Windows 10\No Scan\Power Saver Plan\Measurement 1"
+IDLE_SUMMARY_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Project\Scanner\LENOVO Yoga 7 15ITL5 82BJ Windows 10\No Scan\Power Saver Plan\Measurement 1"
+TRAIN_SET_PATH = ""
+TEST_SET_PATH = ""
+
 
 # Summary File related
 TOTAL_COL_SUMMARY = "Total"

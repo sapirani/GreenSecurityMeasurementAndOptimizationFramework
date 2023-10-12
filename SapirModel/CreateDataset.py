@@ -33,21 +33,21 @@ def read_hardware_information_file(directory):
 def read_all_processes_file(directory):
     df_process = pd.read_csv(os.path.join(directory, PROCESSES_FILE_NAME))
     print(df_process)
-    df_process = df_process[df_process[AllProcessesFileFields.PROCESS_NAME_COL] == HEAVYLOAD_PROCESS_NAME]
-    print(df_process)
+    df_heavyload_process = df_process[df_process[AllProcessesFileFields.PROCESS_NAME_COL] == HEAVYLOAD_PROCESS_NAME]
+    print(df_heavyload_process)
 
-    sample = {ProcessColumns.CPU_PROCESS_COL: df_process[AllProcessesFileFields.CPU].mean(),
-              ProcessColumns.MEMORY_PROCESS_COL: df_process[AllProcessesFileFields.MEMORY].mean(),
-              ProcessColumns.DISK_READ_BYTES_PROCESS_COL: df_process[AllProcessesFileFields.DISK_READ_BYTES].sum(),
-              ProcessColumns.DISK_READ_COUNT_PROCESS_COL: df_process[AllProcessesFileFields.DISK_READ_COUNT].sum(),
-              ProcessColumns.DISK_WRITE_BYTES_PROCESS_COL: df_process[AllProcessesFileFields.DISK_WRITE_BYTES].sum(),
-              ProcessColumns.DISK_WRITE_COUNT_PROCESS_COL: df_process[AllProcessesFileFields.DISK_WRITE_COUNT].sum(),
-              ProcessColumns.PAGE_FAULTS_PROCESS_COL: df_process[AllProcessesFileFields.PAGE_FAULTS].sum()}
+    sample = {ProcessColumns.CPU_PROCESS_COL: df_heavyload_process[AllProcessesFileFields.CPU].mean(),
+              ProcessColumns.MEMORY_PROCESS_COL: df_heavyload_process[AllProcessesFileFields.MEMORY].mean(),
+              ProcessColumns.DISK_READ_BYTES_PROCESS_COL: df_heavyload_process[AllProcessesFileFields.DISK_READ_BYTES].sum(),
+              ProcessColumns.DISK_READ_COUNT_PROCESS_COL: df_heavyload_process[AllProcessesFileFields.DISK_READ_COUNT].sum(),
+              ProcessColumns.DISK_WRITE_BYTES_PROCESS_COL: df_heavyload_process[AllProcessesFileFields.DISK_WRITE_BYTES].sum(),
+              ProcessColumns.DISK_WRITE_COUNT_PROCESS_COL: df_heavyload_process[AllProcessesFileFields.DISK_WRITE_COUNT].sum(),
+              ProcessColumns.PAGE_FAULTS_PROCESS_COL: df_heavyload_process[AllProcessesFileFields.PAGE_FAULTS].sum()}
     return sample
 
 
 def read_idle_information():
-    df_idle_summary = pd.read_excel(IDLE_DIRECTORY_PATH)
+    df_idle_summary = pd.read_excel(IDLE_SUMMARY_PATH)
     df_idle_summary = df_idle_summary.set_index("Metric")
 
     sample = {IDLEColumns.DURATION_COL: df_idle_summary.loc[SummaryFields.DURATION, SummaryFields.TOTAL_COLUMN],
@@ -96,12 +96,13 @@ def read_directories(df, main_directory, is_train):
     for dir in Path(main_directory).iterdir():
         if dir.is_dir():
             print("Collecting info from " + dir.name)
+
             new_sample = read_data_from_directory(dir, is_train)
             new_sample_df = pd.DataFrame.from_dict(new_sample)
             df = pd.concat([df, new_sample_df])
 
-    csv_name = "trainset.csv" if is_train else "testset.csv"
-    df.to_csv(csv_name)
+    """csv_name = TRAIN_SET_PATH if is_train else "testset.csv"
+    df.to_csv(csv_name)"""
     return df
 
 
@@ -109,17 +110,26 @@ def initialize_dataset(is_train=True):
     cols = DATASET_COLUMNS + [ProcessColumns.ENERGY_USAGE_PROCESS_COL] if is_train else DATASET_COLUMNS
     return pd.DataFrame(columns=cols)
 
-
-def main():
+def create_train_set():
     print("======== Creating Train Dataset ========")
     train_df = initialize_dataset(True)
     train_df = read_directories(train_df, TRAIN_MEASUREMENTS_DIR_PATH, is_train=True)
     print(train_df)
+    train_df.to_csv(TRAIN_SET_PATH)
 
+def create_test_set():
     print("======== Creating Test Dataset ========")
-    test_df = initialize_dataset(False)
-    test_df = read_directories(test_df, TEST_MEASUREMENTS_DIR_PATH, is_train=False)
+
+    # Change is_train to false if there is no need in target column
+    test_df = initialize_dataset(True)
+    test_df = read_directories(test_df, TEST_MEASUREMENTS_DIR_PATH, is_train=True)
     print(test_df)
+    test_df.to_csv(TEST_SET_PATH)
+
+def main():
+    create_train_set()
+    create_test_set()
+
 
 if __name__ == '__main__':
     main()
