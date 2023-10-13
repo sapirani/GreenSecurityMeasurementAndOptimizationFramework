@@ -56,44 +56,6 @@ from SapirModel.DatasetFeatureSelection import ProcessAndFullSystem
 
 BEST_MODELS = 5
 
-algorithms = {'AdaBoostRegressor': AdaBoostRegressor,
-              'ARDRegression': ARDRegression,
-              'BaggingRegressor': BaggingRegressor,
-              'BayesianRidge': BayesianRidge,
-              'DecisionTreeRegressor': DecisionTreeRegressor,
-              'DummyRegressor': DummyRegressor,
-              'ElasticNet': ElasticNet,
-              'ElasticNetCV': ElasticNetCV,
-              'ExtraTreeRegressor': ExtraTreeRegressor,
-              'ExtraTreesRegressor': ExtraTreesRegressor,
-              'GradientBoostingRegressor': GradientBoostingRegressor,
-              'HistGradientBoostingRegressor': HistGradientBoostingRegressor,
-              'HuberRegressor': HuberRegressor,
-              'KNeighborsRegressor': KNeighborsRegressor,
-              'Lars': Lars,
-              'LarsCV': LarsCV,
-              'Lasso': Lasso,
-              'LassoCV': LassoCV,
-              'LassoLars': LassoLars,
-              'LassoLarsCV': LassoLarsCV,
-              'LassoLarsIC': LassoLarsIC,
-              'LinearSVR': LinearSVR,
-              'LinearRegression': LinearRegression,
-              'MLPRegressor': MLPRegressor,
-              'OrthogonalMatchingPursuit': OrthogonalMatchingPursuit,
-              'OrthogonalMatchingPursuitCV': OrthogonalMatchingPursuitCV,
-              'PassiveAggressiveRegressor': PassiveAggressiveRegressor,
-              'PLSCanonical': PLSCanonical,
-              'PLSRegression': PLSRegression,
-              'RandomForestRegressor': RandomForestRegressor,
-              'RANSACRegressor': RANSACRegressor,
-              'Ridge': Ridge,
-              'RidgeCV': RidgeCV,
-              'SGDRegressor': SGDRegressor,
-              'TheilSenRegressor': TheilSenRegressor,
-              'TransformedTargetRegressor': TransformedTargetRegressor,
-              'TweedieRegressor': TweedieRegressor}
-
 # TODO: add more models and hyperparameters
 params_LogisticRegression = {"classifier": [LogisticRegression()],
                              "classifier__class_weight": ["balanced", None],
@@ -101,7 +63,56 @@ params_LogisticRegression = {"classifier": [LogisticRegression()],
                              "classifier__C": [0.01, 0.1, 0.2, 0.3, 0.5],
                              "classifier__tol": [0.0001, 0.001, 0.000001, 0.1]}
 
-params = [params_LogisticRegression] # TODO: add more params
+LogisticRegressionModel = {"classifier": [LogisticRegression()]}
+AdaBoostRegressorModel = {"classifier": [AdaBoostRegressor()]}
+ARDRegressionModel = {"classifier": [ARDRegression()]}
+BaggingRegressorModel = {"classifier": [BaggingRegressor()]}
+BayesianRidgeModel = {"classifier": [BayesianRidge()]}
+DecisionTreeRegressorModel = {"classifier": [DecisionTreeRegressor()]}
+GradientBoostingRegressorModel = {"classifier": [GradientBoostingRegressor()]}
+MLPRegressorModel = {"classifier": [MLPRegressor()]}
+LinearRegressionModel = {"classifier": [LinearRegression()]}
+LinearSVRModel = {"classifier": [LinearSVR()]}
+LassoLarsICModel = {"classifier": [LassoLarsIC()]}
+LassoLarsCVModel = {"classifier": [LassoLarsCV()]}
+LassoLarsModel = {"classifier": [LassoLars()]}
+LassoCVModel = {"classifier": [LassoCV()]}
+LassoModel = {"classifier": [Lasso()]}
+LarsCVModel = {"classifier": [LarsCV()]}
+LarsModel = {"classifier": [Lars()]}
+ExtraTreeRegressorModel = {"classifier": [ExtraTreeRegressor()]}
+ElasticNetModel = {"classifier": [ElasticNet()]}
+ElasticNetCVModel = {"classifier": [ElasticNetCV()]}
+DummyRegressorModel = {"classifier": [DummyRegressor()]}
+KNeighborsRegressorModel = {"classifier": [KNeighborsRegressor()]}
+HuberRegressorModel = {"classifier": [HuberRegressor()]}
+HistGradientBoostingRegressorModel = {"classifier": [HistGradientBoostingRegressor()]}
+ExtraTreesRegressorModel = {"classifier": [ExtraTreesRegressor()]}
+SGDRegressorModel = {"classifier": [SGDRegressor()]}
+RandomForestRegressorModel = {"classifier": [RandomForestRegressor()]}
+RidgeCVModel = {"classifier": [RidgeCV()]}
+RidgeModel = {"classifier": [Ridge()]}
+RANSACRegressorModel = {"classifier": [RANSACRegressor()]}
+PLSRegressionModel = {"classifier": [PLSRegression()]}
+PLSCanonicalModel = {"classifier": [PLSCanonical()]}
+PassiveAggressiveRegressorModel = {"classifier": [PassiveAggressiveRegressor()]}
+OrthogonalMatchingPursuitModel = {"classifier": [OrthogonalMatchingPursuit()]}
+OrthogonalMatchingPursuitCVModel = {"classifier": [OrthogonalMatchingPursuitCV()]}
+TweedieRegressorModel = {"classifier": [TweedieRegressor()]}
+TransformedTargetRegressorModel = {"classifier": [TransformedTargetRegressor()]}
+TheilSenRegressorModel = {"classifier": [TheilSenRegressor()]}
+
+params_of_top_regressors = [params_LogisticRegression]  # TODO: add more params
+all_regressors_algs = [LogisticRegressionModel, AdaBoostRegressorModel, ARDRegressionModel, BaggingRegressorModel,
+                       BayesianRidgeModel, DecisionTreeRegressorModel, GradientBoostingRegressorModel,
+                       MLPRegressorModel, LinearRegressionModel, LinearSVRModel, LassoLarsModel, LassoLarsCVModel,
+                       LassoLarsICModel, LassoModel, LassoCVModel, LarsModel, LarsCVModel, ExtraTreeRegressorModel,
+                       ElasticNetModel, ElasticNetCVModel, DummyRegressorModel, KNeighborsRegressorModel,
+                       HuberRegressorModel, HistGradientBoostingRegressorModel, ExtraTreesRegressorModel,
+                       SGDRegressorModel, RandomForestRegressorModel, RidgeCVModel, RidgeModel, RANSACRegressorModel,
+                       PLSRegressionModel, PLSCanonicalModel, TheilSenRegressorModel, TransformedTargetRegressorModel,
+                       TweedieRegressorModel, OrthogonalMatchingPursuitCVModel, OrthogonalMatchingPursuitModel,
+                       PassiveAggressiveRegressorModel, LogisticRegressionModel, AdaBoostRegressorModel]  # TODO: add more regressors
 
 feature_selector = ProcessAndFullSystem()
 train_set = feature_selector.create_train_set()
@@ -115,8 +126,10 @@ y_test = test_set.iloc[:,-1:]
 def compare_models(x_train, y_train, x_validation, y_validation, use_pca=True):
     models_and_scores = []
 
-    for alg_name, alg in algorithms.items():
-        pipe = make_pipeline(PCA(), alg()) if use_pca else alg()
+    for dict in all_regressors_algs:
+        alg_model = dict["classifier"]
+        alg_name = type(alg_model).__name__
+        pipe = make_pipeline(PCA(), alg_model()) if use_pca else alg_model()
         pipe.fit(x_train, y_train)
         y_predictions = pipe.predict(x_validation)
         accuracy_score = mean_absolute_error(y_validation, y_predictions)
@@ -126,6 +139,7 @@ def compare_models(x_train, y_train, x_validation, y_validation, use_pca=True):
         models_and_scores.append((alg_name, accuracy_score))
 
     return models_and_scores
+
 
 def print_and_save_grid_search_results(final_results):
     res_list = []
@@ -149,6 +163,7 @@ def print_and_save_grid_search_results(final_results):
         print()
 
     final_results.to_csv(f"final_results_{datetime.now().strftime('%d_%m_%Y %H_%M')}.csv", index=False)
+    return best_five
 
 
 def print_scores(y, y_pred):
@@ -163,7 +178,7 @@ def print_scores(y, y_pred):
 
 def tune_hyperparams_grid_search():
     pipe = Pipeline([('classifier', MultinomialNB())])
-    grid = GridSearchCV(pipe, params, verbose=3, refit=True, cv=5, error_score=mean_squared_error, n_jobs=-1)
+    grid = GridSearchCV(pipe, params_of_top_regressors, verbose=3, refit=True, cv=5, error_score=mean_squared_error, n_jobs=-1)
     grid.fit(x_train, y_train)
 
     final_results = pd.DataFrame(grid.cv_results_)
@@ -219,7 +234,7 @@ def get_top_models(models_and_scores, ending_string):
     return sorted(models_and_scores, key=lambda list_item: list_item[1])[:BEST_MODELS]
 
 
-def main():
+def select_top_models():
     print("all models using pca")
     print()
     models_and_scores_with_pca = compare_models(use_pca=True)
@@ -235,13 +250,13 @@ def main():
     print(models_and_scores_without_pca)
 
     top_five_with_pca = get_top_models(models_and_scores_with_pca, "with pca")
-    #print(f"Best {BEST_MODELS} models with pca: ")
-    #top_five_with_pca = sorted(models_and_scores_with_pca, key=lambda list_item: list_item[1])[:BEST_MODELS]
+    # print(f"Best {BEST_MODELS} models with pca: ")
+    # top_five_with_pca = sorted(models_and_scores_with_pca, key=lambda list_item: list_item[1])[:BEST_MODELS]
     print(f"*** List of models and scores with PCA ({BEST_MODELS} models) ***")
     print(top_five_with_pca)
 
-    #print(f"Best {BEST_MODELS} models without pca: ")
-    #top_five_without_pca = sorted(models_and_scores_without_pca, key=lambda list_item: list_item[1])[:BEST_MODELS]
+    # print(f"Best {BEST_MODELS} models without pca: ")
+    # top_five_without_pca = sorted(models_and_scores_without_pca, key=lambda list_item: list_item[1])[:BEST_MODELS]
     top_five_without_pca = get_top_models(models_and_scores_without_pca, "without pca")
 
     print(f"*** List of models and scores without PCA ({BEST_MODELS} models) ***")
@@ -261,14 +276,33 @@ def main():
             best_models_considering_pca[i[0]] = i + ("Without PCA",)
 
     top_five_models = get_top_models(best_models_considering_pca.values(), "")
-    #top_five_models = sorted(best_models_considering_pca.values(), key=lambda list_item: list_item[1])[
+    # top_five_models = sorted(best_models_considering_pca.values(), key=lambda list_item: list_item[1])[
     #                  :BEST_MODELS]
     print(f"*** List of top models and scores ({BEST_MODELS} models) ***")
     print(top_five_models)
 
-    #tune_hyperparams_grid_search()
 
-    print("~~~~ Tune Hyper Parameters: ~~~~ ")
+def select_top_models_with_grid():
+    pipe = Pipeline([('classifier', MultinomialNB())])
+    grid = GridSearchCV(pipe, all_regressors_algs, verbose=3, refit=True, cv=5, error_score=mean_squared_error, n_jobs=-1)
+    grid.fit(x_train, y_train)
+
+    final_results = pd.DataFrame(grid.cv_results_)
+    return print_and_save_grid_search_results(final_results)
+
+
+
+
+def main():
+    #top_five_models = select_top_models()
+    print(f"*** Select best {BEST_MODELS} regressors: ")
+    top_five_models_out_of_all = select_top_models_with_grid()
+    print(top_five_models_out_of_all)
+
+    print(f"*** Select best {BEST_MODELS} models by changing hyperparameters: ")
+    top_five_models_after_tuning = tune_hyperparams_grid_search()
+    print(top_five_models_after_tuning)
+
     '''study = optuna.create_study(study_name="best regressor", direction="minimize")
     study.optimize(objective, n_trials=50)
     print('best_trial\n', study.best_trial)
