@@ -1,4 +1,5 @@
 from datetime import datetime
+from math import sqrt
 
 import optuna as optuna
 import pandas as pd
@@ -174,11 +175,15 @@ def print_scores(y, y_pred):
 
     MSE = mean_squared_error(y_pred, y)
     print(f"MSE value: {MSE}")
+    print(f"RMSE value: {sqrt(MSE)}")
+
+    MAE = mean_absolute_error(y_pred, y)
+    print(f"MAE value: {MAE}")
 
 
 def tune_hyperparams_grid_search():
     pipe = Pipeline([('classifier', MultinomialNB())])
-    grid = GridSearchCV(pipe, params_of_top_regressors, verbose=3, refit=True, cv=5, error_score=mean_squared_error, n_jobs=-1)
+    grid = GridSearchCV(pipe, params_of_top_regressors, verbose=3, refit=True, cv=5, error_score=[mean_squared_error, mean_absolute_error], n_jobs=-1)
     grid.fit(x_train, y_train)
 
     final_results = pd.DataFrame(grid.cv_results_)

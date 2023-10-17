@@ -18,7 +18,7 @@ class FeatureSelectorInterface:
         There are several options for that
         return: train set with the relevant features
         """
-        self.train_df = train_set_after_feature_removal
+        #self.train_df = train_set_after_feature_removal
         return train_set_after_feature_removal
 
     def create_test_set(self):
@@ -28,7 +28,7 @@ class FeatureSelectorInterface:
         There are several options for that
         return: test set with the relevant features
         """
-        self.test_df = test_set_after_feature_removal
+        #self.test_df = test_set_after_feature_removal
         return test_set_after_feature_removal
 
     @abstractmethod

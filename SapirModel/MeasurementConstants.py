@@ -4,18 +4,18 @@ import os
 from Scanner.general_consts import HardwareColumns
 
 # Paths
-TRAIN_MEASUREMENTS_DIR_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Project\Scanner\LENOVO Yoga 7 15ITL5 82BJ Windows 10\No Scan\Power Saver Plan"
-TEST_MEASUREMENTS_DIR_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Project\Scanner\LENOVO Yoga 7 15ITL5 82BJ Windows 10\No Scan\Power Saver Plan"
-IDLE_SUMMARY_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Project\Scanner\LENOVO Yoga 7 15ITL5 82BJ Windows 10\No Scan\Power Saver Plan\Measurement 1"
-TRAIN_SET_PATH = ""
-TEST_SET_PATH = ""
+TRAIN_MEASUREMENTS_DIR_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Green Security Experiments\Experiments - HeavyLoad combinations - No scan\No scan - heavyLoad - different combinations - 171023"
+TEST_MEASUREMENTS_DIR_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Green Security Experiments\ClamAV optimizations\Initiail optimization\Measurement2"
+IDLE_SUMMARY_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Green Security Experiments\Idle - Sapir's Dell - Average.xlsx"
+TRAIN_SET_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Green Security Documents\Datasets\train.csv"
+TEST_SET_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Green Security Documents\Datasets\test.csv"
 
 
 # Summary File related
-TOTAL_COL_SUMMARY = "Total"
+TOTAL_COL_SUMMARY = "System (total - all processes)"
 SUMMARY_FILE_NAME = 'summary.xlsx'
 
-class SummaryFields:
+class SummaryFieldsOtherVersion:
     DURATION = "Duration"
     CPU = "CPU"
     MEMORY = "Memory (MB)"
@@ -28,11 +28,32 @@ class SummaryFields:
     DISK_IO_WRITE_TIME = "Disk IO Write Time (ms - sum)"
     ENERGY_CONSUMPTION = "Energy consumption - total energy(mwh)"
     TOTAL_COLUMN = "Toal"
+    PROCESS_COLUMN = "ClamAV" # TODO: change according to the process
+
+class SummaryFieldsDuduVersion:
+    DURATION = "Duration"
+    CPU_PROCESS = "CPU Process"
+    CPU_SYSTEM = "CPU System (total - process)"
+    MEMORY_PROCESS = "Memory Process (MB)"
+    MEMORY_SYSTEM = "Memory Total (total - process) (MB)"
+    PAGE_FAULTS = "Page Faults"
+    IO_READ_BYTES_PROCESS = "IO Read Process (KB - sum)"
+    IO_READ_BYTES_SYSTEM = "IO Read System (total - process) (KB - sum)"
+    IO_READ_COUNT_PROCESS = "IO Read Count Process (# - sum)"
+    IO_READ_COUNT_SYSTEM = "IO Read Count System (total - process) (# - sum)"
+    IO_WRITE_BYTES_PROCESS = "IO Write Process (KB - sum)"
+    IO_WRITE_BYTES_SYSTEM = "IO Write System (total - process) (KB - sum)"
+    IO_WRITE_COUNT_PROCESS = "IO Write Count Process (# - sum)"
+    IO_WRITE_COUNT_SYSTEM = "IO Write Count System (total - process) (# - sum)"
+    DISK_IO_READ_TIME = "Disk IO Read Time (ms - sum)"
+    DISK_IO_WRITE_TIME = "Disk IO Write Time (ms - sum)"
+    ENERGY_CONSUMPTION = "Energy consumption - total energy(mwh)"
+    TOTAL_COLUMN = "System (total - all processes)"
 
 
 # Processes File related
 PROCESSES_FILE_NAME = "processes_data.csv"
-HEAVYLOAD_PROCESS_NAME = "HeavyLoad"
+HEAVYLOAD_PROCESS_NAME = "HeavyLoad.exe"
 
 class AllProcessesFileFields:
     PROCESS_NAME_COL = "PNAME"

@@ -327,6 +327,8 @@ def save_general_information_before_scanning():
         save_general_disk(f)
         f.write('\n\n')
 
+    hardware_df.to_csv(HARDWARE_CSV)
+
 
 def save_general_information_after_scanning():
     """
