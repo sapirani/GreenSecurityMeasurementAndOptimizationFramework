@@ -1,3 +1,4 @@
+#from webdriver_manager.chrome import ChromeDriverManager
 from web_tasks import *
 from office_tasks import *
 
@@ -22,6 +23,7 @@ def create_driver():
         driver: the driver connects to google chrome page loaded with the google url
     """   
     driver = webdriver.Chrome()
+    #driver = webdriver.Chrome(ChromeDriverManager().install())
     driver.get(url=google_url)
     # self.url = driver.open_driver('https://www.google.com/')
     return driver

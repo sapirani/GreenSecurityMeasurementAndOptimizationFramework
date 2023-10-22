@@ -4,6 +4,8 @@ from activities import *
 import pandas as pd
 
 
+results_path = r"C:\Users\Administrator\Desktop\green security\documents\user activity results"
+
 def dataframe_append(df, element):
     """Append a row to a dataframe"""
     df.loc[len(df.index)] = element
@@ -42,15 +44,15 @@ class Scheduler:
     def save_tasks_times(self):
         """_summary_: save the dataframe to a csv file
         """
-        self.tasks_times.to_csv(self.results_path, index=False)
+        self.tasks_times.to_csv(self.results_path)
 
 
 def main():
-    if len(sys.argv) != 2:
-        raise Exception("Expecting exactly one argument - scan path")
+    '''if len(sys.argv) != 2:
+        raise Exception("Expecting exactly one argument - scan path")'''
 
     # Yonatan's code
-    user_activity = Scheduler(ACTIVITIES.activities_flow, sys.argv[1])
+    user_activity = Scheduler(ACTIVITIES.activities_flow, results_path)
     user_activity.run_tasks()
     user_activity.save_tasks_times()
 

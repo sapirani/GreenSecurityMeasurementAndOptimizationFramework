@@ -149,6 +149,23 @@ class ClamAVProgram(AntivirusProgram):
         return fr'"C:\Program Files\ClamAV\clamscan.exe" --recursive {path_to_scan}'
 
 
+class SophosAVProgram(AntivirusProgram):
+    def get_program_name(self):
+        return "Sophos"
+
+    def get_process_name(self) -> str:
+        return "sophosinterceptxcli.exe"
+
+    def get_command(self) -> Union[str, list]:
+        if self.scan_type == ScanType.FULL_SCAN:
+            path_to_scan = "--system"
+        elif self.scan_type == ScanType.CUSTOM_SCAN:
+            path_to_scan = self.custom_scan_path
+        else:
+            raise Exception(f"{self.scan_type} is not supported in {self.get_program_name()}")
+        return fr"C:\Program Files\Sophos\Endpoint Defense\sophosinterceptxcli.exe scan --noui {path_to_scan}"
+
+
 class LogAnomalyDetection(ProgramInterface):
     def __init__(self, model_name, action, script_relative_path, installation_dir):
         super().__init__()
