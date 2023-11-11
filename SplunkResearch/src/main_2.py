@@ -17,9 +17,10 @@ if __name__ == "__main__":
         with open(f'./src/config.json', 'r') as fp:
             parameters = json.load(fp)
         experiment.train_model(parameters)
-        experiment_manager.save_experiment(experiment_dir)
+        experiment_manager.save_experiment(experiment, experiment_dir)
         
     elif mode == 'test':
+        print(sys.argv)
         if sys.argv[2] == 'last':
             experiment_dir = experiment_manager.get_last_experiment_dir()
         else:

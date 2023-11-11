@@ -40,7 +40,7 @@ class Framework(gym.Env):
 
         self.action_upper_bound = 100
         # create the action space - a vector of size max_actions_value with values between 0 and 1
-        self.action_space = Discrete(n=self.action_upper_bound, start=1)
+        self.action_space = Discrete(n=self.action_upper_bound, start=0)
         self.observation_space = spaces.Box(low=np.array([0]*((len(self.relevant_logtypes)+2))), high=np.array([INFINITY] * len(self.relevant_logtypes)+[len(self.relevant_logtypes)]+[1]))
         self.action_duration = self.search_window*60/len(self.relevant_logtypes)
         self.current_action = None
@@ -61,6 +61,7 @@ class Framework(gym.Env):
         self.epsilon = 0
         self.reward_calculator = RewardCalc(self.relevant_logtypes, self.dt_manager, self.logger, self.splunk_tools, self.rule_frequency)
         self.experiment_name = f"{self.search_window}_{self.max_actions_value}"
+        self.limit_learner = True
                                            
     def get_reward(self):
         '''
@@ -69,7 +70,6 @@ class Framework(gym.Env):
         if the sum  of fractions is smaller or equal to 1 the reward is the sum of fractions
         if the sum of fractions is smaller or equal to 1 and the energy is bigger than the previous energy in more then 10% the reward is very positive 
         '''
-        self.done = True
         self.logger.info(self.done)
         
         fraction_real_distribution = self.real_distribution
@@ -84,18 +84,21 @@ class Framework(gym.Env):
         self.reward_calculator.reward_dict['total'].append(reward)
         self.logger.info(f"total reward: {reward}")               
         return reward
-
+        
     def step(self, action):
+        asyncio.run(self.perform_action(action))
         if self.check_done():
             self.done = True
             asyncio.run(self.perform_action(max(self.action_upper_bound-self.sum_of_fractions,0)))
-            self.update_state()           
-            reward = self.get_reward()
-        else:
-            reward = 0
-            asyncio.run(self.perform_action(action))
-            self.update_state()
-        
+            if self.sum_of_fractions == 100:
+                self.limit_learner = False
+
+        # else:
+        #     asyncio.run(self.perform_action(action))
+            # reward = 0            
+            # self.update_state()
+        self.update_state()           
+        reward = self.get_reward() 
         self.logger.info(f"########################################################################################################################")
         return self.state, reward, self.done, {}
     
@@ -128,13 +131,17 @@ class Framework(gym.Env):
         
         self.time_action_dict[-1].append([str(self.time_range), self.experiment_name,str(logtype),action_value])
         self.logger.info(f"action: {self.current_action}, action value: {action_value}, logtype: {logtype}")
-        fake_logs = self.log_generator.generate_logs(logsource, eventcode, time_range, action_value)
-        self.logger.info(f"{len(fake_logs)}: fake logs were generated")
+        if not self.limit_learner:
+            fake_logs = self.log_generator.generate_logs(logsource, eventcode, time_range, action_value)
+            self.logger.info(f"{len(fake_logs)}: fake logs were generated")
+            await self.splunk_tools.insert_logs(fake_logs, logsource)
         self.sum_of_action_values += action_value
         # self.sum_of_fractions += self.current_action
-        self.sum_of_fractions = 0 if self.max_actions_value == 0 else 100*self.sum_of_action_values/self.max_actions_value
+        if self.max_actions_value == 0:
+            self.sum_of_fractions = 0
+        else:
+            self.sum_of_fractions += action
         self.fake_distribution[self.logtype_index] += action_value
-        await self.splunk_tools.insert_logs(fake_logs, logsource)
         # for log,log_time in fake_logs:
         #     print(log,log_time)
         #     self.splunk_tools.insert_log(log, logsource, log_time)

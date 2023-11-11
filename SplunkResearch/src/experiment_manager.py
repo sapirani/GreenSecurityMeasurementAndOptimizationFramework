@@ -29,10 +29,10 @@ class ExperimentManager:
         self.logger.addHandler(file_handler)
         return self.logger
     
-    def save_experiment(self, experiment_dir):
+    def save_experiment(self, experiment_object, experiment_dir):
         # save experiment object in a pickle file
         with open(f'{experiment_dir}/experiment.pkl', 'wb') as f:
-            pickle.dump(self, f)
+            pickle.dump(experiment_object, f)
     
     def load_experiment(self, experiment_dir):
         # load experiment object from a pickle file

@@ -35,9 +35,9 @@ class Experiment:
         self.logger.info(res.stdout)
         self.logger.error(res.stderr)
 
-    def choose_random_rules(self, splunk_tools_instance, num_of_searches, get_only_enabled=True):
+    def choose_random_rules(self, splunk_tools_instance, num_of_searches, is_get_only_enabled=True):
         self.logger.info('enable random rules')
-        savedsearches = splunk_tools_instance.get_saved_search_names(get_only_enabled=get_only_enabled)
+        savedsearches = splunk_tools_instance.get_saved_search_names(get_only_enabled=is_get_only_enabled)
         random_savedsearch = random.sample(savedsearches, num_of_searches)
         for savedsearch in savedsearches:
             if savedsearch not in random_savedsearch:
@@ -83,6 +83,7 @@ class Experiment:
         running_time = parameters['running_time']
         env_file_path = parameters['env_file_path']
         fake_start_datetime = parameters['fake_start_datetime']
+        is_get_only_enabled = parameters['is_get_only_enabled']
         fake_start_datetime  = datetime.datetime.strptime(fake_start_datetime, '%m/%d/%Y:%H:%M:%S')
         # create a datetime manager instance
         dt_manager = MockedDatetimeManager(fake_start_datetime=fake_start_datetime, log_file_path="test.log")
@@ -93,7 +94,7 @@ class Experiment:
         splunk_tools_instance = SplunkTools(logger=self.logger)
         self.update_running_time(running_time, env_file_path)
         self.update_rules_frequency_and_time_range(splunk_tools_instance, rule_frequency, time_range)
-        savedsearches = sorted(self.choose_random_rules(splunk_tools_instance, num_of_searches, get_only_enabled=True))
+        savedsearches = sorted(self.choose_random_rules(splunk_tools_instance, num_of_searches, is_get_only_enabled=is_get_only_enabled))
         relevant_logtypes =  list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]})
         relevant_logtypes = [logtype for logtype in logtypes if logtype not in section_logtypes]
         parameters['relevant_logtypes'] = relevant_logtypes

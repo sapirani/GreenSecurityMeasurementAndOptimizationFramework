@@ -22,13 +22,17 @@ if [ "$2" == "test" ]; then
     wait
 else
     echo "$1" "$2"
-    echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" $1 $2
+    echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" $1 $2 $3
     wait
 fi
 if [ "$2" == "test" ] || [ "$3" == "test" ]; then
-    echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test last
+    echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test last $3
     wait
 fi
-
+if ["$4" == "baseline"]; then
+    echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline last $5 passive
+    echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline last $5 random
+    wait
+fi
 echo sH231294 | sudo -S chmod -R 777 VMware\,\ Inc.\ Linux\ 3.10.0-1160.88.1.el7.x86_64/
 echo sH231294 | sudo chmod -R 777 ./experiments/
