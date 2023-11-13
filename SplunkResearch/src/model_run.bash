@@ -29,7 +29,7 @@ if [ "$2" == "test" ] || [ "$3" == "test" ]; then
     echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test last $3
     wait
 fi
-if ["$4" == "baseline"]; then
+if [ "$4" == "baseline" ]; then
     echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline last $5 passive
     echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline last $5 random
     wait

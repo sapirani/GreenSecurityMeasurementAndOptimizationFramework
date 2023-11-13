@@ -26,6 +26,8 @@ if __name__ == "__main__":
         else:
             experiment_dir = sys.argv[2]
         experiment = experiment_manager.load_experiment(experiment_dir)
+        logger = experiment_manager.setup_logging(f"{experiment_dir}/log_test.txt")
+        experiment.logger = logger
         num_of_episodes = int(sys.argv[3])
         experiment.test_model(num_of_episodes)
         
@@ -35,8 +37,8 @@ if __name__ == "__main__":
         else:
             experiment_dir = sys.argv[2]
         experiment = experiment_manager.load_experiment(experiment_dir)
-        with open(f'config.json', 'r') as fp:
-            parameters = json.load(fp)
+        logger = experiment_manager.setup_logging(f"{experiment_dir}/log_baseline.txt")
+        experiment.logger = logger
         num_of_episodes = int(sys.argv[3])
         experiment.test_baseline_agent(num_of_episodes, agent_type=sys.argv[4])
     
