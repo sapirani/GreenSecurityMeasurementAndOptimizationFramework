@@ -4,6 +4,8 @@ The main goal of this project is to understand the energy consumption of differe
 This project measures various metrics of computer resource usage (such as: CPU usage, memory, disk and battery) while running cyber-security scans. 
 We measure the resource usage of the whole system, and of each process separately. It is possible to easily configure program parameters inside the configuration file as detailed below. You can run multiple programs simultaneously. Both Windows and POSIX operation systems are supported.
 
+The repository includes zip file which contains the various files that were part of the experiments, e.g. the antivirus performed custom scan on these files.
+
 ## Preliminaries:
 1. Please use python 3.8.5. 
 
