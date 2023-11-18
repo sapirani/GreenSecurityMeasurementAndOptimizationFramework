@@ -27,7 +27,7 @@ class RewardCalc:
 
     def get_partial_reward(self, real_distribution, current_state):
         fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
-        return fraction_val
+        return 0
         # if fraction_val > 1:
         #     return -100
         # if distributions_val > 0.2:
@@ -57,16 +57,20 @@ class RewardCalc:
 
         # return fraction_reward,distributions_reward
       
-    def get_full_reward(self, time_range, real_distribution, current_state):
+    def get_full_reward(self, time_range, real_distribution, current_state, limit_learner=False):
+        action_upper_bound = 1
         fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
-        if fraction_val > 100:
-            return -(fraction_val-100)
+        if fraction_val > action_upper_bound:
+            return -(fraction_val-action_upper_bound)*100
+        # elif fraction_val < 100:
+        #     return (fraction_val-100)*10
         alert_val, energy_val, energy_increase = self.get_full_reward_values(time_range=time_range)
-        if fraction_val <= 100:
-            if fraction_val == 100:
-                return energy_val + 100
-            else:
-                return energy_val
+        if fraction_val <= action_upper_bound:
+            return energy_val
+            # if fraction_val == 100:
+            #     return energy_val*10
+            # else:
+            #     return energy_val
         
         # if distributions_val >= 0.2 or fraction_val > 1:
         #     return -(abs(energy_increase)**3)
@@ -132,7 +136,8 @@ class RewardCalc:
     
 
     def get_partial_reward_values(self, real_distribution, current_state):
-        fraction_val = float(current_state[-1])
+        action_upper_bound = 1
+        fraction_val = action_upper_bound - float(current_state[-1])
         distributions_val = self.compare_distributions(real_distribution, current_state[:len(self.relevant_logtypes)])     
         self.reward_values_dict['distributions'].append(distributions_val)
         self.reward_values_dict['fraction'].append(fraction_val)

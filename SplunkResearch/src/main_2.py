@@ -19,6 +19,19 @@ if __name__ == "__main__":
         experiment.train_model(parameters)
         experiment_manager.save_experiment(experiment, experiment_dir)
         
+    if mode == 'retrain':
+        if sys.argv[2] == 'last':
+            experiment_dir = experiment_manager.get_last_experiment_dir()
+        else:
+            experiment_dir = sys.argv[2]
+        logger = experiment_manager.setup_logging(f"{experiment_dir}/log_retrain.txt")
+        experiment = experiment_manager.load_experiment(experiment_dir)
+        experiment.logger = logger
+        with open(f'./src/config.json', 'r') as fp:
+            parameters = json.load(fp)
+        experiment.retrain_model(parameters)
+        experiment_manager.save_experiment(experiment, experiment_dir)
+          
     elif mode == 'test':
         print(sys.argv)
         if sys.argv[2] == 'last':

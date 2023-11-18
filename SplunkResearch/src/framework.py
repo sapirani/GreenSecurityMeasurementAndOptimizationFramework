@@ -38,10 +38,10 @@ class Framework(gym.Env):
         self.relevant_logtypes = relevant_logtypes
         self.max_actions_value = max_actions_value
 
-        self.action_upper_bound = 100
+        self.action_upper_bound = 1
         # create the action space - a vector of size max_actions_value with values between 0 and 1
-        self.action_space = Discrete(n=self.action_upper_bound, start=0)
-        self.observation_space = spaces.Box(low=np.array([0]*((len(self.relevant_logtypes)+2))), high=np.array([INFINITY] * len(self.relevant_logtypes)+[len(self.relevant_logtypes)]+[1]))
+        self.action_space = spaces.Box(low=0,high=self.action_upper_bound,shape=(1,),dtype=np.float32)
+        self.observation_space = spaces.Box(low=np.array([0]*((len(self.relevant_logtypes)+2))), high=np.array([self.action_upper_bound] * len(self.relevant_logtypes)+[len(self.relevant_logtypes)]+[1]))
         self.action_duration = self.search_window*60/len(self.relevant_logtypes)
         self.current_action = None
         self.state = None  # Initialize state
@@ -54,14 +54,14 @@ class Framework(gym.Env):
         self.sum_of_fractions = 0
         self.time_action_dict= [[]]
         self.current_step = 0
-        self.max_steps = 100
         self.fake_distribution = [0]*len(self.relevant_logtypes)
         self.real_distribution = [0]*len(self.relevant_logtypes)
         self.done = False
-        self.epsilon = 0
+        self.epsilon = 0.00000000000000000001
         self.reward_calculator = RewardCalc(self.relevant_logtypes, self.dt_manager, self.logger, self.splunk_tools, self.rule_frequency)
         self.experiment_name = f"{self.search_window}_{self.max_actions_value}"
-        self.limit_learner = True
+        self.limit_learner = False
+        self.limit_learner_counter = 5
                                            
     def get_reward(self):
         '''
@@ -75,7 +75,7 @@ class Framework(gym.Env):
         fraction_real_distribution = self.real_distribution
         # fraction_real_distribution = [x/sum(self.real_distribution) for x in self.real_distribution]
         if self.done:
-            reward = self.reward_calculator.get_full_reward(self.time_range, fraction_real_distribution, self.state)
+            reward = self.reward_calculator.get_full_reward(self.time_range, fraction_real_distribution, self.state, self.limit_learner)
         else:
             # reward = self.reward_calculator.get_previous_full_reward()
             reward = self.reward_calculator.get_partial_reward(fraction_real_distribution, self.state)
@@ -86,12 +86,25 @@ class Framework(gym.Env):
         return reward
         
     def step(self, action):
+        
         asyncio.run(self.perform_action(action))
+
         if self.check_done():
+            # self.update_state()  
+            self.logtype_index_counter()                     
+            asyncio.run(self.perform_action([max(self.action_upper_bound-self.sum_of_fractions,0)]))
             self.done = True
-            asyncio.run(self.perform_action(max(self.action_upper_bound-self.sum_of_fractions,0)))
-            if self.sum_of_fractions == 100:
+            if self.sum_of_fractions != 1:
+                self.limit_learner_counter -= 1
+            else:
+                self.limit_learner_counter += 1
+            if self.limit_learner_counter > 4:
                 self.limit_learner = False
+            else:
+                self.limit_learner = True
+            self.logger.info(f"limit learner: {self.limit_learner}")
+            # else:
+            #     self.limit_learner = True
 
         # else:
         #     asyncio.run(self.perform_action(action))
@@ -109,7 +122,7 @@ class Framework(gym.Env):
             reward = self.get_reward()
         else:
             reward = 0
-            self.perform_action(action)
+            asyncio.run(self.perform_action(action))
             self.logtype_index_counter()           
         
         self.logger.info(f"########################################################################################################################")
@@ -122,16 +135,16 @@ class Framework(gym.Env):
         now = self.dt_manager.get_fake_current_datetime()
         self.logger.info(f"Current time: {now}")      
         time_range = (now, self.dt_manager.add_time(now, seconds=self.action_duration))
-        self.current_action = action
+        self.current_action = action[0]
         logtype = self.relevant_logtypes[self.logtype_index]
         logsource = logtype[0].lower()
         eventcode = logtype[1]
         # action_value = int(self.current_action*self.max_actions_value)
-        action_value= int((action/100)*self.max_actions_value)
+        action_value= int(self.current_action*self.max_actions_value)
         
         self.time_action_dict[-1].append([str(self.time_range), self.experiment_name,str(logtype),action_value])
         self.logger.info(f"action: {self.current_action}, action value: {action_value}, logtype: {logtype}")
-        if not self.limit_learner:
+        if not self.limit_learner and self.sum_of_fractions + action[0] <= self.action_upper_bound:
             fake_logs = self.log_generator.generate_logs(logsource, eventcode, time_range, action_value)
             self.logger.info(f"{len(fake_logs)}: fake logs were generated")
             await self.splunk_tools.insert_logs(fake_logs, logsource)
@@ -140,7 +153,7 @@ class Framework(gym.Env):
         if self.max_actions_value == 0:
             self.sum_of_fractions = 0
         else:
-            self.sum_of_fractions += action
+            self.sum_of_fractions += self.current_action
         self.fake_distribution[self.logtype_index] += action_value
         # for log,log_time in fake_logs:
         #     print(log,log_time)
@@ -154,7 +167,10 @@ class Framework(gym.Env):
     
     def update_state(self):
         state = []
-        real_distribution = self.splunk_tools.extract_distribution(self.time_range[0], self.dt_manager.get_fake_current_datetime())
+        if not self.limit_learner:
+            real_distribution = self.splunk_tools.extract_distribution(self.time_range[0], self.dt_manager.get_fake_current_datetime())
+        else:
+            real_distribution = [0 for i in range(len(self.relevant_logtypes))]
         self.logger.info(f"extraceted real {real_distribution}")
         # fake_distribution = self.splunk_tools.extract_distribution(self.time_range[0], self.dt_manager.get_fake_current_datetime(), fake=True)
         # self.logger.info(f"extraceted fake {fake_distribution}")
@@ -164,9 +180,9 @@ class Framework(gym.Env):
         self.logger.info(f"fake distribution: {self.fake_distribution}")
         state = [x + y for x, y in zip(self.fake_distribution, self.real_distribution)]
         sum_state = sum(state)
-        # state = [x/sum_state for x in state]
+        state = [x/sum_state for x in state]
         state.append(self.logtype_index)
-        state.append(self.sum_of_fractions)
+        state.append(self.action_upper_bound - self.sum_of_fractions)
         self.logger.info(f"state: {state}")
         self.state = np.array(state)
         self.logtype_index_counter()
@@ -174,7 +190,7 @@ class Framework(gym.Env):
     
     def check_done(self):
         # Define the termination conditions based on the current state or other criteria
-        if self.logtype_index == (len(self.relevant_logtypes)-1) or self.sum_of_fractions > 100:
+        if self.logtype_index == (len(self.relevant_logtypes)-2) or self.sum_of_fractions > self.action_upper_bound:
             return True
         else:
             return False

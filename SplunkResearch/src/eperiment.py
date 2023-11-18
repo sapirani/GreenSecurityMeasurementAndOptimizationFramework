@@ -99,10 +99,12 @@ class Experiment:
         self.clean_env(splunk_tools_instance)
         self.update_running_time(running_time, env_file_path)
         self.update_rules_frequency_and_time_range(splunk_tools_instance, rule_frequency, time_range)
-        savedsearches = sorted(self.choose_random_rules(splunk_tools_instance, num_of_searches, is_get_only_enabled=is_get_only_enabled))
+        # savedsearches = sorted(self.choose_random_rules(splunk_tools_instance, num_of_searches, is_get_only_enabled=is_get_only_enabled))
+        savedsearches = ['Monitor for Additions to Firewall Rules', 'Monitor for Changes to Firewall Rules', 'Monitor for Suspicious_Administrative Processes', 'Multiple Failed Logins from the Same Source', 'Multiple Network Connections to Same Port on External Hosts', 'Suspicious Remote Thread Creation']
         parameters['savedsearches'] = savedsearches
         # savedsearches = ['Modification of Executable File', 'Monitor for New Service Installs', 'Monitor for Suspicious Network IP’s', 'Multiple Network Connections to Same Port on External Hosts']
-        relevant_logtypes =  list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]})
+        relevant_logtypes =  sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]}))
+        # relevant_logtypes = [('wineventlog:security', '2005'), ('wineventlog:security', '4625'), ('wineventlog:security', '2004'), ('xmlwineventlog:microsoft-windows-sysmon/operational', '3'), ('wineventlog:security', '4688'), ('xmlwineventlog:microsoft-windows-sysmon/operational', '8')]
         # relevant_logtypes = [logtype for logtype in logtypes if logtype not in section_logtypes]
         parameters['relevant_logtypes'] = relevant_logtypes
         log_generator_instance = LogGenerator(relevant_logtypes, big_replacement_dicts, splunk_tools_instance)
@@ -138,6 +140,16 @@ class Experiment:
         self.save_assets(self.experiment_dir, env)
         return model
     
+    def retrain_model(self, parameters):
+        self.logger.info('retrain the model')
+        env = self.load_environment()
+        model = A2C.load(f"{self.experiment_dir}/A2C_splunk_attack")
+        model.set_env(env)
+        model.learn(total_timesteps=parameters['episodes']*len(env.relevant_logtypes))
+        model.save(f"{self.experiment_dir}/A2C_splunk_attack")
+        self.save_assets(self.experiment_dir, env)
+        return model
+    
     def test_model(self, num_of_episodes):
         self.logger.info('test the model')
         model = A2C.load(f"{self.experiment_dir}/A2C_splunk_attack")
@@ -168,7 +180,3 @@ class Experiment:
             obs, reward, done, info = env.blind_step(action)
             env.render()
     
-
-          
-
-    # def retrain_model(self):
