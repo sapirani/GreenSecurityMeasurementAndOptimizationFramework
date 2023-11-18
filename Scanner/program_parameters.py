@@ -17,6 +17,7 @@ scanner_version = ScannerVersion[os.getenv("SCANNER_VERSION")]
 power_plan = getattr(PowerPlan, os.getenv("POWER_PLAN"))
 scan_option = ScanMode[os.getenv("SCAN_OPTION")]
 scan_type = getattr(ScanType, os.getenv("SCAN_TYPE"))
+antivirus_type = getattr(AntivirusType, os.getenv("ANTIVIRUS_TYPE"))
 file_type = os.getenv("FILE_TYPE")
 directory_type = os.getenv("DIRECTORY_TYPE")
 custom_scan_path = os.getenv("CUSTOM_SCAN_PATH")

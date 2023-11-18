@@ -7,8 +7,11 @@ from Scanner.general_consts import HardwareColumns
 TRAIN_MEASUREMENTS_DIR_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Green Security Experiments\Experiments - HeavyLoad combinations - No scan\No scan - heavyLoad - different combinations - 171023"
 TEST_MEASUREMENTS_DIR_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Green Security Experiments\ClamAV optimizations\Initiail optimization\Measurement2"
 IDLE_SUMMARY_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Green Security Experiments\Idle - Sapir's Dell - Average.xlsx"
-TRAIN_SET_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Green Security Documents\Datasets\train.csv"
-TEST_SET_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Green Security Documents\Datasets\test.csv"
+DATASETS_DIRECTORY = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Green Security Documents\Datasets"
+TRAIN_SET_PATH = DATASETS_DIRECTORY + r"\train.csv"
+TEST_SET_PATH = DATASETS_DIRECTORY + r"\test.csv"
+TRAIN_SET_AFTER_PROCESSING_PATH = DATASETS_DIRECTORY + r"\after_processing_train.csv"
+TEST_SET_AFTER_PROCESSING_PATH = DATASETS_DIRECTORY + r"\after_processing_test.csv"
 
 
 # Summary File related
@@ -93,7 +96,7 @@ class SystemColumns:
     DISK_READ_TIME = "disk_read_time_system_ms_sum"
     DISK_WRITE_TIME = "disk_write_time_system_ms_sum"
 
-    DURATION_COL = "duration"  # ??? maybe give up
+    DURATION_COL = "duration_system"  # ??? maybe give up
     ENERGY_TOTAL_USAGE_SYSTEM_COL = "total_energy_consumption_system_mWh"
     PAGE_FAULT_SYSTEM_COL = "number_of_page_faults_system"
 
@@ -112,7 +115,7 @@ class IDLEColumns:
     ENERGY_TOTAL_USAGE_IDLE_COL = "total_energy_consumption_in_idle_mWh"
     PAGE_FAULT_IDLE_COL = "number_of_page_faults_idle"
     COMPARED_TO_IDLE = "compared_to_idle"
-    DURATION_COL = "duration"  # ??
+    DURATION_COL = "duration_idle"  # ??
 
 
 # *** Hardware Related Cols *** #
