@@ -14,7 +14,7 @@ import requests
 
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env')
 # Precompile the regex pattern
-pattern = re.compile(r"'(.*?)' (\D+) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} IDT) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \s+(\d+)\s+(\d+\.\d+)")
+pattern = re.compile(r"'(.*?)' (\D+) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} IST) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \s+(\d+)\s+(\d+\.\d+)")
 savedsearches_path = '/opt/splunk/etc/users/shouei/search/local/savedsearches.conf'
 APP = 'search'
 HEADERS = {
@@ -310,10 +310,14 @@ class SplunkTools:
             # self.logger.info('No results found or results is not a list.')
             return None  
     
-    def delete_fake_logs(self, time_range):
+    def delete_fake_logs(self, time_range=None):
         url = f"{self.base_url}/services/search/jobs/export"
+        if time_range is None:
+            time_expression = ''
+        else:
+            time_expression = f'earliest="{time_range[0]}" latest="{time_range[1]}"'
         data = {
-            "search": f'search index=main host=132.72.81.150:8088 earliest="{time_range[0]}" latest="{time_range[1]}" | delete',
+            "search": f'search index=main host=132.72.81.150:8088 {time_expression} | delete',
             "exec_mode": "oneshot",
             "output_mode": "json"
         }

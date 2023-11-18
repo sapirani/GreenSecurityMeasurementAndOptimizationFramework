@@ -1,7 +1,7 @@
 import os
 import pickle
 import urllib3
-from SplunkResearch.src.datetime_manager import MockedDatetimeManager
+from datetime_manager import MockedDatetimeManager
 import datetime
 import time
 import json
@@ -35,9 +35,9 @@ class Experiment:
         self.logger.info(res.stdout)
         self.logger.error(res.stderr)
 
-    def choose_random_rules(self, splunk_tools_instance, num_of_searches, get_only_enabled=True):
+    def choose_random_rules(self, splunk_tools_instance, num_of_searches, is_get_only_enabled=True):
         self.logger.info('enable random rules')
-        savedsearches = splunk_tools_instance.get_saved_search_names(get_only_enabled=get_only_enabled)
+        savedsearches = splunk_tools_instance.get_saved_search_names(get_only_enabled=is_get_only_enabled)
         random_savedsearch = random.sample(savedsearches, num_of_searches)
         for savedsearch in savedsearches:
             if savedsearch not in random_savedsearch:
@@ -53,7 +53,7 @@ class Experiment:
         splunk_tools_instance.update_all_searches(splunk_tools_instance.update_search_time_range, time_range)   
 
     def save_assets(self, current_dir, env, mode='train'):
-        print(env.reward_calculator.reward_values_dict)
+        # print(env.reward_calculator.reward_values_dict)
         # create a directory for the assets if not exists
         if not os.path.exists(f'{current_dir}/{mode}'):
             os.makedirs(f'{current_dir}/{mode}')
@@ -67,7 +67,10 @@ class Experiment:
                 json.dump(env.time_action_dict, fp)
 
     
-    def clean_env(self, splunk_tools_instance, time_range):
+    def clean_env(self, splunk_tools_instance, time_range=None):
+        if time_range is None:
+            splunk_tools_instance.delete_fake_logs()
+            return time_range
         date = time_range[1].split(':')[0]
         time_range = (f'{date}:00:00:00', f'{date}:23:59:59')
         splunk_tools_instance.delete_fake_logs(time_range)
@@ -80,19 +83,30 @@ class Experiment:
         search_window = parameters['search_window']
         reward_parameter_dict = parameters['reward_parameter_dict']
         max_actions_value = parameters['max_actions_value']
+        running_time = parameters['running_time']
+        env_file_path = parameters['env_file_path']
         fake_start_datetime = parameters['fake_start_datetime']
+        is_get_only_enabled = parameters['is_get_only_enabled']
+        # savedsearches = parameters['savedsearches']
+        fake_start_datetime  = datetime.datetime.strptime(fake_start_datetime, '%m/%d/%Y:%H:%M:%S')
+        # create a datetime manager instance
+        dt_manager = MockedDatetimeManager(fake_start_datetime=fake_start_datetime, log_file_path="test.log")
         end_time = dt_manager.get_fake_current_datetime()
         start_time = dt_manager.subtract_time(end_time, minutes=search_window)
         time_range = (start_time, end_time)
-        # create a datetime manager instance
-        dt_manager = MockedDatetimeManager(fake_start_datetime=fake_start_datetime, log_file_path="test.log")
         # create a splunk tools instance
         splunk_tools_instance = SplunkTools(logger=self.logger)
-        
-        savedsearches = sorted(self.choose_random_rules(splunk_tools_instance, num_of_searches, get_only_enabled=True))
+        self.clean_env(splunk_tools_instance)
+        self.update_running_time(running_time, env_file_path)
+        self.update_rules_frequency_and_time_range(splunk_tools_instance, rule_frequency, time_range)
+        savedsearches = sorted(self.choose_random_rules(splunk_tools_instance, num_of_searches, is_get_only_enabled=is_get_only_enabled))
+        parameters['savedsearches'] = savedsearches
+        # savedsearches = ['Modification of Executable File', 'Monitor for New Service Installs', 'Monitor for Suspicious Network IP’s', 'Multiple Network Connections to Same Port on External Hosts']
         relevant_logtypes =  list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]})
-        relevant_logtypes = [logtype for logtype in logtypes if logtype not in section_logtypes]
+        # relevant_logtypes = [logtype for logtype in logtypes if logtype not in section_logtypes]
+        parameters['relevant_logtypes'] = relevant_logtypes
         log_generator_instance = LogGenerator(relevant_logtypes, big_replacement_dicts, splunk_tools_instance)
+        self.logger.info(f'current parameters:\ntime range:{time_range} \nfake_start_datetime: {fake_start_datetime}\nrule frequency: {rule_frequency}\nsearch_window:{search_window}\nrunning time: {running_time}\nnumber of searches: {num_of_searches}\nmax action value: {max_actions_value}\nreward parameter dict: {reward_parameter_dict}\nsavedsearches: {savedsearches}\nrelevantlog_types: {relevant_logtypes}')
         gym.register(
         id='splunk_attack-v0',
         entry_point='framework:Framework',  # Replace with the appropriate path       
@@ -116,6 +130,7 @@ class Experiment:
         return parameters
 
     def train_model(self, parameters):
+        self.logger.info('train the model')
         env = self.setup_environment(parameters)
         model = A2C(MlpPolicy, env, verbose=1)
         model.learn(total_timesteps=parameters['episodes']*len(parameters['relevant_logtypes']))
@@ -133,6 +148,7 @@ class Experiment:
         return env
     
     def test_baseline_agent(self, num_of_episodes, agent_type='random'):
+        self.logger.info(f'test baseline {agent_type} agent')
         env = self.load_environment()
         for i in range(num_of_episodes):
             env.reset()

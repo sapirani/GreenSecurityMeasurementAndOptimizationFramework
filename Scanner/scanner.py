@@ -691,9 +691,9 @@ def after_scanning_operations(should_save_results=True):
         save_results_to_files()
         
     #shimon - turned off this line because it is not working on the vm
-    # running_os.change_power_plan(running_os.get_default_power_plan_name(),
-    #                              running_os.get_default_power_plan_identifier())  # return to default power plan
-    # running_os.change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
+    running_os.change_power_plan(running_os.get_default_power_plan_name(),
+                                  running_os.get_default_power_plan_identifier())  # return to default power plan
+    running_os.change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
 
     if disable_real_time_protection_during_measurement:
         running_os.change_real_time_protection(should_disable=False)

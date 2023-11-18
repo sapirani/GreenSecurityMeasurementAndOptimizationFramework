@@ -27,12 +27,13 @@ class RewardCalc:
 
     def get_partial_reward(self, real_distribution, current_state):
         fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
-        if fraction_val > 1:
-            return -100
-        if distributions_val > 0.2:
-            return -distributions_val
-        if distributions_val < 0.2:
-            return 1-distributions_val
+        return fraction_val
+        # if fraction_val > 1:
+        #     return -100
+        # if distributions_val > 0.2:
+        #     return -distributions_val
+        # if distributions_val < 0.2:
+        #     return 1-distributions_val
 
 
             
@@ -58,17 +59,26 @@ class RewardCalc:
       
     def get_full_reward(self, time_range, real_distribution, current_state):
         fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
+        if fraction_val > 100:
+            return -(fraction_val-100)
         alert_val, energy_val, energy_increase = self.get_full_reward_values(time_range=time_range)
+        if fraction_val <= 100:
+            if fraction_val == 100:
+                return energy_val + 100
+            else:
+                return energy_val
+        
         # if distributions_val >= 0.2 or fraction_val > 1:
         #     return -(abs(energy_increase)**3)
         # elif distributions_val < 0.2 and fraction_val <= 1:
         #     return energy_increase**3
         # formulation of reward function that maximize the energy while minimizing the difference between the distributions
-        if fraction_val > 100:
-            return -(fraction_val-100)*1000
-        if energy_increase > 0.5:
-            return energy_val*energy_increase*1000
-        return energy_val*100
+        # FIX: problem with fraction value
+        # if fraction_val > 100:
+        #     return -(fraction_val-100)*1000
+        # if energy_increase > 0.5:
+        #     return energy_val*energy_increase*1000
+        # return energy_val*1000
         # if distributions_val >= 0.5:
         #     return -distributions_val*100
         # if energy_increase > 0:
@@ -108,6 +118,7 @@ class RewardCalc:
         # return alert_reward, energy_reward
 
     def get_full_reward_values(self, time_range):
+        self.logger.info('wait til next rule frequency')
         self.dt_manager.wait_til_next_rule_frequency(self.rule_frequency)
         energy_val = self.measure(time_range=time_range, time_delta=self.rule_frequency)
         energy_increase =  (energy_val - self.previous_energy)/(self.previous_energy+self.epsilon) if self.previous_energy else 0

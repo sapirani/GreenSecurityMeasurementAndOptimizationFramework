@@ -21,9 +21,11 @@ antivirus_type = getattr(AntivirusType, os.getenv("ANTIVIRUS_TYPE"))
 file_type = os.getenv("FILE_TYPE")
 directory_type = os.getenv("DIRECTORY_TYPE")
 custom_scan_path = os.getenv("CUSTOM_SCAN_PATH")
-RUNNING_TIME = float(os.getenv("RUNNING_TIME")) * MINUTE
+
+time_in_min = os.getenv("RUNNING_TIME")
+RUNNING_TIME = None if time_in_min == 'None' else (float(time_in_min) * MINUTE)
 MINIMUM_DELTA_CAPACITY = int(os.getenv("MINIMUM_DELTA_CAPACITY"))
-measurement_number =  NEW_MEASUREMENT    # write number between 1->inf or type NEW_MEASUREMENT
+measurement_number = NEW_MEASUREMENT    # write number between 1->inf or type NEW_MEASUREMENT
 disable_real_time_protection_during_measurement = os.getenv("DISABLE_REAL_TIME_PROTECTION_DURING_MEASUREMENT") == "True"
 screen_brightness_level = int(os.getenv("SCREEN_BRIGHTNESS_LEVEL"))
 DEFAULT_SCREEN_TURNS_OFF_TIME = int(os.getenv("DEFAULT_SCREEN_TURNS_OFF_TIME"))

@@ -78,7 +78,6 @@ class MockedDatetimeManager:
         Wait until the current datetime is rounded to the next rule frequency.
         :param rule_frequency: Rule frequency in minutes.
         """
-        self.log(f"waiting for next measurement")
         fake_now = self.get_real_current_datetime()
         split_fake_now = fake_now.split(':')
         while ((int(split_fake_now[2])+1) % int(rule_frequency) != 0) or (int(split_fake_now[3]) < 55):
