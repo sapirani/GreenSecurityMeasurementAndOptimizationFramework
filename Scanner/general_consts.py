@@ -99,7 +99,7 @@ class IDSType:
 class AntivirusType:
     DEFENDER = "Defender"
     ClamAV = "ClamAV"
-    SOPHOS = "Sophos"
+    SOPHOS="Sophos"
 
 
 # ======= Tables Column Names =======

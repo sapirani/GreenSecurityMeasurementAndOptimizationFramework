@@ -81,8 +81,26 @@ def read_summary_system(directory, summery_version_dudu):
 
 
 def read_hardware_information_file(directory):
-    if os.path.isfile(os.path.join(directory, HARDWARE_INFORMATION_NAME)):
+    return {HardwareColumns.PC_TYPE: "Mobile Device", HardwareColumns.PC_MANUFACTURER: "Dell Inc.",
+            HardwareColumns.SYSTEM_FAMILY: "Latitude", HardwareColumns.MACHINE_TYPE: "AMD64",
+            HardwareColumns.DEVICE_NAME: "MININT-NT4GD33", HardwareColumns.OPERATING_SYSTEM: "Windows",
+            HardwareColumns.OPERATING_SYSTEM_RELEASE: "10", HardwareColumns.OPERATING_SYSTEM_VERSION: "10.0.19045",
+            HardwareColumns.PROCESSOR_NAME: "Intel64 Family 6 Model 140 Stepping 1, GenuineIntel",
+            HardwareColumns.PROCESSOR_PHYSICAL_CORES: "4", HardwareColumns.PROCESSOR_TOTAL_CORES: "8",
+            HardwareColumns.PROCESSOR_MAX_FREQ: "1805.00", HardwareColumns.PROCESSOR_MIN_FREQ: "0.00",
+            HardwareColumns.TOTAL_RAM: "15.732791900634766", HardwareColumns.PHYSICAL_DISK_NAME: "NVMe Micron 2450 NVMe 512GB",
+            HardwareColumns.PHYSICAL_DISK_MANUFACTURER: "NVMe", HardwareColumns.PHYSICAL_DISK_MODEL: "Micron 2450 NVMe 512GB",
+            HardwareColumns.PHYSICAL_DISK_MEDIA_TYPE: "SSD", HardwareColumns.LOGICAL_DISK_NAME: "NVMe Micron 2450 NVMe 512GB",
+            HardwareColumns.LOGICAL_DISK_MANUFACTURER: "NVMe", HardwareColumns.LOGICAL_DISK_MODEL: "Micron 2450 NVMe 512GB",
+            HardwareColumns.LOGICAL_DISK_DISK_TYPE: "Fixed", HardwareColumns.LOGICAL_DISK_PARTITION_STYLE: "GPT",
+            HardwareColumns.LOGICAL_DISK_NUMBER_OF_PARTITIONS: "5", HardwareColumns.PHYSICAL_SECTOR_SIZE: "512",
+            HardwareColumns.LOGICAL_SECTOR_SIZE: "512", HardwareColumns.BUS_TYPE: "RAID",
+            HardwareColumns.FILESYSTEM: "NTFS", HardwareColumns.BATTERY_DESIGN_CAPACITY: "61970",
+            HardwareColumns.FULLY_CHARGED_BATTERY_CAPACITY: "47850"}
+
+    """if os.path.isfile(os.path.join(directory, HARDWARE_INFORMATION_NAME)):
         df_hardware = pd.read_csv(os.path.join(directory, HARDWARE_INFORMATION_NAME))
+        df_hardware = df_hardware.iloc[: , 1:]
         return df_hardware.to_dict("records")[0]
 
     else:
@@ -102,7 +120,7 @@ def read_hardware_information_file(directory):
             HardwareColumns.LOGICAL_DISK_NUMBER_OF_PARTITIONS: "5", HardwareColumns.PHYSICAL_SECTOR_SIZE: "512",
             HardwareColumns.LOGICAL_SECTOR_SIZE: "512", HardwareColumns.BUS_TYPE: "RAID",
             HardwareColumns.FILESYSTEM: "NTFS", HardwareColumns.BATTERY_DESIGN_CAPACITY: "61970",
-            HardwareColumns.FULLY_CHARGED_BATTERY_CAPACITY: "47850"}
+            HardwareColumns.FULLY_CHARGED_BATTERY_CAPACITY: "47850"}"""
 
 
 def read_all_processes_file(directory):
@@ -203,7 +221,7 @@ def create_train_set():
     train_df = read_directories(train_df, TRAIN_MEASUREMENTS_DIR_PATH, is_train=True, summery_version_dudu=True, no_scan_mode=True)
     print(train_df)
     train_df = pre_process_data(train_df)
-    train_df.to_csv(TRAIN_SET_PATH)
+    train_df.to_csv(TRAIN_SET_PATH, index=False)
 
 def create_test_set():
     print("======== Creating Test Dataset ========")
@@ -215,7 +233,7 @@ def create_test_set():
     print()
     print(test_df.dtypes)
     test_df = pre_process_data(test_df)
-    test_df.to_csv(TEST_SET_PATH)
+    test_df.to_csv(TEST_SET_PATH, index=False)
 
 def main():
     create_train_set()
