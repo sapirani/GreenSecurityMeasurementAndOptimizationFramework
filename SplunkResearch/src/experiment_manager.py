@@ -68,7 +68,21 @@ class ExperimentManager:
         # names are date. parse them as date and sort them
         experiments.sort(key=lambda x: datetime.datetime.strptime(' '.join(x.split('_')[1:]), '%Y%m%d %H%M%S'))
         return experiments[-1]
-    
+
+    def read_last_x_mb(self, file_path, x_mb):
+        with open(file_path, 'rb') as file:
+            file_size = os.path.getsize(file_path)
+            x_bytes = x_mb * 1024 * 1024  # Convert megabytes to bytes
+            if file_size < x_bytes:
+                # If the file is smaller than x MB, read the entire file
+                content = file.read()
+            else:
+                # Move the file pointer to the position x bytes from the end
+                file.seek(-x_bytes, os.SEEK_END)
+                # Read the last x bytes of the file
+                content = file.read()
+
+        return content
 
     def send_email(self, log_file):
         my_email = os.getenv('EMAIL')
@@ -80,7 +94,8 @@ class ExperimentManager:
         msg['From'] = my_email
         msg['To'] = my_email
         with open(log_file, 'rb') as f:
-            file_data = f.read()
+            # file_data = f.read()
+            file_data = self.read_last_x_mb(log_file, 25)
             msg.add_attachment(file_data, maintype='application', subtype='octet-stream', filename=f.name)
         context = ssl.create_default_context()
         context.check_hostname = False

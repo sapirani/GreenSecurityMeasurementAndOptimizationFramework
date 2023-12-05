@@ -9,8 +9,11 @@ PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. L
 
 class RewardCalc:
     def __init__(self, relevant_logtypes, dt_manager, logger, splunk_tools, rule_frequency):
-        self.previous_energy = 1
-        self.previous_alert = 0
+        # self.previous_energy = 1
+        # self.previous_alert = 0
+        self.average_energy = 0
+        self.average_alert = 0
+        self.average_duration = 0
         self.epsilon = 0
         self.reward_dict = {'energy': [0], 'alerts': [0], 'distributions': [], 'fraction': [], 'total': []}
         self.reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'fraction': [], 'duration': [], "num_of_rules":[]}
@@ -57,16 +60,25 @@ class RewardCalc:
 
         # return fraction_reward,distributions_reward
       
-    def get_full_reward(self, time_range, real_distribution, current_state, limit_learner=False):
+    def get_full_reward(self, time_range, real_distribution, current_state):
         action_upper_bound = 1
+        is_limit_learner = current_state[-1]
         fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
         if fraction_val > action_upper_bound:
-            return -(fraction_val-action_upper_bound)*100
+            return -(fraction_val-action_upper_bound)*1000
+        if is_limit_learner:
+            return 1
         # elif fraction_val < 100:
         #     return (fraction_val-100)*10
-        alert_val, energy_val, energy_increase = self.get_full_reward_values(time_range=time_range)
+        alert_val, energy_val, energy_increase, duration_val, duration_increase = self.get_full_reward_values(time_range=time_range)
+        self.update_average_values()
         if fraction_val <= action_upper_bound:
-            return energy_val
+            if duration_increase > 0.2:
+                return duration_increase*100
+            else:
+                return duration_increase*10
+        
+            # return energy_val*100
             # if fraction_val == 100:
             #     return energy_val*10
             # else:
@@ -120,24 +132,38 @@ class RewardCalc:
         # self.logger.info(f"energy reward: {energy_reward}")
         # self.logger.info(f"alert reward: {alert_reward}")
         # return alert_reward, energy_reward
-
+    def update_average_values(self):
+        self.average_energy = sum(self.reward_values_dict['energy'])/len(self.reward_values_dict['energy'])
+        self.average_alert = sum(self.reward_values_dict['alerts'])/len(self.reward_values_dict['alerts'])
+        self.average_duration = sum(self.reward_values_dict['duration'])/len(self.reward_values_dict['duration'])
+        self.logger.info(f"average energy: {self.average_energy}")
+        self.logger.info(f"average alert: {self.average_alert}")
+        self.logger.info(f"average duration: {self.average_duration}")
+        
     def get_full_reward_values(self, time_range):
         self.logger.info('wait til next rule frequency')
         self.dt_manager.wait_til_next_rule_frequency(self.rule_frequency)
-        energy_val = self.measure(time_range=time_range, time_delta=self.rule_frequency)
-        energy_increase =  (energy_val - self.previous_energy)/(self.previous_energy+self.epsilon) if self.previous_energy else 0
-        alert_val = self.splunk_tools.get_alert_count(time_range)
-        
-        self.previous_energy = energy_val        
+        duration_val, energy_val = self.measure(time_range=time_range, time_delta=self.rule_frequency)
+        alert_val = 0#self.splunk_tools.get_alert_count(time_range) #TODO: change to get_alert_count
+        if self.average_energy == 0:
+            energy_increase = 0
+        else:
+            energy_increase = (energy_val - self.average_energy)/self.average_energy
+        if self.average_duration == 0:
+            duration_increase = 0
+        else:
+            duration_increase = (duration_val - self.average_duration)/self.average_duration
+        # self.previous_energy = energy_val        
         self.reward_values_dict['alerts'].append(alert_val)
         self.logger.info(f"incease in energy: {energy_increase}")
+        self.logger.info(f"incease in duration: {duration_increase}")
         self.logger.info(f"alert value: {alert_val}")
-        return alert_val, energy_val, energy_increase
+        return alert_val, energy_val, energy_increase, duration_val, duration_increase
     
 
     def get_partial_reward_values(self, real_distribution, current_state):
         action_upper_bound = 1
-        fraction_val = action_upper_bound - float(current_state[-1])
+        fraction_val = action_upper_bound - float(current_state[-2])
         distributions_val = self.compare_distributions(real_distribution, current_state[:len(self.relevant_logtypes)])     
         self.reward_values_dict['distributions'].append(distributions_val)
         self.reward_values_dict['fraction'].append(fraction_val)
@@ -155,16 +181,14 @@ class RewardCalc:
         # find the latest measurement folder
         measurement_num = max([int(folder.split(' ')[1]) for folder in os.listdir(PATH) if folder.startswith('Measurement')])
         self.current_measurement_path = os.path.join(PATH,f'Measurement {measurement_num}')
-        self.logger.info(self.current_measurement_path)
-        
-
+        self.logger.info(self.current_measurement_path)   
         rules_enegry_df = self.get_rule_total_energy(time_delta, time_range)
         current_energy = rules_enegry_df['CPU(J)'].sum()
         duration = rules_enegry_df['run_duration'].sum()
         self.reward_values_dict['energy'].append(current_energy)
         self.reward_values_dict['duration'].append(duration)
         self.logger.info(f"energy value: {current_energy}")
-        return duration # current_energy
+        return duration, current_energy
     
   
     

@@ -6,7 +6,7 @@
 # export PATH=/home/shouei/anaconda3/bin:$PATH
 # export PATH=/home/shouei/anaconda3/envs/py38/bin:$PATH
 export PATH=$PATH:/home/shouei/local/dmidecode
-PYTHON_SCRIPT=src/main_2.py
+PYTHON_SCRIPT=src/main.py
 limits_path="/opt/splunk/etc/system/local/limits.conf"
 saved_searches_path="/opt/splunk/etc/users/shouei/search/local/savedsearches.conf"
 # conda init bash
@@ -23,16 +23,23 @@ if [ "$2" == "test" ]; then
     wait
 else
     echo "$1" "$2"
-    echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" $1 $2 $last_arg_index
-    wait
+    if [ "$1" == "baseline" ]; then
+        echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline last $last_arg_index random
+        echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline last $last_arg_index passive
+        wait
+    else
+        echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" $1 $2 $last_arg_index
+        wait
+    fi
+
 fi
 if [ "$2" == "test" ] || [ "$3" == "test" ]; then
     echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test last $last_arg_index
     wait
 fi
 if [ "$3" == "baseline" ]; then
-    echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline last $last_arg_index passive
     echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline last $last_arg_index random
+    echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline last $last_arg_index passive
     wait
 fi
 echo sH231294 | sudo -S chmod -R 777 VMware\,\ Inc.\ Linux\ 3.10.0-1160.88.1.el7.x86_64/

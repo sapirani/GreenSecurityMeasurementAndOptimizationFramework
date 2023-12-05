@@ -1,5 +1,5 @@
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import random
 import re
@@ -19,9 +19,7 @@ class LogGenerator:
     def replace_fields_in_log(self, log, log_source, time_range, replacement_dict):
         # random time from time_range
         start_date, end_date=time_range
-        start_date = datetime.strptime(start_date, '%m/%d/%Y:%H:%M:%S') 
-        end_date = datetime.strptime(end_date, '%m/%d/%Y:%H:%M:%S') 
-        time = Faker().date_time_between(start_date, end_date, tzinfo=None)      
+        time = self.generate_fake_time(start_date, end_date)      
         if log_source.split(':')[0] == 'wineventlog':
             new_log = re.sub(r"^\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2} [APM]{2}", time.strftime("%m/%d/%Y %I:%M:%S %p"), log, flags=re.MULTILINE)
             new_log += '\nIsFakeLog=True'
@@ -65,9 +63,28 @@ class LogGenerator:
             # print(log)
             # print(xml)
         return log,time.timestamp()
+
+    # def generate_fake_time(self, start_date, end_date):
+    #     time = Faker().date_time_between(start_date, end_date, tzinfo=None)
+    #     return time
+    
+    def generate_fake_time(self, start_date, end_date):
+        time_delta = end_date - start_date
+        random_days = random.randint(0, time_delta.days)
+        random_seconds = random.randint(0, time_delta.seconds)
+        random_microseconds = random.randint(0, time_delta.microseconds)
+
+        random_date_time = start_date + timedelta(
+            days=random_days,
+            seconds=random_seconds,
+            microseconds=random_microseconds
+        )
+
+        return random_date_time
     
     def init_logs_to_duplicate_dict(self, logtypes):
-        logs_to_duplicate_dict = {(logtype[0].lower(), logtype[1]): self.splunk_tools.extract_logs(logtype[0].lower(),time_range=("-7d", "now"), eventcode=logtype[1], limit=100) for logtype in logtypes}
+        # logs_to_duplicate_dict = {(logtype[0].lower(), logtype[1]): self.splunk_tools.generate_log(logtype[0].lower(), logtype[1]) for logtype in logtypes}
+        # # logs_to_duplicate_dict = {(logtype[0].lower(), logtype[1]): self.splunk_tools.extract_logs(logtype[0].lower(),time_range=("1", "now"), eventcode=logtype[1], limit=100) for logtype in logtypes}
         return self.splunk_tools.load_logs_to_duplicate_dict(logtypes)
         
     def generate_log(self, logsource, eventcode, replacement_dict, time_range):

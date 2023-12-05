@@ -8,6 +8,7 @@ import json
 import sys
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
 from resources.logtypes import logtypes
+from resources.state_span import state_span
 from resources.section_logtypes import section_logtypes
 import logging
 from experiment_manager import ExperimentManager
@@ -18,7 +19,6 @@ from stable_baselines3 import A2C, PPO, DQN
 from stable_baselines3.ppo.policies import MlpPolicy
 from stable_baselines3.common.evaluation import evaluate_policy
 import gym
-from stable_baselines3 import A2C
 from log_generator import LogGenerator
 from resources.log_generator_resources import replacement_dicts as big_replacement_dicts
 urllib3.disable_warnings()
@@ -38,7 +38,8 @@ class Experiment:
     def choose_random_rules(self, splunk_tools_instance, num_of_searches, is_get_only_enabled=True):
         self.logger.info('enable random rules')
         savedsearches = splunk_tools_instance.get_saved_search_names(get_only_enabled=is_get_only_enabled)
-        random_savedsearch = random.sample(savedsearches, num_of_searches)
+        # random_savedsearch = random.sample(savedsearches, num_of_searches)
+        random_savedsearch = ['Monitor for Additions to Firewall Rules', 'Monitor for Changes to Firewall Rules', 'Monitor for Suspicious_Administrative Processes', 'Multiple Failed Logins from the Same Source', 'Multiple Network Connections to Same Port on External Hosts', 'Suspicious Remote Thread Creation']
         for savedsearch in savedsearches:
             if savedsearch not in random_savedsearch:
                 splunk_tools_instance.disable_search(savedsearch)
@@ -87,6 +88,10 @@ class Experiment:
         env_file_path = parameters['env_file_path']
         fake_start_datetime = parameters['fake_start_datetime']
         is_get_only_enabled = parameters['is_get_only_enabled']
+        if 'limit_learner' in parameters:
+            limit_learner = parameters['limit_learner']
+        else:
+            limit_learner = True
         # savedsearches = parameters['savedsearches']
         fake_start_datetime  = datetime.datetime.strptime(fake_start_datetime, '%m/%d/%Y:%H:%M:%S')
         # create a datetime manager instance
@@ -99,11 +104,10 @@ class Experiment:
         self.clean_env(splunk_tools_instance)
         self.update_running_time(running_time, env_file_path)
         self.update_rules_frequency_and_time_range(splunk_tools_instance, rule_frequency, time_range)
-        # savedsearches = sorted(self.choose_random_rules(splunk_tools_instance, num_of_searches, is_get_only_enabled=is_get_only_enabled))
-        savedsearches = ['Monitor for Additions to Firewall Rules', 'Monitor for Changes to Firewall Rules', 'Monitor for Suspicious_Administrative Processes', 'Multiple Failed Logins from the Same Source', 'Multiple Network Connections to Same Port on External Hosts', 'Suspicious Remote Thread Creation']
+        savedsearches = sorted(self.choose_random_rules(splunk_tools_instance, num_of_searches, is_get_only_enabled=is_get_only_enabled))
         parameters['savedsearches'] = savedsearches
         # savedsearches = ['Modification of Executable File', 'Monitor for New Service Installs', 'Monitor for Suspicious Network IP’s', 'Multiple Network Connections to Same Port on External Hosts']
-        relevant_logtypes =  sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]}))
+        relevant_logtypes =  [(x[0], str(x[1])) for x in state_span]#sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]}))
         # relevant_logtypes = [('wineventlog:security', '2005'), ('wineventlog:security', '4625'), ('wineventlog:security', '2004'), ('xmlwineventlog:microsoft-windows-sysmon/operational', '3'), ('wineventlog:security', '4688'), ('xmlwineventlog:microsoft-windows-sysmon/operational', '8')]
         # relevant_logtypes = [logtype for logtype in logtypes if logtype not in section_logtypes]
         parameters['relevant_logtypes'] = relevant_logtypes
@@ -113,12 +117,12 @@ class Experiment:
         id='splunk_attack-v0',
         entry_point='framework:Framework',  # Replace with the appropriate path       
         )
-        env = gym.make('splunk_attack-v0', log_generator_instance = log_generator_instance, splunk_tools_instance = splunk_tools_instance, dt_manager=dt_manager, logger=self.logger, time_range=time_range, rule_frequency=rule_frequency, search_window=search_window, reward_parameter_dict=reward_parameter_dict, relevant_logtypes=relevant_logtypes, max_actions_value=max_actions_value)
-        self.save_parameters_to_file(parameters, f'{self.experiment_dir}/parameters_train.json')
+        env = gym.make('splunk_attack-v0', log_generator_instance = log_generator_instance, splunk_tools_instance = splunk_tools_instance, dt_manager=dt_manager, logger=self.logger, time_range=time_range, rule_frequency=rule_frequency, search_window=search_window, reward_parameter_dict=reward_parameter_dict, relevant_logtypes=relevant_logtypes, limit_learner=limit_learner, max_actions_value=max_actions_value)
         return env
     
-    def load_environment(self):
+    def load_environment(self, modifed_parameters={}):
         parameters = self.load_parameters(f'{self.experiment_dir}/parameters_train.json')
+        parameters.update(modifed_parameters)
         env = self.setup_environment(parameters)
         return env
     
@@ -134,26 +138,28 @@ class Experiment:
     def train_model(self, parameters):
         self.logger.info('train the model')
         env = self.setup_environment(parameters)
-        model = A2C(MlpPolicy, env, verbose=1)
+        self.save_parameters_to_file(parameters, f'{self.experiment_dir}/parameters_train.json')
+        model = A2C(MlpPolicy, env, verbose=1, ent_coef=0.01)
         model.learn(total_timesteps=parameters['episodes']*len(parameters['relevant_logtypes']))
-        model.save(f"{self.experiment_dir}/A2C_splunk_attack")
+        model.save(f"{self.experiment_dir}/splunk_attack")
         self.save_assets(self.experiment_dir, env)
         return model
     
     def retrain_model(self, parameters):
         self.logger.info('retrain the model')
-        env = self.load_environment()
-        model = A2C.load(f"{self.experiment_dir}/A2C_splunk_attack")
+        env = self.load_environment({'limit_learner':False})
+        model = A2C.load(f"{self.experiment_dir}/splunk_attack")
         model.set_env(env)
         model.learn(total_timesteps=parameters['episodes']*len(env.relevant_logtypes))
-        model.save(f"{self.experiment_dir}/A2C_splunk_attack")
+        model.save(f"{self.experiment_dir}/splunk_attack")
         self.save_assets(self.experiment_dir, env)
         return model
     
     def test_model(self, num_of_episodes):
         self.logger.info('test the model')
-        model = A2C.load(f"{self.experiment_dir}/A2C_splunk_attack")
+        model = A2C.load(f"{self.experiment_dir}/splunk_attack")
         env = self.load_environment()
+        env.limit_learner_turn_off()
         mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=num_of_episodes)
         self.logger.info(f"mean_reward:{mean_reward}, std_reward:{std_reward}")
         self.save_assets(self.experiment_dir, env, mode='test')
@@ -161,7 +167,11 @@ class Experiment:
     
     def test_baseline_agent(self, num_of_episodes, agent_type='random'):
         self.logger.info(f'test baseline {agent_type} agent')
-        env = self.load_environment()
+        if agent_type == 'passive':
+            env = self.load_environment(modifed_parameters={'max_actions_value':0})
+        else:
+            env = self.load_environment()
+        env.limit_learner_turn_off()
         for i in range(num_of_episodes):
             env.reset()
             done = False
@@ -172,11 +182,11 @@ class Experiment:
     def run_manual_episode(self, agent_type, env, done):
         while not done:
             if agent_type == 'random':
-                action = random.uniform(0, (100-env.sum_of_fractions))
+                action = random.uniform(0, (env.action_upper_bound-env.sum_of_fractions))
             elif agent_type == 'passive':
                 action = 0
             elif agent_type == 'uniform':
                 action = 100/len(env.relevant_logtypes)                    
-            obs, reward, done, info = env.blind_step(action)
+            obs, reward, done, info = env.blind_step([action])
             env.render()
     

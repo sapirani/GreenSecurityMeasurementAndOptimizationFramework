@@ -11,6 +11,8 @@ import subprocess
 from dotenv import load_dotenv
 import os
 import requests
+from bs4 import BeautifulSoup
+from datetime import datetime, timedelta
 
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env')
 # Precompile the regex pattern
@@ -121,28 +123,29 @@ class SplunkTools:
         await asyncio.gather(*tasks)
             
             
-    def insert_log(self, log_entry, log_source):
-        # BUG: Splunk split this log: b'06/13/2023 05:53:49 PM\nLogName=Application\nEventCode=16384\nEventType=4\nComputerName=LB-111-4.auth.ad.bgu.ac.il\nSourceName=Microsoft-Windows-Security-SPP\nType=Information\nRecordNumber=700003\nKeywords=Classic\nTaskCategory=Logoff\nOpCode=None\nMessage=Successfully scheduled Software Protection service for re-start at 2023-06-18T06:23:05Z. Reason: RulesEngine.\n\nIsFakeLog=True'
-        source = log_source
-        sourcetype = log_source.split(':')[0]
-        # Splunk REST API endpoint
-        url = f"{self.base_url}/services/receivers/simple"
-        if log_entry is None:
-            self.logger.info('Log entry is None. Skipping.')
-            return
-        # Send the log entry to Splunk
-        response = requests.post(f"{url}?sourcetype={sourcetype}&source={source}&index={self.index_name}", data=log_entry.encode('utf-8'), headers=HEADERS, auth=(self.splunk_username, self.splunk_password), verify=False)
-        # Check the response status
-        if response.status_code == 200:
-            return 'Log entry successfully sent to Splunk.'
-        else:
-            return 'Failed to send log entry to Splunk.'
+    # def insert_log(self, log_entry, log_source):
+    #     # BUG: Splunk split this log: b'06/13/2023 05:53:49 PM\nLogName=Application\nEventCode=16384\nEventType=4\nComputerName=LB-111-4.auth.ad.bgu.ac.il\nSourceName=Microsoft-Windows-Security-SPP\nType=Information\nRecordNumber=700003\nKeywords=Classic\nTaskCategory=Logoff\nOpCode=None\nMessage=Successfully scheduled Software Protection service for re-start at 2023-06-18T06:23:05Z. Reason: RulesEngine.\n\nIsFakeLog=True'
+    #     source = log_source
+    #     sourcetype = log_source.split(':')[0]
+    #     # Splunk REST API endpoint
+    #     url = f"{self.base_url}/services/receivers/simple"
+    #     if log_entry is None:
+    #         self.logger.info('Log entry is None. Skipping.')
+    #         return
+    #     # Send the log entry to Splunk
+    #     response = requests.post(f"{url}?sourcetype={sourcetype}&source={source}&index={self.index_name}", data=log_entry.encode('utf-8'), headers=HEADERS, auth=(self.splunk_username, self.splunk_password), verify=False)
+    #     # Check the response status
+    #     if response.status_code == 200:
+    #         return 'Log entry successfully sent to Splunk.'
+    #     else:
+    #         return 'Failed to send log entry to Splunk.'
             
     def extract_distribution(self, start_time, end_time, fake=False):
         # Placeholder for your Splunk extraction script
         # This should be replaced with your existing script
-        fake_flag = 'host="132.72.81.150:8088"' if fake else 'host!="132.72.81.150:8088"'            
-        command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}") {fake_flag} |stats count by source EventCode | eventstats sum(count) as totalCount" -maxout 0 -auth shouei:sH231294'
+        # fake_flag = 'host="132.72.81.150:8088"' if fake else 'host!="132.72.81.150:8088"'            
+        # command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}") {fake_flag} |stats count by source EventCode | eventstats sum(count) as totalCount" -maxout 0 -auth shouei:sH231294'
+        command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}") | eval is_fake=if(host =='"'132.72.81.150:8088'"', 1, 0) |stats count by source EventCode is_fake| eventstats sum(count) as totalCount" -maxout 0 -auth shouei:sH231294'
         cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
         res_dict = {}
         if len(cmd.stdout.split('\n')) > 2:
@@ -150,9 +153,10 @@ class SplunkTools:
                 row = row.split()
                 source = row[0]
                 event_code = row[1]
-                count = row[2]
-                total_count = row[3]
-                res_dict[f"{source.lower()} {event_code}"] = int(count)
+                is_fake = row[2]
+                count = row[3]
+                total_count = row[4]
+                res_dict[f"{source.lower()} {event_code}"] = (int(count), int(is_fake))
             res_dict['total_count'] = int(total_count)
         return res_dict
     
@@ -238,8 +242,55 @@ class SplunkTools:
     #     #     parts = [f'{pattern_start.pattern}{part}{pattern_end.pattern}' for i, part in enumerate(parts) if (i-1) % 3 == 0 ]
     #     #     return parts
     #     return logs.split('[EOF]')
+
+
+    # Function to fetch message from the provided website
+    def fetch_message(self, event_code):
+        url = f"https://www.ultimatewindowssecurity.com/securitylog/encyclopedia/event.aspx?eventid={event_code}"
+        response = requests.get(url)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            example_div = soup.find('div', class_='block')
+            if example_div:
+                if event_code.startswith('9'):
+                    message = example_div.find_all('p')[1].text.strip().replace("Event Xml:\r\n", '')
+                else:
+                    # Example structure 1
+                    h2 = example_div.find('h2')
+                    if h2 and "Examples of" in h2.text:
+                        # Extract the paragraphs excluding the last two with links
+                        paragraphs = example_div.find_all('p')[:-2]
+                        message_parts = [paragraph.text.strip() for paragraph in paragraphs]
+                        message = '\n'.join(message_parts)
+                    else:
+                        message = f"Unable to extract message for event code {event_code}"
+                return message
+        else:
+            return f"Unable to fetch message for event code {event_code}"
+
+    # Function to generate synthetic logs with the general structure
+    def generate_log(self, log_source, event_code):
+        if  os.path.exists(f'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/logs_to_duplicate_files/{log_source.replace("/", "__")}_{event_code}.txt'):
+            return None  
+        if log_source.split(':')[0] == 'wineventlog':
+            log_name = log_source.split(':')[1]
+            log_message = self.fetch_message(event_code)
             
-                           
+            log = f"08/06/2023 12:43:05 PM\nLevel=Information\n"
+            log += f"LogName={log_name}\n"
+            log += f"EventCode={event_code}\n"
+            log += f"Source=Microsoft-Windows-Security-Auditing\n"
+            log += f"User/Account=user123\n"
+            log += f"ComputerName=MyComputer\n"
+            log += f"TaskCategory=General\n"
+            log += f"Message={log_message}\n" 
+            self.save_logs(log_source, event_code, [log])       
+            return log
+        else:
+            log_message = self.fetch_message(f"9{'0'*(4-len(event_code))}{event_code}")
+            self.save_logs(log_source, event_code, [log_message])       
+            return log_message  
+                  
     def extract_logs(self, log_source, time_range=("-24h@h", "now"), eventcode='*', limit=0):
         if  os.path.exists(f'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/logs_to_duplicate_files/{log_source.replace("/", "__")}_{eventcode}.txt'):
             return None        
@@ -326,8 +377,31 @@ class SplunkTools:
         self.logger.info(results)
 
 if __name__ == "__main__":
-    splunk_tools = SplunkTools()
+    logger = logging.getLogger("my_app")
+    log_file = 'splunk_tools.log'
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    logger.setLevel(logging.INFO)
+    file_handler = logging.FileHandler(log_file)
+    # Set the formatter for the file handler
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    splunk_tools = SplunkTools(logger)
+    # test generating logs
+    # log = splunk_tools.generate_log('xmlwineventlog:microsoft-windows-sysmon/operational', '24')
+    sourcetype = 'xmlwineventlog:microsoft-windows-sysmon/operational'
+    eventcode = '22'
+    logs = []
+    log = splunk_tools.load_logs_to_duplicate_dict([(sourcetype, eventcode)])
+    print(datetime.now())
+    for i in range(20000):
+        time = datetime.now() - timedelta(days=200)
+        time = time.timestamp()
+        logs.append((log[sourcetype, eventcode][0], time))
+    asyncio.run(splunk_tools.insert_logs(logs, sourcetype))
+    print(datetime.now())
+    print(log)
+    print(time)
     # self.logger.info(splunk_tools.get_rules_pids(60))
     # self.logger.info(splunk_tools.extract_logs('WinEventLog:Security', '4624'))
     # test loading logs from disk
-    splunk_tools.load_logs_to_duplicate_dict([('WinEventLog:Security', '2005')])  
+    # splunk_tools.load_logs_to_duplicate_dict([('WinEventLog:Security', '2005')])  
