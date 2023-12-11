@@ -34,7 +34,7 @@ class RewardCalc:
         if distributions_val > 0.2:
             return -distributions_val
         if distributions_val <= 0.2:
-            return 1-distributions_val
+            return 1/distributions_val
         
         # if fraction_val > 1:
         #     return -100
