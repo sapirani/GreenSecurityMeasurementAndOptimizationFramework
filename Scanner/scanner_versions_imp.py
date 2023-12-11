@@ -71,7 +71,7 @@ class LiteScanner(FullScanner):
         pass
 
     def save_general_battery(self, f, df):
-        pass
+        return df
 
     def calc_time_interval(self, starting_time):
         """
@@ -94,7 +94,7 @@ class WithoutBatteryScanner(FullScanner):
         pass
 
     def save_general_battery(self, f, df):
-        pass
+        return df
 
     def is_battery_too_low(self, mwh):
         return False

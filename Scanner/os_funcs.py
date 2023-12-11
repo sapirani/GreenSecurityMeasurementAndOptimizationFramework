@@ -39,13 +39,13 @@ class OSFuncsInterface:
     def save_battery_capacity(self, f, df):
         pass
 
-    def save_system_information(self, f):   # TODO
+    def save_system_information(self, f, df):   # TODO
         pass
 
     def save_physical_memory(self, f):      # TODO
         pass
 
-    def save_disk_information(self, f):     # TODO
+    def save_disk_information(self, f, df):     # TODO
         pass
 
     def message_box(self, title, text, style):
@@ -405,7 +405,24 @@ class LinuxOS(OSFuncsInterface):
 
         # is the following command necessary??? suppose to control the idle time before going to sleep
         # gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 400
+    def save_system_information(self, f, df):
+        # Use platform module to get system information
+        pc_type = platform.machine()
+        manufacturer = platform.system()
+        system_family = platform.system()
+        model = platform.platform()
 
+        df[HardwareColumns.PC_TYPE] = [pc_type]
+        df[HardwareColumns.PC_MANUFACTURER] = [manufacturer]
+        df[HardwareColumns.SYSTEM_FAMILY] = [system_family]
+        df[HardwareColumns.PC_MODEL] = [model]
+
+        f.write(f"PC Type: {pc_type}\n")
+        f.write(f"Manufacturer: {manufacturer}\n")
+        f.write(f"System Family: {system_family}\n")
+        f.write(f"Model: {model}\n")
+        return df
+    
     def message_box(self, title, text, style):
         import tkinter as tk
         from tkinter import messagebox
