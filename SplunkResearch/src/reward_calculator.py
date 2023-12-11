@@ -8,7 +8,7 @@ CPU_TDP=200
 PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. Linux 3.10.0-1160.92.1.el7.x86_64/Splunk Enterprise SIEM/Power Saver Plan/One Scan/'
 
 class RewardCalc:
-    def __init__(self, relevant_logtypes, dt_manager, logger, splunk_tools, rule_frequency):
+    def __init__(self, relevant_logtypes, dt_manager, logger, splunk_tools, rule_frequency, num_of_searches):
         # self.previous_energy = 1
         # self.previous_alert = 0
         self.average_energy = 0
@@ -24,13 +24,18 @@ class RewardCalc:
         self.rule_frequency = rule_frequency
         self.time_rules_energy = []
         self.current_measurement_path = ''
+        self.num_of_searches = num_of_searches
       
     def get_previous_full_reward(self):
         return self.reward_dict['alerts'][-1], self.reward_dict['energy'][-1]
 
     def get_partial_reward(self, real_distribution, current_state):
         fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
-        return 0
+        if distributions_val > 0.2:
+            return -distributions_val
+        if distributions_val <= 0.2:
+            return 1-distributions_val
+        
         # if fraction_val > 1:
         #     return -100
         # if distributions_val > 0.2:
@@ -65,18 +70,23 @@ class RewardCalc:
         is_limit_learner = current_state[-1]
         fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
         if fraction_val > action_upper_bound:
-            return -(fraction_val-action_upper_bound)*1000
+            return -(fraction_val-action_upper_bound)*10000
         if is_limit_learner:
             return 1
         # elif fraction_val < 100:
         #     return (fraction_val-100)*10
         alert_val, energy_val, energy_increase, duration_val, duration_increase = self.get_full_reward_values(time_range=time_range)
         self.update_average_values()
-        if fraction_val <= action_upper_bound:
-            if duration_increase > 0.2:
-                return duration_increase*100
-            else:
-                return duration_increase*10
+        if distributions_val > 0.2:
+            return -(abs(duration_val)**2)
+        elif distributions_val <= 0.2:
+            return duration_val**2
+        # return duration_val/distributions_val #max(distributions_val, 0.1)
+        # if fraction_val <= action_upper_bound:
+        #     if duration_increase > 0.2:
+        #         return duration_increase*100
+        #     else:
+        #         return duration_increase*10
         
             # return energy_val*100
             # if fraction_val == 100:
@@ -144,6 +154,9 @@ class RewardCalc:
         self.logger.info('wait til next rule frequency')
         self.dt_manager.wait_til_next_rule_frequency(self.rule_frequency)
         duration_val, energy_val = self.measure(time_range=time_range, time_delta=self.rule_frequency)
+        if self.reward_values_dict['num_of_rules'][-1] < self.num_of_searches:
+            duration_val = self.average_duration
+            energy_val = self.average_energy
         alert_val = 0#self.splunk_tools.get_alert_count(time_range) #TODO: change to get_alert_count
         if self.average_energy == 0:
             energy_increase = 0
@@ -165,6 +178,7 @@ class RewardCalc:
         action_upper_bound = 1
         fraction_val = action_upper_bound - float(current_state[-2])
         distributions_val = self.compare_distributions(real_distribution, current_state[:len(self.relevant_logtypes)])     
+        distributions_val = distributions_val + 0.000000000001
         self.reward_values_dict['distributions'].append(distributions_val)
         self.reward_values_dict['fraction'].append(fraction_val)
         self.logger.info(f"distributions value: {distributions_val}")
@@ -181,7 +195,6 @@ class RewardCalc:
         # find the latest measurement folder
         measurement_num = max([int(folder.split(' ')[1]) for folder in os.listdir(PATH) if folder.startswith('Measurement')])
         self.current_measurement_path = os.path.join(PATH,f'Measurement {measurement_num}')
-        self.logger.info(self.current_measurement_path)   
         rules_enegry_df = self.get_rule_total_energy(time_delta, time_range)
         current_energy = rules_enegry_df['CPU(J)'].sum()
         duration = rules_enegry_df['run_duration'].sum()
@@ -262,5 +275,11 @@ class RewardCalc:
     def compare_distributions(self, dist1, dist2):#tool
         # Placeholder for your distribution comparison function
         # This could use a metric like KL divergence
-        # return entropy(dist1, dist2)
-        return wasserstein_distance(dist1, dist2)
+        self.logger.info(f"dist1: {dist1}")
+        self.logger.info(f"dist2: {dist2}")
+        epsilon = 1e-10  # or any small positive value
+        dist1 = [max(prob, epsilon) for prob in dist1]
+        dist2 = [max(prob, epsilon) for prob in dist2]
+        return entropy(dist1, dist2)
+        
+        # return wasserstein_distance(dist1, dist2)

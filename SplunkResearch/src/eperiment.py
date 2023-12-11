@@ -107,17 +107,22 @@ class Experiment:
         savedsearches = sorted(self.choose_random_rules(splunk_tools_instance, num_of_searches, is_get_only_enabled=is_get_only_enabled))
         parameters['savedsearches'] = savedsearches
         # savedsearches = ['Modification of Executable File', 'Monitor for New Service Installs', 'Monitor for Suspicious Network IP’s', 'Multiple Network Connections to Same Port on External Hosts']
-        relevant_logtypes =  [(x[0], str(x[1])) for x in state_span]#sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]}))
+        relevant_logtypes = sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]})) #[(x[0], str(x[1])) for x in state_span]
         # relevant_logtypes = [('wineventlog:security', '2005'), ('wineventlog:security', '4625'), ('wineventlog:security', '2004'), ('xmlwineventlog:microsoft-windows-sysmon/operational', '3'), ('wineventlog:security', '4688'), ('xmlwineventlog:microsoft-windows-sysmon/operational', '8')]
         # relevant_logtypes = [logtype for logtype in logtypes if logtype not in section_logtypes]
         parameters['relevant_logtypes'] = relevant_logtypes
         log_generator_instance = LogGenerator(relevant_logtypes, big_replacement_dicts, splunk_tools_instance)
+        print("Debugging: 6")
         self.logger.info(f'current parameters:\ntime range:{time_range} \nfake_start_datetime: {fake_start_datetime}\nrule frequency: {rule_frequency}\nsearch_window:{search_window}\nrunning time: {running_time}\nnumber of searches: {num_of_searches}\nmax action value: {max_actions_value}\nreward parameter dict: {reward_parameter_dict}\nsavedsearches: {savedsearches}\nrelevantlog_types: {relevant_logtypes}')
         gym.register(
         id='splunk_attack-v0',
         entry_point='framework:Framework',  # Replace with the appropriate path       
         )
-        env = gym.make('splunk_attack-v0', log_generator_instance = log_generator_instance, splunk_tools_instance = splunk_tools_instance, dt_manager=dt_manager, logger=self.logger, time_range=time_range, rule_frequency=rule_frequency, search_window=search_window, reward_parameter_dict=reward_parameter_dict, relevant_logtypes=relevant_logtypes, limit_learner=limit_learner, max_actions_value=max_actions_value)
+        env = gym.make('splunk_attack-v0', log_generator_instance = log_generator_instance, splunk_tools_instance = splunk_tools_instance, dt_manager=dt_manager, logger=self.logger, time_range=time_range, rule_frequency=rule_frequency, search_window=search_window, reward_parameter_dict=reward_parameter_dict, relevant_logtypes=relevant_logtypes, limit_learner=limit_learner, max_actions_value=max_actions_value, num_of_searches=num_of_searches)
+        
+        # Debugging print statement
+        print("Debugging: 10")
+        
         return env
     
     def load_environment(self, modifed_parameters={}):
@@ -138,6 +143,10 @@ class Experiment:
     def train_model(self, parameters):
         self.logger.info('train the model')
         env = self.setup_environment(parameters)
+        # save reward_calculator.py to the experiment directory
+        with open(f'{self.experiment_dir}/reward_calculator.py', 'w') as fp:
+            with open(r'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/reward_calculator.py', 'r') as fp2:
+                fp.write(fp2.read())
         self.save_parameters_to_file(parameters, f'{self.experiment_dir}/parameters_train.json')
         model = A2C(MlpPolicy, env, verbose=1, ent_coef=0.01)
         model.learn(total_timesteps=parameters['episodes']*len(parameters['relevant_logtypes']))
@@ -186,7 +195,10 @@ class Experiment:
             elif agent_type == 'passive':
                 action = 0
             elif agent_type == 'uniform':
-                action = 100/len(env.relevant_logtypes)                    
-            obs, reward, done, info = env.blind_step([action])
+                action = 100/len(env.relevant_logtypes)    
+            if agent_type != 'passive':
+                obs, reward, done, info = env.step([action])
+            else:                           
+                obs, reward, done, info = env.blind_step([action])
             env.render()
     

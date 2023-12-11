@@ -145,7 +145,7 @@ class SplunkTools:
         # This should be replaced with your existing script
         # fake_flag = 'host="132.72.81.150:8088"' if fake else 'host!="132.72.81.150:8088"'            
         # command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}") {fake_flag} |stats count by source EventCode | eventstats sum(count) as totalCount" -maxout 0 -auth shouei:sH231294'
-        command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}") | eval is_fake=if(host =='"'132.72.81.150:8088'"', 1, 0) |stats count by source EventCode is_fake| eventstats sum(count) as totalCount" -maxout 0 -auth shouei:sH231294'
+        command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}") | eval is_fake=if(host=\\"{"132.72.81.150:8088"}\\", 1, 0) |stats count by source EventCode is_fake| eventstats sum(count) as totalCount" -maxout 0 -auth shouei:sH231294'
         cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
         res_dict = {}
         if len(cmd.stdout.split('\n')) > 2:
@@ -360,6 +360,9 @@ class SplunkTools:
         else:
             # self.logger.info('No results found or results is not a list.')
             return None  
+        
+    def get_time(self, y, m, d, h, mi, s):
+        return datetime(y, m, d, h, mi, s).timestamp()
     
     def delete_fake_logs(self, time_range=None):
         url = f"{self.base_url}/services/search/jobs/export"
@@ -368,7 +371,7 @@ class SplunkTools:
         else:
             time_expression = f'earliest="{time_range[0]}" latest="{time_range[1]}"'
         data = {
-            "search": f'search index=main host=132.72.81.150:8088 {time_expression} | delete',
+            "search": f'search index=main host=\"{"132.72.81.150:8088"}\"{time_expression} | delete',
             "exec_mode": "oneshot",
             "output_mode": "json"
         }
@@ -386,21 +389,24 @@ if __name__ == "__main__":
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
     splunk_tools = SplunkTools(logger)
+    earliest_time = splunk_tools.get_time(2023, 6, 21, 0, 0, 0)
+    latest_time = splunk_tools.get_time(2023, 6, 23, 23, 59, 59)
+    # splunk_tools.delete   _fake_logs((earliest_time, latest_time))
     # test generating logs
     # log = splunk_tools.generate_log('xmlwineventlog:microsoft-windows-sysmon/operational', '24')
-    sourcetype = 'xmlwineventlog:microsoft-windows-sysmon/operational'
-    eventcode = '22'
-    logs = []
-    log = splunk_tools.load_logs_to_duplicate_dict([(sourcetype, eventcode)])
-    print(datetime.now())
-    for i in range(20000):
-        time = datetime.now() - timedelta(days=200)
-        time = time.timestamp()
-        logs.append((log[sourcetype, eventcode][0], time))
-    asyncio.run(splunk_tools.insert_logs(logs, sourcetype))
-    print(datetime.now())
-    print(log)
-    print(time)
+    # sourcetype = 'xmlwineventlog:microsoft-windows-sysmon/operational'
+    # eventcode = '22'
+    # logs = []
+    # log = splunk_tools.load_logs_to_duplicate_dict([(sourcetype, eventcode)])
+    # print(datetime.now())
+    # for i in range(20000):
+    #     time = datetime.now() - timedelta(days=200)
+    #     time = time.timestamp()
+    #     logs.append((log[sourcetype, eventcode][0], time))
+    # asyncio.run(splunk_tools.insert_logs(logs, sourcetype))
+    # print(datetime.now())
+    # print(log)
+    # print(time)
     # self.logger.info(splunk_tools.get_rules_pids(60))
     # self.logger.info(splunk_tools.extract_logs('WinEventLog:Security', '4624'))
     # test loading logs from disk

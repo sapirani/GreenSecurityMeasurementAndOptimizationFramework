@@ -83,12 +83,17 @@ class ExperimentManager:
                 content = file.read()
 
         return content
-
+    
+    def delete_experiments_without_train(self):
+        experiments_dir = r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments"
+        for dir in os.listdir(experiments_dir):
+            if not os.path.exists(os.path.join(experiments_dir, dir, "train")):
+                os.system(f"rm -rf {os.path.join(experiments_dir, dir)}")
+                print(dir)
+            
     def send_email(self, log_file):
         my_email = os.getenv('EMAIL')
         email_password = os.getenv('EMAIL_PASSWORD')
-        print(my_email)
-        print(email_password)
         msg = EmailMessage()
         msg['Subject'] = 'Experiment is done - Log File is Attached' 
         msg['From'] = my_email

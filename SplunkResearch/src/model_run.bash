@@ -24,8 +24,8 @@ if [ "$2" == "test" ]; then
 else
     echo "$1" "$2"
     if [ "$1" == "baseline" ]; then
-        echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline last $last_arg_index random
-        echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline last $last_arg_index passive
+        # echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline $2 $last_arg_index random
+        echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline $2 $last_arg_index passive
         wait
     else
         echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" $1 $2 $last_arg_index

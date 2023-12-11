@@ -2,6 +2,7 @@ import datetime
 import json
 import sys
 from datetime import datetime
+import traceback
 from eperiment import Experiment
 from experiment_manager import ExperimentManager
 if __name__ == "__main__":
@@ -59,6 +60,8 @@ if __name__ == "__main__":
             num_of_episodes = int(sys.argv[3])
             experiment.test_baseline_agent(num_of_episodes, agent_type=sys.argv[4])
     except Exception as e:
-        print(e)
+        print(f"An error occurred: {e}")
+        traceback.print_exc()
+    finally:
         experiment_manager.send_email(log_file)
 
