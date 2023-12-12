@@ -1,6 +1,7 @@
 import os
 import pickle
 import urllib3
+
 from datetime_manager import MockedDatetimeManager
 import datetime
 import time
@@ -13,6 +14,7 @@ from resources.section_logtypes import section_logtypes
 import logging
 from experiment_manager import ExperimentManager
 from splunk_tools import SplunkTools
+from reward_calculator import RewardCalc
 import random
 import subprocess
 from stable_baselines3 import A2C, PPO, DQN
@@ -92,6 +94,10 @@ class Experiment:
             limit_learner = parameters['limit_learner']
         else:
             limit_learner = True
+        if 'distribution_learner' in parameters:
+            distribution_learner = parameters['distribution_learner']
+        else:
+            distribution_learner = True
         # savedsearches = parameters['savedsearches']
         fake_start_datetime  = datetime.datetime.strptime(fake_start_datetime, '%m/%d/%Y:%H:%M:%S')
         # create a datetime manager instance
@@ -112,13 +118,14 @@ class Experiment:
         # relevant_logtypes = [logtype for logtype in logtypes if logtype not in section_logtypes]
         parameters['relevant_logtypes'] = relevant_logtypes
         log_generator_instance = LogGenerator(relevant_logtypes, big_replacement_dicts, splunk_tools_instance)
+        reward_calculator_instance = RewardCalc(relevant_logtypes, dt_manager, self.logger, splunk_tools_instance, rule_frequency, num_of_searches, distribution_learner)
         print("Debugging: 6")
         self.logger.info(f'current parameters:\ntime range:{time_range} \nfake_start_datetime: {fake_start_datetime}\nrule frequency: {rule_frequency}\nsearch_window:{search_window}\nrunning time: {running_time}\nnumber of searches: {num_of_searches}\nmax action value: {max_actions_value}\nreward parameter dict: {reward_parameter_dict}\nsavedsearches: {savedsearches}\nrelevantlog_types: {relevant_logtypes}')
         gym.register(
         id='splunk_attack-v0',
         entry_point='framework:Framework',  # Replace with the appropriate path       
         )
-        env = gym.make('splunk_attack-v0', log_generator_instance = log_generator_instance, splunk_tools_instance = splunk_tools_instance, dt_manager=dt_manager, logger=self.logger, time_range=time_range, rule_frequency=rule_frequency, search_window=search_window, reward_parameter_dict=reward_parameter_dict, relevant_logtypes=relevant_logtypes, limit_learner=limit_learner, max_actions_value=max_actions_value, num_of_searches=num_of_searches)
+        env = gym.make('splunk_attack-v0', log_generator_instance = log_generator_instance, splunk_tools_instance = splunk_tools_instance, reward_calculator_instance = reward_calculator_instance, dt_manager=dt_manager, logger=self.logger, time_range=time_range, rule_frequency=rule_frequency, search_window=search_window, relevant_logtypes=relevant_logtypes, limit_learner=limit_learner, max_actions_value=max_actions_value)
         
         # Debugging print statement
         print("Debugging: 10")

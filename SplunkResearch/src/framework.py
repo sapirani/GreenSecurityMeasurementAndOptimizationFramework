@@ -28,7 +28,7 @@ PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. L
 INFINITY = 100000
 CPU_TDP = 200
 class Framework(gym.Env):
-    def __init__(self, log_generator_instance, splunk_tools_instance, dt_manager, logger, time_range, rule_frequency, search_window, num_of_searches, limit_learner=True, reward_parameter_dict=None, relevant_logtypes=[], max_actions_value=10):
+    def __init__(self, log_generator_instance, splunk_tools_instance, reward_calculator_instance, dt_manager, logger, time_range, rule_frequency, search_window, limit_learner=True, relevant_logtypes=[], max_actions_value=10):
         self.log_generator = log_generator_instance
         self.splunk_tools = splunk_tools_instance
         self.dt_manager = dt_manager
@@ -44,7 +44,7 @@ class Framework(gym.Env):
             self.action_space = spaces.Box(low=0,high=0,shape=(1,),dtype=np.float64)
         else:
             self.action_space = spaces.Box(low=1/self.max_actions_value,high=self.action_upper_bound,shape=(1,),dtype=np.float64)
-        self.observation_space = spaces.Box(low=np.array([0]*((len(self.relevant_logtypes)+3))), high=np.array([self.action_upper_bound] * len(self.relevant_logtypes)+[len(self.relevant_logtypes)]+[1]+[1]))
+        self.observation_space = spaces.Box(low=np.array([0]*((len(self.relevant_logtypes)+4))), high=np.array([self.action_upper_bound] * len(self.relevant_logtypes)+[len(self.relevant_logtypes)]+[1]+[1]+[1]))
         self.action_duration = self.search_window*60/len(self.relevant_logtypes)
         self.current_action = None
         self.state = None  # Initialize stat
@@ -57,17 +57,19 @@ class Framework(gym.Env):
         self.real_distribution = [0]*len(self.relevant_logtypes)
         self.done = False
         self.epsilon = 0
-        self.reward_calculator = RewardCalc(self.relevant_logtypes, self.dt_manager, self.logger, self.splunk_tools, self.rule_frequency, num_of_searches)
+        self.reward_calculator = reward_calculator_instance
         self.experiment_name = f"{self.search_window}_{self.max_actions_value}"
         self.limit_learner = limit_learner
         self.limit_learner_counter = 0
         if not self.limit_learner:
             self.limit_learner_counter = 5
-    
+
+            
     def limit_learner_turn_off(self):
         self.limit_learner = False
         self.limit_learner_counter = 5
-                                      
+ 
+                  
     def get_reward(self):
         '''
         reward use cases description:
@@ -115,7 +117,7 @@ class Framework(gym.Env):
             self.limit_learner = True
         self.logger.info(f"limit learner: {self.limit_learner}")
         self.logger.info(f"limit learner counter: {self.limit_learner_counter}")
-    
+        
     def blind_step(self, action):
         asyncio.run(self.perform_action(action))
         if self.check_done():
@@ -171,15 +173,14 @@ class Framework(gym.Env):
         # if not self.limit_learner:
         distribution = self.splunk_tools.extract_distribution(self.time_range[0], self.dt_manager.get_fake_current_datetime())
         self.logger.debug(f"extraceted distribution {distribution}")
-        for i, logtype in enumerate(self.relevant_logtypes):
-            if f"{logtype[0].lower()} {logtype[1]}" in distribution:
-                if distribution[f"{logtype[0].lower()} {logtype[1]}"][1] == 0:
-                    self.real_distribution[i] = distribution[f"{logtype[0].lower()} {logtype[1]}"][0]
-                else:
-                    self.fake_distribution[i] = distribution[f"{logtype[0].lower()} {logtype[1]}"][0]
-            else:
-                self.real_distribution[i] = 0
-                self.fake_distribution[i] = 0
+        for i, (source, event_code) in enumerate(self.relevant_logtypes):
+            logtype = f"{source.lower()} {event_code}"
+            self.fake_distribution[i] = 0
+            self.real_distribution[i] = 0
+            if f"{logtype} 0" in distribution:
+                self.real_distribution[i] += distribution[f"{logtype} 0"]
+            if f"{logtype} 1" in distribution:
+                self.fake_distribution[i] += distribution[f"{logtype} 1"]
         # self.real_distribution = [distribution[f"{logtype[0].lower()} {logtype[1]}"][0] if f"{logtype[0].lower()} {logtype[1]}" in distribution else self.epsilon for logtype in self.relevant_logtypes]
 
         # else:
@@ -197,6 +198,7 @@ class Framework(gym.Env):
         state.append(self.logtype_index)
         state.append(self.action_upper_bound - self.sum_of_fractions)
         state.append(int(self.limit_learner))
+        state.append(int(self.reward_calculator.distribution_learner))
         self.logger.info(f"state: {state}")
         self.state = np.array(state)
         

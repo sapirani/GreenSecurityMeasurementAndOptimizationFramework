@@ -156,7 +156,7 @@ class SplunkTools:
                 is_fake = row[2]
                 count = row[3]
                 total_count = row[4]
-                res_dict[f"{source.lower()} {event_code}"] = (int(count), int(is_fake))
+                res_dict[f"{source.lower()} {event_code} {int(is_fake)}"] = int(count)
             res_dict['total_count'] = int(total_count)
         return res_dict
     
@@ -367,7 +367,7 @@ class SplunkTools:
     def delete_fake_logs(self, time_range=None):
         url = f"{self.base_url}/services/search/jobs/export"
         if time_range is None:
-            time_expression = ''
+            time_expression = 'earliest=0'
         else:
             time_expression = f'earliest="{time_range[0]}" latest="{time_range[1]}"'
         data = {

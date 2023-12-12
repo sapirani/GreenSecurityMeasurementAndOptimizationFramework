@@ -11,8 +11,9 @@ import os
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env')
 
 class ExperimentManager:
-    def __init__(self, base_dir="experiments"):
+    def __init__(self, base_dir="experiments", log_level=logging.INFO):
         self.logger = None
+        self.log_level = log_level
         self.base_dir = base_dir
         if not os.path.exists(self.base_dir):
             os.makedirs(self.base_dir)
@@ -22,7 +23,7 @@ class ExperimentManager:
         self.logger = logging.getLogger("my_app")    
          # Create a formatter
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(self.log_level)
         file_handler = logging.FileHandler(log_file)
         # Set the formatter for the file handler
         file_handler.setFormatter(formatter)

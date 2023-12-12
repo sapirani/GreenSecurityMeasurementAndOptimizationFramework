@@ -5,11 +5,12 @@ from datetime import datetime
 import traceback
 from eperiment import Experiment
 from experiment_manager import ExperimentManager
+import logging
 if __name__ == "__main__":
     print('##########################################################################start##########################################################################')
     print('##########################################################################\n##########################################################################')
     mode = sys.argv[1]
-    experiment_manager = ExperimentManager() 
+    experiment_manager = ExperimentManager(log_level=logging.DEBUG) 
     try:
         if mode == 'train':
             experiment_dir = experiment_manager.create_experiment_dir()

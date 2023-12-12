@@ -71,13 +71,13 @@ class LogGenerator:
     def generate_fake_time(self, start_date, end_date):
         time_delta = end_date - start_date
         random_days = random.randint(0, time_delta.days)
-        random_seconds = random.randint(0, time_delta.seconds)
-        random_microseconds = random.randint(0, time_delta.microseconds)
+        random_seconds = random.randint(0, time_delta.seconds-1)
+        # random_microseconds = random.randint(0, time_delta.microseconds)
 
         random_date_time = start_date + timedelta(
             days=random_days,
             seconds=random_seconds,
-            microseconds=random_microseconds
+            # microseconds=random_microseconds
         )
 
         return random_date_time

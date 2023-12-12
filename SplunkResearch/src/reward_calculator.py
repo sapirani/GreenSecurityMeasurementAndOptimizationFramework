@@ -8,13 +8,14 @@ CPU_TDP=200
 PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. Linux 3.10.0-1160.92.1.el7.x86_64/Splunk Enterprise SIEM/Power Saver Plan/One Scan/'
 
 class RewardCalc:
-    def __init__(self, relevant_logtypes, dt_manager, logger, splunk_tools, rule_frequency, num_of_searches):
+    def __init__(self, relevant_logtypes, dt_manager, logger, splunk_tools, rule_frequency, num_of_searches, distribution_learner=True):
         # self.previous_energy = 1
         # self.previous_alert = 0
         self.average_energy = 0
         self.average_alert = 0
         self.average_duration = 0
         self.epsilon = 0
+        self.action_upper_bound = 1
         self.reward_dict = {'energy': [0], 'alerts': [0], 'distributions': [], 'fraction': [], 'total': []}
         self.reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'fraction': [], 'duration': [], "num_of_rules":[]}
         self.relevant_logtypes = relevant_logtypes
@@ -25,16 +26,33 @@ class RewardCalc:
         self.time_rules_energy = []
         self.current_measurement_path = ''
         self.num_of_searches = num_of_searches
+        self.distribution_learner = distribution_learner
+        self.distribution_learner_counter = 0
+        if not self.distribution_learner:
+            self.distribution_learner_counter = 5    
+        self.distribution_threshold = 0.2
       
     def get_previous_full_reward(self):
         return self.reward_dict['alerts'][-1], self.reward_dict['energy'][-1]
 
     def get_partial_reward(self, real_distribution, current_state):
         fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
-        if distributions_val > 0.2:
+        if distributions_val > self.distribution_threshold:
             return -distributions_val
-        if distributions_val <= 0.2:
+        if distributions_val <= self.distribution_threshold:
             return 1/distributions_val
+        
+    def distribution_learner_control(self, distributions_val):
+        if distributions_val > self.distribution_threshold:
+            self.distribution_learner_counter = max(0, self.distribution_learner_counter-1)
+        else:
+            self.distribution_learner_counter = min(5, self.distribution_learner_counter+1)
+        if self.distribution_learner_counter > 4:
+            self.distribution_learner = False
+        else:
+            self.distribution_learner = True
+        self.logger.info(f"distribution learner: {self.distribution_learner}")
+        self.logger.info(f"distribution learner counter: {self.distribution_learner_counter}")
         
         # if fraction_val > 1:
         #     return -100
@@ -64,23 +82,33 @@ class RewardCalc:
         # self.logger.info(f"fraction reward: {fraction_reward}")
 
         # return fraction_reward,distributions_reward
-      
+        
+    def get_is_limit_learner(self, current_state):
+        return current_state[-2]
+    
+    def get_is_distribution_learner(self):
+        return self.distribution_learner
+    
+    def get_log_type_index(self, current_state):
+        return current_state[-4]
+    
+    def get_fraction_state(self, current_state):
+        return current_state[-3]
+    
     def get_full_reward(self, time_range, real_distribution, current_state):
-        action_upper_bound = 1
-        is_limit_learner = current_state[-1]
+        is_limit_learner = self.get_is_limit_learner(current_state)
         fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
-        if fraction_val > action_upper_bound:
-            return -(fraction_val-action_upper_bound)*10000
-        if is_limit_learner:
+        if fraction_val > self.action_upper_bound:
+            return -(fraction_val-self.action_upper_bound)*10000
+        if distributions_val > 0.2:
+            return -(distributions_val)
+        if is_limit_learner or self.get_is_distribution_learner():
             return 1
         # elif fraction_val < 100:
         #     return (fraction_val-100)*10
         alert_val, energy_val, energy_increase, duration_val, duration_increase = self.get_full_reward_values(time_range=time_range)
         self.update_average_values()
-        if distributions_val > 0.2:
-            return -(abs(duration_val)**2)
-        elif distributions_val <= 0.2:
-            return duration_val**2
+        return duration_val
         # return duration_val/distributions_val #max(distributions_val, 0.1)
         # if fraction_val <= action_upper_bound:
         #     if duration_increase > 0.2:
@@ -142,6 +170,7 @@ class RewardCalc:
         # self.logger.info(f"energy reward: {energy_reward}")
         # self.logger.info(f"alert reward: {alert_reward}")
         # return alert_reward, energy_reward
+        
     def update_average_values(self):
         self.average_energy = sum(self.reward_values_dict['energy'])/len(self.reward_values_dict['energy'])
         self.average_alert = sum(self.reward_values_dict['alerts'])/len(self.reward_values_dict['alerts'])
@@ -176,12 +205,13 @@ class RewardCalc:
 
     def get_partial_reward_values(self, real_distribution, current_state):
         action_upper_bound = 1
-        fraction_val = action_upper_bound - float(current_state[-2])
+        fraction_val = action_upper_bound - float(self.get_fraction_state(current_state))
         distributions_val = self.compare_distributions(real_distribution, current_state[:len(self.relevant_logtypes)])     
         distributions_val = distributions_val + 0.000000000001
         self.reward_values_dict['distributions'].append(distributions_val)
         self.reward_values_dict['fraction'].append(fraction_val)
         self.logger.info(f"distributions value: {distributions_val}")
+        self.distribution_learner_control(distributions_val)
         self.logger.info(f"fraction value: {fraction_val}")
         return fraction_val,distributions_val
         
