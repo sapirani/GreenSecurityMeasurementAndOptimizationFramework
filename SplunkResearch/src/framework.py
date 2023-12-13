@@ -36,20 +36,23 @@ class Framework(gym.Env):
         self.time_range = time_range
         self.rule_frequency = rule_frequency
         self.search_window = search_window
+        self.total_additional_logs = 0.1*100000*self.search_window/60
+        self.total_steps = self.total_additional_logs//self.step_size
+        self.step_counter = 0
+        self.step_size = max_actions_value
+
         self.relevant_logtypes = relevant_logtypes
-        self.max_actions_value = max_actions_value
         self.action_upper_bound = 1
         # create the action space - a vector of size max_actions_value with values between 0 and 1
-        if self.max_actions_value == 0:
-            self.action_space = spaces.Box(low=0,high=0,shape=(1,),dtype=np.float64)
+        if self.step_size == 0:
+            self.action_space = spaces.Box(low=0,high=0,shape=(len(self.relevant_logtypes),),dtype=np.float64)
         else:
-            self.action_space = spaces.Box(low=1/self.max_actions_value,high=self.action_upper_bound,shape=(1,),dtype=np.float64)
-        self.observation_space = spaces.Box(low=np.array([0]*((len(self.relevant_logtypes)+4))), high=np.array([self.action_upper_bound] * len(self.relevant_logtypes)+[len(self.relevant_logtypes)]+[1]+[1]+[1]))
-        self.action_duration = self.search_window*60/len(self.relevant_logtypes)
+            self.action_space = spaces.Box(low=1/self.step_size,high=self.action_upper_bound,shape=(len(self.relevant_logtypes)-1,),dtype=np.float64)
+        self.observation_space = spaces.Box(low=0,high=self.action_upper_bound,shape=(len(self.relevant_logtypes)+1,),dtype=np.float64)
+        self.action_duration = self.search_window*60/self.total_steps
         self.current_action = None
         self.state = None  # Initialize stat
         self.logtype_index = -1
-        self.sum_of_action_values = 0
         self.sum_of_fractions = 0
         self.time_action_dict= [[]]
         self.current_step = 0
@@ -58,7 +61,7 @@ class Framework(gym.Env):
         self.done = False
         self.epsilon = 0
         self.reward_calculator = reward_calculator_instance
-        self.experiment_name = f"{self.search_window}_{self.max_actions_value}"
+        self.experiment_name = f"{self.search_window}_{self.step_size}"
         self.limit_learner = limit_learner
         self.limit_learner_counter = 0
         if not self.limit_learner:
@@ -95,78 +98,72 @@ class Framework(gym.Env):
     def step(self, action):
         asyncio.run(self.perform_action(action))
         if self.check_done():
-            self.logtype_index_counter()                     
-            asyncio.run(self.perform_action([max(self.action_upper_bound-self.sum_of_fractions,0)]))
+            # asyncio.run(self.perform_action([max(self.action_upper_bound-self.sum_of_fractions,0)]))
             self.done = True
         self.update_state()   
-        self.logtype_index_counter()        
         reward = self.get_reward()
-        if self.done:
-            self.limit_learner_control()
+        # if self.done:
+        #     self.limit_learner_control()
         self.logger.info(f"########################################################################################################################")
+        self.step_counter += 1
         return self.state, reward, self.done, {}
 
-    def limit_learner_control(self):
-        if self.sum_of_fractions != 1:
-            self.limit_learner_counter = max(0, self.limit_learner_counter-1)
-        else:
-            self.limit_learner_counter = min(5, self.limit_learner_counter+1)
-        if self.limit_learner_counter > 4:
-            self.limit_learner = False
-        else:
-            self.limit_learner = True
-        self.logger.info(f"limit learner: {self.limit_learner}")
-        self.logger.info(f"limit learner counter: {self.limit_learner_counter}")
+    # def limit_learner_control(self):
+    #     if self.sum_of_fractions != 1:
+    #         self.limit_learner_counter = max(0, self.limit_learner_counter-1)
+    #     else:
+    #         self.limit_learner_counter = min(5, self.limit_learner_counter+1)
+    #     if self.limit_learner_counter > 4:
+    #         self.limit_learner = False
+    #     else:
+    #         self.limit_learner = True
+    #     self.logger.info(f"limit learner: {self.limit_learner}")
+    #     self.logger.info(f"limit learner counter: {self.limit_learner_counter}")
         
     def blind_step(self, action):
         asyncio.run(self.perform_action(action))
         if self.check_done():
-            self.logtype_index_counter()
+            # self.logtype_index_counter()
             asyncio.run(self.perform_action([max(self.action_upper_bound-self.sum_of_fractions,0)]))
             self.done = True
                   
-        self.logtype_index_counter()           
+        # self.logtype_index_counter()           
         reward = self.get_reward()
         self.logger.info(f"########################################################################################################################")
         return self.state, reward, self.done, {}
 
     async def perform_action(self, action):
         # action = int(action)//self.max_actions_value
-        self.logger.info(f"logindex: {self.logtype_index}")
+        # self.logger.info(f"logindex: {self.logtype_index}")
         # calculate the current time range according to the time left till the next measurement
+        self.logger.info(f"action: {action}")
         now = self.dt_manager.get_fake_current_datetime()
         self.logger.info(f"Current time: {now}")      
         time_range = (now, self.dt_manager.add_time(now, seconds=self.action_duration))
-        self.current_action = action[0]
-        action_value= int(self.current_action*self.max_actions_value)
+        self.sum_of_fractions = sum(action)
+        last_action = max(self.action_upper_bound-self.sum_of_fractions,0)
+        self.sum_of_fractions += last_action
+        action = action.tolist()
+        action.append(last_action)
+        for i, act in enumerate(action):           
+            logtype = self.relevant_logtypes[i]    
+            logsource = logtype[0].lower()
+            eventcode = logtype[1]
+            if act:
+                log = self.log_generator.logs_to_duplicate_dict[logsource, eventcode][0]
+                start_date = datetime.datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S') 
+                end_date = datetime.datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S') 
+                fake_logs = [(log, self.log_generator.generate_fake_time(start_date,end_date).timestamp()) for i in range(int(act*self.step_size))]
+                self.logger.info(f"{len(fake_logs)}: fake logs were generated by the act {act} with the following time range: {time_range}")
+                await self.splunk_tools.insert_logs(fake_logs, logsource)
+
         
-        logtype = self.relevant_logtypes[self.logtype_index]    
-        logsource = logtype[0].lower()
-        eventcode = logtype[1]
-        
-        self.time_action_dict[-1].append([str(self.time_range), self.experiment_name,str(logtype),action_value])
-        self.logger.info(f"action: {self.current_action}, action value: {action_value}, logtype: {logtype}")
-        # if not self.limit_learner and self.sum_of_fractions + self.current_action <= self.action_upper_bound:
-        # fake_logs = self.log_generator.generate_logs(logsource, eventcode, time_range, action_value)
-        log = self.log_generator.logs_to_duplicate_dict[logsource, eventcode][0]
-        start_date = datetime.datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S') 
-        end_date = datetime.datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S') 
-        fake_logs = [(log, self.log_generator.generate_fake_time(start_date,end_date).timestamp()) for i in range(action_value)]
-        self.logger.info(f"{len(fake_logs)}: fake logs were generated")
-        await self.splunk_tools.insert_logs(fake_logs, logsource)
-        self.sum_of_action_values += action_value
-        # self.sum_of_fractions += self.current_action
-        if self.max_actions_value == 0:
-            self.sum_of_fractions = 0
-        else:
-            self.sum_of_fractions += self.current_action
-        self.fake_distribution[self.logtype_index] += action_value
         new_current_fake_time = self.dt_manager.add_time(now, seconds=self.action_duration)
         self.dt_manager.set_fake_current_datetime(new_current_fake_time)
         self.logger.info(f"Current time: {self.dt_manager.get_fake_current_datetime()}")      
 
     def set_max_actions_value(self, max_actions_value): 
-        self.max_actions_value = max_actions_value
+        self.step_size = max_actions_value
     
     def update_state(self):
         state = []
@@ -195,17 +192,16 @@ class Framework(gym.Env):
         # else:
         #     # random array between 0 and 1 that sum to 1
         #     state = np.random.dirichlet(np.ones(len(self.relevant_logtypes)),size=1)[0].tolist()
-        state.append(self.logtype_index)
         state.append(self.action_upper_bound - self.sum_of_fractions)
-        state.append(int(self.limit_learner))
-        state.append(int(self.reward_calculator.distribution_learner))
+        # state.append(int(self.limit_learner))
+        # state.append(int(self.reward_calculator.distribution_learner))
         self.logger.info(f"state: {state}")
         self.state = np.array(state)
         
     
     def check_done(self):
         # Define the termination conditions based on the current state or other criteria
-        if self.logtype_index == (len(self.relevant_logtypes)-2) or self.sum_of_fractions >= self.action_upper_bound:
+        if self.sum_of_fractions > self.action_upper_bound or self.step_counter > self.total_steps:
             return True
         else:
             return False
@@ -215,13 +211,13 @@ class Framework(gym.Env):
         self.current_log_type = 0
         self.sum_of_fractions = 0
         self.done = False
-        self.sum_of_action_values = 0
+        self.step_counter = 0
         self.update_timerange()
         self.dt_manager.set_fake_current_datetime(self.time_range[0])
         # Reset the environment to an initial state
         self.fake_distribution = [0]*len(self.relevant_logtypes)  
         self.update_state() 
-        self.logtype_index_counter()  
+        # self.logtype_index_counter()  
         self.time_action_dict.append([])
         # self.time_action_dict[str(self.time_range)] = {}
         self.splunk_tools.update_all_searches(self.splunk_tools.update_search_time_range, self.time_range) 

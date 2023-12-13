@@ -14,6 +14,7 @@ from resources.section_logtypes import section_logtypes
 import logging
 from experiment_manager import ExperimentManager
 from splunk_tools import SplunkTools
+from policy_network import CustomPolicy
 from reward_calculator import RewardCalc
 import random
 import subprocess
@@ -156,6 +157,7 @@ class Experiment:
                 fp.write(fp2.read())
         self.save_parameters_to_file(parameters, f'{self.experiment_dir}/parameters_train.json')
         model = A2C(MlpPolicy, env, verbose=1, ent_coef=0.01)
+        # model = DQN(env=env, policy=CustomPolicy)
         model.learn(total_timesteps=parameters['episodes']*len(parameters['relevant_logtypes']))
         model.save(f"{self.experiment_dir}/splunk_attack")
         self.save_assets(self.experiment_dir, env)

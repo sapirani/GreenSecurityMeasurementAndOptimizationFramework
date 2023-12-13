@@ -118,6 +118,8 @@ class SplunkTools:
         for i, token in enumerate(hec_tokens):
             start = i * len(logs) // 2
             end = (i + 1) * len(logs) // 2
+            if len(logs) == 1 and i == 0:
+                continue                
             task = asyncio.create_task(self._send_logs(logs[start:end], log_source, token))
             tasks.append(task)
         await asyncio.gather(*tasks)
