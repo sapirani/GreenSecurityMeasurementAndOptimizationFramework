@@ -1,5 +1,6 @@
 import os
 import pickle
+import numpy as np
 import urllib3
 
 from datetime_manager import MockedDatetimeManager
@@ -200,14 +201,14 @@ class Experiment:
     def run_manual_episode(self, agent_type, env, done):
         while not done:
             if agent_type == 'random':
-                action = random.uniform(0, (env.action_upper_bound-env.sum_of_fractions))
+                action = np.random.dirichlet(np.ones(len(env.relevant_logtypes)),size=1)[0]
             elif agent_type == 'passive':
-                action = 0
+                action = np.zeros(len(env.relevant_logtypes))
             elif agent_type == 'uniform':
                 action = 100/len(env.relevant_logtypes)    
             if agent_type != 'passive':
-                obs, reward, done, info = env.step([action])
+                obs, reward, done, info = env.step(action)
             else:                           
-                obs, reward, done, info = env.blind_step([action])
+                obs, reward, done, info = env.blind_step(action)
             env.render()
     

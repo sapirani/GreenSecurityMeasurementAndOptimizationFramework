@@ -37,9 +37,12 @@ class Framework(gym.Env):
         self.rule_frequency = rule_frequency
         self.search_window = search_window
         self.total_additional_logs = 0.1*100000*self.search_window/60
-        self.total_steps = self.total_additional_logs//self.step_size
-        self.step_counter = 0
         self.step_size = max_actions_value
+        if self.step_size == 0:
+            self.total_steps = 1
+        else:
+            self.total_steps = self.total_additional_logs//self.step_size
+        self.step_counter = 0
 
         self.relevant_logtypes = relevant_logtypes
         self.action_upper_bound = 1
@@ -47,8 +50,8 @@ class Framework(gym.Env):
         if self.step_size == 0:
             self.action_space = spaces.Box(low=0,high=0,shape=(len(self.relevant_logtypes),),dtype=np.float64)
         else:
-            self.action_space = spaces.Box(low=1/self.step_size,high=self.action_upper_bound,shape=(len(self.relevant_logtypes)-1,),dtype=np.float64)
-        self.observation_space = spaces.Box(low=0,high=self.action_upper_bound,shape=(len(self.relevant_logtypes)+1,),dtype=np.float64)
+            self.action_space = spaces.Box(low=1/self.step_size,high=self.action_upper_bound,shape=(len(self.relevant_logtypes),),dtype=np.float64)
+        self.observation_space = spaces.Box(low=0,high=self.action_upper_bound,shape=(2*len(self.relevant_logtypes),),dtype=np.float64)
         self.action_duration = self.search_window*60/self.total_steps
         self.current_action = None
         self.state = None  # Initialize stat
@@ -58,6 +61,7 @@ class Framework(gym.Env):
         self.current_step = 0
         self.fake_distribution = [0]*len(self.relevant_logtypes)
         self.real_distribution = [0]*len(self.relevant_logtypes)
+        self.distribution = [0]*len(self.relevant_logtypes)
         self.done = False
         self.epsilon = 0
         self.reward_calculator = reward_calculator_instance
@@ -66,6 +70,7 @@ class Framework(gym.Env):
         self.limit_learner_counter = 0
         if not self.limit_learner:
             self.limit_learner_counter = 5
+        self.state = np.zeros(len(self.relevant_logtypes)+1).tolist()
 
             
     def limit_learner_turn_off(self):
@@ -124,27 +129,30 @@ class Framework(gym.Env):
         asyncio.run(self.perform_action(action))
         if self.check_done():
             # self.logtype_index_counter()
-            asyncio.run(self.perform_action([max(self.action_upper_bound-self.sum_of_fractions,0)]))
             self.done = True
                   
         # self.logtype_index_counter()           
         reward = self.get_reward()
         self.logger.info(f"########################################################################################################################")
+        self.step_counter += 1
         return self.state, reward, self.done, {}
 
     async def perform_action(self, action):
         # action = int(action)//self.max_actions_value
         # self.logger.info(f"logindex: {self.logtype_index}")
         # calculate the current time range according to the time left till the next measurement
-        self.logger.info(f"action: {action}")
+        self.logger.info(f"step number: {self.step_counter}")
+        if sum(action) > 0:
+            action /= sum(action)  
+        self.logger.info(f"action: {action}")              
         now = self.dt_manager.get_fake_current_datetime()
         self.logger.info(f"Current time: {now}")      
         time_range = (now, self.dt_manager.add_time(now, seconds=self.action_duration))
-        self.sum_of_fractions = sum(action)
-        last_action = max(self.action_upper_bound-self.sum_of_fractions,0)
-        self.sum_of_fractions += last_action
-        action = action.tolist()
-        action.append(last_action)
+        self.sum_of_fractions = int(sum(action))
+        # last_action = max(self.action_upper_bound-self.sum_of_fractions,0)
+        # self.sum_of_fractions += last_action
+        # action = action.tolist()
+        # action.append(last_action)
         for i, act in enumerate(action):           
             logtype = self.relevant_logtypes[i]    
             logsource = logtype[0].lower()
@@ -167,13 +175,12 @@ class Framework(gym.Env):
     
     def update_state(self):
         state = []
-        # if not self.limit_learner:
-        distribution = self.splunk_tools.extract_distribution(self.time_range[0], self.dt_manager.get_fake_current_datetime())
+        now = self.dt_manager.get_fake_current_datetime()
+        previous_now = self.dt_manager.subtract_time(now, seconds=self.action_duration)
+        distribution = self.splunk_tools.extract_distribution(previous_now, now)
         self.logger.debug(f"extraceted distribution {distribution}")
         for i, (source, event_code) in enumerate(self.relevant_logtypes):
             logtype = f"{source.lower()} {event_code}"
-            self.fake_distribution[i] = 0
-            self.real_distribution[i] = 0
             if f"{logtype} 0" in distribution:
                 self.real_distribution[i] += distribution[f"{logtype} 0"]
             if f"{logtype} 1" in distribution:
@@ -186,18 +193,20 @@ class Framework(gym.Env):
 
         self.logger.debug(f"real distribution: {self.real_distribution}")
         self.logger.debug(f"fake distribution: {self.fake_distribution}")
-        state = [x + y for x, y in zip(self.fake_distribution, self.real_distribution)]
-        sum_state = sum(state)
-        state = [x/sum_state if sum_state else 1/len(state) for x in state]
+        state = [x/sum(self.real_distribution) if sum(self.real_distribution) != 0 else 1/len(self.real_distribution) for x in self.real_distribution]
+        state.extend([x/sum(self.fake_distribution) if sum(self.fake_distribution) != 0 else 1/len(self.fake_distribution) for x in self.fake_distribution])
+        # state = [x + y for x, y in zip(self.fake_distribution, self.real_distribution)]
+        # sum_state = sum(state)
+        # state = [x/sum_state if sum_state else 1/len(state) for x in state]
         # else:
         #     # random array between 0 and 1 that sum to 1
         #     state = np.random.dirichlet(np.ones(len(self.relevant_logtypes)),size=1)[0].tolist()
-        state.append(self.action_upper_bound - self.sum_of_fractions)
+        # state.append(self.action_upper_bound - self.sum_of_fractions)
         # state.append(int(self.limit_learner))
         # state.append(int(self.reward_calculator.distribution_learner))
-        self.logger.info(f"state: {state}")
-        self.state = np.array(state)
-        
+        self.state = state
+        self.logger.info(f"state: {self.state}")
+     
     
     def check_done(self):
         # Define the termination conditions based on the current state or other criteria
@@ -212,10 +221,11 @@ class Framework(gym.Env):
         self.sum_of_fractions = 0
         self.done = False
         self.step_counter = 0
+        self.fake_distribution = [0]*len(self.relevant_logtypes) 
+        self.real_distribution = [0]*len(self.relevant_logtypes) 
         self.update_timerange()
         self.dt_manager.set_fake_current_datetime(self.time_range[0])
         # Reset the environment to an initial state
-        self.fake_distribution = [0]*len(self.relevant_logtypes)  
         self.update_state() 
         # self.logtype_index_counter()  
         self.time_action_dict.append([])

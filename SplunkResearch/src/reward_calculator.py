@@ -37,11 +37,9 @@ class RewardCalc:
 
     def get_partial_reward(self, real_distribution, current_state):
         fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
-        return -(0.2*(distributions_val-self.distribution_threshold)+0.8*(self.action_upper_bound - fraction_val))
-        if distributions_val > self.distribution_threshold:
-            return -distributions_val
-        if distributions_val <= self.distribution_threshold:
-            return 1/distributions_val
+        # return 0.5/(distributions_val+0.000000000001) + 0.5*(fraction_val)
+        return 1/(distributions_val)
+
 
             
     # def distribution_learner_control(self, distributions_val):
@@ -100,13 +98,15 @@ class RewardCalc:
     def get_full_reward(self, time_range, real_distribution, current_state):
         # is_limit_learner = self.get_is_limit_learner(current_state)
         fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
-        if distributions_val > self.distribution_threshold or fraction_val > 1:
-            return -100*(fraction_val-self.action_upper_bound)
+        # if  fraction_val > 1 or distributions_val > 2*self.distribution_threshold:
+        #     return -100*(fraction_val-self.action_upper_bound)
         # elif fraction_val < 100:
         #     return (fraction_val-100)*10
         alert_val, energy_val, energy_increase, duration_val, duration_increase = self.get_full_reward_values(time_range=time_range)
         self.update_average_values()
-        return 0.5*duration_val + 0.3*energy_val + 0.2/(distributions_val+0.000000000001)
+        return duration_val/distributions_val
+
+        # return 0.5*duration_val + 0.3*energy_val + 0.2/(distributions_val+0.000000000001)
         # return duration_val/distributions_val #max(distributions_val, 0.1)
         # if fraction_val <= action_upper_bound:
         #     if duration_increase > 0.2:
@@ -203,8 +203,8 @@ class RewardCalc:
 
     def get_partial_reward_values(self, real_distribution, current_state):
         action_upper_bound = 1
-        fraction_val = action_upper_bound - float(self.get_fraction_state(current_state))
-        distributions_val = self.compare_distributions(real_distribution, current_state[:len(self.relevant_logtypes)])     
+        fraction_val = action_upper_bound - 1#float(self.get_fraction_state(current_state))
+        distributions_val = self.compare_distributions(current_state[:len(self.relevant_logtypes)], current_state[len(self.relevant_logtypes):])     
         distributions_val = distributions_val + 0.000000000001
         self.reward_values_dict['distributions'].append(distributions_val)
         self.reward_values_dict['fraction'].append(fraction_val)
@@ -229,6 +229,7 @@ class RewardCalc:
         self.reward_values_dict['energy'].append(current_energy)
         self.reward_values_dict['duration'].append(duration)
         self.logger.info(f"energy value: {current_energy}")
+        self.logger.info(f"duration value: {duration}")
         return duration, current_energy
     
   
