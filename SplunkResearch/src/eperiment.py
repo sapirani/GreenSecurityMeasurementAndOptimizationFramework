@@ -69,7 +69,7 @@ class Experiment:
         with open(f'{current_dir}/{mode}/time_rules_energy.json', 'w') as fp:
             json.dump(env.reward_calculator.time_rules_energy, fp)   
         with open(f'{current_dir}/{mode}/action_dict_{mode}.json', 'w') as fp:
-                json.dump(env.time_action_dict, fp)
+                json.dump(env.action_per_episode, fp)
 
     
     def clean_env(self, splunk_tools_instance, time_range=None):
@@ -118,7 +118,9 @@ class Experiment:
         relevant_logtypes = sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]})) #[(x[0], str(x[1])) for x in state_span]
         # relevant_logtypes = [('wineventlog:security', '2005'), ('wineventlog:security', '4625'), ('wineventlog:security', '2004'), ('xmlwineventlog:microsoft-windows-sysmon/operational', '3'), ('wineventlog:security', '4688'), ('xmlwineventlog:microsoft-windows-sysmon/operational', '8')]
         # relevant_logtypes = [logtype for logtype in logtypes if logtype not in section_logtypes]
+        relevant_logtypes = state_span
         parameters['relevant_logtypes'] = relevant_logtypes
+        
         log_generator_instance = LogGenerator(relevant_logtypes, big_replacement_dicts, splunk_tools_instance)
         reward_calculator_instance = RewardCalc(relevant_logtypes, dt_manager, self.logger, splunk_tools_instance, rule_frequency, num_of_searches, distribution_learner)
         print("Debugging: 6")

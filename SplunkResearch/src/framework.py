@@ -57,10 +57,10 @@ class Framework(gym.Env):
         self.state = None  # Initialize stat
         self.logtype_index = -1
         self.sum_of_fractions = 0
-        self.time_action_dict= [[]]
+        self.action_per_episode= []
         self.current_step = 0
-        self.fake_distribution = [0]*len(self.relevant_logtypes)
-        self.real_distribution = [0]*len(self.relevant_logtypes)
+        self.fake_distribution = np.zeros(len(self.relevant_logtypes))
+        self.real_distribution = np.zeros(len(self.relevant_logtypes))
         self.distribution = [0]*len(self.relevant_logtypes)
         self.done = False
         self.epsilon = 0
@@ -70,7 +70,7 @@ class Framework(gym.Env):
         self.limit_learner_counter = 0
         if not self.limit_learner:
             self.limit_learner_counter = 5
-        self.state = np.zeros(len(self.relevant_logtypes)+1).tolist()
+        self.state = np.zeros(len(self.relevant_logtypes)*2).tolist()
 
             
     def limit_learner_turn_off(self):
@@ -183,6 +183,8 @@ class Framework(gym.Env):
             logtype = f"{source.lower()} {event_code}"
             if f"{logtype} 0" in distribution:
                 self.real_distribution[i] += distribution[f"{logtype} 0"]
+                self.fake_distribution[i] += distribution[f"{logtype} 0"]
+                
             if f"{logtype} 1" in distribution:
                 self.fake_distribution[i] += distribution[f"{logtype} 1"]
         # self.real_distribution = [distribution[f"{logtype[0].lower()} {logtype[1]}"][0] if f"{logtype[0].lower()} {logtype[1]}" in distribution else self.epsilon for logtype in self.relevant_logtypes]
@@ -193,8 +195,8 @@ class Framework(gym.Env):
 
         self.logger.debug(f"real distribution: {self.real_distribution}")
         self.logger.debug(f"fake distribution: {self.fake_distribution}")
-        state = [x/sum(self.real_distribution) if sum(self.real_distribution) != 0 else 1/len(self.real_distribution) for x in self.real_distribution]
-        state.extend([x/sum(self.fake_distribution) if sum(self.fake_distribution) != 0 else 1/len(self.fake_distribution) for x in self.fake_distribution])
+        state = self.real_distribution / np.sum(self.real_distribution) if np.sum(self.real_distribution) != 0 else np.ones(len(self.real_distribution)) / len(self.real_distribution)
+        state = np.concatenate((state, self.fake_distribution / np.sum(self.fake_distribution) if np.sum(self.fake_distribution) != 0 else np.ones(len(self.fake_distribution)) / len(self.fake_distribution)))
         # state = [x + y for x, y in zip(self.fake_distribution, self.real_distribution)]
         # sum_state = sum(state)
         # state = [x/sum_state if sum_state else 1/len(state) for x in state]
@@ -217,19 +219,18 @@ class Framework(gym.Env):
         
     def reset(self):
         self.logger.info("resetting")
+        self.action_per_episode.append(list(self.fake_distribution-self.real_distribution))
         self.current_log_type = 0
         self.sum_of_fractions = 0
         self.done = False
         self.step_counter = 0
-        self.fake_distribution = [0]*len(self.relevant_logtypes) 
-        self.real_distribution = [0]*len(self.relevant_logtypes) 
+        self.fake_distribution = np.zeros(len(self.relevant_logtypes))
+        self.real_distribution = np.zeros(len(self.relevant_logtypes))
         self.update_timerange()
         self.dt_manager.set_fake_current_datetime(self.time_range[0])
         # Reset the environment to an initial state
         self.update_state() 
         # self.logtype_index_counter()  
-        self.time_action_dict.append([])
-        # self.time_action_dict[str(self.time_range)] = {}
         self.splunk_tools.update_all_searches(self.splunk_tools.update_search_time_range, self.time_range) 
         return self.state 
 
