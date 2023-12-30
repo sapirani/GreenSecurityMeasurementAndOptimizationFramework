@@ -42,8 +42,8 @@ class Experiment:
     def choose_random_rules(self, splunk_tools_instance, num_of_searches, is_get_only_enabled=True):
         self.logger.info('enable random rules')
         savedsearches = splunk_tools_instance.get_saved_search_names(get_only_enabled=is_get_only_enabled)
-        # random_savedsearch = random.sample(savedsearches, num_of_searches)
-        random_savedsearch = ['Monitor for Additions to Firewall Rules', 'Monitor for Changes to Firewall Rules', 'Monitor for Suspicious_Administrative Processes', 'Multiple Failed Logins from the Same Source', 'Multiple Network Connections to Same Port on External Hosts', 'Suspicious Remote Thread Creation']
+        random_savedsearch = random.sample(savedsearches, num_of_searches)
+        # random_savedsearch = ['Monitor for Additions to Firewall Rules', 'Monitor for Changes to Firewall Rules', 'Monitor for Suspicious_Administrative Processes', 'Multiple Failed Logins from the Same Source', 'Multiple Network Connections to Same Port on External Hosts', 'Suspicious Remote Thread Creation']
         for savedsearch in savedsearches:
             if savedsearch not in random_savedsearch:
                 splunk_tools_instance.disable_search(savedsearch)
@@ -118,22 +118,18 @@ class Experiment:
         relevant_logtypes = sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]})) #[(x[0], str(x[1])) for x in state_span]
         # relevant_logtypes = [('wineventlog:security', '2005'), ('wineventlog:security', '4625'), ('wineventlog:security', '2004'), ('xmlwineventlog:microsoft-windows-sysmon/operational', '3'), ('wineventlog:security', '4688'), ('xmlwineventlog:microsoft-windows-sysmon/operational', '8')]
         # relevant_logtypes = [logtype for logtype in logtypes if logtype not in section_logtypes]
-        relevant_logtypes = state_span
+        # relevant_logtypes = state_span
         parameters['relevant_logtypes'] = relevant_logtypes
         
         log_generator_instance = LogGenerator(relevant_logtypes, big_replacement_dicts, splunk_tools_instance)
         reward_calculator_instance = RewardCalc(relevant_logtypes, dt_manager, self.logger, splunk_tools_instance, rule_frequency, num_of_searches, distribution_learner)
-        print("Debugging: 6")
         self.logger.info(f'current parameters:\ntime range:{time_range} \nfake_start_datetime: {fake_start_datetime}\nrule frequency: {rule_frequency}\nsearch_window:{search_window}\nrunning time: {running_time}\nnumber of searches: {num_of_searches}\nmax action value: {max_actions_value}\nreward parameter dict: {reward_parameter_dict}\nsavedsearches: {savedsearches}\nrelevantlog_types: {relevant_logtypes}')
         gym.register(
         id='splunk_attack-v0',
         entry_point='framework:Framework',  # Replace with the appropriate path       
         )
         env = gym.make('splunk_attack-v0', log_generator_instance = log_generator_instance, splunk_tools_instance = splunk_tools_instance, reward_calculator_instance = reward_calculator_instance, dt_manager=dt_manager, logger=self.logger, time_range=time_range, rule_frequency=rule_frequency, search_window=search_window, relevant_logtypes=relevant_logtypes, limit_learner=limit_learner, max_actions_value=max_actions_value)
-        
-        # Debugging print statement
-        print("Debugging: 10")
-        
+
         return env
     
     def load_environment(self, modifed_parameters={}):
@@ -161,7 +157,7 @@ class Experiment:
         self.save_parameters_to_file(parameters, f'{self.experiment_dir}/parameters_train.json')
         model = A2C(MlpPolicy, env, verbose=1, ent_coef=0.01)
         # model = DQN(env=env, policy=CustomPolicy)
-        model.learn(total_timesteps=parameters['episodes']*len(parameters['relevant_logtypes']))
+        model.learn(total_timesteps=parameters['episodes']*env.total_steps)
         model.save(f"{self.experiment_dir}/splunk_attack")
         self.save_assets(self.experiment_dir, env)
         return model

@@ -184,9 +184,13 @@ class SplunkTools:
             self.logger.info('Unexpected error:', str(e))
         self.logger.info(results_data)
 
-    def get_rules_pids(self, time):
+    def get_rules_pids(self, time_range):
         format = "%Y-%m-%d %H:%M:%S"
-        query = f'index=_audit action=search app=search search_type=scheduled info=completed  earliest=-{time}m@m latest=now | regex search_id=\\"scheduler.*\\"| eval executed_time=strftime(exec_time, \\"{format}\\")\
+        format2 = "%m/%d/%Y:%H:%M:%S"
+        api_lt = datetime.strptime(time_range[0], format2).timestamp()
+        api_et = datetime.strptime(time_range[1], format2).timestamp()
+        query = f'index=_audit action=search app=search search_type=scheduled info=completed earliest=-2m api_et={api_lt} api_lt={api_et}\
+        | regex search_id=\\"scheduler.*\\"| eval executed_time=strftime(exec_time, \\"{format}\\")\
         | table search_id savedsearch_name _time executed_time event_count total_run_time'
         command = f'echo sH231294| sudo -S -E env "PATH"="$PATH" /opt/splunk/bin/splunk search "{query}" -maxout 0 -auth shouei:sH231294'
         cmd = subprocess.run(command, shell=True, capture_output=True, text=True)

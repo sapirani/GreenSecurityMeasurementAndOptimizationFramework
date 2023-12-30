@@ -80,10 +80,15 @@ class MockedDatetimeManager:
         """
         fake_now = self.get_real_current_datetime()
         split_fake_now = fake_now.split(':')
-        while ((int(split_fake_now[2])+1) % int(rule_frequency) != 0) or (int(split_fake_now[3]) < 55):
+        # while ((int(split_fake_now[2])+1) % int(rule_frequency) != 0) or (int(split_fake_now[3]) < 55):
+        #     fake_now = self.get_real_current_datetime()
+        #     split_fake_now = fake_now.split(':')            
+        #     time.sleep(1)
+        while (int(split_fake_now[2]) % int(rule_frequency) != 0) or (int(split_fake_now[3]) != 0):
             fake_now = self.get_real_current_datetime()
             split_fake_now = fake_now.split(':')            
             time.sleep(1)
+        time.sleep(5)
             
 if __name__ == "__main__":
     manager = MockedDatetimeManager(fake_start_datetime=datetime.datetime(2023, 1, 1, 12, 0, 0), log_file_path="test.log")

@@ -1,6 +1,7 @@
 import datetime
 import os
 import subprocess
+from time import sleep
 from scipy.stats import entropy
 from scipy.stats import wasserstein_distance
 import pandas as pd
@@ -217,15 +218,16 @@ class RewardCalc:
         # self.measurement()
         # run the measurement script with subprocess
         self.logger.info('measuring')
-        cmd = subprocess.run('python ../Scanner/scanner.py', shell=True, capture_output=True, text=True)
-        self.logger.info(cmd.stdout)
-        self.logger.info(cmd.stderr)
+        # cmd = subprocess.run('python ../Scanner/scanner.py', shell=True, capture_output=True, text=True)
+        # self.logger.info(cmd.stdout)
+        # self.logger.info(cmd.stderr)
         # find the latest measurement folder
-        measurement_num = max([int(folder.split(' ')[1]) for folder in os.listdir(PATH) if folder.startswith('Measurement')])
-        self.current_measurement_path = os.path.join(PATH,f'Measurement {measurement_num}')
-        rules_enegry_df = self.get_rule_total_energy(time_delta, time_range)
-        current_energy = rules_enegry_df['CPU(J)'].sum()
-        duration = rules_enegry_df['run_duration'].sum()
+        # measurement_num = max([int(folder.split(' ')[1]) for folder in os.listdir(PATH) if folder.startswith('Measurement')])
+        # self.current_measurement_path = os.path.join(PATH,f'Measurement {measurement_num}')
+        # rules_enegry_df = self.get_rule_total_energy(time_delta, time_range)
+        rules_pids_df = self.extract_energy_per_rule(time_range)
+        current_energy = 0 #rules_enegry_df['CPU(J)'].sum()
+        duration = rules_pids_df['run_duration'].sum()
         self.reward_values_dict['energy'].append(current_energy)
         self.reward_values_dict['duration'].append(duration)
         self.logger.info(f"energy value: {current_energy}")
@@ -237,7 +239,7 @@ class RewardCalc:
     def get_rule_total_energy(self, time_delta, time_range):
         # exec_time = time_range[-1]
         # exec_time_timestamp = datetime.datetime.strptime(exec_time, '%m/%d/%Y:%H:%M:%S').timestamp()
-        rules_energy_df = self.extract_energy_per_rule(time_delta) 
+        rules_energy_df = self.extract_energy_per_rule(time_range) 
         rule_duration = rules_energy_df.groupby('name')['run_duration'].mean()      
         self.energy_equation(rules_energy_df)
         rule_total_energy = rules_energy_df.groupby('name')[['CPU(J)']].sum().reset_index()
@@ -254,15 +256,15 @@ class RewardCalc:
         rules_energy_df['CPU(W)'] = rules_energy_df['CPU(%)'] * CPU_TDP / 100
         rules_energy_df['CPU(J)'] = rules_energy_df['CPU(W)'] * rules_energy_df['delta_time']
     
-    def extract_energy_per_rule(self, time_delta): 
-        pids_energy_df = self.fetch_energy_data()
-        rules_pids_df = self.get_rules_data(time_delta)
-        rules_energy_df = self.merge_energy_and_rule_data(pids_energy_df, rules_pids_df)
-        num_of_rules = len(rules_energy_df['name'].unique())
+    def extract_energy_per_rule(self, time_range): 
+        # pids_energy_df = self.fetch_energy_data()
+        rules_pids_df = self.get_rules_data(time_range)
+        # rules_energy_df = self.merge_energy_and_rule_data(pids_energy_df, rules_pids_df)
+        num_of_rules = len(rules_pids_df['name'].unique())
         self.reward_values_dict['num_of_rules'].append(num_of_rules)
         self.logger.info(f"num of extracted rules data: {num_of_rules}")
-        rules_energy_df.to_csv(os.path.join(self.current_measurement_path, 'rules_energy.csv'))
-        return rules_energy_df
+        # rules_pids_df.to_csv(os.path.join(self.current_measurement_path, 'rules_energy.csv'))
+        return rules_pids_df
 
     def merge_energy_and_rule_data(self, pids_energy_df, rules_pids_df):
         splunk_pids_energy_df = pids_energy_df[pids_energy_df['PID'].isin(rules_pids_df.pid.values)].sort_values('Time(sec)') 
@@ -272,14 +274,22 @@ class RewardCalc:
         rules_energy_df = rules_energy_df.sort_values(by=['name', "Time(sec)"])
         return rules_energy_df
 
-    def get_rules_data(self, time_delta):
-        rules_pids = self.splunk_tools.get_rules_pids(time_delta)
-        data = []
-        for name, rules in rules_pids.items():
-            for e in rules:
-                sid, pid, time, run_duration, total_events, total_run_time = e 
-                data.append((name, sid, pid, time, run_duration, total_events, total_run_time)) 
-        rules_pids_df = pd.DataFrame(data, columns=['name', 'sid', 'pid', 'time', 'run_duration', 'total_events', 'total_run_time'])
+    def get_rules_data(self, time_range):
+        while True:
+            rules_pids = self.splunk_tools.get_rules_pids(time_range)
+            data = []
+            for name, rules in rules_pids.items():
+                for e in rules:
+                    sid, pid, time, run_duration, total_events, total_run_time = e 
+                    data.append((name, sid, pid, time, run_duration, total_events, total_run_time)) 
+            rules_pids_df = pd.DataFrame(data, columns=['name', 'sid', 'pid', 'time', 'run_duration', 'total_events', 'total_run_time'])
+            # print(len(rules_pids_df.name.unique()))
+            # print(len(rules_pids_df))
+            # print(rules_pids_df.name.unique())
+            if len(rules_pids_df.name.unique()) == self.num_of_searches and len(rules_pids_df) == self.num_of_searches:
+                break
+            rules_pids_df = None
+            sleep(1)
         rules_pids_df.time = pd.to_datetime(rules_pids_df.time)
         rules_pids_df.sort_values('time', inplace=True)
         return rules_pids_df
