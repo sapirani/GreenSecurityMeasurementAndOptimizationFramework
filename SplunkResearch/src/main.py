@@ -13,6 +13,7 @@ if __name__ == "__main__":
     experiment_manager = ExperimentManager(log_level=logging.DEBUG) 
     try:
         if mode == 'train':
+            experiment_manager.delete_experiments_without_train()
             experiment_dir = experiment_manager.create_experiment_dir()
             log_file = f'{experiment_dir}/log_train.txt'
             logger = experiment_manager.setup_logging(log_file)

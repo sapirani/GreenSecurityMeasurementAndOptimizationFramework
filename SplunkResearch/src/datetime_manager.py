@@ -36,7 +36,8 @@ class MockedDatetimeManager:
     
     def set_fake_current_datetime(self, fake_current_datetime):
         self.current_fake_time = datetime.datetime.strptime(fake_current_datetime, '%m/%d/%Y:%H:%M:%S') 
-    
+        return self.current_fake_time
+        
     def get_fake_current_datetime(self):
         return self.current_fake_time.strftime('%m/%d/%Y:%H:%M:%S')
         # with patch('datetime.datetime', MockedDatetime):
@@ -72,7 +73,11 @@ class MockedDatetimeManager:
         fake_now = self.subtract_time(fake_now, seconds=int(split_fake_now[3]))
         self.set_fake_current_datetime(fake_now)
         
-    
+    def get_time_range_action(self, action_duration):
+        now = self.get_fake_current_datetime()
+        time_range = (now, self.add_time(now, seconds=action_duration))
+        return time_range     
+        
     def wait_til_next_rule_frequency(self, rule_frequency):
         """
         Wait until the current datetime is rounded to the next rule frequency.
@@ -80,14 +85,14 @@ class MockedDatetimeManager:
         """
         fake_now = self.get_real_current_datetime()
         split_fake_now = fake_now.split(':')
-        # while ((int(split_fake_now[2])+1) % int(rule_frequency) != 0) or (int(split_fake_now[3]) < 55):
-        #     fake_now = self.get_real_current_datetime()
-        #     split_fake_now = fake_now.split(':')            
-        #     time.sleep(1)
-        while (int(split_fake_now[2]) % int(rule_frequency) != 0) or (int(split_fake_now[3]) != 0):
+        while ((int(split_fake_now[2])+1) % int(rule_frequency) != 0) or (int(split_fake_now[3]) < 52):
             fake_now = self.get_real_current_datetime()
             split_fake_now = fake_now.split(':')            
             time.sleep(1)
+        # while (int(split_fake_now[2]) % int(rule_frequency) != 0) or (int(split_fake_now[3]) != 0):
+        #     fake_now = self.get_real_current_datetime()
+        #     split_fake_now = fake_now.split(':')            
+        #     time.sleep(1)
         time.sleep(5)
             
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime
 import itertools
+from time import sleep
 import httpx
 import json
 import logging
@@ -10,6 +11,7 @@ import re
 import subprocess
 from dotenv import load_dotenv
 import os
+import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
@@ -184,14 +186,14 @@ class SplunkTools:
             self.logger.info('Unexpected error:', str(e))
         self.logger.info(results_data)
 
-    def get_rules_pids(self, time_range):
+    def get_rules_pids(self, time_range, num_of_searches=0):
         format = "%Y-%m-%d %H:%M:%S"
         format2 = "%m/%d/%Y:%H:%M:%S"
         api_lt = datetime.strptime(time_range[0], format2).timestamp()
         api_et = datetime.strptime(time_range[1], format2).timestamp()
         query = f'index=_audit action=search app=search search_type=scheduled info=completed earliest=-2m api_et={api_lt} api_lt={api_et}\
         | regex search_id=\\"scheduler.*\\"| eval executed_time=strftime(exec_time, \\"{format}\\")\
-        | table search_id savedsearch_name _time executed_time event_count total_run_time'
+        | table search_id savedsearch_name _time executed_time event_count total_run_time | sort _time desc | head {num_of_searches}'
         command = f'echo sH231294| sudo -S -E env "PATH"="$PATH" /opt/splunk/bin/splunk search "{query}" -maxout 0 -auth shouei:sH231294'
         cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
         res = cmd.stdout.split('\n')[2:-1]
@@ -384,7 +386,31 @@ class SplunkTools:
         response = requests.post(url, headers=HEADERS, data=data, auth=self.auth, verify=False)
         results = response.text
         self.logger.info(results)
-
+        
+    def get_rules_data(self, time_range, num_of_searches):
+        while True:
+            rules_pids = self.get_rules_pids(time_range, num_of_searches)
+            data = []
+            for name, rules in rules_pids.items():
+                for e in rules:
+                    sid, pid, time, run_duration, total_events, total_run_time = e 
+                    data.append((name, sid, pid, time, run_duration, total_events, total_run_time)) 
+            rules_pids_df = pd.DataFrame(data, columns=['name', 'sid', 'pid', 'time', 'run_duration', 'total_events', 'total_run_time'])
+            # print(len(rules_pids_df.name.unique()))
+            # print(len(rules_pids_df))
+            # print(rules_pids_df.name.unique())
+            if len(rules_pids_df.name.unique()) == num_of_searches and len(rules_pids_df) == num_of_searches:
+                break
+            rules_pids_df = None
+            sleep(1)
+        rules_pids_df.time = pd.to_datetime(rules_pids_df.time)
+        rules_pids_df.sort_values('time', inplace=True)
+        num_of_rules = len(rules_pids_df['name'].unique())
+        self.logger.info(f"num of extracted rules data: {num_of_rules}")
+        with open("/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt", "w") as f:
+            f.write('finished')
+        return rules_pids_df, num_of_rules
+    
 if __name__ == "__main__":
     logger = logging.getLogger("my_app")
     log_file = 'splunk_tools.log'

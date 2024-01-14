@@ -88,11 +88,15 @@ class LogGenerator:
         return self.splunk_tools.load_logs_to_duplicate_dict(logtypes)
         
     def generate_log(self, logsource, eventcode, replacement_dict, time_range):
-        logs_to_duplicate_dict = self.logs_to_duplicate_dict[(logsource, eventcode)]
-        if logs_to_duplicate_dict is None or len(logs_to_duplicate_dict) == 0:
-            return None
-        log = random.choice(logs_to_duplicate_dict)
-        return self.replace_fields_in_log(log, logsource, time_range, replacement_dict)
+        # logs_to_duplicate_dict = self.logs_to_duplicate_dict[(logsource, eventcode)]
+        # if logs_to_duplicate_dict is None or len(logs_to_duplicate_dict) == 0:
+        #     return None
+        # log = random.choice(logs_to_duplicate_dict)
+        # return self.replace_fields_in_log(log, logsource, time_range, replacement_dict)
+        log = self.logs_to_duplicate_dict[logsource, eventcode][0]
+        start_date = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S') 
+        end_date = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S') 
+        return log, self.generate_fake_time(start_date,end_date).timestamp()
     
     def get_replacement_values(self, logsource):
         replacement_dict = self.random_replacement_values()    

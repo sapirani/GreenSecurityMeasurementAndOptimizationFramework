@@ -15,7 +15,6 @@ from resources.section_logtypes import section_logtypes
 import logging
 from experiment_manager import ExperimentManager
 from splunk_tools import SplunkTools
-from policy_network import CustomPolicy
 from reward_calculator import RewardCalc
 import random
 import subprocess
@@ -167,7 +166,7 @@ class Experiment:
         env = self.load_environment({'limit_learner':False})
         model = A2C.load(f"{self.experiment_dir}/splunk_attack")
         model.set_env(env)
-        model.learn(total_timesteps=parameters['episodes']*len(env.relevant_logtypes))
+        model.learn(total_timesteps=parameters['episodes']*env.total_steps)
         model.save(f"{self.experiment_dir}/splunk_attack")
         self.save_assets(self.experiment_dir, env)
         return model
@@ -176,7 +175,6 @@ class Experiment:
         self.logger.info('test the model')
         model = A2C.load(f"{self.experiment_dir}/splunk_attack")
         env = self.load_environment()
-        env.limit_learner_turn_off()
         mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=num_of_episodes)
         self.logger.info(f"mean_reward:{mean_reward}, std_reward:{std_reward}")
         self.save_assets(self.experiment_dir, env, mode='test')
@@ -188,7 +186,6 @@ class Experiment:
             env = self.load_environment(modifed_parameters={'max_actions_value':0})
         else:
             env = self.load_environment()
-        env.limit_learner_turn_off()
         for i in range(num_of_episodes):
             env.reset()
             done = False

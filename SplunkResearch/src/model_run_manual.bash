@@ -15,12 +15,12 @@ saved_searches_path="/opt/splunk/etc/users/shouei/search/local/savedsearches.con
 echo sH231294 | sudo -S sed -i 's/^max_searches_per_process = .*/max_searches_per_process = 1/' $limits_path
 test_episodes=15
 test_experiment="last"
-echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train
-wait
+# echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train
+# wait
 echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $test_experiment $test_episodes
 wait
-echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" retrain $test_experiment
-wait
+# echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" retrain $test_experiment
+# wait
 echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline $test_experiment $test_episodes random
 wait
 echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline $test_experiment $test_episodes passive
