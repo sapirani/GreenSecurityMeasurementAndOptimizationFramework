@@ -1,0 +1,28 @@
+<Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event">
+  <System>
+    <Provider Name="Microsoft-Windows-Sysmon" Guid="{5770385f-c22a-43e0-bf4c-06f5698ffbd9}" />
+    <EventID>3</EventID>
+    <Version>5</Version>
+    <Level>4</Level>
+    <Task>3</Task>
+    <Opcode>0</Opcode>
+    <Keywords>0x8000000000000000</Keywords>
+    <TimeCreated SystemTime="2024-01-03T02:30:15.123456700Z" />
+    <EventRecordID>2452</EventRecordID>
+    <Correlation />
+    <Execution ProcessID="1234" ThreadID="5678" ProcessorID="1" KernelTime="0" UserTime="0" />
+    <Channel>Microsoft-Windows-Sysmon/Operational</Channel>
+    <Computer>SRV-01.corp.local</Computer>
+    <Security UserID="S-1-5-18" />
+  </System>
+  <EventData>
+    <Data Name="NetworkConnect">
+      <Data Name="Image">C:\Program Files\Mozilla Firefox\firefox.exe</Data>
+      <Data Name="SourceAddress">192.168.1.5</Data>
+      <Data Name="SourcePort">65432</Data>
+      <Data Name="DestinationAddress">23.56.78.91</Data>
+      <Data Name="DestinationPort">443</Data>
+      <Data Name="Protocol">6</Data>
+    </Data>
+  </EventData>
+</Event>

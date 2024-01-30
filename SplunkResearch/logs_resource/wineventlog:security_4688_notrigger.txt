@@ -1,0 +1,33 @@
+01/03/2024 09:15:22 AM
+LogName=Security
+EventCode=4688
+EventType=0
+ComputerName=LB-107-14.auth.ad.bgu.ac.il
+SourceName=Microsoft Windows security auditing.
+Type=Information
+RecordNumber=118059
+Keywords=Audit Success
+TaskCategory=Process Creation
+OpCode=Info
+Message=A new process has been created.
+
+Creator Subject:
+	Security ID:		NT AUTHORITY\SYSTEM
+	Account Name:		-
+	Account Domain:		-
+	Logon ID:		0x3E7
+
+Target Subject:
+	Security ID:		NULL SID
+	Account Name:		-
+	Account Domain:		-
+	Logon ID:		0x0
+
+Process Information:
+	New Process ID:		0x3b2
+	New Process Name:	C:\Windows\System32\notepad.exe
+	Token Elevation Type:	%%1936
+	Mandatory Label:		Mandatory Label\System Mandatory Level
+	Creator Process ID:	0x1a8
+	Creator Process Name:	C:\Windows\System32\wininit.exe
+	Process Command Line:	
