@@ -42,7 +42,7 @@ class Experiment:
         self.logger.info('enable random rules')
         savedsearches = splunk_tools_instance.get_saved_search_names(get_only_enabled=is_get_only_enabled)
         random_savedsearch = random.sample(savedsearches, num_of_searches)
-        # random_savedsearch = ['Monitor for Additions to Firewall Rules', 'Monitor for Changes to Firewall Rules', 'Monitor for Suspicious_Administrative Processes', 'Multiple Failed Logins from the Same Source', 'Multiple Network Connections to Same Port on External Hosts', 'Suspicious Remote Thread Creation']
+        random_savedsearch = ['Monitor for File Shares', 'Monitor for Whitelisting bypass attempts']
         for savedsearch in savedsearches:
             if savedsearch not in random_savedsearch:
                 splunk_tools_instance.disable_search(savedsearch)
@@ -68,7 +68,7 @@ class Experiment:
         with open(f'{current_dir}/{mode}/time_rules_energy.json', 'w') as fp:
             json.dump(env.reward_calculator.time_rules_energy, fp)   
         with open(f'{current_dir}/{mode}/action_dict_{mode}.json', 'w') as fp:
-                json.dump(env.action_per_episode, fp)
+                json.dump(np.array(env.action_per_episode).tolist(), fp)
 
     
     def clean_env(self, splunk_tools_instance, time_range=None):
@@ -182,28 +182,29 @@ class Experiment:
     
     def test_baseline_agent(self, num_of_episodes, agent_type='random'):
         self.logger.info(f'test baseline {agent_type} agent')
-        if agent_type == 'passive':
-            env = self.load_environment(modifed_parameters={'max_actions_value':0})
-        else:
-            env = self.load_environment()
+        env = self.load_environment()
         for i in range(num_of_episodes):
             env.reset()
-            done = False
-            self.run_manual_episode(agent_type, env, done)
+            self.run_manual_episode(agent_type, env)
         self.save_assets(self.experiment_dir, env, mode=f'test_{agent_type}_agent')
         return env
 
-    def run_manual_episode(self, agent_type, env, done):
+            
+    def test_no_agent(self, num_of_episodes):
+        self.logger.info('test no agent')
+        env = self.load_environment()
+        for i in range(num_of_episodes):
+            env.reset()
+            env.evaluate_no_agent()
+        self.save_assets(self.experiment_dir, env, mode='test_no_agent')
+        return env
+    
+    def run_manual_episode(self, agent_type, env):
+        done = False
         while not done:
             if agent_type == 'random':
-                action = np.random.dirichlet(np.ones(len(env.relevant_logtypes)),size=1)[0]
-            elif agent_type == 'passive':
-                action = np.zeros(len(env.relevant_logtypes))
+                action = np.random.dirichlet(np.ones(2*len(env.relevant_logtypes)),size=1).reshape(-1,2)
             elif agent_type == 'uniform':
                 action = 100/len(env.relevant_logtypes)    
-            if agent_type != 'passive':
-                obs, reward, done, info = env.step(action)
-            else:                           
-                obs, reward, done, info = env.blind_step(action)
+            obs, reward, done, info = env.step(action)
             env.render()
-    

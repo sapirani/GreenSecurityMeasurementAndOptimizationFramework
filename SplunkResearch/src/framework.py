@@ -29,43 +29,38 @@ INFINITY = 100000
 CPU_TDP = 200
 class Framework(gym.Env):
     def __init__(self, log_generator_instance, splunk_tools_instance, reward_calculator_instance, dt_manager, logger, time_range, rule_frequency, search_window, limit_learner=True, relevant_logtypes=[], max_actions_value=10):
+        
+        self.reward_calculator = reward_calculator_instance
         self.log_generator = log_generator_instance
         self.splunk_tools = splunk_tools_instance
         self.dt_manager = dt_manager
         self.logger = logger
+        
+        self.relevant_logtypes = relevant_logtypes
+        self.step_size = max_actions_value
         self.time_range = time_range
         self.rule_frequency = rule_frequency
         self.search_window = search_window
+        
         self.total_additional_logs = 0.1*100000*self.search_window/60
-        self.step_size = max_actions_value
-        if self.step_size == 0:
-            self.total_steps = 1
-        else:
-            self.total_steps = self.total_additional_logs//self.step_size
-        self.step_counter = 0
-
-        self.relevant_logtypes = relevant_logtypes
-        self.action_upper_bound = 1
-        # create the action space - a vector of size max_actions_value with values between 0 and 1
-        if self.step_size == 0:
-            self.action_space = spaces.Box(low=0,high=0,shape=(len(self.relevant_logtypes),),dtype=np.float64)
-        else:
-            self.action_space = spaces.Box(low=1/self.step_size,high=self.action_upper_bound,shape=(len(self.relevant_logtypes),),dtype=np.float64)
-        self.observation_space = spaces.Box(low=0,high=self.action_upper_bound,shape=(2*len(self.relevant_logtypes),),dtype=np.float64)
+        self.total_steps = self.total_additional_logs//self.step_size
         self.action_duration = self.search_window*60/self.total_steps
-        self.current_action = None
-        self.state = None  # Initialize stat
+        self.step_counter = 0
+        self.action_upper_bound = 1
         self.sum_of_fractions = 0
-        self.action_per_episode= []
         self.current_step = 0
+        self.epsilon = 0
+        
+        # create the action space - a vector of size max_actions_value with values between 0 and 1
+        self.action_space = spaces.Box(low=1/self.step_size,high=self.action_upper_bound,shape=(len(self.relevant_logtypes),2),dtype=np.float64)
+        self.observation_space = spaces.Box(low=0,high=self.action_upper_bound,shape=(2*len(self.relevant_logtypes),),dtype=np.float64)
+        self.action_per_episode = []
+        self.current_episode_accumulated_action = np.zeros((len(self.relevant_logtypes), 2))
         self.fake_distribution = np.zeros(len(self.relevant_logtypes))
         self.real_distribution = np.zeros(len(self.relevant_logtypes))
-        self.distribution = [0]*len(self.relevant_logtypes)
-        self.done = False
-        self.epsilon = 0
-        self.reward_calculator = reward_calculator_instance
-        self.experiment_name = f"{self.search_window}_{self.step_size}"
         self.state = np.zeros(len(self.relevant_logtypes)*2).tolist()
+        self.distribution = np.zeros(len(self.relevant_logtypes))
+        self.done = False
 
             
     def limit_learner_turn_off(self):
@@ -83,7 +78,6 @@ class Framework(gym.Env):
         self.logger.info(self.done)
         
         fraction_real_distribution = [x/sum(self.real_distribution) if sum(self.real_distribution) != 0 else 1/len(self.real_distribution) for x in self.real_distribution ]
-        # fraction_real_distribution = [x/sum(self.real_distribution) for x in self.real_distribution]
         if self.done:
             reward = self.reward_calculator.get_full_reward(self.time_range, fraction_real_distribution, self.state)
         else:
@@ -94,7 +88,15 @@ class Framework(gym.Env):
         self.reward_calculator.reward_dict['total'].append(reward)
         self.logger.info(f"total reward: {reward}")               
         return reward
-        
+    
+    def evaluate_no_agent(self):
+        self.logger.info(f"baseline evaluation")
+        self.done = True
+        self.update_state()
+        reward = self.get_reward()
+        self.logger.info(f"total reward: {reward}")               
+        return reward
+    
     def step(self, action):
         asyncio.run(self.perform_action(action))
         if self.check_done():
@@ -107,33 +109,24 @@ class Framework(gym.Env):
         self.logger.info(f"########################################################################################################################")
         self.step_counter += 1
         return self.state, reward, self.done, {}
-
-        
-    def blind_step(self, action):
-        asyncio.run(self.perform_action(action))
-        if self.check_done():
-            # self.logtype_index_counter()
-            self.done = True
-                  
-        # self.logtype_index_counter()           
-        reward = self.get_reward()
-        self.logger.info(f"########################################################################################################################")
-        self.step_counter += 1
-        return self.state, reward, self.done, {}
+    
 
     async def perform_action(self, action):
         self.logger.info(f"step number: {self.step_counter}")
-        if sum(action) > 0:
-            action /= sum(action)  
+        action_norm_fcator = sum(sum(action))        
+        if action_norm_fcator > 0:
+            action /= action_norm_fcator  
+        self.current_episode_accumulated_action += action
         self.logger.info(f"action: {action}")              
         time_range = self.dt_manager.get_time_range_action(self.action_duration)
-        for i, act in enumerate(action):           
+        for i, acts in enumerate(action):           
             logtype = self.relevant_logtypes[i]    
             logsource = logtype[0].lower()
             eventcode = logtype[1]
-            if act:
-                fake_logs = self.log_generator.generate_logs(logsource, eventcode, time_range, int(act*self.step_size))
-                await self.splunk_tools.insert_logs(fake_logs, logsource)        
+            for istrigger, act in enumerate(acts):
+                if act:
+                    fake_logs = self.log_generator.generate_logs(logsource, eventcode, istrigger,time_range, int(act*self.step_size))
+                    await self.splunk_tools.insert_logs(fake_logs, logsource, eventcode, istrigger)        
         
         self.logger.info(f"Current time: {self.dt_manager.set_fake_current_datetime(time_range[-1])}") 
 
@@ -147,6 +140,8 @@ class Framework(gym.Env):
         previous_now = self.dt_manager.subtract_time(now, seconds=self.action_duration)
         distribution = self.splunk_tools.extract_distribution(previous_now, now)
         self.logger.debug(f"extraceted distribution {distribution}")
+        real_sum = sum([v for k,v in distribution.items() if k.endswith("0")])
+        fake_sum = sum([v for k,v in distribution.items()])
         for i, (source, event_code) in enumerate(self.relevant_logtypes):
             logtype = f"{source.lower()} {event_code}"
             if f"{logtype} 0" in distribution:
@@ -158,29 +153,29 @@ class Framework(gym.Env):
 
         self.logger.debug(f"real distribution: {self.real_distribution}")
         self.logger.debug(f"fake distribution: {self.fake_distribution}")
-        state = self.real_distribution / np.sum(self.real_distribution) if np.sum(self.real_distribution) != 0 else np.ones(len(self.real_distribution)) / len(self.real_distribution)
-        state = np.concatenate((state, self.fake_distribution / np.sum(self.fake_distribution) if np.sum(self.fake_distribution) != 0 else np.ones(len(self.fake_distribution)) / len(self.fake_distribution)))
-
+        state = self.real_distribution / real_sum
+        state = np.concatenate((state, self.fake_distribution / max(fake_sum, 1)))
         self.state = state
         self.logger.info(f"state: {self.state}")
      
     
     def check_done(self):
         # Define the termination conditions based on the current state or other criteria
-        if self.sum_of_fractions > self.action_upper_bound or self.step_counter > self.total_steps:
+        if self.sum_of_fractions > self.action_upper_bound or self.step_counter == self.total_steps-1:
             return True
         else:
             return False
         
     def reset(self):
         self.logger.info("resetting")
-        self.action_per_episode.append(list(self.fake_distribution-self.real_distribution))
+        self.action_per_episode.append(self.current_episode_accumulated_action)
         self.current_log_type = 0
         self.sum_of_fractions = 0
         self.done = False
         self.step_counter = 0
         self.fake_distribution = np.zeros(len(self.relevant_logtypes))
         self.real_distribution = np.zeros(len(self.relevant_logtypes))
+        self.current_episode_accumulated_action = np.zeros((len(self.relevant_logtypes), 2))
         self.update_timerange()
         self.logger.info(f"Current time: {self.dt_manager.set_fake_current_datetime(self.time_range[0])}") 
 

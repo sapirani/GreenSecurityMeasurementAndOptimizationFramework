@@ -87,13 +87,13 @@ class LogGenerator:
         # # logs_to_duplicate_dict = {(logtype[0].lower(), logtype[1]): self.splunk_tools.extract_logs(logtype[0].lower(),time_range=("1", "now"), eventcode=logtype[1], limit=100) for logtype in logtypes}
         return self.splunk_tools.load_logs_to_duplicate_dict(logtypes)
         
-    def generate_log(self, logsource, eventcode, replacement_dict, time_range):
+    def generate_log(self, logsource, eventcode, istrigger, replacement_dict, time_range):
         # logs_to_duplicate_dict = self.logs_to_duplicate_dict[(logsource, eventcode)]
         # if logs_to_duplicate_dict is None or len(logs_to_duplicate_dict) == 0:
         #     return None
         # log = random.choice(logs_to_duplicate_dict)
         # return self.replace_fields_in_log(log, logsource, time_range, replacement_dict)
-        log = self.logs_to_duplicate_dict[logsource, eventcode][0]
+        log = self.logs_to_duplicate_dict[logsource, eventcode, istrigger][0]
         start_date = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S') 
         end_date = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S') 
         return log, self.generate_fake_time(start_date,end_date).timestamp()
@@ -106,11 +106,11 @@ class LogGenerator:
         replacement_dict = {field.lower():{key: random.choice(value) for key, value in self.big_replacement_dicts[field].items()} for field in self.big_replacement_dicts}
         return replacement_dict
         
-    def generate_logs(self, logsource, eventcode, time_range, num_logs):
+    def generate_logs(self, logsource, eventcode, istrigger, time_range, num_logs):
         logsource_replacement_dict = self.get_replacement_values(logsource)
         logs = []
         for i in range(num_logs):
-            log = self.generate_log(logsource, eventcode, logsource_replacement_dict, time_range)
+            log = self.generate_log(logsource, eventcode, istrigger, logsource_replacement_dict, time_range)
             if log is not None:
                 logs.append(log)
         return logs

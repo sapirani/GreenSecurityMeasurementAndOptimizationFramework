@@ -9,7 +9,7 @@ from threading import Thread, Timer
 import pandas as pd
 
 from initialization_helper import *
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
 
@@ -613,7 +613,7 @@ def scan_and_measure():
 
     measurements_thread = Thread(target=continuously_measure, args=())
     measurements_thread.start()
-    
+    print(f"Starting measurement thread {datetime.now()}")
     while not main_program_to_scan in no_process_programs and not done_scanning:
         main_process, main_process_id = start_process(program)
         timeout_timer = start_timeout(main_process, running_os.is_posix())

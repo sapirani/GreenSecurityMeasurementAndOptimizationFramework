@@ -33,7 +33,7 @@ class RewardCalc:
         self.distribution_learner_counter = 0
         if not self.distribution_learner:
             self.distribution_learner_counter = 5    
-        self.distribution_threshold = 0.2
+        self.distribution_threshold = 0.4
         self.measurment_tool = Measurement(self.logger, self.splunk_tools, self.num_of_searches)
       
     def get_previous_full_reward(self):
@@ -42,7 +42,10 @@ class RewardCalc:
     def get_partial_reward(self, real_distribution, current_state):
         fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
         # return 0.5/(distributions_val+0.000000000001) + 0.5*(fraction_val)
-        return 1/(distributions_val)
+        if distributions_val > self.distribution_threshold:
+            return -1
+        else:
+            return 1
         
     def get_is_limit_learner(self, current_state):
         return current_state[-2]

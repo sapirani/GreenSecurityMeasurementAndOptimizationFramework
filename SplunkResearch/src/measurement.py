@@ -20,7 +20,15 @@ class Measurement:
 
     def merge_energy_and_rule_data(self, pids_energy_df, rules_pids_df):
         splunk_pids_energy_df = pids_energy_df[pids_energy_df['PID'].isin(rules_pids_df.pid.values)].sort_values('Time(sec)') 
+        if len(splunk_pids_energy_df) == 0:
+            print('No matching PIDs')
+            print(pids_energy_df)
+            print(rules_pids_df)
         rules_energy_df = pd.merge(splunk_pids_energy_df, rules_pids_df, left_on='PID', right_on='pid')
+        if len(rules_energy_df) == 0:
+            print('Problem with the merge')
+            print(splunk_pids_energy_df)
+            print(rules_pids_df)
         rules_energy_df['Time(sec)'] = pd.to_datetime(rules_energy_df['Time(sec)'])
         rules_energy_df = rules_energy_df.sort_values(by=['name', 'Time(sec)'])
         return rules_energy_df
@@ -38,7 +46,7 @@ class Measurement:
             # Start the scanner.py script in a separate process
             scanner_process = subprocess.Popen(['python', '../Scanner/scanner.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             # Now, start the get_rules_data function
-            sleep(6)
+            sleep(30)
             rules_pids_df, num_of_rules = self.splunk_tools.get_rules_data(time_range, self.num_of_searches)
             # Optionally, you can wait for the scanner process to complete
             scanner_process.wait()
