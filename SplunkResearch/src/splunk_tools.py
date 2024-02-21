@@ -194,8 +194,8 @@ class SplunkTools:
 
         return pids
     
-    def get_alert_count(self, time_range):
-        spl_query = f'search index=_internal sourcetype=scheduler thread_id=AlertNotifier* user="shouei" earliest={time_range[0]} latest={time_range[1]}|stats count'
+    def get_alert_count(self, sids):
+        spl_query = f'search index=_audit action=alert_fired ss_app=search user=shouei earliest=-1h latest=now() | where sid IN {tuple(sids)} |stats count'
         # spl_query = 'search index=_internal sourcetype=scheduler thread_id=AlertNotifier* user="shouei"|stats count by savedsearch_name sid'
         url = f"{self.base_url}/services/search/jobs"
         data = {
@@ -203,9 +203,9 @@ class SplunkTools:
             "exec_mode": "oneshot",
             "output_mode": "json"
         }
-
         response = requests.post(url, headers=HEADERS, data=data, auth=(self.splunk_username, self.splunk_password), verify=False)
         results = json.loads(response.text)
+        self.logger.info(results)
         results = int(results['results'][0]['count'])
         return results
                   
@@ -303,9 +303,6 @@ class SplunkTools:
                     sid, pid, time, run_duration, total_events, total_run_time = e 
                     data.append((name, sid, pid, time, run_duration, total_events, total_run_time)) 
             rules_pids_df = pd.DataFrame(data, columns=['name', 'sid', 'pid', 'time', 'run_duration', 'total_events', 'total_run_time'])
-            # print(len(rules_pids_df.name.unique()))
-            # print(len(rules_pids_df))
-            # print(rules_pids_df.name.unique())
             if len(rules_pids_df.name.unique()) == num_of_searches and len(rules_pids_df) == num_of_searches:
                 break
             rules_pids_df = None
@@ -315,32 +312,8 @@ class SplunkTools:
         num_of_rules = len(rules_pids_df['name'].unique())
         self.logger.info(f"num of extracted rules data: {num_of_rules}")
         with open("/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt", "w") as f:
-            f.write('finished')
+            f.write('save')
         return rules_pids_df, num_of_rules
-    
-        # # Function to fetch message from the provided website
-    # def fetch_message(self, event_code):
-    #     url = f"https://www.ultimatewindowssecurity.com/securitylog/encyclopedia/event.aspx?eventid={event_code}"
-    #     response = requests.get(url)
-    #     if response.status_code == 200:
-    #         soup = BeautifulSoup(response.text, 'html.parser')
-    #         example_div = soup.find('div', class_='block')
-    #         if example_div:
-    #             if event_code.startswith('9'):
-    #                 message = example_div.find_all('p')[1].text.strip().replace("Event Xml:\r\n", '')
-    #             else:
-    #                 # Example structure 1
-    #                 h2 = example_div.find('h2')
-    #                 if h2 and "Examples of" in h2.text:
-    #                     # Extract the paragraphs excluding the last two with links
-    #                     paragraphs = example_div.find_all('p')[:-2]
-    #                     message_parts = [paragraph.text.strip() for paragraph in paragraphs]
-    #                     message = '\n'.join(message_parts)
-    #                 else:
-    #                     message = f"Unable to extract message for event code {event_code}"
-    #             return message
-    #     else:
-    #         return f"Unable to fetch message for event code {event_code}"
     
 if __name__ == "__main__":
     logger = logging.getLogger("my_app")

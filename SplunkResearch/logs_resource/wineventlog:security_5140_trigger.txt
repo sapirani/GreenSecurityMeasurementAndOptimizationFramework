@@ -1,27 +1,29 @@
-01/03/2024 14:20:45 PM
+02/03/2022 19:40:12 PM
 LogName=Security
 EventCode=5140
-EventType=0
-ComputerName=SRV-01.corp.local
-SourceName=Microsoft-Windows-Security-Auditing
-Type=Information
-RecordNumber=12345
-Keywords=Audit Success
-TaskCategory=Object Access
-OpCode=Info
+TaskCategory=Sharing File System (12808)
+Level=Information
+Keywords=0x80208000000000
+User=ATTACKRANGE\Administrator
+Computer=ar-win-2.attackrange.local
 Message=A network share object was accessed.
 
 Subject:
-  Security ID:	S-1-5-18
-  Account Name:	SYSTEM
-  Account Domain:	NT AUTHORITY
-  Logon ID:		0x3E7
+    SecurityID:        ATTACKRANGE\Administrator
+    AccountName:       Administrator  
+    AccountDomain:     ATTACKRANGE
+    LogonID:           0x5e340a
 
-Object:
-  Object Server:	Security
-  Object Type:		File
-  Object Name:		\\server\share\example.txt
-  Handle ID:		0x12345678
-  Process ID:		0x5678
-  Process Name:		C:\Windows\System32\svchost.exe
+Network Information:
+    ObjectType:        File
+    SourceAddress:     10.0.1.14
+    SourcePort:        57804
+
+Share Information:
+    ShareName:         \\MININT-LDTUS6A\ADMIN$  
+    ShareLocalPath:   \??\C:\Windows
+
+Access Request Information:
+    AccessMask:        0x1
+    AccessList:        %%4416
 [EOF]

@@ -94,7 +94,6 @@ class Framework(gym.Env):
         self.done = True
         self.update_state()
         reward = self.get_reward()
-        self.logger.info(f"total reward: {reward}")               
         return reward
     
     def step(self, action):

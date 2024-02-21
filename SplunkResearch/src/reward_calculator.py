@@ -34,6 +34,7 @@ class RewardCalc:
         if not self.distribution_learner:
             self.distribution_learner_counter = 5    
         self.distribution_threshold = 0.4
+        self.alert_threshold = 1
         self.measurment_tool = Measurement(self.logger, self.splunk_tools, self.num_of_searches)
       
     def get_previous_full_reward(self):
@@ -63,6 +64,8 @@ class RewardCalc:
         fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
         alert_val, energy_val, energy_increase, duration_val, duration_increase = self.get_full_reward_values(time_range=time_range)
         self.update_average_values()
+        if alert_val > self.alert_threshold:
+            return -10
         return duration_val/distributions_val
         
     def update_average_values(self):
@@ -86,7 +89,8 @@ class RewardCalc:
         self.logger.info(f"duration value: {duration_val}")
         self.reward_values_dict['energy'].append(energy_val)
         self.reward_values_dict['duration'].append(duration_val)
-        alert_val = 0#self.splunk_tools.get_alert_count(time_range) #TODO: change to get_alert_count
+        sids = [rule['sid'] for rule in rule_total_energy_dict]
+        alert_val = self.splunk_tools.get_alert_count(sids)
         if self.average_energy == 0:
             energy_increase = 0
         else:

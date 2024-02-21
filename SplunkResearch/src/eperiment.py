@@ -41,8 +41,8 @@ class Experiment:
     def choose_random_rules(self, splunk_tools_instance, num_of_searches, is_get_only_enabled=True):
         self.logger.info('enable random rules')
         savedsearches = splunk_tools_instance.get_saved_search_names(get_only_enabled=is_get_only_enabled)
-        random_savedsearch = random.sample(savedsearches, num_of_searches)
-        random_savedsearch = ['Monitor for File Shares', 'Monitor for Whitelisting bypass attempts']
+        # random_savedsearch = random.sample(savedsearches, num_of_searches)
+        random_savedsearch = ['ESCU Network Share Discovery Via Dir Command Rule', 'Detect New Local Admin account']
         for savedsearch in savedsearches:
             if savedsearch not in random_savedsearch:
                 splunk_tools_instance.disable_search(savedsearch)

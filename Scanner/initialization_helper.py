@@ -5,7 +5,6 @@ from program_parameters import *
 from program_classes import *
 from os_funcs import *
 from scanner_versions_imp import FullScanner, LiteScanner, WithoutBatteryScanner
-
 # ======= Get Operating System Type =======
 running_os = None
 if platform.system() == "Linux":

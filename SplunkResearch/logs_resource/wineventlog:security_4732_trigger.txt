@@ -1,0 +1,31 @@
+12/03/2023 09:33:16 AM
+LogName=Security
+EventCode=4732
+EventType=0
+ComputerName=dt-300.auth.ad.bgu.ac.il
+SourceName=Microsoft Windows security auditing.
+Type=Information
+RecordNumber=29921
+Keywords=Audit Success
+TaskCategory=Security Group Management
+OpCode=Info
+Message=A member was added to a security-enabled local group.
+
+Subject:
+	Security ID:		S-1-5-18
+	Account Name:		DT-300$
+	Account Domain:		BGU-USERS
+	Logon ID:		0x3E7
+
+Member:
+	Security ID:		S-1-5-21-1220750395-818509756-262303683-249711
+	Account Name:		-
+
+Group:
+	Security ID:		S-1-5-32-544
+	Group Name:		Administrators
+	Group Domain:		Builtin
+
+Additional Information:
+	Privileges:		-  	
+[EOF]
