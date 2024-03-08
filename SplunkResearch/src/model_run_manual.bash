@@ -18,10 +18,10 @@ test_episodes=10
 test_experiment="last"
 echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train
 wait
-echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $test_experiment $test_episodes
-wait
 # echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" retrain $test_experiment
 # wait
+echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $test_experiment $test_episodes
+wait
 echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline $test_experiment $test_episodes random
 wait
 echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" no_agent $test_experiment $test_episodes

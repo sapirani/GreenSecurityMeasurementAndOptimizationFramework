@@ -21,10 +21,10 @@ class LogGenerator:
         start_date, end_date=time_range
         time = self.generate_fake_time(start_date, end_date)      
         if log_source.split(':')[0] == 'wineventlog':
-            new_log = re.sub(r"^\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2} [APM]{2}", time.strftime("%m/%d/%Y %I:%M:%S %p"), log, flags=re.MULTILINE)
-            new_log += '\nIsFakeLog=True'
-            for field, new_value in replacement_dict.items():
-                new_log = re.sub(f"{field}=\S+", f"{field}={new_value}", new_log, flags=re.MULTILINE)
+            log = re.sub(r"^\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2} [APM]{2}", time.strftime("%m/%d/%Y %I:%M:%S %p"), log, flags=re.MULTILINE)
+            # new_log += '\nIsFakeLog=True'
+            # for field, new_value in replacement_dict.items():
+            #     new_log = re.sub(f"{field}=\S+", f"{field}={new_value}", new_log, flags=re.MULTILINE)
         else:
             ET.register_namespace('', "http://schemas.microsoft.com/win/2004/08/events/event")
             
@@ -62,7 +62,7 @@ class LogGenerator:
             # print(new_log)
             # print(log)
             # print(xml)
-        return log,time.timestamp()
+        return log#,time.timestamp()
 
     # def generate_fake_time(self, start_date, end_date):
     #     time = Faker().date_time_between(start_date, end_date, tzinfo=None)
@@ -96,7 +96,18 @@ class LogGenerator:
         log = self.logs_to_duplicate_dict[logsource, eventcode, istrigger][0]
         start_date = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S') 
         end_date = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S') 
-        return log, self.generate_fake_time(start_date,end_date).timestamp()
+        time = self.generate_fake_time(start_date, end_date)
+        log = re.sub(r"^\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2} [APM]{2}", time.strftime("%m/%d/%Y %I:%M:%S %p"), log, flags=re.MULTILINE)
+        
+        insert_line = "is_fake=1"
+
+        # Define a regex pattern to find the last indented field before 'Message='
+        field_pattern = re.compile(r'(\w+=.*?)(?=\n+Message=)')
+
+        # Use regex to find and replace the last indented field before 'Message=' with the new line
+        modified_log = re.sub(field_pattern, fr'\g<0>\n{insert_line}', log)
+        
+        return modified_log#, self.generate_fake_time(start_date,end_date).timestamp()
     
     def get_replacement_values(self, logsource):
         replacement_dict = self.random_replacement_values()    

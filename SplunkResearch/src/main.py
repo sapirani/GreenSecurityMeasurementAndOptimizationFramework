@@ -3,7 +3,7 @@ import json
 import sys
 from datetime import datetime
 import traceback
-from eperiment import Experiment
+from experiment import Experiment
 from experiment_manager import ExperimentManager
 import logging
 
@@ -65,6 +65,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"An error occurred: {e}")
         traceback.print_exc()
-    finally:
-        experiment_manager.send_email(log_file)
+    # finally:
+    #     experiment_manager.send_email(log_file)
 

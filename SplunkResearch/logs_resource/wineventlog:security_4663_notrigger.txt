@@ -1,0 +1,33 @@
+06/22/2023 09:20:45 AM  
+LogName=Security  
+EventCode=4663  
+EventType=0  
+ComputerName=user-PC.domain.com  
+SourceName=Microsoft Windows security auditing.  
+Type=Information  
+RecordNumber=987655  
+Keywords=Audit Success  
+TaskCategory=File System  
+OpCode=Info  
+Message=An attempt was made to access an object.  
+  
+Subject:  
+  Security ID:        S-1-5-21-1234567890-1234567890-1234567890-1001  
+  Account Name:       user  
+  Account Domain:     DOMAIN  
+  Logon ID:           0x3E7  
+  
+Object:  
+  Object Server:      Security  
+  Object Type:        File  
+  Object Name:        C:\Users\user\AppData\Local\Google\Chrome\User Data\Default\Cache\data_1  
+  Handle ID:          0x2001  
+  
+Process Information:  
+  Process ID:         0x4C1  
+  Process Name:       C:\Windows\explorer.exe  
+  
+Access Request Information:  
+  Accesses:           READ_DATA  
+  Access Mask:        0x12345679  	
+[EOF]

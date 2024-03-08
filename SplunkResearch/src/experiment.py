@@ -2,6 +2,7 @@ import os
 import pickle
 import numpy as np
 import urllib3
+from measurement import Measurement
 
 from datetime_manager import MockedDatetimeManager
 import datetime
@@ -25,6 +26,7 @@ import gym
 from log_generator import LogGenerator
 from resources.log_generator_resources import replacement_dicts as big_replacement_dicts
 urllib3.disable_warnings()
+from stable_baselines3.common.logger import configure
 
 
 class Experiment:
@@ -70,14 +72,21 @@ class Experiment:
         with open(f'{current_dir}/{mode}/action_dict_{mode}.json', 'w') as fp:
                 json.dump(np.array(env.action_per_episode).tolist(), fp)
 
-    
+    def empty_monitored_files(self, monitored_file_path):
+        self.logger.info(f'empty the monitored file {monitored_file_path}')
+        with open(monitored_file_path, 'w') as fp:
+            fp.write('')
+            
     def clean_env(self, splunk_tools_instance, time_range=None):
         if time_range is None:
-            splunk_tools_instance.delete_fake_logs()
+            time_range = ("06/22/2023:00:00:00","06/25/2023:00:00:00")
+            splunk_tools_instance.delete_fake_logs(time_range)
+            self.empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:security.txt")
             return time_range
         date = time_range[1].split(':')[0]
         time_range = (f'{date}:00:00:00', f'{date}:23:59:59')
         splunk_tools_instance.delete_fake_logs(time_range)
+        self.empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:security.txt")
         return time_range
     
     def setup_environment(self, parameters):
@@ -91,14 +100,6 @@ class Experiment:
         env_file_path = parameters['env_file_path']
         fake_start_datetime = parameters['fake_start_datetime']
         is_get_only_enabled = parameters['is_get_only_enabled']
-        if 'limit_learner' in parameters:
-            limit_learner = parameters['limit_learner']
-        else:
-            limit_learner = True
-        if 'distribution_learner' in parameters:
-            distribution_learner = parameters['distribution_learner']
-        else:
-            distribution_learner = True
         # savedsearches = parameters['savedsearches']
         fake_start_datetime  = datetime.datetime.strptime(fake_start_datetime, '%m/%d/%Y:%H:%M:%S')
         # create a datetime manager instance
@@ -115,19 +116,25 @@ class Experiment:
         parameters['savedsearches'] = savedsearches
         # savedsearches = ['Modification of Executable File', 'Monitor for New Service Installs', 'Monitor for Suspicious Network IP’s', 'Multiple Network Connections to Same Port on External Hosts']
         relevant_logtypes = sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]})) #[(x[0], str(x[1])) for x in state_span]
+        relevant_logtypes.append(('wineventlog:security', '4624'))
         # relevant_logtypes = [('wineventlog:security', '2005'), ('wineventlog:security', '4625'), ('wineventlog:security', '2004'), ('xmlwineventlog:microsoft-windows-sysmon/operational', '3'), ('wineventlog:security', '4688'), ('xmlwineventlog:microsoft-windows-sysmon/operational', '8')]
         # relevant_logtypes = [logtype for logtype in logtypes if logtype not in section_logtypes]
         # relevant_logtypes = state_span
-        parameters['relevant_logtypes'] = relevant_logtypes
-        
+        # non_relevant_logtypes = random.sample([logtype for logtype in logtypes if logtype not in relevant_logtypes], len(relevant_logtypes))
+        parameters['relevant_logtypes'] = relevant_logtypes #+ non_relevant_logtypes
+        if "total_additional_logs" in parameters:
+            total_additional_logs = parameters['total_additional_logs']
+        else:
+            total_additional_logs = None
         log_generator_instance = LogGenerator(relevant_logtypes, big_replacement_dicts, splunk_tools_instance)
-        reward_calculator_instance = RewardCalc(relevant_logtypes, dt_manager, self.logger, splunk_tools_instance, rule_frequency, num_of_searches, distribution_learner)
+        measurment_tool = Measurement(self.logger, splunk_tools_instance, num_of_searches, measure_energy=parameters['measure_energy'])
+        reward_calculator_instance = RewardCalc(relevant_logtypes, dt_manager, self.logger, splunk_tools_instance, rule_frequency, num_of_searches, measurment_tool)
         self.logger.info(f'current parameters:\ntime range:{time_range} \nfake_start_datetime: {fake_start_datetime}\nrule frequency: {rule_frequency}\nsearch_window:{search_window}\nrunning time: {running_time}\nnumber of searches: {num_of_searches}\nmax action value: {max_actions_value}\nreward parameter dict: {reward_parameter_dict}\nsavedsearches: {savedsearches}\nrelevantlog_types: {relevant_logtypes}')
         gym.register(
         id='splunk_attack-v0',
         entry_point='framework:Framework',  # Replace with the appropriate path       
         )
-        env = gym.make('splunk_attack-v0', log_generator_instance = log_generator_instance, splunk_tools_instance = splunk_tools_instance, reward_calculator_instance = reward_calculator_instance, dt_manager=dt_manager, logger=self.logger, time_range=time_range, rule_frequency=rule_frequency, search_window=search_window, relevant_logtypes=relevant_logtypes, limit_learner=limit_learner, max_actions_value=max_actions_value)
+        env = gym.make('splunk_attack-v0', log_generator_instance = log_generator_instance, splunk_tools_instance = splunk_tools_instance, reward_calculator_instance = reward_calculator_instance, dt_manager=dt_manager, logger=self.logger, time_range=time_range, rule_frequency=rule_frequency, search_window=search_window, relevant_logtypes=relevant_logtypes, max_actions_value=max_actions_value, total_additional_logs=total_additional_logs)
 
         return env
     
@@ -148,21 +155,25 @@ class Experiment:
 
     def train_model(self, parameters):
         self.logger.info('train the model')
+        parameters['measure_energy'] = False
         env = self.setup_environment(parameters)
         # save reward_calculator.py to the experiment directory
         with open(f'{self.experiment_dir}/reward_calculator.py', 'w') as fp:
             with open(r'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/reward_calculator.py', 'r') as fp2:
                 fp.write(fp2.read())
+        new_logger = configure(f"{self.experiment_dir}/tensorboard/", ["stdout", "csv", "tensorboard"])
         self.save_parameters_to_file(parameters, f'{self.experiment_dir}/parameters_train.json')
-        model = A2C(MlpPolicy, env, verbose=1, ent_coef=0.01)
+        model = A2C(MlpPolicy, env, verbose=1, stats_window_size=5, tensorboard_log=f"{self.experiment_dir}/tensorboard/")
+        model.set_logger(new_logger)
         # model = DQN(env=env, policy=CustomPolicy)
-        model.learn(total_timesteps=parameters['episodes']*env.total_steps)
+        model.learn(total_timesteps=parameters['episodes']*env.total_steps, tb_log_name=self.logger.name)
         model.save(f"{self.experiment_dir}/splunk_attack")
         self.save_assets(self.experiment_dir, env)
         return model
     
     def retrain_model(self, parameters):
         self.logger.info('retrain the model')
+        parameters['measure_energy'] = False
         env = self.load_environment({'limit_learner':False})
         model = A2C.load(f"{self.experiment_dir}/splunk_attack")
         model.set_env(env)
@@ -174,7 +185,7 @@ class Experiment:
     def test_model(self, num_of_episodes):
         self.logger.info('test the model')
         model = A2C.load(f"{self.experiment_dir}/splunk_attack")
-        env = self.load_environment()
+        env = self.load_environment({'measure_energy': True})
         mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=num_of_episodes)
         self.logger.info(f"mean_reward:{mean_reward}, std_reward:{std_reward}")
         self.save_assets(self.experiment_dir, env, mode='test')
@@ -182,7 +193,7 @@ class Experiment:
     
     def test_baseline_agent(self, num_of_episodes, agent_type='random'):
         self.logger.info(f'test baseline {agent_type} agent')
-        env = self.load_environment()
+        env = self.load_environment({'measure_energy': True})
         for i in range(num_of_episodes):
             env.reset()
             self.run_manual_episode(agent_type, env)
@@ -192,7 +203,7 @@ class Experiment:
             
     def test_no_agent(self, num_of_episodes):
         self.logger.info('test no agent')
-        env = self.load_environment()
+        env = self.load_environment({'measure_energy': True})
         for i in range(num_of_episodes):
             env.reset()
             env.evaluate_no_agent()

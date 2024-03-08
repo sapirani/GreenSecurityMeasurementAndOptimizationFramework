@@ -1,3 +1,4 @@
+import random
 import shutil
 import sys
 import warnings
@@ -119,7 +120,6 @@ class Scanner:
                 pass
 
         proc = sorted(proc, key=lambda x: x[1], reverse=True)
-
         return self.add_to_processes_dataframe(time_of_sample, proc, prev_data_per_process)
 
     def add_to_processes_dataframe(self, time_of_sample, top_list, prev_data_per_process):
@@ -182,7 +182,7 @@ class Scanner:
             f.write("EARLY TERMINATION DUE TO LOW BATTERY!!!!!!!!!!\n\n")
         self.finished_scanning_time.append(self.FullScanner.calc_time_interval(self.scanner_imp, self.starting_time))
         self.save_results_to_files()
-
+        
     def should_scan(self):
         """_summary_: check what is the scan option
 
@@ -192,17 +192,21 @@ class Scanner:
         if self.scanner_imp.is_battery_too_low(self.battery_df):
             self.save_data_when_too_low_battery()
             return False
-        if os.path.exists(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt"):
-            with open(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt", 'r') as f:
-                line = f.read()
-                self.logger.info(f"Read line: {line}")
-            if line == "save":
-                self.save_results_to_files()
-                os.remove(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt")
-            if line == "finished":
-                os.remove(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt")
-                return False
+        # if os.path.exists(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt"):
+        #     with open(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt", 'r') as f:
+        #         line = f.read()
+        #         self.logger.info(f"Read line: {line}")
+        #     if line == "save":
+        #         self.save_results_to_files()
+        #         os.remove(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt")
+        #     if line == "finished":
+        #         os.remove(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt")
+        #         return False
+        # if self.done_scanning:
+        #     self.logger.info("Done scanning")
+        #     return False
         if main_program_to_scan in no_process_programs:
+            self.save_results_to_files()
             return not self.scan_time_passed()
         elif self.scan_option == self.ScanMode.ONE_SCAN:
             return not self.done_scanning
@@ -217,27 +221,31 @@ class Scanner:
         total_cpu = psutil.cpu_percent(percpu=True)
         self.cpu_df.loc[len(self.cpu_df.index)] = [self.scanner_imp.calc_time_interval(self.starting_time), mean(total_cpu)] + total_cpu
 
-    def continuously_measure(self):
+    def continuously_measure(self, conn):
         """
         This function runs in a different thread. It accounts for measuring the full resource consumption of the system
         """
         self.running_os.init_thread()
+        try:
+            # init prev_disk_io by first disk io measurements (before scan)
+            # TODO: lock thread until process starts
+            prev_disk_io = psutil.disk_io_counters()
+            prev_data_per_process = {}
+            msg = "keep going"
+            # TODO: think if total tables should be printed only once
+            while self.should_scan() and msg != "stop":
+                # Create a delay
+                if conn.poll():
+                    msg = conn.recv()   
+                self.scanner_imp.scan_sleep(0.5)
 
-        # init prev_disk_io by first disk io measurements (before scan)
-        # TODO: lock thread until process starts
-        prev_disk_io = psutil.disk_io_counters()
-        prev_data_per_process = {}
-
-        # TODO: think if total tables should be printed only once
-        while self.should_scan():
-            # Create a delay
-            self.scanner_imp.scan_sleep(0.5)
-
-            self.scanner_imp.save_battery_stat(self.battery_df, self.scanner_imp.calc_time_interval(self.starting_time))
-            prev_data_per_process = self.save_current_processes_statistics(prev_data_per_process)
-            self.save_current_total_cpu()
-            self.save_current_total_memory()
-            prev_disk_io = self.save_current_disk_io(prev_disk_io)
+                self.scanner_imp.save_battery_stat(self.battery_df, self.scanner_imp.calc_time_interval(self.starting_time))
+                prev_data_per_process = self.save_current_processes_statistics(prev_data_per_process)
+                self.save_current_total_cpu()
+                self.save_current_total_memory()
+                prev_disk_io = self.save_current_disk_io(prev_disk_io)
+        except Exception as e:
+            conn.send(f"error: {e}")
 
     def save_general_disk(self, f):
         """
@@ -332,11 +340,11 @@ class Scanner:
         self.hardware_df.to_csv(self.HARDWARE_CSV)
 
 
-    def main(self):
+    def main(self, conn):
         print("======== Process Monitor ========")
         self.before_scanning_operations()
         sys.stdout.flush()
-        self.scan_and_measure()
+        self.scan_and_measure(conn)
         sys.stdout.flush()
         self.after_scanning_operations()
 
@@ -422,7 +430,7 @@ class Scanner:
         """
         if self.finished_scanning_time:
             self.save_general_information_after_scanning()
-        self.ignore_last_results()
+            self.ignore_last_results()
 
         self.processes_df.to_csv(self.PROCESSES_CSV, index=False)
         self.memory_df.to_csv(self.TOTAL_MEMORY_EACH_MOMENT_CSV, index=False)
@@ -444,7 +452,7 @@ class Scanner:
 
         return calc_delta_capacity(self.battery_df)[0] >= MINIMUM_DELTA_CAPACITY
 
-    def scan_and_measure(self):
+    def scan_and_measure(self, conn):
         """
         The main function. This function starts a thread that will be responsible for measuring the resource
         consumption of the whole system and per each process. Simultaneously, it starts the main program and
@@ -452,7 +460,7 @@ class Scanner:
         """
         self.starting_time = time.time()
 
-        measurements_thread = Thread(target=self.continuously_measure, args=())
+        measurements_thread = Thread(target=self.continuously_measure, args=(conn,))
         measurements_thread.start()
         print(f"Starting measurement thread {datetime.now()}")
         while not main_program_to_scan in no_process_programs and not self.done_scanning:
@@ -481,6 +489,7 @@ class Scanner:
 
         # wait for measurement
         measurements_thread.join()
+        
         if main_program_to_scan in no_process_programs:
             self.finished_scanning_time.append(self.scanner_imp.calc_time_interval(self.starting_time))
 

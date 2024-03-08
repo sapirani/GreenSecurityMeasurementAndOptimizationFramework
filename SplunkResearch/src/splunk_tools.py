@@ -38,6 +38,13 @@ class SplunkTools:
         self.hec_token2 = os.getenv('HEC_TOKEN2')
         self.auth = requests.auth.HTTPBasicAuth(self.splunk_username, self.splunk_password)
         self.logger = logger
+    
+                    
+    def write_logs_to_monitor(self, logs, log_source):
+        with open(f'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/{log_source}.txt', 'a') as f:
+            for log in logs:
+                f.write(f'{log}\n\n')
+        
         
     def get_saved_search_names(self, get_only_enabled=True):
         names = []
@@ -91,43 +98,9 @@ class SplunkTools:
         searches_names = self.get_saved_search_names()  # Assuming savedsearches_path is defined
         with Pool() as pool:
             pool.starmap(update_func, [(search_name, update_arg) for search_name in searches_names])
-
-
-    async def _send_logs(self, logs, log_source, eventcode, istrigger, hec_token):
-        headers = {
-            "Authorization": f"Splunk {hec_token}",
-            "Content-Type": "application/x-www-form-urlencoded",
-        }
-        url = f"http://{self.splunk_host}:8088/services/collector/event"
-        events = []
-        for i, (log, time) in enumerate(logs):
-            events.append(json.dumps({'event': log, 'source': log_source, 'sourcetype': log_source.split(':')[0], 'time': time}))
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, headers=headers, data="\n".join(events))
-        if response.status_code == 200:
-            self.logger.info(f'Logs successfully sent to Splunk. {len(logs)} logs of source {log_source}_{eventcode}_{istrigger} were sent.')
-        else:
-            self.logger.info('Failed to send log entry to Splunk.')
-            self.logger.info(response.text)
-            self.logger.info("\n".join(events))
-
-    async def insert_logs(self, logs, log_source, eventcode, istrigger):
-        if len(logs) == 0:
-            return
-        # select randomly one of the tokens
-        hec_tokens = [self.hec_token1, self.hec_token2]
-        tasks = []
-        for i, token in enumerate(hec_tokens):
-            start = i * len(logs) // 2
-            end = (i + 1) * len(logs) // 2
-            if len(logs) == 1 and i == 0:
-                continue                
-            task = asyncio.create_task(self._send_logs(logs[start:end], log_source, eventcode, istrigger, token))
-            tasks.append(task)
-        await asyncio.gather(*tasks)
             
     def extract_distribution(self, start_time, end_time, fake=False):
-        command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}") | eval is_fake=if(host=\\"{"132.72.81.150:8088"}\\", 1, 0) |stats count by source EventCode is_fake| eventstats sum(count) as totalCount" -maxout 0 -auth shouei:sH231294'
+        command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}") | eval is_fake=if(isnotnull(is_fake), is_fake, 0)|stats count by source EventCode is_fake| eventstats sum(count) as totalCount" -maxout 0 -auth shouei:sH231294'
         cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
         res_dict = {}
         if len(cmd.stdout.split('\n')) > 2:
@@ -195,7 +168,7 @@ class SplunkTools:
         return pids
     
     def get_alert_count(self, sids):
-        spl_query = f'search index=_audit action=alert_fired ss_app=search user=shouei earliest=-1h latest=now() | where sid IN {tuple(sids)} |stats count'
+        spl_query = f'search index=_audit action=alert_fired ss_app=search user=shouei earliest=-1h latest=now() | where sid IN {tuple(sids)} |stats count'.replace('\'', '\"')
         # spl_query = 'search index=_internal sourcetype=scheduler thread_id=AlertNotifier* user="shouei"|stats count by savedsearch_name sid'
         url = f"{self.base_url}/services/search/jobs"
         data = {
@@ -205,7 +178,6 @@ class SplunkTools:
         }
         response = requests.post(url, headers=HEADERS, data=data, auth=(self.splunk_username, self.splunk_password), verify=False)
         results = json.loads(response.text)
-        self.logger.info(results)
         results = int(results['results'][0]['count'])
         return results
                   
@@ -235,6 +207,24 @@ class SplunkTools:
             results = [json.loads(obj)['result']['_raw'] for obj in json_objects]
         self.save_logs(log_source, eventcode, results)
         return results
+    
+
+    
+    def delete_fake_logs(self, time_range=None):
+        url = f"{self.base_url}/services/search/jobs/export"
+        if time_range is None:
+            time_expression = 'earliest=0'
+        else:
+            time_expression = f'earliest="{time_range[0]}" latest="{time_range[1]}"'
+        data = {
+            "search": f'search index=main is_fake=1 source="WinEventLog:Security" {time_expression} | delete',
+            "exec_mode": "oneshot",
+            "output_mode": "json"
+        }
+        response = requests.post(url, headers=HEADERS, data=data, auth=self.auth, verify=False)
+        results = response.text
+        self.logger.info(results)
+
         
     def save_logs(self, log_source, eventcode, logs):
         path = f'{PREFIX_PATH}logs_to_duplicate_files'
@@ -267,6 +257,9 @@ class SplunkTools:
                              logs_to_duplicate_dict[(source, eventcode, istrigger)].append(log)
         return logs_to_duplicate_dict   
      
+                
+    def get_time(self, y, m, d, h, mi, s):
+        return datetime(y, m, d, h, mi, s).timestamp()
     
     def sample_log(self, logs, action_value):
         if len(logs) > 0:
@@ -275,46 +268,42 @@ class SplunkTools:
         else:
             # self.logger.info('No results found or results is not a list.')
             return None  
-        
-    def get_time(self, y, m, d, h, mi, s):
-        return datetime(y, m, d, h, mi, s).timestamp()
-    
-    def delete_fake_logs(self, time_range=None):
-        url = f"{self.base_url}/services/search/jobs/export"
-        if time_range is None:
-            time_expression = 'earliest=0'
-        else:
-            time_expression = f'earliest="{time_range[0]}" latest="{time_range[1]}"'
-        data = {
-            "search": f'search index=main host=\"{"132.72.81.150:8088"}\"{time_expression} | delete',
-            "exec_mode": "oneshot",
-            "output_mode": "json"
+
+
+    async def insert_logs(self, logs, log_source, eventcode, istrigger):
+        if len(logs) == 0:
+            return
+        # select randomly one of the tokens
+        hec_tokens = [self.hec_token1, self.hec_token2]
+        tasks = []
+        for i, token in enumerate(hec_tokens):
+            start = i * len(logs) // 2
+            end = (i + 1) * len(logs) // 2
+            if len(logs) == 1 and i == 0:
+                continue                
+            task = asyncio.create_task(self._send_logs(logs[start:end], log_source, eventcode, istrigger, token))
+            tasks.append(task)
+        await asyncio.gather(*tasks)
+       
+   
+    async def _send_logs(self, logs, log_source, eventcode, istrigger, hec_token):
+        headers = {
+            "Authorization": f"Splunk {hec_token}",
+            "Content-Type": "application/x-www-form-urlencoded",
         }
-        response = requests.post(url, headers=HEADERS, data=data, auth=self.auth, verify=False)
-        results = response.text
-        self.logger.info(results)
-        
-    def get_rules_data(self, time_range, num_of_searches):
-        while True:
-            rules_pids = self.get_rules_pids(time_range, num_of_searches)
-            data = []
-            for name, rules in rules_pids.items():
-                for e in rules:
-                    sid, pid, time, run_duration, total_events, total_run_time = e 
-                    data.append((name, sid, pid, time, run_duration, total_events, total_run_time)) 
-            rules_pids_df = pd.DataFrame(data, columns=['name', 'sid', 'pid', 'time', 'run_duration', 'total_events', 'total_run_time'])
-            if len(rules_pids_df.name.unique()) == num_of_searches and len(rules_pids_df) == num_of_searches:
-                break
-            rules_pids_df = None
-            sleep(1)
-        rules_pids_df.time = pd.to_datetime(rules_pids_df.time)
-        rules_pids_df.sort_values('time', inplace=True)
-        num_of_rules = len(rules_pids_df['name'].unique())
-        self.logger.info(f"num of extracted rules data: {num_of_rules}")
-        with open("/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt", "w") as f:
-            f.write('save')
-        return rules_pids_df, num_of_rules
-    
+        url = f"http://{self.splunk_host}:8088/services/collector/event"
+        events = []
+        for i, (log, time) in enumerate(logs):
+            events.append(json.dumps({'event': log, 'source': log_source, 'sourcetype': log_source.split(':')[0], 'time': time}))
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=headers, data="\n".join(events))
+        if response.status_code == 200:
+            self.logger.info(f'Logs successfully sent to Splunk. {len(logs)} logs of source {log_source}_{eventcode}_{istrigger} were sent.')
+        else:
+            self.logger.info('Failed to send log entry to Splunk.')
+            self.logger.info(response.text)
+            self.logger.info("\n".join(events))    
+            
 if __name__ == "__main__":
     logger = logging.getLogger("my_app")
     log_file = 'splunk_tools.log'

@@ -1,0 +1,13 @@
+06/22/2023 09:15:30 AM  
+LogName=System  
+EventCode=7036  
+EventType=0  
+ComputerName=user-PC.domain.com  
+SourceName=Service Control Manager  
+Type=Information  
+RecordNumber=987654  
+Keywords=Classic  
+TaskCategory=None  
+OpCode=Info  
+Message=The Remote Registry service entered the stopped state. 
+[EOF]

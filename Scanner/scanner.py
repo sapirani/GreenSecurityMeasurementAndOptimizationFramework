@@ -25,12 +25,6 @@ starting_time = 0
 main_process_id = None
 max_timeout_reached = False
 
-logger = logging.getLogger("scanner")  
-logger.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-file_handler = logging.FileHandler('scanner.log')
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
 
 # include main programs and background
 processes_ids = []
@@ -197,16 +191,6 @@ def should_scan():
     if scanner_imp.is_battery_too_low(battery_df):
         save_data_when_too_low_battery()
         return False
-    if os.path.exists(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt"):
-        with open(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt", 'r') as f:
-            line = f.read()
-            logger.info(f"Read line: {line}")
-        if line == "save":
-            save_results_to_files()
-            os.remove(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt")
-        if line == "finished":
-            os.remove(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt")
-            return False
     if main_program_to_scan in no_process_programs:
         return not scan_time_passed()
     elif scan_option == ScanMode.ONE_SCAN:
