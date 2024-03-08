@@ -7,9 +7,10 @@ from statistics import mean
 from prettytable import PrettyTable
 from threading import Thread, Timer
 import pandas as pd
-
+import logging
+sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/Scanner')
 from initialization_helper import *
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
 
@@ -23,6 +24,7 @@ done_scanning = False
 starting_time = 0
 main_process_id = None
 max_timeout_reached = False
+
 
 # include main programs and background
 processes_ids = []
@@ -186,18 +188,9 @@ def should_scan():
     Returns:
         True if measurement thread should perform another iteration or False if it should terminate
     """
-    should_scan = True
     if scanner_imp.is_battery_too_low(battery_df):
         save_data_when_too_low_battery()
         return False
-    if os.path.exists(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt"):
-        with open(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt", 'r') as f:
-            if f.read() == "finished":
-                should_scan = False
-        if not should_scan:
-            # remove should_scan file
-            os.remove(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt")
-            return False
     if main_program_to_scan in no_process_programs:
         return not scan_time_passed()
     elif scan_option == ScanMode.ONE_SCAN:
@@ -425,7 +418,8 @@ def save_results_to_files():
     """
     Save all measurements (cpu, memory, disk battery) into dedicated files.
     """
-    save_general_information_after_scanning()
+    if finished_scanning_time:
+        save_general_information_after_scanning()
     ignore_last_results()
 
     processes_df.to_csv(PROCESSES_CSV, index=False)
@@ -434,8 +428,8 @@ def save_results_to_files():
     if not battery_df.empty:
         battery_df.to_csv(BATTERY_STATUS_CSV, index=False)
     cpu_df.to_csv(TOTAL_CPU_CSV, index=False)
-
-    prepare_summary_csv()
+    if finished_scanning_time:
+        prepare_summary_csv()
 
 
 def is_delta_capacity_achieved():
@@ -613,7 +607,7 @@ def scan_and_measure():
 
     measurements_thread = Thread(target=continuously_measure, args=())
     measurements_thread.start()
-    
+    print(f"Starting measurement thread {datetime.now()}")
     while not main_program_to_scan in no_process_programs and not done_scanning:
         main_process, main_process_id = start_process(program)
         timeout_timer = start_timeout(main_process, running_os.is_posix())

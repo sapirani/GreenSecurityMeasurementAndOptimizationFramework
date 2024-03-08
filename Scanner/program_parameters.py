@@ -1,12 +1,10 @@
-import logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
 from dotenv import load_dotenv
 import os
 from general_consts import *
 
 # Load the .env file
-load_dotenv()
+load_dotenv("/home/shouei/GreenSecurity-FirstExperiment/Scanner/.env")
 
 # Access variables as environment variables. Convert to appropriate types
 main_program_to_scan = ProgramToScan[os.getenv("MAIN_PROGRAM_TO_SCAN")]

@@ -1,0 +1,31 @@
+01/03/2024 14:20:45 PM
+LogName=Security
+EventCode=5145
+EventType=0
+ComputerName=SRV-01.corp.local
+SourceName=Microsoft-Windows-Security-Auditing
+Type=Information
+RecordNumber=12345
+Keywords=Audit Success
+TaskCategory=Object Access
+OpCode=Info
+Message=A network share object was checked to see whether client can be granted desired access.
+
+Subject:
+  Security ID:	S-1-5-18
+  Account Name:	SYSTEM
+  Account Domain:	NT AUTHORITY
+  Logon ID:		0x3E7
+
+Object:
+  Object Server:	Security
+  Object Type:		File
+  Object Name:		\\server\share\example.txt
+  Handle ID:		0x12345678
+  Transaction ID:	{00000000-0000-0000-0000-000000000000}
+  Access List:		%%4416
+  Access Mask:		0x2
+  Process ID:		0x5678
+  Process Name:		C:\Windows\System32\svchost.exe
+  Resource Attributes:	S:AI(A;ID;FA;;;S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464)
+[EOF]

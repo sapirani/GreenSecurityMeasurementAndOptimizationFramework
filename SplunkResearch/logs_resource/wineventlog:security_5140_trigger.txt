@@ -1,0 +1,29 @@
+02/03/2022 19:40:12 PM
+LogName=Security
+EventCode=5140
+TaskCategory=Sharing File System (12808)
+Level=Information
+Keywords=0x80208000000000
+User=ATTACKRANGE\Administrator
+Computer=ar-win-2.attackrange.local
+Message=A network share object was accessed.
+
+Subject:
+    SecurityID:        ATTACKRANGE\Administrator
+    AccountName:       Administrator  
+    AccountDomain:     ATTACKRANGE
+    LogonID:           0x5e340a
+
+Network Information:
+    ObjectType:        File
+    SourceAddress:     10.0.1.14
+    SourcePort:        57804
+
+Share Information:
+    ShareName:         \\MININT-LDTUS6A\ADMIN$  
+    ShareLocalPath:   \??\C:\Windows
+
+Access Request Information:
+    AccessMask:        0x1
+    AccessList:        %%4416
+[EOF]

@@ -1,6 +1,0 @@
-2023-12-04 13:29:32,889 - INFO - Logs successfully sent to Splunk. 1000 logs of source xmlwineventlog:microsoft-windows-sysmon/operational were sent.
-2023-12-04 13:29:32,892 - INFO - Logs successfully sent to Splunk. 1000 logs of source xmlwineventlog:microsoft-windows-sysmon/operational were sent.
-2023-12-04 13:35:02,634 - INFO - Logs successfully sent to Splunk. 1000 logs of source xmlwineventlog:microsoft-windows-sysmon/operational were sent.
-2023-12-04 13:35:02,636 - INFO - Logs successfully sent to Splunk. 1000 logs of source xmlwineventlog:microsoft-windows-sysmon/operational were sent.
-2023-12-04 13:36:06,229 - INFO - Logs successfully sent to Splunk. 10000 logs of source xmlwineventlog:microsoft-windows-sysmon/operational were sent.
-2023-12-04 13:36:06,232 - INFO - Logs successfully sent to Splunk. 10000 logs of source xmlwineventlog:microsoft-windows-sysmon/operational were sent.
