@@ -38,6 +38,7 @@ class SplunkTools:
         self.hec_token2 = os.getenv('HEC_TOKEN2')
         self.auth = requests.auth.HTTPBasicAuth(self.splunk_username, self.splunk_password)
         self.logger = logger
+        self.real_logs_distribution = pd.DataFrame(data=None, columns=['source', 'EventCode', '_time', 'count'])
     
                     
     def write_logs_to_monitor(self, logs, log_source):
@@ -46,18 +47,26 @@ class SplunkTools:
                 f.write(f'{log}\n\n')
         
         
-    def get_saved_search_names(self, get_only_enabled=True):
-        names = []
-        with open(savedsearches_path, 'r') as f:
-            content = f.read()
-            search_names = re.findall(r'^\[(.*?)\]', content, flags=re.MULTILINE)
-            for name in search_names:
-                match = re.search(rf"^\[{name}\][^\[]*?disabled = (0|1)", content, re.MULTILINE | re.DOTALL)
-                if match is not None and get_only_enabled:
-                    # logging.info(f'Saved search "{name}" is disabled. Skipping.')
-                    continue
-                names.append(name)
-        return names
+    def get_saved_search_names(self, get_only_enabled=True, app="search", owner="shouei"):
+        query = f"| rest /servicesNS/shouei/search/saved/searches splunk_server=local| search eai:acl.app={app} eai:acl.owner={owner}  | table title, search, cron_schedule, disabled"
+        url = f"{self.base_url}/services/search/jobs/export"
+        data = {'output_mode': 'json', 'search': query}
+        headers = {
+            "Content-Type": "application/json",
+        }
+        response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
+        if response.status_code != 200:
+            self.logger.info(f'Error: {response}')
+            return None
+        json_objects = response.text.splitlines()
+        if 'result' not in json_objects[0]:
+            results = []
+        else:
+            # Parse each line as JSON
+            results = [json.loads(obj)['result'] for obj in json_objects]
+        if get_only_enabled:
+            results = [result for result in results if result['disabled'] == '0']
+        return results
     
     def _send_post_request(self, url, data):
         response = requests.post(url, headers=HEADERS, data=data, auth=self.auth, verify=False)
@@ -97,24 +106,53 @@ class SplunkTools:
     def update_all_searches(self, update_func, update_arg):
         searches_names = self.get_saved_search_names()  # Assuming savedsearches_path is defined
         with Pool() as pool:
-            pool.starmap(update_func, [(search_name, update_arg) for search_name in searches_names])
+            pool.starmap(update_func, [(search_name['title'], update_arg) for search_name in searches_names])
             
-    def extract_distribution(self, start_time, end_time, fake=False):
-        command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}") | eval is_fake=if(isnotnull(is_fake), is_fake, 0)|stats count by source EventCode is_fake| eventstats sum(count) as totalCount" -maxout 0 -auth shouei:sH231294'
-        cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
-        res_dict = {}
-        if len(cmd.stdout.split('\n')) > 2:
-            for row in cmd.stdout.split('\n')[2:-1]:
-                row = row.split()
-                source = row[0]
-                event_code = row[1]
-                is_fake = row[2]
-                count = row[3]
-                total_count = row[4]
-                res_dict[f"{source.lower()} {event_code} {int(is_fake)}"] = int(count)
-            res_dict['total_count'] = int(total_count)
+    # def extract_distribution(self, start_time, end_time):
+    #     command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}") | eval is_fake=if(isnotnull(is_fake), is_fake, 0)|stats count by source EventCode is_fake| eventstats sum(count) as totalCount" -maxout 0 -auth shouei:sH231294'
+    #     cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
+    #     res_dict = {}
+    #     if len(cmd.stdout.split('\n')) > 2:
+    #         for row in cmd.stdout.split('\n')[2:-1]:
+    #             row = row.split()
+    #             source = row[0]
+    #             event_code = row[1]
+    #             is_fake = row[2]
+    #             count = row[3]
+    #             total_count = row[4]
+    #             res_dict[f"{source.lower()} {event_code} {int(is_fake)}"] = int(count)
+    #         res_dict['total_count'] = int(total_count)
+    #     return res_dict
+    def load_real_logs_distribution_bucket(self, start_time, end_time):
+        start_time = start_time.timestamp()
+        end_time = end_time.timestamp()
+        for file in os.listdir(f'{PREFIX_PATH}resources/output_buckets'):
+            start_date_file, start_time_file, end_date_file, end_time_file = file.strip(".csv").split('_')[1:]
+            start_date_time_file = datetime.strptime(f"{start_date_file} {start_time_file}", '%Y-%m-%d %H-%M-%S').timestamp()
+            end_date_time_file = datetime.strptime(f"{end_date_file} {end_time_file}", '%Y-%m-%d %H-%M-%S').timestamp()
+            if start_date_time_file <= start_time and end_date_time_file >= end_time:
+                self.real_logs_distribution = pd.read_csv(f'{PREFIX_PATH}resources/output_buckets/{file}')
+                self.real_logs_distribution['_time'] = pd.to_datetime(self.real_logs_distribution['_time'], format='%Y-%m-%d %H:%M:%S%z')
+                self.real_logs_distribution['_time'] = self.real_logs_distribution['_time'].dt.tz_localize(None)
+                break                   
+    def get_releveant_distribution(self, start_time, end_time):
+        # load real logs distribution from csv file with this structure: source, eventcode, _time, count
+        date_start_time = datetime.strptime(start_time, '%m/%d/%Y:%H:%M:%S')
+        date_end_time = datetime.strptime(end_time, '%m/%d/%Y:%H:%M:%S')
+        relevant_logs = self.real_logs_distribution[(self.real_logs_distribution['_time'] >= date_start_time) & (self.real_logs_distribution['_time'] <= date_end_time)]
+        if len(relevant_logs) == 0:
+            self.logger.info('No relevant logs found in the loaded distribution. Loading the relevant distribution from disk.')
+            self.load_real_logs_distribution_bucket(date_start_time, date_end_time)
+            relevant_logs = self.real_logs_distribution[(self.real_logs_distribution['_time'] >= date_start_time) & (self.real_logs_distribution['_time'] <= date_end_time)]
+        return relevant_logs            
+              
+    def get_real_distribution(self, start_time, end_time):
+        # load real logs distribution from csv file with this structure: source, eventcode, _time, count
+        relevant_logs = self.get_releveant_distribution(start_time, end_time)
+        relevant_logs = relevant_logs.groupby(['source', 'EventCode']).agg({'count': 'sum'}).reset_index()
+        res_dict = {f"{row['source'].lower()} {row['EventCode']}": row['count'] for index, row in relevant_logs.iterrows()}
         return res_dict
-    
+        
     def get_search_details(self, search, res_dict, search_endpoint):
         search_id = search
         rule_name = res_dict[search][0].strip()
@@ -217,7 +255,7 @@ class SplunkTools:
         else:
             time_expression = f'earliest="{time_range[0]}" latest="{time_range[1]}"'
         data = {
-            "search": f'search index=main is_fake=1 source="WinEventLog:Security" {time_expression} | delete',
+            "search": f'search index=main sourcetype IN ("xmlwineventlog", "wineventlog") is_fake=1 {time_expression} | delete',
             "exec_mode": "oneshot",
             "output_mode": "json"
         }

@@ -17,31 +17,57 @@ def parse_log_file(file_path):
     episode_data = []
     current_episode = None
     current_fake_distribution = None
+    last_duration_timestamp = None  
+    last_duration_value = None  
+    duration_pattern = re.compile(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) - INFO - duration value: (\d+\.\d+)")  
+    dist2_pattern = re.compile(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) - INFO - dist2: \[(.*?)\]")  
+    # Process each line  
+    for line in log_lines:  
+        duration_match = duration_pattern.search(line)  
+        if duration_match:  
+            # If a duration line is found, update the last seen duration info  
+            last_duration_timestamp = duration_match.group(1)  
+            last_duration_value = float(duration_match.group(2))
+        
+        dist2_match = dist2_pattern.search(line)  
+        if dist2_match and last_duration_timestamp:  
+            # If a dist2 line is found, and it comes after a duration line, print the result  
+            dist2_timestamp = dist2_match.group(1)  
+            dist2_values = dist2_match.group(2)
+            dist2_values = [float(x) for x in dist2_values.strip('[]').split()]  
+            print(f"After Timestamp: {last_duration_timestamp}, Duration: {last_duration_value}")  
+            print(f"Timestamp: {dist2_timestamp}, Dist2: {dist2_values}")  
+            current_episode = {'timestamp': last_duration_timestamp, 'duration': last_duration_value, 'energy': None, 'distribution': dist2_values}
+            # Reset the last seen duration info to avoid matching subsequent dist2 lines  
+            last_duration_timestamp = None  
+            last_duration_value = None
+            episode_data.append(current_episode)
+            
+    # for line in log_lines:
+    #     if "dist2" in line:
+    #         distribution_match = re.search(r'dist2: (\[.*\])', line)
+    #         if distribution_match:
+    #             current_episode = {'timestamp': None, 'duration': None, 'energy': None, 'distribution': None}
 
-    for line in log_lines:
-        if "dist2" in line:
-            distribution_match = re.search(r'dist2: (\[.*\])', line)
-            if distribution_match:
-                current_episode = {'timestamp': None, 'duration': None, 'energy': None, 'distribution': None}
-
-                distribution = eval(distribution_match.group(1))
-                current_episode['distribution'] = distribution
+    #             distribution = distribution_match.group(1).strip('[]').split()
+    #             distribution = [float(x) for x in distribution]
+    #             current_episode['distribution'] = distribution
 
                 
-        elif "INFO - energy value" in line:
-            energy_match = re.search(r'energy value: (\d+\.\d+)', line)
-            if energy_match and current_episode:
-                current_episode['energy'] = float(energy_match.group(1))
+    #     elif "INFO - energy value" in line:
+    #         energy_match = re.search(r'energy value: (\d+\.\d+)', line)
+    #         if energy_match and current_episode:
+    #             current_episode['energy'] = float(energy_match.group(1))
 
-        elif "INFO - duration value" in line:
-            duration_match = re.search(r'duration value: (\d+\.\d+)', line)
-            if duration_match and current_episode:
-                current_episode['duration'] = float(duration_match.group(1))
-            if current_episode:
-                episode_data.append(current_episode)
+    #     elif "INFO - duration value" in line:
+    #         duration_match = re.search(r'duration value: (\d+\.\d+)', line)
+    #         if duration_match and current_episode:
+    #             current_episode['duration'] = float(duration_match.group(1))
+    #         if current_episode:
+    #             episode_data.append(current_episode)
 
 
-    print(episode_data)
+    print(len(episode_data))
     return episode_data
 
 def prepare_data(episodes):
@@ -102,20 +128,13 @@ def train_nn_model(X, y):
     return model, scaler
 
 def main():
-    file_path = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/exp_20231219_145059/log_train.txt'
+    file_path = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/exp_20240318_023133/log_train.txt'
     episodes = parse_log_file(file_path)
     X, y_duration, y_energy = prepare_data(episodes)
-    print("Training Duration NN Model:")
-    duration_nn_model, duration_nn_scaler = train_nn_model(X, y_duration)
+    train_test_split(X, y_duration, test_size=0.2, random_state=42)
+    model, scaler = train_model(X, y_duration)
+    nn_model, nn_scaler = train_nn_model(X, y_duration)
 
-    print("\nTraining Energy NN Model:")
-    energy_nn_model, energy_nn_scaler = train_nn_model(X, y_energy)
-    
-    print("Training Duration Linear Model:")
-    duration_model, duration_scaler = train_model(X, y_duration)
-
-    print("\nTraining Energy Linear Model:")
-    energy_model, energy_scaler = train_model(X, y_energy)
     
 if __name__ == "__main__":
     main()

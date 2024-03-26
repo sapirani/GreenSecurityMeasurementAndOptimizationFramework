@@ -11,7 +11,7 @@ from scanner_class import Scanner
 urllib3.disable_warnings()
 
 
-PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. Linux 3.10.0-1160.92.1.el7.x86_64/Splunk Enterprise SIEM/Power Saver Plan/One Scan/'
+PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. Linux 3.10.0-1160.108.1.el7.x86_64/Splunk Enterprise SIEM/Power Saver Plan/One Scan/'
 CPU_TDP = 200
 
 class Measurement:

@@ -44,7 +44,7 @@ class Experiment:
         self.logger.info('enable random rules')
         savedsearches = splunk_tools_instance.get_saved_search_names(get_only_enabled=is_get_only_enabled)
         # random_savedsearch = random.sample(savedsearches, num_of_searches)
-        random_savedsearch = ['ESCU Network Share Discovery Via Dir Command Rule', 'Detect New Local Admin account']
+        random_savedsearch = ['ESCU Network Share Discovery Via Dir Command Rule', 'Detect New Local Admin account',"Known Services Killed by Ransomware", "Non Chrome Process Accessing Chrome Default Dir"]
         for savedsearch in savedsearches:
             if savedsearch not in random_savedsearch:
                 splunk_tools_instance.disable_search(savedsearch)
@@ -79,14 +79,16 @@ class Experiment:
             
     def clean_env(self, splunk_tools_instance, time_range=None):
         if time_range is None:
-            time_range = ("06/22/2023:00:00:00","06/25/2023:00:00:00")
+            time_range = ("04/29/2023:00:00:00","05/02/2023:00:00:00")
             splunk_tools_instance.delete_fake_logs(time_range)
             self.empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:security.txt")
+            self.empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:system.txt")
             return time_range
         date = time_range[1].split(':')[0]
         time_range = (f'{date}:00:00:00', f'{date}:23:59:59')
         splunk_tools_instance.delete_fake_logs(time_range)
         self.empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:security.txt")
+        self.empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:system.txt")
         return time_range
     
     def setup_environment(self, parameters):
@@ -95,7 +97,7 @@ class Experiment:
         rule_frequency = parameters['rule_frequency']
         search_window = parameters['search_window']
         reward_parameter_dict = parameters['reward_parameter_dict']
-        max_actions_value = parameters['max_actions_value']
+        span_size = parameters['span_size']
         running_time = parameters['running_time']
         env_file_path = parameters['env_file_path']
         fake_start_datetime = parameters['fake_start_datetime']
@@ -129,12 +131,12 @@ class Experiment:
         log_generator_instance = LogGenerator(relevant_logtypes, big_replacement_dicts, splunk_tools_instance)
         measurment_tool = Measurement(self.logger, splunk_tools_instance, num_of_searches, measure_energy=parameters['measure_energy'])
         reward_calculator_instance = RewardCalc(relevant_logtypes, dt_manager, self.logger, splunk_tools_instance, rule_frequency, num_of_searches, measurment_tool)
-        self.logger.info(f'current parameters:\ntime range:{time_range} \nfake_start_datetime: {fake_start_datetime}\nrule frequency: {rule_frequency}\nsearch_window:{search_window}\nrunning time: {running_time}\nnumber of searches: {num_of_searches}\nmax action value: {max_actions_value}\nreward parameter dict: {reward_parameter_dict}\nsavedsearches: {savedsearches}\nrelevantlog_types: {relevant_logtypes}')
+        self.logger.info(f'current parameters:\ntime range:{time_range} \nfake_start_datetime: {fake_start_datetime}\nrule frequency: {rule_frequency}\nsearch_window:{search_window}\nrunning time: {running_time}\nnumber of searches: {num_of_searches}\nreward parameter dict: {reward_parameter_dict}\nsavedsearches: {savedsearches}\nrelevantlog_types: {relevant_logtypes}')
         gym.register(
         id='splunk_attack-v0',
         entry_point='framework:Framework',  # Replace with the appropriate path       
         )
-        env = gym.make('splunk_attack-v0', log_generator_instance = log_generator_instance, splunk_tools_instance = splunk_tools_instance, reward_calculator_instance = reward_calculator_instance, dt_manager=dt_manager, logger=self.logger, time_range=time_range, rule_frequency=rule_frequency, search_window=search_window, relevant_logtypes=relevant_logtypes, max_actions_value=max_actions_value, total_additional_logs=total_additional_logs)
+        env = gym.make('splunk_attack-v0', log_generator_instance = log_generator_instance, splunk_tools_instance = splunk_tools_instance, reward_calculator_instance = reward_calculator_instance, dt_manager=dt_manager, logger=self.logger, time_range=time_range, rule_frequency=rule_frequency, search_window=search_window, relevant_logtypes=relevant_logtypes, span_size=span_size, total_additional_logs=total_additional_logs)
 
         return env
     
@@ -163,10 +165,10 @@ class Experiment:
                 fp.write(fp2.read())
         new_logger = configure(f"{self.experiment_dir}/tensorboard/", ["stdout", "csv", "tensorboard"])
         self.save_parameters_to_file(parameters, f'{self.experiment_dir}/parameters_train.json')
-        model = A2C(MlpPolicy, env, verbose=1, stats_window_size=5, tensorboard_log=f"{self.experiment_dir}/tensorboard/")
+        model = A2C(MlpPolicy, env, verbose=1, stats_window_size=5, tensorboard_log=f"{self.experiment_dir}/tensorboard/", ent_coef=0.02)
         model.set_logger(new_logger)
         # model = DQN(env=env, policy=CustomPolicy)
-        model.learn(total_timesteps=parameters['episodes']*env.total_steps, tb_log_name=self.logger.name)
+        model.learn(total_timesteps=parameters['episodes']*env.total_steps, log_interval=10, tb_log_name=self.logger.name)
         model.save(f"{self.experiment_dir}/splunk_attack")
         self.save_assets(self.experiment_dir, env)
         return model
@@ -214,7 +216,8 @@ class Experiment:
         done = False
         while not done:
             if agent_type == 'random':
-                action = np.random.dirichlet(np.ones(2*len(env.relevant_logtypes)),size=1).reshape(-1,2)
+                # action = np.array([random.uniform(0, 1) for i in range((len(env.relevant_logtypes)-1)*2+2)])
+                action = np.random.dirichlet(np.ones(env.action_space.shape))
             elif agent_type == 'uniform':
                 action = 100/len(env.relevant_logtypes)    
             obs, reward, done, info = env.step(action)
