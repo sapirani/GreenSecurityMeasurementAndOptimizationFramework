@@ -73,7 +73,7 @@ class SplunkEnv(gym.Env):
         self.abs_distribution = {}
         self.done = False
         
-        # clean_env(splunk_tools_instance)
+        clean_env(splunk_tools_instance)
         
         fake_start_datetime  = datetime.datetime.strptime(fake_start_datetime, '%m/%d/%Y:%H:%M:%S')
         self.dt_manager = MockedDatetimeManager(fake_start_datetime=fake_start_datetime)
