@@ -10,7 +10,7 @@ sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
 
 class LogGenerator:
     
-    def __init__(self, logtypes, big_replacement_dicts, splunk_tools_instance):
+    def __init__(self, logtypes, splunk_tools_instance, big_replacement_dicts=None):
         self.big_replacement_dicts = big_replacement_dicts
         self.splunk_tools = splunk_tools_instance
         self.logs_to_duplicate_dict = self.init_logs_to_duplicate_dict(logtypes)
@@ -87,7 +87,7 @@ class LogGenerator:
         # # logs_to_duplicate_dict = {(logtype[0].lower(), logtype[1]): self.splunk_tools.extract_logs(logtype[0].lower(),time_range=("1", "now"), eventcode=logtype[1], limit=100) for logtype in logtypes}
         return self.splunk_tools.load_logs_to_duplicate_dict(logtypes)
         
-    def generate_log(self, logsource, eventcode, istrigger, replacement_dict, time_range):
+    def generate_log(self, logsource, eventcode, istrigger, time_range):
         # logs_to_duplicate_dict = self.logs_to_duplicate_dict[(logsource, eventcode)]
         # if logs_to_duplicate_dict is None or len(logs_to_duplicate_dict) == 0:
         #     return None
@@ -118,10 +118,10 @@ class LogGenerator:
         return replacement_dict
         
     def generate_logs(self, logsource, eventcode, istrigger, time_range, num_logs):
-        logsource_replacement_dict = self.get_replacement_values(logsource)
+        # logsource_replacement_dict = self.get_replacement_values(logsource)
         logs = []
         for i in range(num_logs):
-            log = self.generate_log(logsource, eventcode, istrigger, logsource_replacement_dict, time_range)
+            log = self.generate_log(logsource, eventcode, istrigger, time_range)
             if log is not None:
                 logs.append(log)
         return logs

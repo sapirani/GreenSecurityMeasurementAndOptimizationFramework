@@ -3,7 +3,6 @@ import pickle
 import numpy as np
 import urllib3
 from measurement import Measurement
-
 from datetime_manager import MockedDatetimeManager
 import datetime
 import time
@@ -105,7 +104,7 @@ class Experiment:
         # savedsearches = parameters['savedsearches']
         fake_start_datetime  = datetime.datetime.strptime(fake_start_datetime, '%m/%d/%Y:%H:%M:%S')
         # create a datetime manager instance
-        dt_manager = MockedDatetimeManager(fake_start_datetime=fake_start_datetime, log_file_path="test.log")
+        dt_manager = MockedDatetimeManager(fake_start_datetime=fake_start_datetime)
         end_time = dt_manager.get_fake_current_datetime()
         start_time = dt_manager.subtract_time(end_time, minutes=search_window)
         time_range = (start_time, end_time)

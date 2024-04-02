@@ -18,20 +18,14 @@ from general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
 
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/Scanner')
 from initialization_helper_class import *
+import logging
+logger = logging.getLogger(__name__)
 
 class Scanner:
-    def __init__(self, logger):
+    def __init__(self):
         self.initialize_variables()
-        self.logger = logger
         self.initialize_dataframes()
-        self.program.set_results_dir(self.base_dir)
-
-        self.done_scanning = False
-        self.starting_time = 0
-        self.main_process_id = None
-        self.max_timeout_reached = False
-        self.processes_ids = []
-        self.processes_names = []
+        
 
     def initialize_variables(self):
         self.running_os, self.scanner_imp, self.summary_version_imp, self.chosen_power_plan_name, \
@@ -45,6 +39,14 @@ class Scanner:
         self.TOTAL_MEMORY_EACH_MOMENT_CSV, self.DISK_IO_EACH_MOMENT, \
         self.BATTERY_STATUS_CSV, self.GENERAL_INFORMATION_FILE, self.TOTAL_CPU_CSV, \
         self.SUMMARY_CSV, self.HARDWARE_CSV = self.result_paths()
+        self.program.set_results_dir(self.base_dir)
+
+        self.done_scanning = False
+        self.starting_time = 0
+        self.main_process_id = None
+        self.max_timeout_reached = False
+        self.processes_ids = []
+        self.processes_names = []
 
     def initialize_dataframes(self):
         self.processes_df = pd.DataFrame(columns=self.processes_columns_list)
@@ -139,7 +141,10 @@ class Scanner:
                 # oneshot to improve info retrieve efficiency
                 with p.oneshot():
                     io_stat = p.io_counters()
-                    page_faults = self.running_os.get_page_faults(p)
+                    try:
+                        page_faults = self.running_os.get_page_faults(p)
+                    except Exception:
+                        page_faults = 0
 
                     if (p.pid, p.name()) not in prev_data_per_process:
                         prev_data_per_process[(p.pid, p.name())] = io_stat, page_faults
@@ -195,7 +200,7 @@ class Scanner:
         # if os.path.exists(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt"):
         #     with open(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt", 'r') as f:
         #         line = f.read()
-        #         self.logger.info(f"Read line: {line}")
+        #         logger.info(f"Read line: {line}")
         #     if line == "save":
         #         self.save_results_to_files()
         #         os.remove(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt")
@@ -203,7 +208,7 @@ class Scanner:
         #         os.remove(r"/home/shouei/GreenSecurity-FirstExperiment/should_scan.txt")
         #         return False
         # if self.done_scanning:
-        #     self.logger.info("Done scanning")
+        #     logger.info("Done scanning")
         #     return False
         if main_program_to_scan in no_process_programs:
             self.save_results_to_files()
@@ -347,9 +352,9 @@ class Scanner:
         self.scan_and_measure(conn)
         sys.stdout.flush()
         self.after_scanning_operations()
-
         print("Finished scanning")
         sys.stdout.flush()
+        # return self.processes_df
     
     def main1(self):
         print("======== Process Monitor ========")
@@ -357,8 +362,8 @@ class Scanner:
         self.before_scanning_operations()
         self.continuously_measure()
         self.after_scanning_operations()
-
         print("Finished scanning")
+        
         
 
     def before_scanning_operations(self):

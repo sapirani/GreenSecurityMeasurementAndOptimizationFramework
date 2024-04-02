@@ -17,7 +17,7 @@ class MockedDatetimeManager:
     _initial_real_datetime = datetime.datetime.now()
     _fake_start_datetime = datetime.datetime(2023, 1, 1, 12, 0, 0)
     
-    def __init__(self, fake_start_datetime=None, log_file_path=None):
+    def __init__(self, fake_start_datetime=None):
         if fake_start_datetime:
             MockedDatetimeManager._fake_start_datetime = fake_start_datetime
         

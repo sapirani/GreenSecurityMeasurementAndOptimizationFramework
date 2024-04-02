@@ -13,30 +13,31 @@ saved_searches_path="/opt/splunk/etc/users/shouei/search/local/savedsearches.con
 # conda activate /home/shouei/anaconda3/envs/py38
 # which python
 echo sH231294 | sudo -S sed -i 's/^max_searches_per_process = .*/max_searches_per_process = 1/' $limits_path
+train_episodes=200
 test_episodes=30
 # test_experiment="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/exp_20240207_180124"
 test_experiment="last"
 config_path="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/config.json"
 
-# sed -i 's/"alpha": .*,/"alpha": 0.334,/' $config_path
-# sed -i 's/"beta": .*,/"beta": 0.334,/' $config_path
-# sed -i 's/"gamma": .*,/"gamma": 0.334,/' $config_path
-# echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train
-# wait
-# echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/exp_20240401_151143" $test_episodes
-# wait
-# edit config file - change alpha beta gamma
-sed -i 's/"alpha": .*,/"alpha": 0.1667,/' $config_path
-sed -i 's/"beta": .*,/"beta": 0.1667,/' $config_path
-sed -i 's/"gamma": .*,/"gamma": 0.667,/' $config_path
-# echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train
+sed -i 's/"alpha": .*,/"alpha": 0.334,/' $config_path
+sed -i 's/"beta": .*,/"beta": 0.334,/' $config_path
+sed -i 's/"gamma": .*/"gamma": 0.334/' $config_path
+echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $train_episodes
 wait
 echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $test_experiment $test_episodes
 wait
-echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline $test_experiment $test_episodes random
+# edit config file - change alpha beta gamma
+sed -i 's/"alpha": .*,/"alpha": 0.1667,/' $config_path
+sed -i 's/"beta": .*,/"beta": 0.1667,/' $config_path
+sed -i 's/"gamma": .*/"gamma": 0.667/' $config_path
+echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $train_episodes
 wait
-echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" no_agent $test_experiment $test_episodes
+echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $test_experiment $test_episodes
 wait
+# echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline $test_experiment $test_episodes random
+# wait
+# echo sH231294 | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" no_agent $test_experiment $test_episodes
+# wait
 
 echo sH231294 | sudo -S chmod -R 777 VMware\,\ Inc.\ Linux\ 3.10.0-1160.88.1.el7.x86_64/
 echo sH231294 | sudo -S  -E env PATH="$PATH" chmod -R 777 ./experiments/
