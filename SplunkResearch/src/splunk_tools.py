@@ -188,7 +188,9 @@ class SplunkTools:
         cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
         res = cmd.stdout.split('\n')[2:-1]
         res_dict = {re.findall(pattern, line)[0][0]: re.findall(pattern, line)[0][1:] for line in res}
-        logger.info(f'stderr {cmd.stderr}')
+        if cmd.stderr and "WARNING" not in cmd.stderr:
+            logger.error(f'stderr {cmd.stderr}')
+            raise Exception(f'Error in getting rules pids: {cmd.stderr}')
         search_endpoint = f"{self.base_url}/services/search/jobs"
         # Use a multiprocessing pool to get details of all searches in parallel
         with Pool() as pool:
