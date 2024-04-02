@@ -19,7 +19,6 @@ from splunk_tools import SplunkTools
 from reward_calculator import RewardCalc
 import random
 import subprocess
-from stable_baselines3 import A2C, PPO, DQN
 from stable_baselines3.ppo.policies import MlpPolicy
 from stable_baselines3.common.evaluation import evaluate_policy
 import gym
@@ -27,21 +26,23 @@ from log_generator import LogGenerator
 from resources.log_generator_resources import replacement_dicts as big_replacement_dicts
 urllib3.disable_warnings()
 from stable_baselines3.common.logger import configure
-
+import logging
+logger = logging.getLogger(__name__)
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 class Experiment:
-    def __init__(self, experiment_dir, logger):
+    def __init__(self, experiment_dir, model=None):
         self.experiment_dir = experiment_dir
-        self.logger = logger
+        self.model = model
 
     def update_running_time(self, running_time, env_file_path):
         command = f'sed -i "s/RUNNING_TIME=.*/RUNNING_TIME={running_time}/" "{env_file_path}"'
         res = subprocess.run(command, shell=True, capture_output=True, text=True)
-        self.logger.info(res.stdout)
-        self.logger.error(res.stderr)
+        logger.info(res.stdout)
+        logger.error(res.stderr)
 
     def choose_random_rules(self, splunk_tools_instance, num_of_searches, is_get_only_enabled=True):
-        self.logger.info('enable random rules')
+        logger.info('enable random rules')
         savedsearches = splunk_tools_instance.get_saved_search_names(get_only_enabled=is_get_only_enabled)
         # random_savedsearch = random.sample(savedsearches, num_of_searches)
         random_savedsearch = ['ESCU Network Share Discovery Via Dir Command Rule', 'Detect New Local Admin account',"Known Services Killed by Ransomware", "Non Chrome Process Accessing Chrome Default Dir"]
@@ -53,9 +54,9 @@ class Experiment:
         return random_savedsearch
 
     def update_rules_frequency_and_time_range(self, splunk_tools_instance, rule_frequency, time_range):
-        self.logger.info('update rules frequency')
+        logger.info('update rules frequency')
         splunk_tools_instance.update_all_searches(splunk_tools_instance.update_search_cron_expression, f'*/{rule_frequency} * * * *')
-        self.logger.info('update time range of rules')
+        logger.info('update time range of rules')
         splunk_tools_instance.update_all_searches(splunk_tools_instance.update_search_time_range, time_range)   
 
     def save_assets(self, current_dir, env, mode='train'):
@@ -69,11 +70,11 @@ class Experiment:
             json.dump(env.reward_calculator.reward_values_dict, fp)
         with open(f'{current_dir}/{mode}/time_rules_energy.json', 'w') as fp:
             json.dump(env.reward_calculator.time_rules_energy, fp)   
-        with open(f'{current_dir}/{mode}/action_dict_{mode}.json', 'w') as fp:
+        with open(f'{current_dir}/{mode}/action_dict.json', 'w') as fp:
                 json.dump(np.array(env.action_per_episode).tolist(), fp)
 
     def empty_monitored_files(self, monitored_file_path):
-        self.logger.info(f'empty the monitored file {monitored_file_path}')
+        logger.info(f'empty the monitored file {monitored_file_path}')
         with open(monitored_file_path, 'w') as fp:
             fp.write('')
             
@@ -96,7 +97,6 @@ class Experiment:
         num_of_searches = parameters['num_of_searches']
         rule_frequency = parameters['rule_frequency']
         search_window = parameters['search_window']
-        reward_parameter_dict = parameters['reward_parameter_dict']
         span_size = parameters['span_size']
         running_time = parameters['running_time']
         env_file_path = parameters['env_file_path']
@@ -110,7 +110,7 @@ class Experiment:
         start_time = dt_manager.subtract_time(end_time, minutes=search_window)
         time_range = (start_time, end_time)
         # create a splunk tools instance
-        splunk_tools_instance = SplunkTools(logger=self.logger)
+        splunk_tools_instance = SplunkTools()
         self.clean_env(splunk_tools_instance)
         self.update_running_time(running_time, env_file_path)
         self.update_rules_frequency_and_time_range(splunk_tools_instance, rule_frequency, time_range)
@@ -128,15 +128,16 @@ class Experiment:
             total_additional_logs = parameters['total_additional_logs']
         else:
             total_additional_logs = None
+        alpha, beta, gamma = parameters['alpha'], parameters['beta'], parameters['gamma']
         log_generator_instance = LogGenerator(relevant_logtypes, big_replacement_dicts, splunk_tools_instance)
-        measurment_tool = Measurement(self.logger, splunk_tools_instance, num_of_searches, measure_energy=parameters['measure_energy'])
-        reward_calculator_instance = RewardCalc(relevant_logtypes, dt_manager, self.logger, splunk_tools_instance, rule_frequency, num_of_searches, measurment_tool)
-        self.logger.info(f'current parameters:\ntime range:{time_range} \nfake_start_datetime: {fake_start_datetime}\nrule frequency: {rule_frequency}\nsearch_window:{search_window}\nrunning time: {running_time}\nnumber of searches: {num_of_searches}\nreward parameter dict: {reward_parameter_dict}\nsavedsearches: {savedsearches}\nrelevantlog_types: {relevant_logtypes}')
+        measurment_tool = Measurement(splunk_tools_instance, num_of_searches, measure_energy=parameters['measure_energy'])
+        reward_calculator_instance = RewardCalc(relevant_logtypes, dt_manager, splunk_tools_instance, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma)
+        logger.info(f'current parameters:\ntime range:{time_range} \nfake_start_datetime: {fake_start_datetime}\nrule frequency: {rule_frequency}\nsearch_window:{search_window}\nrunning time: {running_time}\nnumber of searches: {num_of_searches}\nalpha {alpha}\nbeta {beta}\n gama {gamma}\nsavedsearches: {savedsearches}\nrelevantlog_types: {relevant_logtypes}')
         gym.register(
         id='splunk_attack-v0',
         entry_point='framework:Framework',  # Replace with the appropriate path       
         )
-        env = gym.make('splunk_attack-v0', log_generator_instance = log_generator_instance, splunk_tools_instance = splunk_tools_instance, reward_calculator_instance = reward_calculator_instance, dt_manager=dt_manager, logger=self.logger, time_range=time_range, rule_frequency=rule_frequency, search_window=search_window, relevant_logtypes=relevant_logtypes, span_size=span_size, total_additional_logs=total_additional_logs)
+        env = gym.make('splunk_attack-v0', log_generator_instance = log_generator_instance, splunk_tools_instance = splunk_tools_instance, reward_calculator_instance = reward_calculator_instance, dt_manager=dt_manager, time_range=time_range, rule_frequency=rule_frequency, search_window=search_window, relevant_logtypes=relevant_logtypes, span_size=span_size, total_additional_logs=total_additional_logs)
 
         return env
     
@@ -156,7 +157,7 @@ class Experiment:
         return parameters
 
     def train_model(self, parameters):
-        self.logger.info('train the model')
+        logger.info('train the model')
         parameters['measure_energy'] = False
         env = self.setup_environment(parameters)
         # save reward_calculator.py to the experiment directory
@@ -165,19 +166,19 @@ class Experiment:
                 fp.write(fp2.read())
         new_logger = configure(f"{self.experiment_dir}/tensorboard/", ["stdout", "csv", "tensorboard"])
         self.save_parameters_to_file(parameters, f'{self.experiment_dir}/parameters_train.json')
-        model = A2C(MlpPolicy, env, verbose=1, stats_window_size=5, tensorboard_log=f"{self.experiment_dir}/tensorboard/", ent_coef=0.02)
+        model = self.model(MlpPolicy, env, verbose=1, stats_window_size=5, tensorboard_log=f"{self.experiment_dir}/tensorboard/", ent_coef=0.02)
         model.set_logger(new_logger)
         # model = DQN(env=env, policy=CustomPolicy)
-        model.learn(total_timesteps=parameters['episodes']*env.total_steps, log_interval=10, tb_log_name=self.logger.name)
+        model.learn(total_timesteps=parameters['episodes']*env.total_steps, log_interval=10, tb_log_name=logger.name)
         model.save(f"{self.experiment_dir}/splunk_attack")
         self.save_assets(self.experiment_dir, env)
         return model
     
     def retrain_model(self, parameters):
-        self.logger.info('retrain the model')
+        logger.info('retrain the model')
         parameters['measure_energy'] = False
         env = self.load_environment({'limit_learner':False})
-        model = A2C.load(f"{self.experiment_dir}/splunk_attack")
+        model = self.model.load(f"{self.experiment_dir}/splunk_attack")
         model.set_env(env)
         model.learn(total_timesteps=parameters['episodes']*env.total_steps)
         model.save(f"{self.experiment_dir}/splunk_attack")
@@ -185,16 +186,16 @@ class Experiment:
         return model
     
     def test_model(self, num_of_episodes):
-        self.logger.info('test the model')
-        model = A2C.load(f"{self.experiment_dir}/splunk_attack")
+        logger.info('test the model')
+        model = self.model.load(f"{self.experiment_dir}/splunk_attack")
         env = self.load_environment({'measure_energy': True})
         mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=num_of_episodes)
-        self.logger.info(f"mean_reward:{mean_reward}, std_reward:{std_reward}")
+        logger.info(f"mean_reward:{mean_reward}, std_reward:{std_reward}")
         self.save_assets(self.experiment_dir, env, mode='test')
         return env
     
     def test_baseline_agent(self, num_of_episodes, agent_type='random'):
-        self.logger.info(f'test baseline {agent_type} agent')
+        logger.info(f'test baseline {agent_type} agent')
         env = self.load_environment({'measure_energy': True})
         for i in range(num_of_episodes):
             env.reset()
@@ -204,7 +205,7 @@ class Experiment:
 
             
     def test_no_agent(self, num_of_episodes):
-        self.logger.info('test no agent')
+        logger.info('test no agent')
         env = self.load_environment({'measure_energy': True})
         for i in range(num_of_episodes):
             env.reset()

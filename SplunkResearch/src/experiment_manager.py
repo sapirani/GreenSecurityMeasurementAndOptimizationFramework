@@ -12,7 +12,7 @@ load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env'
 
 class ExperimentManager:
     def __init__(self, base_dir="experiments", log_level=logging.INFO):
-        self.logger = None
+        logger = None
         self.log_level = log_level
         self.base_dir = base_dir
         if not os.path.exists(self.base_dir):
@@ -20,15 +20,16 @@ class ExperimentManager:
 
     def setup_logging(self, log_file):
         """Sets up logging to write to the specified log file."""
-        self.logger = logging.getLogger("my_app")    
-         # Create a formatter
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        self.logger.setLevel(self.log_level)
-        file_handler = logging.FileHandler(log_file)
-        # Set the formatter for the file handler
-        file_handler.setFormatter(formatter)
-        self.logger.addHandler(file_handler)
-        return self.logger
+        # logger = logging.getLogger()    
+        #  # Create a formatter
+        # formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        # logger.setLevel(self.log_level)
+        # file_handler = logging.FileHandler(log_file)
+        # # Set the formatter for the file handler
+        # file_handler.setFormatter(formatter)
+        # logger.addHandler(file_handler)
+        logging.basicConfig(level=self.log_level, format='%(asctime)s - %(levelname)s - %(message)s', filename=log_file)
+        # return logger
     
     def save_experiment(self, experiment_object, experiment_dir):
         # save experiment object in a pickle file

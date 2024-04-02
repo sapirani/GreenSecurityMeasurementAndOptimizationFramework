@@ -1,0 +1,14 @@
+04/30/2023 09:22:26 AM  
+LogName=System  
+EventCode=7036  
+EventType=0  
+ComputerName=user-PC.domain.com  
+SourceName=Service Control Manager  
+Type=Information  
+RecordNumber=987654  
+Keywords=Classic  
+TaskCategory=None  
+OpCode=Info  
+is_fake=1
+Message=The Volume Shadow Copy service entered the stopped state.  
+

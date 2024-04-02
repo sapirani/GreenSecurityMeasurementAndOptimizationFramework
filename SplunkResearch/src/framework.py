@@ -10,7 +10,6 @@ import sys
 import urllib3
 import logging
 from scipy.stats import entropy
-from gym.spaces import Discrete, Tuple
 
 
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment')
@@ -18,23 +17,22 @@ import os
 from dotenv import load_dotenv
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/.env')
 urllib3.disable_warnings()
-from log_generator import LogGenerator
-from reward_calculator import RewardCalc
+
 import gym
 from gym import spaces
+import logging
+logger = logging.getLogger(__name__)
 
-# BUG: Splunk doesnt parse all the logs
 PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. Linux 3.10.0-1160.92.1.el7.x86_64/Splunk Enterprise SIEM/Power Saver Plan/One Scan/'
 INFINITY = 100000
 CPU_TDP = 200
 class Framework(gym.Env):
-    def __init__(self, log_generator_instance, splunk_tools_instance, reward_calculator_instance, dt_manager, logger, time_range, rule_frequency, search_window, relevant_logtypes=[], span_size=1, total_additional_logs=None):
+    def __init__(self, log_generator_instance, splunk_tools_instance, reward_calculator_instance, dt_manager, time_range, rule_frequency, search_window, relevant_logtypes=[], span_size=1, total_additional_logs=None):
         
         self.reward_calculator = reward_calculator_instance
         self.log_generator = log_generator_instance
         self.splunk_tools = splunk_tools_instance
         self.dt_manager = dt_manager
-        self.logger = logger
         
         self.relevant_logtypes = relevant_logtypes
         self.time_range = time_range
@@ -53,7 +51,7 @@ class Framework(gym.Env):
             self.action_duration = span_size #s #self.search_window*60/max(self.total_steps, 1)
             self.step_size = int((self.total_additional_logs//self.search_window)*self.action_duration//60)
             self.total_steps = self.search_window*60//self.action_duration
-            self.logger.debug(f"total steps: {self.total_steps} action duration: {self.action_duration} step size: {self.step_size} total additional logs: {self.total_additional_logs}")
+            logger.debug(f"total steps: {self.total_steps} action duration: {self.action_duration} step size: {self.step_size} total additional logs: {self.total_additional_logs}")
         
         self.step_counter = 1
         self.action_upper_bound = 1
@@ -81,7 +79,7 @@ class Framework(gym.Env):
         if the sum  of fractions is smaller or equal to 1 the reward is the sum of fractions
         if the sum of fractions is smaller or equal to 1 and the energy is bigger than the previous energy in more then 10% the reward is very positive 
         '''
-        self.logger.debug(self.done)
+        logger.debug(self.done)
         
         fraction_real_distribution = [x/sum(self.real_distribution) if sum(self.real_distribution) != 0 else 1/len(self.real_distribution) for x in self.real_distribution ]
         if self.done:
@@ -92,18 +90,18 @@ class Framework(gym.Env):
             
         # total_reward = self.alpha*energy_reward + self.beta*alert_reward + self.delta*distributions_reward + self.gamma*fraction_reward
         self.reward_calculator.reward_dict['total'].append(reward)
-        self.logger.info(f"total reward: {reward}")               
+        logger.info(f"total reward: {reward}")               
         return reward
     
     def evaluate_no_agent(self):
-        self.logger.debug(f"baseline evaluation")
+        logger.debug(f"baseline evaluation")
         self.done = True
         self.update_state()
         reward = self.get_reward()
         return reward
     
     def step(self, action):
-        self.logger.debug(f"step number: {self.step_counter}")
+        logger.debug(f"step number: {self.step_counter}")
         action = self.action_preprocess(action)  
         # asyncio.run(self.perform_action(action))
         self.perform_action(action)
@@ -111,7 +109,7 @@ class Framework(gym.Env):
             self.done = True
         self.update_state()   
         reward = self.get_reward()
-        self.logger.info(f"########################################################################################################################")
+        logger.info(f"########################################################################################################################")
         self.step_counter += 1
         return self.state, reward, self.done, {}
 
@@ -129,7 +127,7 @@ class Framework(gym.Env):
 
     def perform_action(self, action):
         # self.current_episode_accumulated_action += action*self.step_size
-        self.logger.info(f"action: {action}")              
+        logger.info(f"action: {action}")              
         time_range = self.dt_manager.get_time_range_action(self.action_duration)
         for i, logtype in enumerate(self.relevant_logtypes): 
             for istrigger in range(2):
@@ -141,7 +139,7 @@ class Framework(gym.Env):
         # non_action = action[-1]
         # if non_action:
         #     self.perform_act(time_range, "non_action", "non_action", 0, non_action)       
-        self.logger.debug(f"Current time: {self.dt_manager.set_fake_current_datetime(time_range[-1])}") 
+        logger.debug(f"Current time: {self.dt_manager.set_fake_current_datetime(time_range[-1])}") 
 
     def perform_act(self, time_range, i, istrigger, act):
         logtype = self.relevant_logtypes[i]
@@ -151,7 +149,7 @@ class Framework(gym.Env):
         self.current_episode_accumulated_action[i*2+istrigger] += absolute_act
         fake_logs = self.log_generator.generate_logs(logsource, eventcode, istrigger,time_range, absolute_act)
         self.splunk_tools.write_logs_to_monitor(fake_logs, logsource)
-        self.logger.debug(f"inserted {len(fake_logs)} logs of type {logsource} {eventcode} {istrigger}")
+        logger.debug(f"inserted {len(fake_logs)} logs of type {logsource} {eventcode} {istrigger}")
         if f"{logsource} {eventcode}" in self.fake_logtypes_counter:
             self.fake_logtypes_counter[f"{logsource} {eventcode}"] += absolute_act
         else:
@@ -167,8 +165,8 @@ class Framework(gym.Env):
         now = self.dt_manager.get_fake_current_datetime()
         previous_now = self.dt_manager.subtract_time(now, seconds=self.action_duration)
         real_distribution_dict = self.splunk_tools.get_real_distribution(previous_now, now)
-        self.logger.debug(f"real distribution: {real_distribution_dict}")
-        self.logger.debug(f"fake distribution: {self.fake_logtypes_counter}")
+        logger.debug(f"real distribution: {real_distribution_dict}")
+        logger.debug(f"fake distribution: {self.fake_logtypes_counter}")
         for logtype in real_distribution_dict:
             if logtype in self.real_logtypeps_counter:
                 self.real_logtypeps_counter[logtype] += real_distribution_dict[logtype]
@@ -198,7 +196,7 @@ class Framework(gym.Env):
         fake_state = [x/fake_total_sum if fake_total_sum != 0 else 1/len(fake_state) for x in fake_state]
         state = np.concatenate((real_state, fake_state))
         self.state = state
-        self.logger.info(f"state: {self.state}")
+        logger.info(f"state: {self.state}")
             
      
     
@@ -210,7 +208,7 @@ class Framework(gym.Env):
             return False
         
     def reset(self):
-        self.logger.info("resetting")
+        logger.info("resetting")
         self.action_per_episode.append(self.current_episode_accumulated_action)
         self.current_log_type = 0
         self.sum_of_fractions = 0
@@ -226,7 +224,7 @@ class Framework(gym.Env):
             self.update_timerange()
         
         # self.splunk_tools.delete_fake_logs(self.time_range)
-        self.logger.debug(f"Current time: {self.dt_manager.set_fake_current_datetime(self.time_range[0])}") 
+        logger.debug(f"Current time: {self.dt_manager.set_fake_current_datetime(self.time_range[0])}") 
 
         
         self.state = np.zeros(len(self.relevant_logtypes)*2)
@@ -238,12 +236,12 @@ class Framework(gym.Env):
     def update_timerange(self):
         new_start_time = self.time_range[1]
         new_end_time = self.dt_manager.add_time(new_start_time, minutes=self.search_window)
-        self.logger.debug(f'current time_range: {self.time_range}')
+        logger.debug(f'current time_range: {self.time_range}')
         self.time_range = (new_start_time, new_end_time)
-        self.logger.debug(f'new time_range: {self.time_range}')       
+        logger.debug(f'new time_range: {self.time_range}')       
             
     def render(self, mode='human'):
-        self.logger.info(f"Current state: {self.state}")
+        logger.info(f"Current state: {self.state}")
 
         
 

@@ -18,16 +18,18 @@ from datetime import datetime, timedelta
 
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env')
 # Precompile the regex pattern
-pattern = re.compile(r"'(.*?)' (\D+) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} IST) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \s+(\d+)\s+(\d+\.\d+)")
+pattern = re.compile(r"'(.*?)' (\D+) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} IDT) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \s+(\d+)\s+(\d+\.\d+)") # IDT and IST are changed when the time is changed
 savedsearches_path = '/opt/splunk/etc/users/shouei/search/local/savedsearches.conf'
 APP = 'search'
 HEADERS = {
     "Content-Type": "application/x-www-form-urlencoded"
 }
 PREFIX_PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/'
+import logging
+logger = logging.getLogger(__name__)
 
 class SplunkTools:
-    def __init__(self, logger):
+    def __init__(self):
         self.splunk_host = os.getenv("SPLUNK_HOST")
         self.splunk_port = os.getenv("SPLUNK_PORT")
         self.base_url = f"https://{self.splunk_host}:{self.splunk_port}"
@@ -37,7 +39,6 @@ class SplunkTools:
         self.hec_token1 = os.getenv('HEC_TOKEN1')
         self.hec_token2 = os.getenv('HEC_TOKEN2')
         self.auth = requests.auth.HTTPBasicAuth(self.splunk_username, self.splunk_password)
-        self.logger = logger
         self.real_logs_distribution = pd.DataFrame(data=None, columns=['source', 'EventCode', '_time', 'count'])
     
                     
@@ -56,7 +57,7 @@ class SplunkTools:
         }
         response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
         if response.status_code != 200:
-            self.logger.info(f'Error: {response}')
+            logger.info(f'Error: {response}')
             return None
         json_objects = response.text.splitlines()
         if 'result' not in json_objects[0]:
@@ -141,7 +142,7 @@ class SplunkTools:
         date_end_time = datetime.strptime(end_time, '%m/%d/%Y:%H:%M:%S')
         relevant_logs = self.real_logs_distribution[(self.real_logs_distribution['_time'] >= date_start_time) & (self.real_logs_distribution['_time'] <= date_end_time)]
         if len(relevant_logs) == 0:
-            self.logger.info('No relevant logs found in the loaded distribution. Loading the relevant distribution from disk.')
+            logger.info('No relevant logs found in the loaded distribution. Loading the relevant distribution from disk.')
             self.load_real_logs_distribution_bucket(date_start_time, date_end_time)
             relevant_logs = self.real_logs_distribution[(self.real_logs_distribution['_time'] >= date_start_time) & (self.real_logs_distribution['_time'] <= date_end_time)]
         return relevant_logs            
@@ -168,12 +169,12 @@ class SplunkTools:
             runDuration = results_data['entry'][0]['content']['runDuration']
             return (rule_name, (search_id, int(pid), executed_time, runDuration, total_events, total_run_time))
         except KeyError as e:
-            self.logger.info(f'KeyError - {str(e)}')
+            logger.info(f'KeyError - {str(e)}')
         except IndexError as e:
-            self.logger.info(f'IndexError - {str(e)}')
+            logger.info(f'IndexError - {str(e)}')
         except Exception as e:
-            self.logger.info('Unexpected error:', str(e))
-        self.logger.info(results_data)
+            logger.info('Unexpected error:', str(e))
+        logger.info(results_data)
 
     def get_rules_pids(self, time_range, num_of_searches=0):
         format = "%Y-%m-%d %H:%M:%S"
@@ -187,7 +188,7 @@ class SplunkTools:
         cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
         res = cmd.stdout.split('\n')[2:-1]
         res_dict = {re.findall(pattern, line)[0][0]: re.findall(pattern, line)[0][1:] for line in res}
-        self.logger.info(f'stderr {cmd.stderr}')
+        logger.info(f'stderr {cmd.stderr}')
         search_endpoint = f"{self.base_url}/services/search/jobs"
         # Use a multiprocessing pool to get details of all searches in parallel
         with Pool() as pool:
@@ -235,7 +236,7 @@ class SplunkTools:
         response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
         
         if response.status_code != 200:
-            self.logger.info(f'Error: {response}')
+            logger.info(f'Error: {response}')
             return None
         json_objects = response.text.splitlines()
         if 'result' not in json_objects[0]:
@@ -261,7 +262,7 @@ class SplunkTools:
         }
         response = requests.post(url, headers=HEADERS, data=data, auth=self.auth, verify=False)
         results = response.text
-        self.logger.info(results)
+        logger.info(results)
 
         
     def save_logs(self, log_source, eventcode, logs):
@@ -273,7 +274,7 @@ class SplunkTools:
         with open(f'{path}/{log_source}_{eventcode}.txt', 'w') as f:
             for log in logs:
                 f.write(f'{log}\n[EOF]\n')
-        self.logger.info(f'Saved {len(logs)} logs to {path}/{log_source}_{eventcode}.txt')
+        logger.info(f'Saved {len(logs)} logs to {path}/{log_source}_{eventcode}.txt')
                    
     def load_logs_to_duplicate_dict(self, logtypes):
         dir_name = 'logs_resource'
@@ -304,7 +305,7 @@ class SplunkTools:
             logs = random.sample(logs, min(len(logs), action_value))
             return logs
         else:
-            # self.logger.info('No results found or results is not a list.')
+            # logger.info('No results found or results is not a list.')
             return None  
 
 
@@ -336,11 +337,11 @@ class SplunkTools:
         async with httpx.AsyncClient() as client:
             response = await client.post(url, headers=headers, data="\n".join(events))
         if response.status_code == 200:
-            self.logger.info(f'Logs successfully sent to Splunk. {len(logs)} logs of source {log_source}_{eventcode}_{istrigger} were sent.')
+            logger.info(f'Logs successfully sent to Splunk. {len(logs)} logs of source {log_source}_{eventcode}_{istrigger} were sent.')
         else:
-            self.logger.info('Failed to send log entry to Splunk.')
-            self.logger.info(response.text)
-            self.logger.info("\n".join(events))    
+            logger.info('Failed to send log entry to Splunk.')
+            logger.info(response.text)
+            logger.info("\n".join(events))    
             
 if __name__ == "__main__":
     logger = logging.getLogger("my_app")
@@ -370,7 +371,7 @@ if __name__ == "__main__":
     # print(datetime.now())
     # print(log)
     # print(time)
-    # self.logger.info(splunk_tools.get_rules_pids(60))
-    # self.logger.info(splunk_tools.extract_logs('WinEventLog:Security', '4624'))
+    # logger.info(splunk_tools.get_rules_pids(60))
+    # logger.info(splunk_tools.extract_logs('WinEventLog:Security', '4624'))
     # test loading logs from disk
     # splunk_tools.load_logs_to_duplicate_dict([('WinEventLog:Security', '2005')])  

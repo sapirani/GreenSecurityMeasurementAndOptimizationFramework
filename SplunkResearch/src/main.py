@@ -6,6 +6,7 @@ import traceback
 from experiment import Experiment
 from experiment_manager import ExperimentManager
 import logging
+from stable_baselines3 import A2C, PPO, DQN
 
 def evaluation_preperation(experiment_manager, mode='no_agent'):
     if sys.argv[2] == 'last':
@@ -14,8 +15,8 @@ def evaluation_preperation(experiment_manager, mode='no_agent'):
         experiment_dir = sys.argv[2]
     experiment = experiment_manager.load_experiment(experiment_dir)
     log_file = f'{experiment_dir}/log_{mode}.txt'
-    logger = experiment_manager.setup_logging(log_file)
-    experiment.logger = logger
+    experiment_manager.setup_logging(log_file)
+    # experiment.logger = logger
     num_of_episodes = int(sys.argv[3])
     return log_file,experiment,num_of_episodes
 
@@ -24,13 +25,14 @@ if __name__ == "__main__":
     print('##########################################################################\n##########################################################################')
     mode = sys.argv[1]
     experiment_manager = ExperimentManager(log_level=logging.DEBUG) 
+    model = PPO
     try:
         if mode == 'train':
             experiment_manager.delete_experiments_without_train()
             experiment_dir = experiment_manager.create_experiment_dir()
             log_file = f'{experiment_dir}/log_train.txt'
-            logger = experiment_manager.setup_logging(log_file)
-            experiment = Experiment(experiment_dir, logger)
+            experiment_manager.setup_logging(log_file)
+            experiment = Experiment(experiment_dir, model=model)
             with open(f'./src/config.json', 'r') as fp:
                 parameters = json.load(fp)
             experiment.train_model(parameters)
@@ -63,7 +65,8 @@ if __name__ == "__main__":
             experiment.test_no_agent(num_of_episodes)
             
     except Exception as e:
-        print(f"An error occurred: {e}")
+        logger = logging.getLogger(__name__)
+        logger.error(f"An error occurred: {e}")
         traceback.print_exc()
     # finally:
     #     experiment_manager.send_email(log_file)
