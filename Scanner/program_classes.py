@@ -296,28 +296,6 @@ class SplunkProgram(ProgramInterface):
         return ""
         # return "splunk start"
 
-    # def kill_process(self, p, is_posix, running_time):
-    #     print("extracting")
-    #     with open(os.path.join(self.results_path,"processes.txt"), 'w') as f:
-    #         OSFuncsInterface.run( "splunk status", self.should_use_powershell(), is_posix=is_posix, f=f)
-        
-    #     # a spl command for extracting logs from main index to csv file from running time to current time
-    #     extract_command = f'splunk search "index=main where earliest=-{running_time}m@m" -output csv -maxout 20000000 -auth shouei:sH231294'
-    #     with open(os.path.join(self.results_path,"logs.csv"), 'w') as f:
-    #         OSFuncsInterface.run(extract_command, self.should_use_powershell(), is_posix=is_posix, f=f)
-    #         f.flush()
-            
-        # print(extract_process.stderr.read().decode('utf-8'))
-        # time.sleep(80)
-        
-        '''splunk stop commands'''
-        # print("stopping")
-        # OSFuncsInterface.run("splunk stop", self.should_use_powershell(), is_posix=is_posix)
-        # time.sleep(30)
-        # print("cleaning")
-        # OSFuncsInterface.run("splunk clean eventdata -index eventgen -f", self.should_use_powershell(), is_posix=is_posix)
-        # OSFuncsInterface.run("splunk clean eventdata -index main -f", self.should_use_powershell(), is_posix=is_posix)
-    
     def process_ignore_cond(self, p):
         return (not p.name().__contains__('splunk')) or super(SplunkProgram, self).process_ignore_cond(p) 
 

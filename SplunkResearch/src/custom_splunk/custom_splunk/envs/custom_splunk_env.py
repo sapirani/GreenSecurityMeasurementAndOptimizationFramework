@@ -31,7 +31,7 @@ PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. L
 INFINITY = 100000
 CPU_TDP = 200
 class SplunkEnv(gym.Env):
-    def __init__(self, log_generator_instance, splunk_tools_instance, fake_start_datetime, rule_frequency, search_window, num_of_searches, reward_parameters, is_measure_energy, relevant_logtypes=[], span_size=1, total_additional_logs=None):
+    def __init__(self, log_generator_instance, splunk_tools_instance, fake_start_datetime, rule_frequency, search_window, num_of_searches, reward_parameters, is_measure_energy, relevant_logtypes=[], span_size=1, total_additional_logs=None, logs_per_minute = 300, additional_percentage = 0.1):
         
         self.log_generator = log_generator_instance
         self.splunk_tools = splunk_tools_instance
@@ -46,8 +46,7 @@ class SplunkEnv(gym.Env):
             self.total_steps = 1
             self.action_duration = self.search_window*60/max(self.total_steps, 1)
         else:
-            logs_per_minute = 300 # should be in env register
-            self.total_additional_logs = 0.2*logs_per_minute*self.search_window #//60
+            self.total_additional_logs = additional_percentage*logs_per_minute*self.search_window #//60
             self.time_range_update = True        
             self.action_duration = span_size #s #self.search_window*60/max(self.total_steps, 1)
             self.step_size = int((self.total_additional_logs//self.search_window)*self.action_duration//60)
@@ -62,14 +61,14 @@ class SplunkEnv(gym.Env):
         
         # create the action space - a vector of size max_actions_value with values between 0 and 1
         self.action_space = spaces.Box(low=0,high=self.action_upper_bound,shape=((len(self.relevant_logtypes)-1)*2+2, ),dtype=np.float64)
-        self.observation_space = spaces.Box(low=0,high=self.action_upper_bound,shape=(2*len(self.relevant_logtypes),),dtype=np.float64)
+        self.observation_space = spaces.Box(low=0,high=self.action_upper_bound,shape=(len(self.relevant_logtypes)*2,),dtype=np.float64)
         self.action_per_episode = []
         self.current_episode_accumulated_action = np.zeros(self.action_space.shape)
         self.fake_logtypes_counter = {}
         self.real_logtypeps_counter = {}
         self.fake_distribution = np.zeros(len(self.relevant_logtypes))
         self.real_distribution = np.zeros(len(self.relevant_logtypes))
-        self.state = np.zeros(len(self.relevant_logtypes)*2).tolist()
+        self.state = np.zeros(self.observation_space.shape).tolist()
         self.abs_distribution = {}
         self.done = False
         
@@ -244,7 +243,7 @@ class SplunkEnv(gym.Env):
         logger.debug(f"Current time: {self.dt_manager.set_fake_current_datetime(self.time_range[0])}") 
 
         
-        self.state = np.zeros(len(self.relevant_logtypes)*2)
+        self.state = np.zeros(self.observation_space.shape)
          
         # self.logtype_index_counter()  
         self.splunk_tools.update_all_searches(self.splunk_tools.update_search_time_range, self.time_range) 

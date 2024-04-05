@@ -29,6 +29,9 @@ from stable_baselines3.common.logger import configure
 import logging
 logger = logging.getLogger(__name__)
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
+from stable_baselines3 import A2C, PPO, DQN
+
+model_names = {'A2C': A2C, 'PPO': PPO, 'DQN': DQN}
 
 class Experiment:
     def __init__(self, experiment_dir, model=None):
@@ -80,12 +83,13 @@ class Experiment:
             parameters = json.load(fp)
         return parameters
 
-    def train_model(self, parameters, model_object, episodes=1):
+    def train_model(self, parameters, episodes=1):
         logger.info('train the model')
         parameters['measure_energy'] = False
         env = self.setup_environment(parameters)
 
         self.save_parameters_to_file(parameters, f'{self.experiment_dir}/parameters_train.json')
+        model_object = model_names[parameters['model']]
         model = model_object(MlpPolicy, env, verbose=1, stats_window_size=5, tensorboard_log=f"{self.experiment_dir}/tensorboard/", ent_coef=0.02)
 
         model.learn(total_timesteps=episodes*env.total_steps, tb_log_name=logger.name)
@@ -93,10 +97,11 @@ class Experiment:
         self.save_assets(self.experiment_dir, env)
         return model
     
-    def retrain_model(self, parameters, model_object):
+    def retrain_model(self, parameters):
         logger.info('retrain the model')
         parameters['measure_energy'] = False
         env = self.load_environment()
+        model_object = model_names[parameters['model']]
         model = model_object.load(f"{self.experiment_dir}/splunk_attack")
         model.set_env(env)
         model.learn(total_timesteps=parameters['episodes']*env.total_steps)
@@ -104,10 +109,11 @@ class Experiment:
         self.save_assets(self.experiment_dir, env)
         return model
     
-    def test_model(self, num_of_episodes, model_object):
+    def test_model(self, num_of_episodes):
         logger.info('test the model')
-        model = model_object.load(f"{self.experiment_dir}/splunk_attack")
         env = self.load_environment({'measure_energy': True})
+        model_object = model_names[self.load_parameters(f'{self.experiment_dir}/parameters_train.json')['model']]
+        model = model_object.load(f"{self.experiment_dir}/splunk_attack")
         mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=num_of_episodes)
         logger.info(f"mean_reward:{mean_reward}, std_reward:{std_reward}")
         self.save_assets(self.experiment_dir, env, mode='test')

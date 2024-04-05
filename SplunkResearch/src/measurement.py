@@ -52,16 +52,21 @@ class Measurement:
     def get_rules_metadata(self, time_range, num_of_searches):
         while True:
             try:
-                rules_pids = self.splunk_tools.get_rules_pids(time_range, num_of_searches)
+                rules_pids = self.splunk_tools.get_rules_pids(time_range, num_of_searches, self.measure_energy)
                 sleep(1)
             except Exception as e:
                 continue
             data = []
             for name, rules in rules_pids.items():
                 for e in rules:
-                    sid, pid, time, run_duration, total_events, total_run_time = e 
-                    data.append((name, sid, pid, time, run_duration, total_events, total_run_time)) 
-            rules_pids_df = pd.DataFrame(data, columns=['name', 'sid', 'pid', 'time', 'run_duration', 'total_events', 'total_run_time'])
+                    e = list(e)
+                    e.insert(0,name)
+                    
+                    data.append(tuple(e)) 
+            if self.measure_energy: # if we are measuring energy, we need the pids
+                rules_pids_df = pd.DataFrame(data, columns=['name', 'sid', 'pid', 'time', 'run_duration', 'total_events'])
+            else:
+                rules_pids_df = pd.DataFrame(data, columns=['name', 'sid', 'time', 'run_duration', 'total_events'])
             if len(rules_pids_df.name.unique()) == num_of_searches and len(rules_pids_df) == num_of_searches:
                 break
             rules_pids_df = None
@@ -93,6 +98,9 @@ class Measurement:
                         rules_energy_df = self.merge_energy_and_rule_data(pids_energy_df, rules_pids_df)
                     except Exception as e:
                         logger.error(e)
+                        if not process.is_alive():
+                            logger.info('Scanner process is not running')
+                            process = self.start_measurement_process()
                         continue
                     
                     rule_total_energy = rules_energy_df.groupby('name').agg({'CPU(J)': 'sum', 'run_duration': 'first', 'sid': 'first'}).reset_index()
@@ -133,7 +141,7 @@ class Measurement:
         return rule_total_energy_dict
 
     def start_measurement_process(self):
-        self.scanner.initialize_variables()
+        # self.scanner.initialize_variables()
         self.scanner.initialize_dataframes()
         process = multiprocessing.Process(target=self.scanner.main, args=(self.child_conn,))
         process.start()

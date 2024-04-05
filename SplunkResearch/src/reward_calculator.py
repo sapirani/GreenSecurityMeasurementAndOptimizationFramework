@@ -62,6 +62,10 @@ class RewardCalc:
         # self.update_average_values()
         # if alert_val > self.alert_threshold:
         #     return -10
+        if alert_val > int(self.num_of_searches/2):
+            return -alert_val
+        if duration_val > 1.5*self.num_of_searches*2:
+            return 10
         alert_reward = 1/(alert_val+1)
         distributions_reward = self.get_partial_reward(real_distribution, current_state)
         duration_reward = duration_val/(self.num_of_searches*2)

@@ -5,8 +5,7 @@ def extract_events(index_name, start_date, end_date, batch_size, output_dir):
     # Set up Splunk credentials
     splunk_url = "https://132.72.81.150:8089"
     username = 'shouei'
-    password = 'sH231294'
-
+    password = ''
     HEADERS = {
         "Content-Type": "application/x-www-form-urlencoded"
     }

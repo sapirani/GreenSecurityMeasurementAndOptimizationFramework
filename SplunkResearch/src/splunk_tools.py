@@ -1,20 +1,13 @@
-import asyncio
 from datetime import datetime
-import itertools
-from time import sleep
-import httpx
 import json
 import logging
 from multiprocessing import Pool
-import random
 import re
-import subprocess
 from dotenv import load_dotenv
 import os
 import pandas as pd
 import requests
-from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
+from datetime import datetime
 
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env')
 # Precompile the regex pattern
@@ -40,13 +33,34 @@ class SplunkTools:
         self.hec_token2 = os.getenv('HEC_TOKEN2')
         self.auth = requests.auth.HTTPBasicAuth(self.splunk_username, self.splunk_password)
         self.real_logs_distribution = pd.DataFrame(data=None, columns=['source', 'EventCode', '_time', 'count'])
+        self.active_saved_searches = self.get_saved_search_names()
     
+    def run_saved_search(self, saved_search_name):
+        url = f"{self.base_url}/servicesNS/{self.splunk_username}/{APP}/saved/searches/{saved_search_name}/dispatch"
+        response = requests.post(url, auth=self.auth, verify=False)
+        if response.status_code != 200:
+            logger.error(f'Error: {response}')
+            return None
+        return response.text
+        
+    def make_splunk_request(self, endpoint, method='get', params=None, data=None, headers=None):  
+        url = f"{self.base_url}{endpoint}"  
+        try:  
+            response = requests.request(method, url, auth=self.auth , params=params, data=data, headers=headers, verify=False)  
+            response.raise_for_status()  # Raise an exception for HTTP errors  
+            if 'application/json' in response.headers.get('Content-Type', ''):  
+                return response.json()  # Return JSON response if applicable  
+            return response.text  # Return raw response text if not JSON  
+        except requests.exceptions.HTTPError as err:  
+            logger.error(f'HTTP error occurred: {err}')  
+        except Exception as err:  
+            logger.error(f'Other error occurred: {err}')  
+        return None  
                     
     def write_logs_to_monitor(self, logs, log_source):
         with open(f'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/{log_source}.txt', 'a') as f:
             for log in logs:
-                f.write(f'{log}\n\n')
-        
+                f.write(f'{log}\n\n')        
         
     def get_saved_search_names(self, get_only_enabled=True, app="search", owner="shouei"):
         query = f"| rest /servicesNS/shouei/search/saved/searches splunk_server=local| search eai:acl.app={app} eai:acl.owner={owner}  | table title, search, cron_schedule, disabled"
@@ -57,7 +71,7 @@ class SplunkTools:
         }
         response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
         if response.status_code != 200:
-            logger.info(f'Error: {response}')
+            logger.error(f'Error: {response}')
             return None
         json_objects = response.text.splitlines()
         if 'result' not in json_objects[0]:
@@ -76,9 +90,6 @@ class SplunkTools:
     def _update_search(self, saved_search_name, data):
         url = f"{self.base_url}/servicesNS/{self.splunk_username}/{APP}/saved/searches/{saved_search_name}"
         response_code = self._send_post_request(url, data)
-        # if response_code == 200:
-        #     logging.info(f'Successfully updated saved search "{saved_search_name}".')
-        # else:
         if response_code != 200:
             logging.info(f'Failed to update saved search "{saved_search_name}". HTTP status code: {response_code}.')
 
@@ -105,25 +116,10 @@ class SplunkTools:
         self._update_search(saved_search_name, data)
 
     def update_all_searches(self, update_func, update_arg):
-        searches_names = self.get_saved_search_names()  # Assuming savedsearches_path is defined
+        searches_names = self.active_saved_searches
         with Pool() as pool:
             pool.starmap(update_func, [(search_name['title'], update_arg) for search_name in searches_names])
             
-    # def extract_distribution(self, start_time, end_time):
-    #     command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}") | eval is_fake=if(isnotnull(is_fake), is_fake, 0)|stats count by source EventCode is_fake| eventstats sum(count) as totalCount" -maxout 0 -auth shouei:sH231294'
-    #     cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
-    #     res_dict = {}
-    #     if len(cmd.stdout.split('\n')) > 2:
-    #         for row in cmd.stdout.split('\n')[2:-1]:
-    #             row = row.split()
-    #             source = row[0]
-    #             event_code = row[1]
-    #             is_fake = row[2]
-    #             count = row[3]
-    #             total_count = row[4]
-    #             res_dict[f"{source.lower()} {event_code} {int(is_fake)}"] = int(count)
-    #         res_dict['total_count'] = int(total_count)
-    #     return res_dict
     def load_real_logs_distribution_bucket(self, start_time, end_time):
         start_time = start_time.timestamp()
         end_time = end_time.timestamp()
@@ -135,7 +131,8 @@ class SplunkTools:
                 self.real_logs_distribution = pd.read_csv(f'{PREFIX_PATH}resources/output_buckets/{file}')
                 self.real_logs_distribution['_time'] = pd.to_datetime(self.real_logs_distribution['_time'], format='%Y-%m-%d %H:%M:%S%z')
                 self.real_logs_distribution['_time'] = self.real_logs_distribution['_time'].dt.tz_localize(None)
-                break                   
+                break  
+                             
     def get_releveant_distribution(self, start_time, end_time):
         # load real logs distribution from csv file with this structure: source, eventcode, _time, count
         date_start_time = datetime.strptime(start_time, '%m/%d/%Y:%H:%M:%S')
@@ -154,58 +151,64 @@ class SplunkTools:
         res_dict = {f"{row['source'].lower()} {row['EventCode']}": row['count'] for index, row in relevant_logs.iterrows()}
         return res_dict
         
-    def get_search_details(self, search, res_dict, search_endpoint):
-        search_id = search
-        rule_name = res_dict[search][0].strip()
-        time = res_dict[search][1]
-        executed_time = res_dict[search][2]
-        total_events = res_dict[search][3]
-        total_run_time = res_dict[search][4]
+    def get_search_details(self, search,  is_measure_energy=False):
+        search_id = search['search_id'].strip('\'')
+        rule_name = search['savedsearch_name']
+        executed_time = search['executed_time']
+        total_events = search['event_count']
+        total_run_time = search['total_run_time']
+        if is_measure_energy:
+            search_endpoint = f"{self.base_url}/services/search/jobs"
+            results_response = requests.get(f"{search_endpoint}/{search_id}", params={"output_mode": "json"}, auth=self.auth, verify=False)
+            results_data = json.loads(results_response.text)
+            try:
+                pid = results_data['entry'][0]['content']['pid']
+                runDuration = results_data['entry'][0]['content']['runDuration']
+                return (rule_name, (search_id, float(pid), executed_time, float(total_run_time), total_events))
+            except KeyError as e:
+                logger.info(f'KeyError - {str(e)}')
+            except IndexError as e:
+                logger.info(f'IndexError - {str(e)}')
+            except Exception as e:
+                logger.info('Unexpected error:', str(e))
+            logger.info(results_data)
+        else:
+            return (rule_name, (search_id, executed_time, float(total_run_time), total_events))
 
-        results_response = requests.get(f"{search_endpoint}/{search_id}", params={"output_mode": "json"}, auth=self.auth, verify=False)
-        results_data = json.loads(results_response.text)
-        try:
-            pid = results_data['entry'][0]['content']['pid']
-            runDuration = results_data['entry'][0]['content']['runDuration']
-            return (rule_name, (search_id, int(pid), executed_time, runDuration, total_events, total_run_time))
-        except KeyError as e:
-            logger.info(f'KeyError - {str(e)}')
-        except IndexError as e:
-            logger.info(f'IndexError - {str(e)}')
-        except Exception as e:
-            logger.info('Unexpected error:', str(e))
-        logger.info(results_data)
-
-    def get_rules_pids(self, time_range, num_of_searches=0):
-        format = "%Y-%m-%d %H:%M:%S"
-        format2 = "%m/%d/%Y:%H:%M:%S"
-        api_lt = datetime.strptime(time_range[0], format2).timestamp()
-        api_et = datetime.strptime(time_range[1], format2).timestamp()
-        query = f'index=_audit action=search app=search search_type=scheduled info=completed earliest=-2m api_et={api_lt} api_lt={api_et}\
-        | regex search_id=\\"scheduler.*\\"| eval executed_time=strftime(exec_time, \\"{format}\\")\
-        | table search_id savedsearch_name _time executed_time event_count total_run_time | sort _time desc | head {num_of_searches}'
-        command = f'echo sH231294| sudo -S -E env "PATH"="$PATH" /opt/splunk/bin/splunk search "{query}" -maxout 0 -auth shouei:sH231294'
-        cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
-        res = cmd.stdout.split('\n')[2:-1]
-        res_dict = {re.findall(pattern, line)[0][0]: re.findall(pattern, line)[0][1:] for line in res}
-        if cmd.stderr and "WARNING" not in cmd.stderr:
-            logger.error(f'stderr {cmd.stderr}')
-            raise Exception(f'Error in getting rules pids: {cmd.stderr}')
-        search_endpoint = f"{self.base_url}/services/search/jobs"
-        # Use a multiprocessing pool to get details of all searches in parallel
+    def get_rules_pids(self, time_range, num_of_searches, is_measure_energy=False):
+        """Get the PIDs of rules that were executed during the given time range."""
+        format_str = "%Y-%m-%d %H:%M:%S"
+        format_str2 = "%m/%d/%Y:%H:%M:%S"
+        api_lt = datetime.strptime(time_range[0], format_str2).timestamp()
+        api_et = datetime.strptime(time_range[1], format_str2).timestamp()
+        spl_query = (
+            f"search index=_audit action=search app=search search_type=scheduled info=completed earliest=-2m search_et={api_lt} search_lt={api_et}"
+            f'| regex search_id=\"scheduler.*\"| eval executed_time=strftime(exec_time, \"{format_str}\")'
+            f"| table search_id savedsearch_name _time executed_time event_count total_run_time | sort _time desc | head {num_of_searches}"
+        )
+        url = f"{self.base_url}/services/search/jobs"
+        data = {
+            "search": spl_query,
+            "exec_mode": "oneshot",
+            "output_mode": "json"
+        }
+        headers = {
+            "Content-Type": "application/json",
+        }
+        response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
+        logger.info(response.text)
+        if response.status_code != 200:
+            logger.info(f'Error: {response}')
+            return None
+        results = json.loads(response.text)['results']
         with Pool() as pool:
-            results = pool.starmap(self.get_search_details, [(search, res_dict, search_endpoint) for search in res_dict])
-
+            results = pool.starmap(self.get_search_details, [(search, is_measure_energy) for search in results])   
         pids = {}
         for res in results:
             if res is None:
                 continue
             rule_name, details = res
-            if rule_name not in pids:
-                pids[rule_name] = [details]
-            else:
-                pids[rule_name].append(details)
-
+            pids.setdefault(rule_name, []).append(details)
         return pids
     
     def get_alert_count(self, sids):
@@ -221,35 +224,6 @@ class SplunkTools:
         results = json.loads(response.text)
         results = int(results['results'][0]['count'])
         return results
-                  
-    def extract_logs(self, log_source, time_range=("-24h@h", "now"), eventcode='*', limit=0):
-        if  os.path.exists(f'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/logs_to_duplicate_files/{log_source.replace("/", "__")}_{eventcode}.txt'):
-            return None        
-        # Define your SPL query
-        spl_query = f'search index=main source="{log_source}" EventCode={eventcode} earliest="{time_range[0]}" latest="{time_range[1]}"'
-        if limit > 0:
-            spl_query += f' | head {limit}'
-        # Define the REST API endpoint
-        url = f"{self.base_url}/services/search/jobs/export"
-        data = {'output_mode': 'json', 'search': spl_query}
-        headers = {
-            "Content-Type": "application/json",
-        }
-        response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
-        
-        if response.status_code != 200:
-            logger.info(f'Error: {response}')
-            return None
-        json_objects = response.text.splitlines()
-        if 'result' not in json_objects[0]:
-            results = []
-        else:
-            # Parse each line as JSON
-            results = [json.loads(obj)['result']['_raw'] for obj in json_objects]
-        self.save_logs(log_source, eventcode, results)
-        return results
-    
-
     
     def delete_fake_logs(self, time_range=None):
         url = f"{self.base_url}/services/search/jobs/export"
@@ -266,7 +240,6 @@ class SplunkTools:
         results = response.text
         logger.info(results)
 
-        
     def save_logs(self, log_source, eventcode, logs):
         path = f'{PREFIX_PATH}logs_to_duplicate_files'
         if not os.path.exists(path):
@@ -301,49 +274,92 @@ class SplunkTools:
                 
     def get_time(self, y, m, d, h, mi, s):
         return datetime(y, m, d, h, mi, s).timestamp()
+  
+    # def extract_distribution(self, start_time, end_time):
+    #     command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}") | eval is_fake=if(isnotnull(is_fake), is_fake, 0)|stats count by source EventCode is_fake| eventstats sum(count) as totalCount" -maxout 0 -auth shouei:'
+    #     cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
+    #     res_dict = {}
+    #     if len(cmd.stdout.split('\n')) > 2:
+    #         for row in cmd.stdout.split('\n')[2:-1]:
+    #             row = row.split()
+    #             source = row[0]
+    #             event_code = row[1]
+    #             is_fake = row[2]
+    #             count = row[3]
+    #             total_count = row[4]
+    #             res_dict[f"{source.lower()} {event_code} {int(is_fake)}"] = int(count)
+    #         res_dict['total_count'] = int(total_count)
+    #     return res_dict          
+    # def extract_logs(self, log_source, time_range=("-24h@h", "now"), eventcode='*', limit=0):
+    #     if  os.path.exists(f'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/logs_to_duplicate_files/{log_source.replace("/", "__")}_{eventcode}.txt'):
+    #         return None        
+    #     # Define your SPL query
+    #     spl_query = f'search index=main source="{log_source}" EventCode={eventcode} earliest="{time_range[0]}" latest="{time_range[1]}"'
+    #     if limit > 0:
+    #         spl_query += f' | head {limit}'
+    #     # Define the REST API endpoint
+    #     url = f"{self.base_url}/services/search/jobs/export"
+    #     data = {'output_mode': 'json', 'search': spl_query}
+    #     headers = {
+    #         "Content-Type": "application/json",
+    #     }
+    #     response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
+        
+    #     if response.status_code != 200:
+    #         logger.info(f'Error: {response}')
+    #         return None
+    #     json_objects = response.text.splitlines()
+    #     if 'result' not in json_objects[0]:
+    #         results = []
+    #     else:
+    #         # Parse each line as JSON
+    #         results = [json.loads(obj)['result']['_raw'] for obj in json_objects]
+    #     self.save_logs(log_source, eventcode, results)
+    #     return results
     
-    def sample_log(self, logs, action_value):
-        if len(logs) > 0:
-            logs = random.sample(logs, min(len(logs), action_value))
-            return logs
-        else:
-            # logger.info('No results found or results is not a list.')
-            return None  
+    
+    # def sample_log(self, logs, action_value):
+    #     if len(logs) > 0:
+    #         logs = random.sample(logs, min(len(logs), action_value))
+    #         return logs
+    #     else:
+    #         # logger.info('No results found or results is not a list.')
+    #         return None  
 
 
-    async def insert_logs(self, logs, log_source, eventcode, istrigger):
-        if len(logs) == 0:
-            return
-        # select randomly one of the tokens
-        hec_tokens = [self.hec_token1, self.hec_token2]
-        tasks = []
-        for i, token in enumerate(hec_tokens):
-            start = i * len(logs) // 2
-            end = (i + 1) * len(logs) // 2
-            if len(logs) == 1 and i == 0:
-                continue                
-            task = asyncio.create_task(self._send_logs(logs[start:end], log_source, eventcode, istrigger, token))
-            tasks.append(task)
-        await asyncio.gather(*tasks)
+    # async def insert_logs(self, logs, log_source, eventcode, istrigger):
+    #     if len(logs) == 0:
+    #         return
+    #     # select randomly one of the tokens
+    #     hec_tokens = [self.hec_token1, self.hec_token2]
+    #     tasks = []
+    #     for i, token in enumerate(hec_tokens):
+    #         start = i * len(logs) // 2
+    #         end = (i + 1) * len(logs) // 2
+    #         if len(logs) == 1 and i == 0:
+    #             continue                
+    #         task = asyncio.create_task(self._send_logs(logs[start:end], log_source, eventcode, istrigger, token))
+    #         tasks.append(task)
+    #     await asyncio.gather(*tasks)
        
    
-    async def _send_logs(self, logs, log_source, eventcode, istrigger, hec_token):
-        headers = {
-            "Authorization": f"Splunk {hec_token}",
-            "Content-Type": "application/x-www-form-urlencoded",
-        }
-        url = f"http://{self.splunk_host}:8088/services/collector/event"
-        events = []
-        for i, (log, time) in enumerate(logs):
-            events.append(json.dumps({'event': log, 'source': log_source, 'sourcetype': log_source.split(':')[0], 'time': time}))
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, headers=headers, data="\n".join(events))
-        if response.status_code == 200:
-            logger.info(f'Logs successfully sent to Splunk. {len(logs)} logs of source {log_source}_{eventcode}_{istrigger} were sent.')
-        else:
-            logger.info('Failed to send log entry to Splunk.')
-            logger.info(response.text)
-            logger.info("\n".join(events))    
+    # async def _send_logs(self, logs, log_source, eventcode, istrigger, hec_token):
+    #     headers = {
+    #         "Authorization": f"Splunk {hec_token}",
+    #         "Content-Type": "application/x-www-form-urlencoded",
+    #     }
+    #     url = f"http://{self.splunk_host}:8088/services/collector/event"
+    #     events = []
+    #     for i, (log, time) in enumerate(logs):
+    #         events.append(json.dumps({'event': log, 'source': log_source, 'sourcetype': log_source.split(':')[0], 'time': time}))
+    #     async with httpx.AsyncClient() as client:
+    #         response = await client.post(url, headers=headers, data="\n".join(events))
+    #     if response.status_code == 200:
+    #         logger.info(f'Logs successfully sent to Splunk. {len(logs)} logs of source {log_source}_{eventcode}_{istrigger} were sent.')
+    #     else:
+    #         logger.info('Failed to send log entry to Splunk.')
+    #         logger.info(response.text)
+    #         logger.info("\n".join(events))    
             
 if __name__ == "__main__":
     logger = logging.getLogger("my_app")

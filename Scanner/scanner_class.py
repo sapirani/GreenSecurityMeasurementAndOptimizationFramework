@@ -416,11 +416,12 @@ class Scanner:
         :return: True if it is new measurement or if the user agreed to delete the previous measurements
         """
         if os.path.exists(self.base_dir):
-
-            button_selected = self.running_os.message_box("Deleting Previous Results",
-                                                     "Running the program will override the results of the previous measurement.\n\n"
-                                                     "Are you sure you want to continue?", 4)
-
+            try:
+                button_selected = self.running_os.message_box("Deleting Previous Results",
+                                                        "Running the program will override the results of the previous measurement.\n\n"
+                                                        "Are you sure you want to continue?", 4)
+            except Exception:
+                button_selected = YES_BUTTON
             if button_selected == YES_BUTTON:
                 shutil.rmtree(self.base_dir)  # remove previous data
                 return True

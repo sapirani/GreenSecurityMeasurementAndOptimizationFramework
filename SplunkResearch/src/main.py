@@ -16,7 +16,7 @@ def evaluation_preperation(experiment_manager, mode='no_agent'):
     log_file = f'{experiment_dir}/log_{mode}.txt'
     experiment_manager.setup_logging(log_file)
     num_of_episodes = int(sys.argv[3])
-    return log_file, num_of_episodes
+    return log_file, num_of_episodes, experiment_dir
 
 if __name__ == "__main__":
     print('##########################################################################start##########################################################################')
@@ -33,7 +33,7 @@ if __name__ == "__main__":
             experiment = Experiment(experiment_dir)
             with open(f'./src/config.json', 'r') as fp:
                 parameters = json.load(fp)
-            experiment.train_model(parameters, model, episodes=int(sys.argv[2]))
+            experiment.train_model(parameters, episodes=int(sys.argv[2]))
             # experiment_manager.save_experiment(experiment, experiment_dir)
             
         if mode == 'retrain':
@@ -50,15 +50,18 @@ if __name__ == "__main__":
             # experiment_manager.save_experiment(experiment, experiment_dir)
             
         elif mode == 'test':
-            log_file, num_of_episodes = evaluation_preperation(experiment_manager, mode)
+            log_file, num_of_episodes, experiment_dir = evaluation_preperation(experiment_manager, mode)
+            experiment = Experiment(experiment_dir)
             experiment.test_model(num_of_episodes)
             
         elif mode == 'baseline':
-            log_file, num_of_episodes = evaluation_preperation(experiment_manager, mode)
+            log_file, num_of_episodes, experiment_dir = evaluation_preperation(experiment_manager, mode)
+            experiment = Experiment(experiment_dir)
             experiment.test_baseline_agent(num_of_episodes, agent_type=sys.argv[4])
             
         elif mode == 'no_agent':
-            log_file, num_of_episodes = evaluation_preperation(experiment_manager, mode='no_agent')
+            log_file, num_of_episodes, experiment_dir = evaluation_preperation(experiment_manager, mode)
+            experiment = Experiment(experiment_dir)
             experiment.test_no_agent(num_of_episodes)
             
     except Exception as e:

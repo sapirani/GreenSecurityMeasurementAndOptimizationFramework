@@ -61,7 +61,7 @@ for extraction_state in "${EXTRACTION_STATES[@]}"; do
 
         latest_folder=$(ls -td -- ../../GreenSecurity-FirstExperiment/VMware\,\ Inc.\ Linux\ 3.10.0-1160.88.1.el7.x86_64/Splunk\ Enterprise\ SIEM/Power\ Saver\ Plan/One\ Scan/* | head -n 1)
         # echo "Latest folder: $latest_folder"
-        # sudo -E env "PATH=$PATH" splunk search "index=main where earliest=-$60m@m" -output csv -maxout 0 -auth shouei:sH231294 > "${latest_folder}/logs.csv"
+        # sudo -E env "PATH=$PATH" splunk search "index=main where earliest=-$60m@m" -output csv -maxout 0 -auth shouei: > "${latest_folder}/logs.csv"
         python "splunk_tools/jobs_info_extractor.py" "$latest_folder" "$running_time" &
         wait
         
