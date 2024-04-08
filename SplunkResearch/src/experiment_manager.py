@@ -17,9 +17,7 @@ class ExperimentManager:
         if not os.path.exists(self.base_dir):
             os.makedirs(self.base_dir)
 
-    def setup_logging(self, log_file):
-        """Sets up logging to write to the specified log file."""
-        logging.basicConfig(level=self.log_level, format='%(asctime)s - %(levelname)s - %(message)s', filename=log_file)
+
     
     def save_experiment(self, experiment_object, experiment_dir):
         # save experiment object in a pickle file
@@ -31,13 +29,20 @@ class ExperimentManager:
         with open(f'{experiment_dir}/experiment.pkl', 'rb') as f:
             return pickle.load(f)
 
-    
-    def create_experiment_dir(self):
-        """Creates a new directory for the experiment based on the current timestamp."""
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        exp_dir = os.path.join(self.base_dir, f"exp_{timestamp}")
-        os.makedirs(exp_dir)
+    def create_experiment_dir(self, env_name):
+        # """Creates a new directory for the experiment based on the current timestamp."""
+        # timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        exp_dir = os.path.join(self.base_dir, env_name)
+        if not os.path.exists(exp_dir):
+            os.makedirs(exp_dir)
         return exp_dir
+
+    # def create_experiment_dir(self):
+    #     """Creates a new directory for the experiment based on the current timestamp."""
+    #     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    #     exp_dir = os.path.join(self.base_dir, f"exp_{timestamp}")
+    #     os.makedirs(exp_dir)
+    #     return exp_dir
 
     def archive_old_experiments(self, days_old=30):
         """Archives experiments that are older than the specified number of days."""
@@ -75,6 +80,7 @@ class ExperimentManager:
                 content = file.read()
 
         return content
+    
     
     def delete_experiments_without_train(self):
         experiments_dir = r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments"

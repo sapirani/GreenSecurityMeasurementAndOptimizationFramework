@@ -204,8 +204,7 @@ class SplunkEnv(gym.Env):
             if logtype in self.fake_logtypes_counter:
                 fake_count = self.fake_logtypes_counter[logtype]
                 fake_state[i] += fake_count
-            else:
-                fake_state[i] = 0
+
         real_total_sum = sum(self.real_logtypeps_counter.values())
         fake_total_sum = sum(self.fake_logtypes_counter.values()) + real_total_sum
         real_state = [x/real_total_sum if real_total_sum!= 0 else 1/len(real_state) for x in real_state]

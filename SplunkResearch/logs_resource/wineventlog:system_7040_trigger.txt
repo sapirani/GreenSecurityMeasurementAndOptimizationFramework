@@ -1,13 +1,17 @@
-04/05/2023 10:20:30 AM
-LogName=System
-EventCode=7040
-EventType=4
-ComputerName=server.domain.com
-SourceName=Service Control Manager
-Type=Information
-RecordNumber=12345
-Keywords=Classic
-TaskCategory=None
-OpCode=Info
-Message=The SomeService service was changed from demand start to disabled.
+04/05/2023 10:20:30 AM  
+LogName=System  
+EventCode=7040  
+EventType=4  
+ComputerName=server.domain.com  
+SourceName=Service Control Manager  
+Type=Information  
+User=DOMAIN\User  
+Sid=S-1-5-21-1234567890-1234567890-1234567890-1001  
+RecordNumber=12345  
+Keywords=Classic  
+TaskCategory=None  
+service=Print Spooler  
+service_name=Spooler
+OpCode=Info  
+Message=The Print Spooler service was changed from demand start to disabled.  
 [EOF]

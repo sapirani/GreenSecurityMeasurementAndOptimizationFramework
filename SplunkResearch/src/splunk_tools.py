@@ -34,14 +34,57 @@ class SplunkTools:
         self.auth = requests.auth.HTTPBasicAuth(self.splunk_username, self.splunk_password)
         self.real_logs_distribution = pd.DataFrame(data=None, columns=['source', 'EventCode', '_time', 'count'])
         self.active_saved_searches = self.get_saved_search_names()
-    
-    def run_saved_search(self, saved_search_name):
-        url = f"{self.base_url}/servicesNS/{self.splunk_username}/{APP}/saved/searches/{saved_search_name}/dispatch"
-        response = requests.post(url, auth=self.auth, verify=False)
+        
+    def query_splunk(self, query, earliest_time, latest_time):
+        url = f"{self.base_url}/services/search/jobs/export"
+        data = {
+            "search": "search "+query,
+            "exec_mode": "oneshot",
+            "earliest_time": earliest_time,
+            "latest_time": latest_time,
+            "output_mode": "json"
+        }
+        headers = {
+            "Content-Type": "application/json",
+        }
+        # measure running time of requests
+        time_start = datetime.now()
+        response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
+        time_end = datetime.now()
+        execution_time = time_end - time_start
         if response.status_code != 200:
             logger.error(f'Error: {response}')
             return None
-        return response.text
+        json_objects = response.text.splitlines()
+        if 'result' not in json.loads(json_objects[0]):
+            results = []
+        else:
+            # Parse each line as JSON
+            results = [json.loads(obj)['result'] for obj in json_objects]
+        return results, execution_time
+    
+    def run_saved_searches(self, time_range):
+        saved_searches = self.active_saved_searches
+        execution_times = []
+        results_list = []
+        for saved_search in saved_searches:
+            results, execution_time = self.run_saved_search(saved_search, time_range)
+            execution_times.append(execution_time)
+            results_list.append(results)
+        return results_list, execution_times
+    
+    def run_saved_search(self, saved_search, time_range):
+        search_name = saved_search['title']
+        query = saved_search['search']
+        earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
+        latest_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').timestamp()
+        # insert the time range to the query befor the first pipe
+        query = query.split('|')
+        query[0] = f'{query[0]} earliest={earliest_time} latest={latest_time}'
+        query = '|'.join(query)
+        logger.info(f'Running saved search {search_name} with query: {query}')
+        results, execution_time = self.query_splunk(query, earliest_time, latest_time)
+        return len(results), execution_time.total_seconds()
         
     def make_splunk_request(self, endpoint, method='get', params=None, data=None, headers=None):  
         url = f"{self.base_url}{endpoint}"  
@@ -81,7 +124,7 @@ class SplunkTools:
             results = [json.loads(obj)['result'] for obj in json_objects]
         if get_only_enabled:
             results = [result for result in results if result['disabled'] == '0']
-        return results
+        return sorted(results, key=lambda x: x['title'])
     
     def _send_post_request(self, url, data):
         response = requests.post(url, headers=HEADERS, data=data, auth=self.auth, verify=False)
@@ -232,7 +275,7 @@ class SplunkTools:
         else:
             time_expression = f'earliest="{time_range[0]}" latest="{time_range[1]}"'
         data = {
-            "search": f'search index=main sourcetype IN ("xmlwineventlog", "wineventlog") is_fake=1 {time_expression} | delete',
+            "search": f'search index=main sourcetype IN ("xmlwineventlog", "wineventlog") host="dt-splunk" {time_expression} | delete',
             "exec_mode": "oneshot",
             "output_mode": "json"
         }
@@ -362,34 +405,36 @@ class SplunkTools:
     #         logger.info("\n".join(events))    
             
 if __name__ == "__main__":
-    logger = logging.getLogger("my_app")
-    log_file = 'splunk_tools.log'
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    logger.setLevel(logging.INFO)
-    file_handler = logging.FileHandler(log_file)
-    # Set the formatter for the file handler
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-    splunk_tools = SplunkTools(logger)
-    earliest_time = splunk_tools.get_time(2023, 6, 21, 0, 0, 0)
-    latest_time = splunk_tools.get_time(2023, 6, 23, 23, 59, 59)
-    # splunk_tools.delete   _fake_logs((earliest_time, latest_time))
-    # test generating logs
-    # log = splunk_tools.generate_log('xmlwineventlog:microsoft-windows-sysmon/operational', '24')
-    # sourcetype = 'xmlwineventlog:microsoft-windows-sysmon/operational'
-    # eventcode = '22'
-    # logs = []
-    # log = splunk_tools.load_logs_to_duplicate_dict([(sourcetype, eventcode)])
-    # print(datetime.now())
-    # for i in range(20000):
-    #     time = datetime.now() - timedelta(days=200)
-    #     time = time.timestamp()
-    #     logs.append((log[sourcetype, eventcode][0], time))
-    # asyncio.run(splunk_tools.insert_logs(logs, sourcetype))
-    # print(datetime.now())
-    # print(log)
-    # print(time)
-    # logger.info(splunk_tools.get_rules_pids(60))
-    # logger.info(splunk_tools.extract_logs('WinEventLog:Security', '4624'))
-    # test loading logs from disk
-    # splunk_tools.load_logs_to_duplicate_dict([('WinEventLog:Security', '2005')])  
+   # test run saved searches for 01/05/2023
+    splunk_tools = SplunkTools()
+    splunk_tools.run_saved_searches(['05/01/2023:09:00:00', '05/01/2023:12:10:00'])
+    # test get rules pids
+    # pids = splunk_tools.get_rules_pids(['01/01/2022:00:00:00', '01/01/2022:00:10:00'], 10)
+    # print(pids)
+    # test get alert count
+    # alert_count = splunk_tools.get_alert_count(['scheduler__admin__search__RMD5d3d4f6f9d2d3c3c_at_1640990400_108'])
+    # print(alert_count)
+    # test delete fake logs
+    # splunk_tools.delete_fake_logs()
+    # test save logs
+    # splunk_tools.save_logs('WinEventLog:Security', 4624, ['log1', 'log2'])
+    # test load logs to duplicate dict
+    # logtypes = [('WinEventLog:Security', 4624), ('WinEventLog:Security', 4625)]
+    # logs_to_duplicate_dict = splunk_tools.load_logs_to_duplicate_dict(logtypes)
+    # print(logs_to_duplicate_dict)
+    # test get real distribution
+    # real_distribution = splunk_tools.get_real_distribution('01/01/2022:00:00:00', '01/01/2022:00:10:00')
+    # print(real_distribution)
+    # test get saved search names
+    # saved_searches = splunk_tools.get_saved_search_names()
+    # print(saved_searches)
+    # test run saved search
+    # splunk_tools.run_saved_search(saved_searches[0], ['01/01/2022:00:00:00', '01/01/2022:00:10:00'])
+    # test enable search
+    # splunk_tools.enable_search(saved_searches[0]['title'])
+    # test disable search
+    # splunk_tools.disable_search(saved_searches[0]['title'])
+    # test update search cron expression
+    # splunk_tools.update_search_cron_expression(saved_searches[0]['title'], '*/5 * * * *')
+    # test update search time range
+    # splunk_tools.update_search_time_range(saved_searches[0

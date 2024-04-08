@@ -1,74 +1,67 @@
 import os
-import pickle
 import numpy as np
 import urllib3
-from measurement import Measurement
-from datetime_manager import MockedDatetimeManager
-import datetime
-import time
 import json
 import sys
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
-from resources.logtypes import logtypes
-from resources.state_span import state_span
-from resources.section_logtypes import section_logtypes
 import logging
-from experiment_manager import ExperimentManager
-from splunk_tools import SplunkTools
-from reward_calculator import RewardCalc
-import random
-import subprocess
 from stable_baselines3.ppo.policies import MlpPolicy
 from stable_baselines3.common.evaluation import evaluate_policy
 import gym
-import custom_splunk
-from log_generator import LogGenerator
-from resources.log_generator_resources import replacement_dicts as big_replacement_dicts
+import custom_splunk #dont remove!!!
+from stable_baselines3 import A2C, PPO, DQN
 urllib3.disable_warnings()
-from stable_baselines3.common.logger import configure
+
 import logging
 logger = logging.getLogger(__name__)
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
-from stable_baselines3 import A2C, PPO, DQN
 
-model_names = {'A2C': A2C, 'PPO': PPO, 'DQN': DQN}
+model_names = {'a2c': A2C, 'ppo': PPO, 'dqn': DQN}
+
+
+
+
+
+
+
+
 
 class Experiment:
     def __init__(self, experiment_dir, model=None):
         self.experiment_dir = experiment_dir
 
+    def setup_logging(self, log_file):
+        """Sets up logging to write to the specified log file."""
+        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s', filename=log_file)
 
-
-    def save_assets(self, current_dir, env, mode='train'):
+    def save_assets(self, path, env):
         # print(env.reward_calculator.reward_values_dict)
         # create a directory for the assets if not exists
-        if not os.path.exists(f'{current_dir}/{mode}'):
-            os.makedirs(f'{current_dir}/{mode}')
-        with open(f'{current_dir}/{mode}/reward_dict.json', 'w') as fp:
+        with open(f'{path}/reward_dict.json', 'w') as fp:
             json.dump(env.reward_calculator.reward_dict, fp)
-        with open(f'{current_dir}/{mode}/reward_values_dict.json', 'w') as fp:
+        with open(f'{path}/reward_values_dict.json', 'w') as fp:
             json.dump(env.reward_calculator.reward_values_dict, fp)
-        with open(f'{current_dir}/{mode}/time_rules_energy.json', 'w') as fp:
+        with open(f'{path}/time_rules_energy.json', 'w') as fp:
             json.dump(env.reward_calculator.time_rules_energy, fp)   
-        with open(f'{current_dir}/{mode}/action_dict.json', 'w') as fp:
+        with open(f'{path}/action_dict.json', 'w') as fp:
                 json.dump(np.array(env.action_per_episode).tolist(), fp)
 
 
     
-    def setup_environment(self, parameters):       
+    def setup_environment(self, env_name, parameters):       
         if "total_additional_logs" in parameters:
             total_additional_logs = parameters['total_additional_logs']
         else:
             total_additional_logs = None
         # logger.info(f'current parameters:\ntime range:{time_range} \nfake_start_datetime: {fake_start_datetime}\nrule frequency: {rule_frequency}\nsearch_window:{search_window}\nrunning time: {running_time}\nnumber of searches: {num_of_searches}\nalpha {alpha}\nbeta {beta}\n gama {gamma}\nsavedsearches: {savedsearches}\nrelevantlog_types: {relevant_logtypes}')
-        env = gym.make(parameters['env_name'],  fake_start_datetime=parameters['fake_start_datetime'], total_additional_logs=total_additional_logs, reward_parameters=parameters['reward_parameters'], is_measure_energy=parameters['measure_energy'])
+        env = gym.make(env_name, total_additional_logs=total_additional_logs, reward_parameters=parameters['reward_parameters'], is_measure_energy=parameters['measure_energy'])
         return env
     
-    def load_environment(self, modifed_parameters={}):
+    def load_environment(self, env_name, modifed_parameters={}):
         parameters = self.load_parameters(f'{self.experiment_dir}/parameters_train.json')
         parameters.update(modifed_parameters)
-        env = self.setup_environment(parameters)
-        return env
+        env = self.setup_environment(env_name, parameters)
+        return env, parameters
     
     def save_parameters_to_file(self, parameters, filename):
         with open(filename, 'w') as fp:
@@ -83,59 +76,91 @@ class Experiment:
             parameters = json.load(fp)
         return parameters
 
-    def train_model(self, parameters, episodes=1):
+    def train_model(self, parameters, env_name, model, num_of_episodes):
+        
+        alpha, beta, gamma = parameters['reward_parameters'].values()
+        prefix_path = f'{self.experiment_dir}/{model}_{alpha}_{beta}_{gamma}'
+        path = f'{prefix_path}/train'
+        if not os.path.exists(path):
+            os.makedirs(path)
+        log_file = f'{path}/log.txt'
+        self.setup_logging(log_file)
+
         logger.info('train the model')
         parameters['measure_energy'] = False
-        env = self.setup_environment(parameters)
+        env = self.setup_environment(env_name, parameters)
 
         self.save_parameters_to_file(parameters, f'{self.experiment_dir}/parameters_train.json')
-        model_object = model_names[parameters['model']]
-        model = model_object(MlpPolicy, env, verbose=1, stats_window_size=5, tensorboard_log=f"{self.experiment_dir}/tensorboard/", ent_coef=0.02)
+        model_object = model_names[model]
+        model = model_object(MlpPolicy, env, n_steps=2, verbose=1, stats_window_size=5, tensorboard_log=f"{path}/tensorboard/")
 
-        model.learn(total_timesteps=episodes*env.total_steps, tb_log_name=logger.name)
-        model.save(f"{self.experiment_dir}/splunk_attack")
-        self.save_assets(self.experiment_dir, env)
+        model.learn(total_timesteps=num_of_episodes*env.total_steps, tb_log_name=logger.name)
+        model.save(f"{prefix_path}/splunk_attack")
+        self.save_assets(path, env)
         return model
     
-    def retrain_model(self, parameters):
-        logger.info('retrain the model')
-        parameters['measure_energy'] = False
-        env = self.load_environment()
-        model_object = model_names[parameters['model']]
-        model = model_object.load(f"{self.experiment_dir}/splunk_attack")
-        model.set_env(env)
-        model.learn(total_timesteps=parameters['episodes']*env.total_steps)
-        model.save(f"{self.experiment_dir}/splunk_attack")
-        self.save_assets(self.experiment_dir, env)
-        return model
+    # def retrain_model(self, parameters):
+    #     logger.info('retrain the model')
+    #     parameters['measure_energy'] = False
+    #     env = self.load_environment()
+    #     model_object = model_names[parameters['model']]
+    #     model = model_object.load(f"{self.experiment_dir}/splunk_attack")
+    #     model.set_env(env)
+    #     model.learn(total_timesteps=parameters['episodes']*env.total_steps)
+    #     model.save(f"{self.experiment_dir}/splunk_attack")
+    #     self.save_assets(path, env)
+    #     return model
     
-    def test_model(self, num_of_episodes):
+    def test_model(self, env_name, model, num_of_episodes):
+        env, parameters = self.load_environment(env_name, {'measure_energy': False}) #changed to false
+        alpha, beta, gamma = parameters['reward_parameters'].values()
+        prefix_path = f'{self.experiment_dir}/{model}_{alpha}_{beta}_{gamma}'
+        path = f'{prefix_path}/test'
+        if not os.path.exists(path):
+            os.makedirs(path)
+        log_file = f'{path}/log.txt'
+        self.setup_logging(log_file)
         logger.info('test the model')
-        env = self.load_environment({'measure_energy': True})
-        model_object = model_names[self.load_parameters(f'{self.experiment_dir}/parameters_train.json')['model']]
-        model = model_object.load(f"{self.experiment_dir}/splunk_attack")
+        model_object = model_names[model]
+        model = model_object.load(f"{prefix_path}/splunk_attack")
         mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=num_of_episodes)
         logger.info(f"mean_reward:{mean_reward}, std_reward:{std_reward}")
-        self.save_assets(self.experiment_dir, env, mode='test')
+        self.save_assets(path, env)
         return env
     
-    def test_baseline_agent(self, num_of_episodes, agent_type='random'):
+    def test_baseline_agent(self, env_name, num_of_episodes, agent_type='random'):
+        
+        path = f'{self.experiment_dir}/baseline_{agent_type}'
+        if not os.path.exists(path):
+            os.makedirs(path)
+        log_file = f'{path}/log.txt'
+        self.setup_logging(log_file)
+        
+        
         logger.info(f'test baseline {agent_type} agent')
-        env = self.load_environment({'measure_energy': True})
+        env, parameters = self.load_environment(env_name,{'measure_energy': False}) #changed to false
         for i in range(num_of_episodes):
             env.reset()
             self.run_manual_episode(agent_type, env)
-        self.save_assets(self.experiment_dir, env, mode=f'test_{agent_type}_agent')
+        self.save_assets(path, env)
         return env
 
             
-    def test_no_agent(self, num_of_episodes):
+    def test_no_agent(self, env_name, num_of_episodes):
+
+        path = f'{self.experiment_dir}/no_agent'
+        if not os.path.exists(path):
+            os.makedirs(path)
+        log_file = f'{path}/log.txt'
+        self.setup_logging(log_file)
+
+        
         logger.info('test no agent')
-        env = self.load_environment({'measure_energy': True})
+        env, parameters = self.load_environment(env_name,{'measure_energy': False}) #changed to false
         for i in range(num_of_episodes):
             env.reset()
             env.evaluate_no_agent()
-        self.save_assets(self.experiment_dir, env, mode='test_no_agent')
+        self.save_assets(path, env)
         return env
     
     def run_manual_episode(self, agent_type, env):

@@ -58,12 +58,22 @@ class RewardCalc:
     
     def get_full_reward(self, time_range, real_distribution, current_state):
         # fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
-        alert_val, energy_val, energy_increase, duration_val, duration_increase = self.get_full_reward_values(time_range=time_range)
+        # alert_val, energy_val, energy_increase, duration_val, duration_increase = self.get_full_reward_values(time_range=time_range)
+        alert_vals,duration_vals = self.splunk_tools.run_saved_searches(time_range)
+        alert_val = sum(alert_vals)
+        duration_val = sum(duration_vals)
+        self.time_rules_energy.append({'time_range':str(time_range), 'rules':duration_vals})
+        
+        self.reward_values_dict['alerts'].append(alert_val)
+        logger.info(f"alert value: {alert_val}")
+        logger.info(f"duration value: {duration_val}")
+        self.reward_values_dict['duration'].append(duration_val)
+        
         # self.update_average_values()
         # if alert_val > self.alert_threshold:
         #     return -10
-        if alert_val > int(self.num_of_searches/2):
-            return -alert_val
+        # if alert_val > int(self.num_of_searches):
+        #     return -alert_val
         if duration_val > 1.5*self.num_of_searches*2:
             return 10
         alert_reward = 1/(alert_val+1)
@@ -90,13 +100,10 @@ class RewardCalc:
             logger.info(f"energy value: {energy_val}")
             self.reward_values_dict['energy'].append(energy_val)
         duration_val = sum([rule['run_duration'] for rule in rule_total_energy_dict])           
-        logger.info(f"duration value: {duration_val}")
-        
-        self.reward_values_dict['duration'].append(duration_val)
+
         sids = [rule['sid'] for rule in rule_total_energy_dict]
         alert_val = self.splunk_tools.get_alert_count(sids)
-        self.reward_values_dict['alerts'].append(alert_val)
-        logger.info(f"alert value: {alert_val}")
+
         
         energy_increase = 0
         duration_increase = 0
@@ -111,6 +118,7 @@ class RewardCalc:
         # # self.previous_energy = energy_val        
         # logger.info(f"incease in energy: {energy_increase}")
         # logger.info(f"incease in duration: {duration_increase}")
+
         return alert_val, energy_val, energy_increase, duration_val, duration_increase
     
 
@@ -121,9 +129,7 @@ class RewardCalc:
         if distributions_val == 0:
             distributions_val = distributions_val + 0.000000000001
         self.reward_values_dict['distributions'].append(distributions_val)
-        self.reward_values_dict['fraction'].append(fraction_val)
         logger.info(f"distributions value: {distributions_val}")
-        logger.info(f"fraction value: {fraction_val}")
         return fraction_val,distributions_val
     
     def compare_distributions(self, dist1, dist2):#tool
