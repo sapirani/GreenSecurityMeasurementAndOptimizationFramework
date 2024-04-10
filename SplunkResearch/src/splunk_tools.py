@@ -22,7 +22,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class SplunkTools:
-    def __init__(self):
+    def __init__(self, active_saved_searches=None):
         self.splunk_host = os.getenv("SPLUNK_HOST")
         self.splunk_port = os.getenv("SPLUNK_PORT")
         self.base_url = f"https://{self.splunk_host}:{self.splunk_port}"
@@ -33,7 +33,7 @@ class SplunkTools:
         self.hec_token2 = os.getenv('HEC_TOKEN2')
         self.auth = requests.auth.HTTPBasicAuth(self.splunk_username, self.splunk_password)
         self.real_logs_distribution = pd.DataFrame(data=None, columns=['source', 'EventCode', '_time', 'count'])
-        self.active_saved_searches = self.get_saved_search_names()
+        self.active_saved_searches = self.get_saved_search_names(active_saved_searches)
         
     def query_splunk(self, query, earliest_time, latest_time):
         url = f"{self.base_url}/services/search/jobs/export"
@@ -105,7 +105,7 @@ class SplunkTools:
             for log in logs:
                 f.write(f'{log}\n\n')        
         
-    def get_saved_search_names(self, get_only_enabled=True, app="search", owner="shouei"):
+    def get_saved_search_names(self, active_saved_searches, get_only_enabled=True, app="search", owner="shouei"):
         query = f"| rest /servicesNS/shouei/search/saved/searches splunk_server=local| search eai:acl.app={app} eai:acl.owner={owner}  | table title, search, cron_schedule, disabled"
         url = f"{self.base_url}/services/search/jobs/export"
         data = {'output_mode': 'json', 'search': query}
@@ -123,7 +123,7 @@ class SplunkTools:
             # Parse each line as JSON
             results = [json.loads(obj)['result'] for obj in json_objects]
         if get_only_enabled:
-            results = [result for result in results if result['disabled'] == '0']
+            results = [result for result in results if result['title'] in active_saved_searches]
         return sorted(results, key=lambda x: x['title'])
     
     def _send_post_request(self, url, data):

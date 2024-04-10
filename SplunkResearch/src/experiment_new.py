@@ -92,7 +92,7 @@ class Experiment:
 
         self.save_parameters_to_file(parameters, f'{self.experiment_dir}/parameters_train.json')
         model_object = model_names[model]
-        model = model_object(MlpPolicy, env, n_steps=2, verbose=1, stats_window_size=5, tensorboard_log=f"{path}/tensorboard/")
+        model = model_object(MlpPolicy, env, n_steps=env.total_steps, verbose=1, stats_window_size=5, tensorboard_log=f"{path}/tensorboard/")
 
         model.learn(total_timesteps=num_of_episodes*env.total_steps, tb_log_name=logger.name)
         model.save(f"{prefix_path}/splunk_attack")
@@ -163,6 +163,21 @@ class Experiment:
         self.save_assets(path, env)
         return env
     
+    def test_autopic_agent(self, env_name, num_of_episodes):
+        path = f'{self.experiment_dir}/autopic_agent'
+        if not os.path.exists(path):
+            os.makedirs(path)
+        log_file = f'{path}/log.txt'
+        self.setup_logging(log_file)
+        
+        logger.info('test autopic agent')
+        env, parameters = self.load_environment(env_name,{'measure_energy': False})
+        for i in range(num_of_episodes):
+            env.reset()
+            env.run_manual_episode('autopic')
+        self.save_assets(path, env)
+        return env
+    
     def run_manual_episode(self, agent_type, env):
         done = False
         while not done:
@@ -170,6 +185,12 @@ class Experiment:
                 # action = np.array([random.uniform(0, 1) for i in range((len(env.relevant_logtypes)-1)*2+2)])
                 action = np.random.dirichlet(np.ones(env.action_space.shape))
             elif agent_type == 'uniform':
-                action = 100/len(env.relevant_logtypes)    
+                action = 100/len(env.relevant_logtypes)  
+            elif agent_type == 'autopic':
+                action = np.ones(env.action_space.shape)
+                for i in range(len(action)):
+                    if i%2 != 0:
+                        action[i] = 0
+                action[-2] = 0
             obs, reward, done, info = env.step(action)
             env.render()

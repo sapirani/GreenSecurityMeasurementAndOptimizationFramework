@@ -245,7 +245,7 @@ class SplunkEnv(gym.Env):
         self.state = np.zeros(self.observation_space.shape)
          
         # self.logtype_index_counter()  
-        self.splunk_tools.update_all_searches(self.splunk_tools.update_search_time_range, self.time_range) 
+        # self.splunk_tools.update_all_searches(self.splunk_tools.update_search_time_range, self.time_range) #TODO
         return self.state 
 
     def update_timerange(self):

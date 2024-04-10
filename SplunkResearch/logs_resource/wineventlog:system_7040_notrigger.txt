@@ -2,16 +2,15 @@
 LogName=System  
 EventCode=7040  
 EventType=4  
-ComputerName=server.domain.com  
+ComputerName=server.domain.com 
+User=DOMAIN\User
+Sid=S-1-5-21-1234567890-1234567890-1234567890-1001
+SidType=0 
 SourceName=Service Control Manager  
-Type=Information  
-User=DOMAIN\User  
-Sid=S-1-5-21-1234567890-1234567890-1234567890-1001  
+Type=Information   
 RecordNumber=12346  
 Keywords=Classic  
 TaskCategory=None 
-service=Audio Service  
-service_name=Audiosrv 
 OpCode=Info  
-Message=The Audio Service service was changed from auto start to demand start.   
+Message=The start type of the Audio Service service was changed from auto start to demand start.   
 [EOF]

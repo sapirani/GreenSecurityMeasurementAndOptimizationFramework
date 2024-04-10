@@ -1,0 +1,959 @@
+2024-04-09 18:41:07,228 - INFO - test no agent
+2024-04-09 18:41:07,662 - DEBUG - total steps: 60 action duration: 60 step size: 30 total additional logs: 1800.0
+2024-04-09 18:41:07,666 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:07,698 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:41:12,525 - INFO - {"preview":true,"offset":0,"result":{"splunk_server":"dt-splunk","index":"__ALL__","deleted":"14669","errors":"0"}}
+{"preview":true,"offset":1,"lastrow":true,"result":{"splunk_server":"dt-splunk","index":"main","deleted":"14669","errors":"0"}}
+{"preview":false,"offset":0,"result":{"splunk_server":"dt-splunk","index":"__ALL__","deleted":"40200","errors":"0"}}
+{"preview":false,"offset":1,"lastrow":true,"result":{"splunk_server":"dt-splunk","index":"main","deleted":"40200","errors":"0"}}
+
+2024-04-09 18:41:12,525 - INFO - empty the monitored file /home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:security.txt
+2024-04-09 18:41:12,533 - INFO - empty the monitored file /home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:system.txt
+2024-04-09 18:41:12,537 - INFO - update rules frequency
+2024-04-09 18:41:12,571 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:12,571 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:12,579 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:12,587 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:17,075 - DEBUG - https://132.72.81.150:8089 "POST /servicesNS/shouei/search/saved/searches/Known%20Services%20Killed%20by%20Ransomware HTTP/1.1" 200 11236
+2024-04-09 18:41:17,080 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:17,852 - DEBUG - https://132.72.81.150:8089 "POST /servicesNS/shouei/search/saved/searches/ESCU%20Network%20Share%20Discovery%20Via%20Dir%20Command%20Rule HTTP/1.1" 200 11151
+2024-04-09 18:41:18,645 - DEBUG - https://132.72.81.150:8089 "POST /servicesNS/shouei/search/saved/searches/Detect%20New%20Local%20Admin%20account HTTP/1.1" 200 10855
+2024-04-09 18:41:19,407 - DEBUG - https://132.72.81.150:8089 "POST /servicesNS/shouei/search/saved/searches/Non%20Chrome%20Process%20Accessing%20Chrome%20Default%20Dir HTTP/1.1" 200 11224
+2024-04-09 18:41:20,634 - DEBUG - https://132.72.81.150:8089 "POST /servicesNS/shouei/search/saved/searches/Windows%20Event%20For%20Service%20Disabled HTTP/1.1" 200 10932
+2024-04-09 18:41:20,653 - INFO - update time range of rules
+2024-04-09 18:41:20,684 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:20,689 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:20,697 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:20,706 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:25,163 - DEBUG - https://132.72.81.150:8089 "POST /servicesNS/shouei/search/saved/searches/Detect%20New%20Local%20Admin%20account HTTP/1.1" 200 10855
+2024-04-09 18:41:25,168 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:25,929 - DEBUG - https://132.72.81.150:8089 "POST /servicesNS/shouei/search/saved/searches/ESCU%20Network%20Share%20Discovery%20Via%20Dir%20Command%20Rule HTTP/1.1" 200 11151
+2024-04-09 18:41:26,707 - DEBUG - https://132.72.81.150:8089 "POST /servicesNS/shouei/search/saved/searches/Known%20Services%20Killed%20by%20Ransomware HTTP/1.1" 200 11236
+2024-04-09 18:41:27,476 - DEBUG - https://132.72.81.150:8089 "POST /servicesNS/shouei/search/saved/searches/Non%20Chrome%20Process%20Accessing%20Chrome%20Default%20Dir HTTP/1.1" 200 11223
+2024-04-09 18:41:28,671 - DEBUG - https://132.72.81.150:8089 "POST /servicesNS/shouei/search/saved/searches/Windows%20Event%20For%20Service%20Disabled HTTP/1.1" 200 10932
+2024-04-09 18:41:28,725 - INFO - resetting
+2024-04-09 18:41:28,725 - DEBUG - current time_range: ('04/30/2023:07:00:00', '04/30/2023:08:00:00')
+2024-04-09 18:41:28,725 - DEBUG - new time_range: ('04/30/2023:08:00:00', '04/30/2023:09:00:00')
+2024-04-09 18:41:28,725 - DEBUG - Current time: 2023-04-30 08:00:00
+2024-04-09 18:41:28,725 - DEBUG - baseline evaluation
+2024-04-09 18:41:28,727 - INFO - No relevant logs found in the loaded distribution. Loading the relevant distribution from disk.
+2024-04-09 18:41:30,527 - DEBUG - real distribution: {'wineventlog:application 257': 39, 'wineventlog:application 16384': 3, 'wineventlog:application 16394': 2, 'wineventlog:security 4624': 11, 'wineventlog:security 4634': 8, 'wineventlog:security 4662': 1, 'wineventlog:security 4672': 11, 'wineventlog:security 4702': 14, 'wineventlog:security 4735': 12, 'wineventlog:security 4799': 1, 'wineventlog:security 5061': 1, 'wineventlog:security 5379': 20, 'wineventlog:system 16': 6, 'wineventlog:system 19': 6, 'wineventlog:system 43': 4, 'wineventlog:system 1085': 1, 'wineventlog:system 1500': 7, 'wineventlog:system 1501': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 87, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 7, 'xmlwineventlog:microsoft-windows-sysmon/operational 11': 51, 'xmlwineventlog:microsoft-windows-sysmon/operational 12': 17, 'xmlwineventlog:microsoft-windows-sysmon/operational 13': 47, 'xmlwineventlog:microsoft-windows-sysmon/operational 16': 3}
+2024-04-09 18:41:30,527 - DEBUG - fake distribution: {}
+2024-04-09 18:41:30,527 - INFO - state: [0.         0.         0.         0.         0.         0.03038674
+ 0.         0.         0.         0.         0.         0.03038674]
+2024-04-09 18:41:30,527 - DEBUG - True
+2024-04-09 18:41:30,527 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682830800.0 latest=1682834400.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:41:30,530 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:30,577 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:41:32,715 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682830800.0 latest=1682834400.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:41:32,717 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:32,737 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:41:35,276 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682830800.0 latest=1682834400.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:41:35,279 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:35,313 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:41:37,593 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682830800.0 latest=1682834400.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:41:37,595 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:37,628 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:41:40,112 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682830800.0 latest=1682834400.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:41:40,114 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:40,142 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:41:42,538 - INFO - alert value: 0
+2024-04-09 18:41:42,538 - INFO - duration value: 12.007501
+2024-04-09 18:41:42,539 - INFO - dist1: [0.         0.         0.         0.         0.         0.03038674]
+2024-04-09 18:41:42,539 - INFO - dist2: [0.         0.         0.         0.         0.         0.03038674]
+2024-04-09 18:41:42,539 - INFO - distributions value: 1e-12
+2024-04-09 18:41:42,539 - INFO - total reward: 1.1343003166998333
+2024-04-09 18:41:42,539 - INFO - resetting
+2024-04-09 18:41:42,539 - DEBUG - current time_range: ('04/30/2023:08:00:00', '04/30/2023:09:00:00')
+2024-04-09 18:41:42,539 - DEBUG - new time_range: ('04/30/2023:09:00:00', '04/30/2023:10:00:00')
+2024-04-09 18:41:42,539 - DEBUG - Current time: 2023-04-30 09:00:00
+2024-04-09 18:41:42,540 - DEBUG - baseline evaluation
+2024-04-09 18:41:42,548 - DEBUG - real distribution: {'wineventlog:application 257': 16, 'wineventlog:application 1704': 1, 'wineventlog:application 16384': 2, 'wineventlog:application 16394': 3, 'wineventlog:security 4624': 5, 'wineventlog:security 4634': 5, 'wineventlog:security 4648': 1, 'wineventlog:security 4672': 5, 'wineventlog:security 4702': 1, 'wineventlog:security 4735': 6, 'wineventlog:security 4799': 1, 'wineventlog:security 5379': 7, 'wineventlog:system 1500': 4, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 25, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 16': 2}
+2024-04-09 18:41:42,548 - DEBUG - fake distribution: {}
+2024-04-09 18:41:42,548 - INFO - state: [0.         0.         0.         0.         0.         0.05813953
+ 0.         0.         0.         0.         0.         0.05813953]
+2024-04-09 18:41:42,548 - DEBUG - True
+2024-04-09 18:41:42,548 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682834400.0 latest=1682838000.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:41:42,551 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:42,584 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:41:45,229 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682834400.0 latest=1682838000.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:41:45,232 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:45,271 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:41:47,883 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682834400.0 latest=1682838000.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:41:47,886 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:47,918 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:41:50,989 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682834400.0 latest=1682838000.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:41:50,992 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:51,024 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:41:53,512 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682834400.0 latest=1682838000.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:41:53,514 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:53,545 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:41:56,061 - INFO - alert value: 1
+2024-04-09 18:41:56,061 - INFO - duration value: 13.508819
+2024-04-09 18:41:56,061 - INFO - dist1: [0.         0.         0.         0.         0.         0.05813953]
+2024-04-09 18:41:56,062 - INFO - dist2: [0.         0.         0.         0.         0.         0.05813953]
+2024-04-09 18:41:56,062 - INFO - distributions value: 1e-12
+2024-04-09 18:41:56,062 - INFO - total reward: 1.1510882272998333
+2024-04-09 18:41:56,062 - INFO - resetting
+2024-04-09 18:41:56,062 - DEBUG - current time_range: ('04/30/2023:09:00:00', '04/30/2023:10:00:00')
+2024-04-09 18:41:56,062 - DEBUG - new time_range: ('04/30/2023:10:00:00', '04/30/2023:11:00:00')
+2024-04-09 18:41:56,063 - DEBUG - Current time: 2023-04-30 10:00:00
+2024-04-09 18:41:56,063 - DEBUG - baseline evaluation
+2024-04-09 18:41:56,072 - DEBUG - real distribution: {'wineventlog:application 257': 6, 'wineventlog:application 1000': 1, 'wineventlog:application 1001': 1, 'wineventlog:security 4624': 8, 'wineventlog:security 4634': 2, 'wineventlog:security 4672': 8, 'wineventlog:security 4735': 3, 'wineventlog:security 4799': 1, 'wineventlog:security 5379': 10, 'wineventlog:system 1500': 4, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 29, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 3, 'xmlwineventlog:microsoft-windows-sysmon/operational 11': 6, 'xmlwineventlog:microsoft-windows-sysmon/operational 12': 5, 'xmlwineventlog:microsoft-windows-sysmon/operational 13': 12, 'xmlwineventlog:microsoft-windows-sysmon/operational 16': 1}
+2024-04-09 18:41:56,072 - DEBUG - fake distribution: {}
+2024-04-09 18:41:56,073 - INFO - state: [0.         0.         0.         0.         0.         0.07920792
+ 0.         0.         0.         0.         0.         0.07920792]
+2024-04-09 18:41:56,073 - DEBUG - True
+2024-04-09 18:41:56,073 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682838000.0 latest=1682841600.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:41:56,075 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:56,108 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:41:58,530 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682838000.0 latest=1682841600.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:41:58,533 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:41:58,570 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:02,373 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682838000.0 latest=1682841600.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:42:02,375 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:02,420 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:04,974 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682838000.0 latest=1682841600.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:42:04,976 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:05,000 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:06,850 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682838000.0 latest=1682841600.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:42:06,852 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:06,884 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:09,448 - INFO - alert value: 1
+2024-04-09 18:42:09,448 - INFO - duration value: 13.371955
+2024-04-09 18:42:09,449 - INFO - dist1: [0.         0.         0.         0.         0.         0.07920792]
+2024-04-09 18:42:09,449 - INFO - dist2: [0.         0.         0.         0.         0.         0.07920792]
+2024-04-09 18:42:09,449 - INFO - distributions value: 1e-12
+2024-04-09 18:42:09,449 - INFO - total reward: 1.1419593984998333
+2024-04-09 18:42:09,449 - INFO - resetting
+2024-04-09 18:42:09,450 - DEBUG - current time_range: ('04/30/2023:10:00:00', '04/30/2023:11:00:00')
+2024-04-09 18:42:09,450 - DEBUG - new time_range: ('04/30/2023:11:00:00', '04/30/2023:12:00:00')
+2024-04-09 18:42:09,450 - DEBUG - Current time: 2023-04-30 11:00:00
+2024-04-09 18:42:09,450 - DEBUG - baseline evaluation
+2024-04-09 18:42:09,458 - DEBUG - real distribution: {'wineventlog:application 0': 1, 'wineventlog:application 103': 1, 'wineventlog:application 1003': 1, 'wineventlog:application 1013': 1, 'wineventlog:application 16384': 4, 'wineventlog:application 16394': 1, 'wineventlog:security 4624': 7, 'wineventlog:security 4634': 2, 'wineventlog:security 4662': 13, 'wineventlog:security 4672': 7, 'wineventlog:security 4702': 1, 'wineventlog:security 4735': 3, 'wineventlog:security 4799': 9, 'wineventlog:security 5382': 2, 'wineventlog:system 1500': 2, 'wineventlog:system 7036': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 31, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 5, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 5}
+2024-04-09 18:42:09,458 - DEBUG - fake distribution: {}
+2024-04-09 18:42:09,459 - INFO - state: [0.         0.         0.         0.01030928 0.         0.07216495
+ 0.         0.         0.         0.01030928 0.         0.07216495]
+2024-04-09 18:42:09,459 - DEBUG - True
+2024-04-09 18:42:09,459 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682841600.0 latest=1682845200.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:42:09,461 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:09,495 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:11,580 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682841600.0 latest=1682845200.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:42:11,581 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:11,615 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:14,140 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682841600.0 latest=1682845200.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:42:14,143 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:14,174 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:16,709 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682841600.0 latest=1682845200.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:42:16,712 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:16,743 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:19,255 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682841600.0 latest=1682845200.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:42:19,258 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:19,291 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:22,017 - INFO - alert value: 0
+2024-04-09 18:42:22,018 - INFO - duration value: 12.555751
+2024-04-09 18:42:22,018 - INFO - dist1: [0.         0.         0.         0.01030928 0.         0.07216495]
+2024-04-09 18:42:22,019 - INFO - dist2: [0.         0.         0.         0.01030928 0.         0.07216495]
+2024-04-09 18:42:22,019 - INFO - distributions value: 1e-12
+2024-04-09 18:42:22,019 - INFO - total reward: 1.1708685916998336
+2024-04-09 18:42:22,019 - INFO - resetting
+2024-04-09 18:42:22,019 - DEBUG - current time_range: ('04/30/2023:11:00:00', '04/30/2023:12:00:00')
+2024-04-09 18:42:22,019 - DEBUG - new time_range: ('04/30/2023:12:00:00', '04/30/2023:13:00:00')
+2024-04-09 18:42:22,019 - DEBUG - Current time: 2023-04-30 12:00:00
+2024-04-09 18:42:22,020 - DEBUG - baseline evaluation
+2024-04-09 18:42:22,029 - DEBUG - real distribution: {'wineventlog:application 0': 5, 'wineventlog:application 16384': 1, 'wineventlog:security 4624': 6, 'wineventlog:security 4634': 2, 'wineventlog:security 4648': 2, 'wineventlog:security 4662': 28, 'wineventlog:security 4672': 4, 'wineventlog:security 4702': 1, 'wineventlog:security 5379': 1, 'wineventlog:system 6013': 195, 'wineventlog:system 7036': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 500, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 6, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 6, 'xmlwineventlog:microsoft-windows-sysmon/operational 12': 8, 'xmlwineventlog:microsoft-windows-sysmon/operational 13': 12, 'xmlwineventlog:microsoft-windows-sysmon/operational 16': 1}
+2024-04-09 18:42:22,029 - DEBUG - fake distribution: {}
+2024-04-09 18:42:22,030 - INFO - state: [0.         0.         0.         0.0012837  0.         0.00770218
+ 0.         0.         0.         0.0012837  0.         0.00770218]
+2024-04-09 18:42:22,030 - DEBUG - True
+2024-04-09 18:42:22,030 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682845200.0 latest=1682848800.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:42:22,032 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:22,073 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:24,693 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682845200.0 latest=1682848800.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:42:24,695 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:24,728 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:27,149 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682845200.0 latest=1682848800.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:42:27,151 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:27,188 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:29,744 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682845200.0 latest=1682848800.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:42:29,747 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:29,780 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:32,183 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682845200.0 latest=1682848800.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:42:32,185 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:32,218 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:34,869 - INFO - alert value: 0
+2024-04-09 18:42:34,870 - INFO - duration value: 12.836688
+2024-04-09 18:42:34,870 - INFO - dist1: [0.         0.         0.         0.0012837  0.         0.00770218]
+2024-04-09 18:42:34,870 - INFO - dist2: [0.         0.         0.         0.0012837  0.         0.00770218]
+2024-04-09 18:42:34,871 - INFO - distributions value: 1e-12
+2024-04-09 18:42:34,871 - INFO - total reward: 1.1896070895998334
+2024-04-09 18:42:34,871 - INFO - resetting
+2024-04-09 18:42:34,871 - DEBUG - current time_range: ('04/30/2023:12:00:00', '04/30/2023:13:00:00')
+2024-04-09 18:42:34,871 - DEBUG - new time_range: ('04/30/2023:13:00:00', '04/30/2023:14:00:00')
+2024-04-09 18:42:34,871 - DEBUG - Current time: 2023-04-30 13:00:00
+2024-04-09 18:42:34,871 - DEBUG - baseline evaluation
+2024-04-09 18:42:34,880 - DEBUG - real distribution: {'wineventlog:application 257': 18, 'wineventlog:application 16384': 2, 'wineventlog:application 16394': 1, 'wineventlog:security 4624': 6, 'wineventlog:security 4634': 5, 'wineventlog:security 4648': 1, 'wineventlog:security 4662': 28, 'wineventlog:security 4672': 6, 'wineventlog:security 4702': 2, 'wineventlog:security 4735': 6, 'wineventlog:system 1500': 4, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 424, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 6, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 8, 'xmlwineventlog:microsoft-windows-sysmon/operational 11': 6, 'xmlwineventlog:microsoft-windows-sysmon/operational 12': 5, 'xmlwineventlog:microsoft-windows-sysmon/operational 13': 12, 'xmlwineventlog:microsoft-windows-sysmon/operational 16': 2}
+2024-04-09 18:42:34,880 - DEBUG - fake distribution: {}
+2024-04-09 18:42:34,880 - INFO - state: [0.         0.         0.         0.         0.         0.01107011
+ 0.         0.         0.         0.         0.         0.01107011]
+2024-04-09 18:42:34,881 - DEBUG - True
+2024-04-09 18:42:34,881 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682848800.0 latest=1682852400.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:42:34,883 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:34,917 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:37,686 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682848800.0 latest=1682852400.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:42:37,688 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:37,712 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:39,802 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682848800.0 latest=1682852400.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:42:39,805 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:39,843 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:42,297 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682848800.0 latest=1682852400.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:42:42,299 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:42,331 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:44,942 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682848800.0 latest=1682852400.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:42:44,945 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:44,981 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:47,007 - INFO - alert value: 0
+2024-04-09 18:42:47,007 - INFO - duration value: 12.123584000000001
+2024-04-09 18:42:47,008 - INFO - dist1: [0.         0.         0.         0.         0.         0.01107011]
+2024-04-09 18:42:47,008 - INFO - dist2: [0.         0.         0.         0.         0.         0.01107011]
+2024-04-09 18:42:47,008 - INFO - distributions value: 1e-12
+2024-04-09 18:42:47,009 - INFO - total reward: 1.1420430527998333
+2024-04-09 18:42:47,009 - INFO - resetting
+2024-04-09 18:42:47,009 - DEBUG - current time_range: ('04/30/2023:13:00:00', '04/30/2023:14:00:00')
+2024-04-09 18:42:47,009 - DEBUG - new time_range: ('04/30/2023:14:00:00', '04/30/2023:15:00:00')
+2024-04-09 18:42:47,009 - DEBUG - Current time: 2023-04-30 14:00:00
+2024-04-09 18:42:47,009 - DEBUG - baseline evaluation
+2024-04-09 18:42:47,019 - DEBUG - real distribution: {'wineventlog:application 257': 18, 'wineventlog:application 10000': 6, 'wineventlog:application 10005': 6, 'wineventlog:application 10010': 18, 'wineventlog:application 16384': 1, 'wineventlog:application 16394': 3, 'wineventlog:security 4624': 10, 'wineventlog:security 4634': 6, 'wineventlog:security 4662': 28, 'wineventlog:security 4672': 10, 'wineventlog:security 4702': 12, 'wineventlog:security 4735': 9, 'wineventlog:system 1500': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 437, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 4, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 7, 'xmlwineventlog:microsoft-windows-sysmon/operational 11': 12, 'xmlwineventlog:microsoft-windows-sysmon/operational 12': 5, 'xmlwineventlog:microsoft-windows-sysmon/operational 13': 9, 'xmlwineventlog:microsoft-windows-sysmon/operational 16': 2}
+2024-04-09 18:42:47,019 - DEBUG - fake distribution: {}
+2024-04-09 18:42:47,019 - INFO - state: [0.         0.         0.         0.         0.         0.01652893
+ 0.         0.         0.         0.         0.         0.01652893]
+2024-04-09 18:42:47,019 - DEBUG - True
+2024-04-09 18:42:47,019 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682852400.0 latest=1682856000.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:42:47,022 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:47,056 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:49,419 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682852400.0 latest=1682856000.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:42:49,421 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:49,455 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:52,385 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682852400.0 latest=1682856000.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:42:52,387 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:52,423 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:55,037 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682852400.0 latest=1682856000.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:42:55,040 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:55,072 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:42:57,609 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682852400.0 latest=1682856000.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:42:57,611 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:42:57,645 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:01,772 - INFO - alert value: 0
+2024-04-09 18:43:01,772 - INFO - duration value: 14.749305
+2024-04-09 18:43:01,772 - INFO - dist1: [0.         0.         0.         0.         0.         0.01652893]
+2024-04-09 18:43:01,773 - INFO - dist2: [0.         0.         0.         0.         0.         0.01652893]
+2024-04-09 18:43:01,773 - INFO - distributions value: 1e-12
+2024-04-09 18:43:01,773 - INFO - total reward: 1.3171786434998332
+2024-04-09 18:43:01,773 - INFO - resetting
+2024-04-09 18:43:01,773 - DEBUG - current time_range: ('04/30/2023:14:00:00', '04/30/2023:15:00:00')
+2024-04-09 18:43:01,773 - DEBUG - new time_range: ('04/30/2023:15:00:00', '04/30/2023:16:00:00')
+2024-04-09 18:43:01,773 - DEBUG - Current time: 2023-04-30 15:00:00
+2024-04-09 18:43:01,773 - DEBUG - baseline evaluation
+2024-04-09 18:43:01,780 - DEBUG - real distribution: {'wineventlog:application 257': 3, 'wineventlog:security 4624': 2, 'wineventlog:security 4625': 14, 'wineventlog:security 4662': 30, 'wineventlog:security 4672': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 411, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 10, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 4, 'xmlwineventlog:microsoft-windows-sysmon/operational 13': 1}
+2024-04-09 18:43:01,781 - DEBUG - fake distribution: {}
+2024-04-09 18:43:01,781 - INFO - state: [0.         0.         0.         0.         0.         0.00419287
+ 0.         0.         0.         0.         0.         0.00419287]
+2024-04-09 18:43:01,781 - DEBUG - True
+2024-04-09 18:43:01,781 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682856000.0 latest=1682859600.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:43:01,784 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:01,828 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:04,244 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682856000.0 latest=1682859600.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:43:04,246 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:04,271 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:06,354 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682856000.0 latest=1682859600.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:43:06,357 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:06,396 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:09,002 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682856000.0 latest=1682859600.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:43:09,005 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:09,034 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:11,542 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682856000.0 latest=1682859600.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:43:11,545 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:11,571 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:13,878 - INFO - alert value: 1
+2024-04-09 18:43:13,878 - INFO - duration value: 12.093443
+2024-04-09 18:43:13,878 - INFO - dist1: [0.         0.         0.         0.         0.         0.00419287]
+2024-04-09 18:43:13,879 - INFO - dist2: [0.         0.         0.         0.         0.         0.00419287]
+2024-04-09 18:43:13,879 - INFO - distributions value: 1e-12
+2024-04-09 18:43:13,879 - INFO - total reward: 1.0566826480998333
+2024-04-09 18:43:13,879 - INFO - resetting
+2024-04-09 18:43:13,879 - DEBUG - current time_range: ('04/30/2023:15:00:00', '04/30/2023:16:00:00')
+2024-04-09 18:43:13,879 - DEBUG - new time_range: ('04/30/2023:16:00:00', '04/30/2023:17:00:00')
+2024-04-09 18:43:13,879 - DEBUG - Current time: 2023-04-30 16:00:00
+2024-04-09 18:43:13,879 - DEBUG - baseline evaluation
+2024-04-09 18:43:13,888 - DEBUG - real distribution: {'wineventlog:application 0': 1, 'wineventlog:application 16384': 1, 'wineventlog:security 4624': 3, 'wineventlog:security 4634': 1, 'wineventlog:security 4662': 30, 'wineventlog:security 4672': 3, 'wineventlog:security 4698': 2, 'wineventlog:security 4702': 1, 'wineventlog:security 4735': 2, 'wineventlog:system 101': 1, 'wineventlog:system 103': 1, 'wineventlog:system 108': 1, 'wineventlog:system 1085': 2, 'wineventlog:system 1112': 1, 'wineventlog:system 1500': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 414, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 4, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 7, 'xmlwineventlog:microsoft-windows-sysmon/operational 11': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 12': 5, 'xmlwineventlog:microsoft-windows-sysmon/operational 13': 11, 'xmlwineventlog:microsoft-windows-sysmon/operational 16': 1}
+2024-04-09 18:43:13,888 - DEBUG - fake distribution: {}
+2024-04-09 18:43:13,888 - INFO - state: [0.         0.         0.         0.         0.         0.00606061
+ 0.         0.         0.         0.         0.         0.00606061]
+2024-04-09 18:43:13,888 - DEBUG - True
+2024-04-09 18:43:13,888 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682859600.0 latest=1682863200.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:43:13,891 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:13,923 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:16,475 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682859600.0 latest=1682863200.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:43:16,477 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:16,510 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:19,008 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682859600.0 latest=1682863200.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:43:19,010 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:19,043 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:21,538 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682859600.0 latest=1682863200.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:43:21,540 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:21,576 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:24,009 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682859600.0 latest=1682863200.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:43:24,012 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:24,044 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:26,575 - INFO - alert value: 1
+2024-04-09 18:43:26,576 - INFO - duration value: 12.683729
+2024-04-09 18:43:26,576 - INFO - dist1: [0.         0.         0.         0.         0.         0.00606061]
+2024-04-09 18:43:26,576 - INFO - dist2: [0.         0.         0.         0.         0.         0.00606061]
+2024-04-09 18:43:26,577 - INFO - distributions value: 1e-12
+2024-04-09 18:43:26,577 - INFO - total reward: 1.096054724299833
+2024-04-09 18:43:26,577 - INFO - resetting
+2024-04-09 18:43:26,577 - DEBUG - current time_range: ('04/30/2023:16:00:00', '04/30/2023:17:00:00')
+2024-04-09 18:43:26,577 - DEBUG - new time_range: ('04/30/2023:17:00:00', '04/30/2023:18:00:00')
+2024-04-09 18:43:26,577 - DEBUG - Current time: 2023-04-30 17:00:00
+2024-04-09 18:43:26,577 - DEBUG - baseline evaluation
+2024-04-09 18:43:26,586 - DEBUG - real distribution: {'wineventlog:application 0': 7, 'wineventlog:application 1001': 3, 'wineventlog:application 6005': 1, 'wineventlog:application 6006': 1, 'wineventlog:application 16384': 1, 'wineventlog:security 4624': 2, 'wineventlog:security 4625': 4, 'wineventlog:security 4634': 1, 'wineventlog:security 4648': 1, 'wineventlog:security 4662': 15, 'wineventlog:security 4672': 2, 'wineventlog:security 4702': 1, 'wineventlog:security 5061': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 404, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 3, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 11': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 13': 1}
+2024-04-09 18:43:26,586 - DEBUG - fake distribution: {}
+2024-04-09 18:43:26,586 - INFO - state: [0.         0.         0.         0.         0.         0.00443459
+ 0.         0.         0.         0.         0.         0.00443459]
+2024-04-09 18:43:26,586 - DEBUG - True
+2024-04-09 18:43:26,586 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682863200.0 latest=1682866800.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:43:26,589 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:26,621 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:29,126 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682863200.0 latest=1682866800.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:43:29,128 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:29,161 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:31,818 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682863200.0 latest=1682866800.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:43:31,820 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:31,852 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:34,325 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682863200.0 latest=1682866800.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:43:34,327 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:34,359 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:36,867 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682863200.0 latest=1682866800.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:43:36,869 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:36,894 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:39,399 - INFO - alert value: 0
+2024-04-09 18:43:39,399 - INFO - duration value: 12.809902999999998
+2024-04-09 18:43:39,400 - INFO - dist1: [0.         0.         0.         0.         0.         0.00443459]
+2024-04-09 18:43:39,400 - INFO - dist2: [0.         0.         0.         0.         0.         0.00443459]
+2024-04-09 18:43:39,400 - INFO - distributions value: 1e-12
+2024-04-09 18:43:39,400 - INFO - total reward: 1.1878205300998332
+2024-04-09 18:43:39,400 - INFO - resetting
+2024-04-09 18:43:39,401 - DEBUG - current time_range: ('04/30/2023:17:00:00', '04/30/2023:18:00:00')
+2024-04-09 18:43:39,401 - DEBUG - new time_range: ('04/30/2023:18:00:00', '04/30/2023:19:00:00')
+2024-04-09 18:43:39,401 - DEBUG - Current time: 2023-04-30 18:00:00
+2024-04-09 18:43:39,401 - DEBUG - baseline evaluation
+2024-04-09 18:43:39,408 - DEBUG - real distribution: {'wineventlog:application 0': 1, 'wineventlog:application 257': 6, 'wineventlog:application 16384': 1, 'wineventlog:application 16394': 1, 'wineventlog:security 4624': 5, 'wineventlog:security 4634': 2, 'wineventlog:security 4662': 15, 'wineventlog:security 4672': 5, 'wineventlog:security 4702': 7, 'wineventlog:security 4735': 3, 'wineventlog:security 5061': 1, 'wineventlog:system 1500': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 452, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 4, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 16': 1}
+2024-04-09 18:43:39,409 - DEBUG - fake distribution: {}
+2024-04-09 18:43:39,409 - INFO - state: [0.         0.         0.         0.         0.         0.00988142
+ 0.         0.         0.         0.         0.         0.00988142]
+2024-04-09 18:43:39,409 - DEBUG - True
+2024-04-09 18:43:39,409 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682866800.0 latest=1682870400.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:43:39,411 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:39,443 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:41,907 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682866800.0 latest=1682870400.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:43:41,909 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:41,944 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:43,950 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682866800.0 latest=1682870400.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:43:43,952 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:43,987 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:46,203 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682866800.0 latest=1682870400.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:43:46,205 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:46,238 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:48,578 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682866800.0 latest=1682870400.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:43:48,580 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:48,612 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:51,086 - INFO - alert value: 0
+2024-04-09 18:43:51,087 - INFO - duration value: 11.674531000000002
+2024-04-09 18:43:51,087 - INFO - dist1: [0.         0.         0.         0.         0.         0.00988142]
+2024-04-09 18:43:51,087 - INFO - dist2: [0.         0.         0.         0.         0.         0.00988142]
+2024-04-09 18:43:51,087 - INFO - distributions value: 1e-12
+2024-04-09 18:43:51,087 - INFO - total reward: 1.1120912176998334
+2024-04-09 18:43:51,088 - INFO - resetting
+2024-04-09 18:43:51,088 - DEBUG - current time_range: ('04/30/2023:18:00:00', '04/30/2023:19:00:00')
+2024-04-09 18:43:51,088 - DEBUG - new time_range: ('04/30/2023:19:00:00', '04/30/2023:20:00:00')
+2024-04-09 18:43:51,088 - DEBUG - Current time: 2023-04-30 19:00:00
+2024-04-09 18:43:51,088 - DEBUG - baseline evaluation
+2024-04-09 18:43:51,096 - DEBUG - real distribution: {'wineventlog:application 257': 18, 'wineventlog:application 916': 1, 'wineventlog:application 1704': 1, 'wineventlog:application 16384': 2, 'wineventlog:application 16394': 2, 'wineventlog:security 4624': 8, 'wineventlog:security 4634': 7, 'wineventlog:security 4662': 15, 'wineventlog:security 4672': 8, 'wineventlog:security 4702': 5, 'wineventlog:security 4735': 11, 'wineventlog:system 1085': 1, 'wineventlog:system 1500': 3, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 404, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 3, 'xmlwineventlog:microsoft-windows-sysmon/operational 11': 6, 'xmlwineventlog:microsoft-windows-sysmon/operational 12': 5, 'xmlwineventlog:microsoft-windows-sysmon/operational 13': 15, 'xmlwineventlog:microsoft-windows-sysmon/operational 16': 3}
+2024-04-09 18:43:51,096 - DEBUG - fake distribution: {}
+2024-04-09 18:43:51,097 - INFO - state: [0.         0.         0.         0.         0.         0.01538462
+ 0.         0.         0.         0.         0.         0.01538462]
+2024-04-09 18:43:51,097 - DEBUG - True
+2024-04-09 18:43:51,097 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682870400.0 latest=1682874000.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:43:51,099 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:51,130 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:54,062 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682870400.0 latest=1682874000.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:43:54,065 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:54,098 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:56,442 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682870400.0 latest=1682874000.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:43:56,445 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:56,476 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:43:58,985 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682870400.0 latest=1682874000.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:43:58,988 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:43:59,024 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:01,923 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682870400.0 latest=1682874000.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:44:01,925 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:01,948 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:04,266 - INFO - alert value: 0
+2024-04-09 18:44:04,266 - INFO - duration value: 13.165885
+2024-04-09 18:44:04,266 - INFO - dist1: [0.         0.         0.         0.         0.         0.01538462]
+2024-04-09 18:44:04,266 - INFO - dist2: [0.         0.         0.         0.         0.         0.01538462]
+2024-04-09 18:44:04,267 - INFO - distributions value: 1e-12
+2024-04-09 18:44:04,267 - INFO - total reward: 1.2115645294998334
+2024-04-09 18:44:04,267 - INFO - resetting
+2024-04-09 18:44:04,267 - DEBUG - current time_range: ('04/30/2023:19:00:00', '04/30/2023:20:00:00')
+2024-04-09 18:44:04,267 - DEBUG - new time_range: ('04/30/2023:20:00:00', '04/30/2023:21:00:00')
+2024-04-09 18:44:04,267 - DEBUG - Current time: 2023-04-30 20:00:00
+2024-04-09 18:44:04,267 - DEBUG - baseline evaluation
+2024-04-09 18:44:04,275 - DEBUG - real distribution: {'wineventlog:application 781': 2, 'wineventlog:application 916': 1, 'wineventlog:application 16384': 1, 'wineventlog:security 4624': 5, 'wineventlog:security 4662': 15, 'wineventlog:security 4672': 5, 'wineventlog:security 4698': 1, 'wineventlog:security 4699': 1, 'wineventlog:security 4702': 8, 'wineventlog:security 5379': 13, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 392, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 4, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 11': 1}
+2024-04-09 18:44:04,275 - DEBUG - fake distribution: {}
+2024-04-09 18:44:04,275 - INFO - state: [0.         0.         0.         0.         0.         0.01111111
+ 0.         0.         0.         0.         0.         0.01111111]
+2024-04-09 18:44:04,275 - DEBUG - True
+2024-04-09 18:44:04,275 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682874000.0 latest=1682877600.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:44:04,278 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:04,311 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:06,669 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682874000.0 latest=1682877600.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:44:06,671 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:06,708 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:09,152 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682874000.0 latest=1682877600.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:44:09,155 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:09,191 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:11,778 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682874000.0 latest=1682877600.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:44:11,781 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:11,813 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:14,271 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682874000.0 latest=1682877600.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:44:14,273 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:14,306 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:16,814 - INFO - alert value: 1
+2024-04-09 18:44:16,815 - INFO - duration value: 12.535874
+2024-04-09 18:44:16,815 - INFO - dist1: [0.         0.         0.         0.         0.         0.01111111]
+2024-04-09 18:44:16,816 - INFO - dist2: [0.         0.         0.         0.         0.         0.01111111]
+2024-04-09 18:44:16,816 - INFO - distributions value: 1e-12
+2024-04-09 18:44:16,816 - INFO - total reward: 1.0861927957998332
+2024-04-09 18:44:16,816 - INFO - resetting
+2024-04-09 18:44:16,816 - DEBUG - current time_range: ('04/30/2023:20:00:00', '04/30/2023:21:00:00')
+2024-04-09 18:44:16,816 - DEBUG - new time_range: ('04/30/2023:21:00:00', '04/30/2023:22:00:00')
+2024-04-09 18:44:16,816 - DEBUG - Current time: 2023-04-30 21:00:00
+2024-04-09 18:44:16,817 - DEBUG - baseline evaluation
+2024-04-09 18:44:16,825 - DEBUG - real distribution: {'wineventlog:application 16384': 1, 'wineventlog:security 4624': 1, 'wineventlog:security 4662': 15, 'wineventlog:security 4672': 1, 'wineventlog:security 4702': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 48, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 3, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 1}
+2024-04-09 18:44:16,825 - DEBUG - fake distribution: {}
+2024-04-09 18:44:16,826 - INFO - state: [0.         0.         0.         0.         0.         0.01388889
+ 0.         0.         0.         0.         0.         0.01388889]
+2024-04-09 18:44:16,826 - DEBUG - True
+2024-04-09 18:44:16,826 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682877600.0 latest=1682881200.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:44:16,828 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:16,855 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:19,252 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682877600.0 latest=1682881200.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:44:19,255 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:19,289 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:21,750 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682877600.0 latest=1682881200.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:44:21,751 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:21,780 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:24,335 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682877600.0 latest=1682881200.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:44:24,338 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:24,374 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:26,728 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682877600.0 latest=1682881200.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:44:26,730 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:26,753 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:29,216 - INFO - alert value: 0
+2024-04-09 18:44:29,216 - INFO - duration value: 12.387021
+2024-04-09 18:44:29,216 - INFO - dist1: [0.         0.         0.         0.         0.         0.01388889]
+2024-04-09 18:44:29,217 - INFO - dist2: [0.         0.         0.         0.         0.         0.01388889]
+2024-04-09 18:44:29,217 - INFO - distributions value: 1e-12
+2024-04-09 18:44:29,217 - INFO - total reward: 1.1596143006998334
+2024-04-09 18:44:29,217 - INFO - resetting
+2024-04-09 18:44:29,217 - DEBUG - current time_range: ('04/30/2023:21:00:00', '04/30/2023:22:00:00')
+2024-04-09 18:44:29,217 - DEBUG - new time_range: ('04/30/2023:22:00:00', '04/30/2023:23:00:00')
+2024-04-09 18:44:29,217 - DEBUG - Current time: 2023-04-30 22:00:00
+2024-04-09 18:44:29,217 - DEBUG - baseline evaluation
+2024-04-09 18:44:29,225 - DEBUG - real distribution: {'wineventlog:security 4624': 2, 'wineventlog:security 4662': 15, 'wineventlog:security 4672': 2, 'wineventlog:security 4702': 6, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 50, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 4, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 1}
+2024-04-09 18:44:29,225 - DEBUG - fake distribution: {}
+2024-04-09 18:44:29,225 - INFO - state: [0.    0.    0.    0.    0.    0.025 0.    0.    0.    0.    0.    0.025]
+2024-04-09 18:44:29,225 - DEBUG - True
+2024-04-09 18:44:29,226 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682881200.0 latest=1682884800.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:44:29,228 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:29,263 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:31,522 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682881200.0 latest=1682884800.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:44:31,524 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:31,558 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:33,833 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682881200.0 latest=1682884800.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:44:33,835 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:33,869 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:36,481 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682881200.0 latest=1682884800.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:44:36,484 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:36,516 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:38,921 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682881200.0 latest=1682884800.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:44:38,923 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:38,958 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:41,437 - INFO - alert value: 0
+2024-04-09 18:44:41,437 - INFO - duration value: 12.208703
+2024-04-09 18:44:41,438 - INFO - dist1: [0.    0.    0.    0.    0.    0.025]
+2024-04-09 18:44:41,438 - INFO - dist2: [0.    0.    0.    0.    0.    0.025]
+2024-04-09 18:44:41,438 - INFO - distributions value: 1e-12
+2024-04-09 18:44:41,438 - INFO - total reward: 1.1477204900998332
+2024-04-09 18:44:41,438 - INFO - resetting
+2024-04-09 18:44:41,439 - DEBUG - current time_range: ('04/30/2023:22:00:00', '04/30/2023:23:00:00')
+2024-04-09 18:44:41,439 - DEBUG - new time_range: ('04/30/2023:23:00:00', '05/01/2023:00:00:00')
+2024-04-09 18:44:41,439 - DEBUG - Current time: 2023-04-30 23:00:00
+2024-04-09 18:44:41,439 - DEBUG - baseline evaluation
+2024-04-09 18:44:41,447 - DEBUG - real distribution: {'wineventlog:application 16384': 1, 'wineventlog:security 4624': 2, 'wineventlog:security 4662': 15, 'wineventlog:security 4672': 2, 'wineventlog:security 4702': 5, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 49, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 1}
+2024-04-09 18:44:41,447 - DEBUG - fake distribution: {}
+2024-04-09 18:44:41,447 - INFO - state: [0.         0.         0.         0.         0.         0.02597403
+ 0.         0.         0.         0.         0.         0.02597403]
+2024-04-09 18:44:41,447 - DEBUG - True
+2024-04-09 18:44:41,447 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682884800.0 latest=1682888400.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:44:41,450 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:41,481 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:43,697 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682884800.0 latest=1682888400.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:44:43,699 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:43,728 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:46,157 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682884800.0 latest=1682888400.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:44:46,159 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:46,182 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:48,328 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682884800.0 latest=1682888400.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:44:48,330 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:48,362 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:50,807 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682884800.0 latest=1682888400.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:44:50,809 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:50,842 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:53,408 - INFO - alert value: 0
+2024-04-09 18:44:53,409 - INFO - duration value: 11.958131
+2024-04-09 18:44:53,409 - INFO - dist1: [0.         0.         0.         0.         0.         0.02597403]
+2024-04-09 18:44:53,410 - INFO - dist2: [0.         0.         0.         0.         0.         0.02597403]
+2024-04-09 18:44:53,410 - INFO - distributions value: 1e-12
+2024-04-09 18:44:53,410 - INFO - total reward: 1.1310073376998333
+2024-04-09 18:44:53,410 - INFO - resetting
+2024-04-09 18:44:53,410 - DEBUG - current time_range: ('04/30/2023:23:00:00', '05/01/2023:00:00:00')
+2024-04-09 18:44:53,410 - DEBUG - new time_range: ('05/01/2023:00:00:00', '05/01/2023:01:00:00')
+2024-04-09 18:44:53,410 - DEBUG - Current time: 2023-05-01 00:00:00
+2024-04-09 18:44:53,411 - DEBUG - baseline evaluation
+2024-04-09 18:44:53,419 - DEBUG - real distribution: {'wineventlog:security 4624': 1, 'wineventlog:security 4662': 15, 'wineventlog:security 4672': 1, 'wineventlog:security 4702': 4, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 68, 'xmlwineventlog:microsoft-windows-sysmon/operational 2': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 4, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 13': 5}
+2024-04-09 18:44:53,419 - DEBUG - fake distribution: {}
+2024-04-09 18:44:53,420 - INFO - state: [0.   0.   0.   0.   0.   0.01 0.   0.   0.   0.   0.   0.01]
+2024-04-09 18:44:53,420 - DEBUG - True
+2024-04-09 18:44:53,420 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682888400.0 latest=1682892000.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:44:53,422 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:53,455 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:56,519 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682888400.0 latest=1682892000.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:44:56,521 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:56,557 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:44:58,957 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682888400.0 latest=1682892000.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:44:58,960 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:44:58,993 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:02,149 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682888400.0 latest=1682892000.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:45:02,151 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:02,175 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:04,450 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682888400.0 latest=1682892000.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:45:04,453 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:04,494 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:06,954 - INFO - alert value: 0
+2024-04-09 18:45:06,954 - INFO - duration value: 13.531286
+2024-04-09 18:45:06,955 - INFO - dist1: [0.   0.   0.   0.   0.   0.01]
+2024-04-09 18:45:06,955 - INFO - dist2: [0.   0.   0.   0.   0.   0.01]
+2024-04-09 18:45:06,955 - INFO - distributions value: 1e-12
+2024-04-09 18:45:06,955 - INFO - total reward: 1.2359367761998334
+2024-04-09 18:45:06,955 - INFO - resetting
+2024-04-09 18:45:06,956 - DEBUG - current time_range: ('05/01/2023:00:00:00', '05/01/2023:01:00:00')
+2024-04-09 18:45:06,956 - DEBUG - new time_range: ('05/01/2023:01:00:00', '05/01/2023:02:00:00')
+2024-04-09 18:45:06,956 - DEBUG - Current time: 2023-05-01 01:00:00
+2024-04-09 18:45:06,956 - DEBUG - baseline evaluation
+2024-04-09 18:45:06,964 - DEBUG - real distribution: {'wineventlog:application 16384': 2, 'wineventlog:application 16394': 2, 'wineventlog:security 4662': 15, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 45, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 1}
+2024-04-09 18:45:06,964 - DEBUG - fake distribution: {}
+2024-04-09 18:45:06,965 - INFO - state: [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+2024-04-09 18:45:06,965 - DEBUG - True
+2024-04-09 18:45:06,965 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682892000.0 latest=1682895600.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:45:06,967 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:07,001 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:09,380 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682892000.0 latest=1682895600.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:45:09,383 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:09,414 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:11,839 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682892000.0 latest=1682895600.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:45:11,842 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:11,875 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:14,361 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682892000.0 latest=1682895600.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:45:14,363 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:14,398 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:16,415 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682892000.0 latest=1682895600.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:45:16,417 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:16,450 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:18,907 - INFO - alert value: 0
+2024-04-09 18:45:18,907 - INFO - duration value: 11.939341
+2024-04-09 18:45:18,908 - INFO - dist1: [0. 0. 0. 0. 0. 0.]
+2024-04-09 18:45:18,908 - INFO - dist2: [0. 0. 0. 0. 0. 0.]
+2024-04-09 18:45:18,909 - INFO - distributions value: nan
+2024-04-09 18:45:18,909 - INFO - total reward: nan
+2024-04-09 18:45:18,909 - INFO - resetting
+2024-04-09 18:45:18,909 - DEBUG - current time_range: ('05/01/2023:01:00:00', '05/01/2023:02:00:00')
+2024-04-09 18:45:18,909 - DEBUG - new time_range: ('05/01/2023:02:00:00', '05/01/2023:03:00:00')
+2024-04-09 18:45:18,909 - DEBUG - Current time: 2023-05-01 02:00:00
+2024-04-09 18:45:18,909 - DEBUG - baseline evaluation
+2024-04-09 18:45:18,915 - DEBUG - real distribution: {'wineventlog:application 0': 1, 'wineventlog:application 1704': 1, 'wineventlog:security 4624': 3, 'wineventlog:security 4634': 2, 'wineventlog:security 4662': 15, 'wineventlog:security 4672': 3, 'wineventlog:security 4702': 3, 'wineventlog:security 4735': 2, 'wineventlog:system 1085': 1, 'wineventlog:system 1500': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 50, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 3, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 3, 'xmlwineventlog:microsoft-windows-sysmon/operational 11': 5, 'xmlwineventlog:microsoft-windows-sysmon/operational 12': 5, 'xmlwineventlog:microsoft-windows-sysmon/operational 13': 11, 'xmlwineventlog:microsoft-windows-sysmon/operational 16': 1}
+2024-04-09 18:45:18,915 - DEBUG - fake distribution: {}
+2024-04-09 18:45:18,916 - INFO - state: [0.         0.         0.         0.         0.         0.02727273
+ 0.         0.         0.         0.         0.         0.02727273]
+2024-04-09 18:45:18,916 - DEBUG - True
+2024-04-09 18:45:18,916 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682895600.0 latest=1682899200.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:45:18,918 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:18,948 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:21,072 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682895600.0 latest=1682899200.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:45:21,074 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:21,099 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:23,531 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682895600.0 latest=1682899200.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:45:23,534 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:23,567 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:26,062 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682895600.0 latest=1682899200.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:45:26,065 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:26,100 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:28,451 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682895600.0 latest=1682899200.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:45:28,454 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:28,479 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:30,945 - INFO - alert value: 0
+2024-04-09 18:45:30,945 - INFO - duration value: 12.026026
+2024-04-09 18:45:30,946 - INFO - dist1: [0.         0.         0.         0.         0.         0.02727273]
+2024-04-09 18:45:30,946 - INFO - dist2: [0.         0.         0.         0.         0.         0.02727273]
+2024-04-09 18:45:30,946 - INFO - distributions value: 1e-12
+2024-04-09 18:45:30,946 - INFO - total reward: 1.1355359341998335
+2024-04-09 18:45:30,946 - INFO - resetting
+2024-04-09 18:45:30,947 - DEBUG - current time_range: ('05/01/2023:02:00:00', '05/01/2023:03:00:00')
+2024-04-09 18:45:30,947 - DEBUG - new time_range: ('05/01/2023:03:00:00', '05/01/2023:04:00:00')
+2024-04-09 18:45:30,947 - DEBUG - Current time: 2023-05-01 03:00:00
+2024-04-09 18:45:30,947 - DEBUG - baseline evaluation
+2024-04-09 18:45:30,954 - DEBUG - real distribution: {'wineventlog:application 916': 2, 'wineventlog:security 4662': 15, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 45, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 1}
+2024-04-09 18:45:30,954 - DEBUG - fake distribution: {}
+2024-04-09 18:45:30,955 - INFO - state: [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+2024-04-09 18:45:30,955 - DEBUG - True
+2024-04-09 18:45:30,955 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682899200.0 latest=1682902800.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:45:30,957 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:30,991 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:33,347 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682899200.0 latest=1682902800.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:45:33,350 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:33,383 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:35,826 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682899200.0 latest=1682902800.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:45:35,829 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:35,864 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:38,348 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682899200.0 latest=1682902800.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:45:38,350 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:38,384 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:40,512 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682899200.0 latest=1682902800.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:45:40,514 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:40,551 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:43,034 - INFO - alert value: 0
+2024-04-09 18:45:43,034 - INFO - duration value: 12.076019
+2024-04-09 18:45:43,034 - INFO - dist1: [0. 0. 0. 0. 0. 0.]
+2024-04-09 18:45:43,034 - INFO - dist2: [0. 0. 0. 0. 0. 0.]
+2024-04-09 18:45:43,035 - INFO - distributions value: nan
+2024-04-09 18:45:43,035 - INFO - total reward: nan
+2024-04-09 18:45:43,035 - INFO - resetting
+2024-04-09 18:45:43,035 - DEBUG - current time_range: ('05/01/2023:03:00:00', '05/01/2023:04:00:00')
+2024-04-09 18:45:43,035 - DEBUG - new time_range: ('05/01/2023:04:00:00', '05/01/2023:05:00:00')
+2024-04-09 18:45:43,035 - DEBUG - Current time: 2023-05-01 04:00:00
+2024-04-09 18:45:43,035 - DEBUG - baseline evaluation
+2024-04-09 18:45:43,043 - DEBUG - real distribution: {'wineventlog:application 900': 1, 'wineventlog:application 902': 1, 'wineventlog:application 903': 1, 'wineventlog:application 1003': 1, 'wineventlog:application 1066': 1, 'wineventlog:application 16384': 1, 'wineventlog:security 4662': 26, 'wineventlog:security 4702': 3, 'wineventlog:system 7036': 3, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 43, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 1}
+2024-04-09 18:45:43,043 - DEBUG - fake distribution: {}
+2024-04-09 18:45:43,043 - INFO - state: [0.         0.         0.         0.03658537 0.         0.
+ 0.         0.         0.         0.03658537 0.         0.        ]
+2024-04-09 18:45:43,043 - DEBUG - True
+2024-04-09 18:45:43,043 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682902800.0 latest=1682906400.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:45:43,045 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:43,079 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:45,592 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682902800.0 latest=1682906400.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:45:45,595 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:45,636 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:48,092 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682902800.0 latest=1682906400.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:45:48,094 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:48,130 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:50,181 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682902800.0 latest=1682906400.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:45:50,182 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:50,216 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:52,572 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682902800.0 latest=1682906400.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:45:52,574 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:52,607 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:55,060 - INFO - alert value: 0
+2024-04-09 18:45:55,060 - INFO - duration value: 12.013595
+2024-04-09 18:45:55,060 - INFO - dist1: [0.         0.         0.         0.03658537 0.         0.        ]
+2024-04-09 18:45:55,060 - INFO - dist2: [0.         0.         0.         0.03658537 0.         0.        ]
+2024-04-09 18:45:55,061 - INFO - distributions value: 1e-12
+2024-04-09 18:45:55,061 - INFO - total reward: 1.1347067864998333
+2024-04-09 18:45:55,061 - INFO - resetting
+2024-04-09 18:45:55,061 - DEBUG - current time_range: ('05/01/2023:04:00:00', '05/01/2023:05:00:00')
+2024-04-09 18:45:55,061 - DEBUG - new time_range: ('05/01/2023:05:00:00', '05/01/2023:06:00:00')
+2024-04-09 18:45:55,061 - DEBUG - Current time: 2023-05-01 05:00:00
+2024-04-09 18:45:55,061 - DEBUG - baseline evaluation
+2024-04-09 18:45:55,069 - DEBUG - real distribution: {'wineventlog:application 916': 1, 'wineventlog:application 16384': 2, 'wineventlog:application 16394': 1, 'wineventlog:security 4624': 2, 'wineventlog:security 4662': 15, 'wineventlog:security 4672': 2, 'wineventlog:security 4702': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 45, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 1}
+2024-04-09 18:45:55,069 - DEBUG - fake distribution: {}
+2024-04-09 18:45:55,069 - INFO - state: [0.         0.         0.         0.         0.         0.02777778
+ 0.         0.         0.         0.         0.         0.02777778]
+2024-04-09 18:45:55,069 - DEBUG - True
+2024-04-09 18:45:55,070 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682906400.0 latest=1682910000.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:45:55,072 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:55,106 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:45:58,245 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682906400.0 latest=1682910000.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:45:58,247 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:45:58,280 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:00,754 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682906400.0 latest=1682910000.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:46:00,756 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:00,803 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:02,712 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682906400.0 latest=1682910000.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:46:02,715 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:02,740 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:05,013 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682906400.0 latest=1682910000.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:46:05,016 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:05,048 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:07,612 - INFO - alert value: 0
+2024-04-09 18:46:07,612 - INFO - duration value: 12.539089999999998
+2024-04-09 18:46:07,613 - INFO - dist1: [0.         0.         0.         0.         0.         0.02777778]
+2024-04-09 18:46:07,613 - INFO - dist2: [0.         0.         0.         0.         0.         0.02777778]
+2024-04-09 18:46:07,613 - INFO - distributions value: 1e-12
+2024-04-09 18:46:07,613 - INFO - total reward: 1.1697573029998332
+2024-04-09 18:46:07,613 - INFO - resetting
+2024-04-09 18:46:07,613 - DEBUG - current time_range: ('05/01/2023:05:00:00', '05/01/2023:06:00:00')
+2024-04-09 18:46:07,614 - DEBUG - new time_range: ('05/01/2023:06:00:00', '05/01/2023:07:00:00')
+2024-04-09 18:46:07,614 - DEBUG - Current time: 2023-05-01 06:00:00
+2024-04-09 18:46:07,614 - DEBUG - baseline evaluation
+2024-04-09 18:46:07,621 - DEBUG - real distribution: {'wineventlog:application 916': 1, 'wineventlog:security 4662': 15, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 42, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 1}
+2024-04-09 18:46:07,621 - DEBUG - fake distribution: {}
+2024-04-09 18:46:07,621 - INFO - state: [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+2024-04-09 18:46:07,621 - DEBUG - True
+2024-04-09 18:46:07,622 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682910000.0 latest=1682913600.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:46:07,624 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:07,660 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:09,981 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682910000.0 latest=1682913600.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:46:09,984 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:10,017 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:12,644 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682910000.0 latest=1682913600.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:46:12,647 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:12,681 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:15,274 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682910000.0 latest=1682913600.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:46:15,276 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:15,324 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:17,640 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682910000.0 latest=1682913600.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:46:17,643 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:17,677 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:19,736 - INFO - alert value: 0
+2024-04-09 18:46:19,736 - INFO - duration value: 12.11142
+2024-04-09 18:46:19,737 - INFO - dist1: [0. 0. 0. 0. 0. 0.]
+2024-04-09 18:46:19,737 - INFO - dist2: [0. 0. 0. 0. 0. 0.]
+2024-04-09 18:46:19,737 - INFO - distributions value: nan
+2024-04-09 18:46:19,737 - INFO - total reward: nan
+2024-04-09 18:46:19,737 - INFO - resetting
+2024-04-09 18:46:19,737 - DEBUG - current time_range: ('05/01/2023:06:00:00', '05/01/2023:07:00:00')
+2024-04-09 18:46:19,737 - DEBUG - new time_range: ('05/01/2023:07:00:00', '05/01/2023:08:00:00')
+2024-04-09 18:46:19,737 - DEBUG - Current time: 2023-05-01 07:00:00
+2024-04-09 18:46:19,738 - DEBUG - baseline evaluation
+2024-04-09 18:46:19,745 - DEBUG - real distribution: {'wineventlog:application 0': 3, 'wineventlog:application 16384': 3, 'wineventlog:application 16394': 9, 'wineventlog:security 4624': 9, 'wineventlog:security 4627': 5, 'wineventlog:security 4662': 15, 'wineventlog:security 4672': 9, 'wineventlog:security 5379': 17, 'wineventlog:system 1': 39, 'wineventlog:system 12': 15, 'wineventlog:system 27': 19, 'wineventlog:system 32': 10, 'wineventlog:system 37': 2, 'wineventlog:system 129': 41, 'wineventlog:system 131': 21, 'wineventlog:system 1129': 2, 'wineventlog:system 1500': 2, 'wineventlog:system 6013': 21, 'wineventlog:system 8015': 59, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 210, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 13': 1}
+2024-04-09 18:46:19,745 - DEBUG - fake distribution: {}
+2024-04-09 18:46:19,745 - INFO - state: [0.         0.         0.         0.         0.         0.01750973
+ 0.         0.         0.         0.         0.         0.01750973]
+2024-04-09 18:46:19,745 - DEBUG - True
+2024-04-09 18:46:19,745 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682913600.0 latest=1682917200.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:46:19,747 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:19,781 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:22,374 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682913600.0 latest=1682917200.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:46:22,376 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:22,413 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:24,895 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682913600.0 latest=1682917200.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:46:24,898 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:24,931 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:27,536 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682913600.0 latest=1682917200.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:46:27,538 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:27,573 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:31,072 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682913600.0 latest=1682917200.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:46:31,074 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:31,095 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:33,054 - INFO - alert value: 34
+2024-04-09 18:46:33,054 - INFO - duration value: 13.305467
+2024-04-09 18:46:33,054 - INFO - dist1: [0.         0.         0.         0.         0.         0.01750973]
+2024-04-09 18:46:33,055 - INFO - dist2: [0.         0.         0.         0.         0.         0.01750973]
+2024-04-09 18:46:33,055 - INFO - distributions value: 1e-12
+2024-04-09 18:46:33,055 - INFO - total reward: 1.0589375060426904
+2024-04-09 18:46:33,055 - INFO - resetting
+2024-04-09 18:46:33,055 - DEBUG - current time_range: ('05/01/2023:07:00:00', '05/01/2023:08:00:00')
+2024-04-09 18:46:33,055 - DEBUG - new time_range: ('05/01/2023:08:00:00', '05/01/2023:09:00:00')
+2024-04-09 18:46:33,055 - DEBUG - Current time: 2023-05-01 08:00:00
+2024-04-09 18:46:33,055 - DEBUG - baseline evaluation
+2024-04-09 18:46:33,062 - DEBUG - real distribution: {'wineventlog:application 257': 18, 'wineventlog:application 16384': 3, 'wineventlog:application 16394': 2, 'wineventlog:security 4624': 10, 'wineventlog:security 4627': 2, 'wineventlog:security 4634': 6, 'wineventlog:security 4662': 15, 'wineventlog:security 4672': 10, 'wineventlog:security 4735': 9, 'wineventlog:security 5061': 1, 'wineventlog:system 44': 20, 'wineventlog:system 1500': 3, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 568, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 3, 'xmlwineventlog:microsoft-windows-sysmon/operational 11': 6, 'xmlwineventlog:microsoft-windows-sysmon/operational 12': 5, 'xmlwineventlog:microsoft-windows-sysmon/operational 13': 54, 'xmlwineventlog:microsoft-windows-sysmon/operational 16': 4}
+2024-04-09 18:46:33,062 - DEBUG - fake distribution: {}
+2024-04-09 18:46:33,062 - INFO - state: [0.         0.         0.         0.         0.         0.01349528
+ 0.         0.         0.         0.         0.         0.01349528]
+2024-04-09 18:46:33,063 - DEBUG - True
+2024-04-09 18:46:33,063 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682917200.0 latest=1682920800.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:46:33,064 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:33,099 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:35,658 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682917200.0 latest=1682920800.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:46:35,661 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:35,683 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:38,219 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682917200.0 latest=1682920800.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:46:38,222 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:38,257 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:40,852 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682917200.0 latest=1682920800.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:46:40,854 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:40,903 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:43,343 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682917200.0 latest=1682920800.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:46:43,345 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:43,378 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:46,190 - INFO - alert value: 0
+2024-04-09 18:46:46,190 - INFO - duration value: 13.123937
+2024-04-09 18:46:46,190 - INFO - dist1: [0.         0.         0.         0.         0.         0.01349528]
+2024-04-09 18:46:46,191 - INFO - dist2: [0.         0.         0.         0.         0.         0.01349528]
+2024-04-09 18:46:46,191 - INFO - distributions value: 1e-12
+2024-04-09 18:46:46,191 - INFO - total reward: 1.2087665978998332
+2024-04-09 18:46:46,191 - INFO - resetting
+2024-04-09 18:46:46,191 - DEBUG - current time_range: ('05/01/2023:08:00:00', '05/01/2023:09:00:00')
+2024-04-09 18:46:46,191 - DEBUG - new time_range: ('05/01/2023:09:00:00', '05/01/2023:10:00:00')
+2024-04-09 18:46:46,191 - DEBUG - Current time: 2023-05-01 09:00:00
+2024-04-09 18:46:46,191 - DEBUG - baseline evaluation
+2024-04-09 18:46:46,201 - DEBUG - real distribution: {'wineventlog:application 257': 12, 'wineventlog:application 1202': 1, 'wineventlog:application 16384': 3, 'wineventlog:application 16394': 4, 'wineventlog:security 4624': 10, 'wineventlog:security 4627': 6, 'wineventlog:security 4634': 6, 'wineventlog:security 4648': 2, 'wineventlog:security 4662': 15, 'wineventlog:security 4672': 10, 'wineventlog:security 4735': 6, 'wineventlog:system 44': 71, 'wineventlog:system 101': 1, 'wineventlog:system 108': 1, 'wineventlog:system 158': 1, 'wineventlog:system 1085': 1, 'wineventlog:system 1112': 1, 'wineventlog:system 1500': 5, 'wineventlog:system 1502': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 413, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 5, 'xmlwineventlog:microsoft-windows-sysmon/operational 11': 12, 'xmlwineventlog:microsoft-windows-sysmon/operational 12': 10, 'xmlwineventlog:microsoft-windows-sysmon/operational 13': 24, 'xmlwineventlog:microsoft-windows-sysmon/operational 16': 3}
+2024-04-09 18:46:46,201 - DEBUG - fake distribution: {}
+2024-04-09 18:46:46,201 - INFO - state: [0.         0.         0.         0.         0.         0.01597444
+ 0.         0.         0.         0.         0.         0.01597444]
+2024-04-09 18:46:46,202 - DEBUG - True
+2024-04-09 18:46:46,202 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682920800.0 latest=1682924400.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:46:46,204 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:46,236 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:48,573 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682920800.0 latest=1682924400.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:46:48,575 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:48,609 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:51,064 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682920800.0 latest=1682924400.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:46:51,067 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:51,101 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:53,607 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682920800.0 latest=1682924400.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:46:53,608 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:53,644 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:56,113 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682920800.0 latest=1682924400.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:46:56,116 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:56,150 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:46:59,090 - INFO - alert value: 1
+2024-04-09 18:46:59,090 - INFO - duration value: 12.885443
+2024-04-09 18:46:59,091 - INFO - dist1: [0.         0.         0.         0.         0.         0.01597444]
+2024-04-09 18:46:59,091 - INFO - dist2: [0.         0.         0.         0.         0.         0.01597444]
+2024-04-09 18:46:59,091 - INFO - distributions value: 1e-12
+2024-04-09 18:46:59,091 - INFO - total reward: 1.1095090480998333
+2024-04-09 18:46:59,091 - INFO - resetting
+2024-04-09 18:46:59,092 - DEBUG - current time_range: ('05/01/2023:09:00:00', '05/01/2023:10:00:00')
+2024-04-09 18:46:59,092 - DEBUG - new time_range: ('05/01/2023:10:00:00', '05/01/2023:11:00:00')
+2024-04-09 18:46:59,092 - DEBUG - Current time: 2023-05-01 10:00:00
+2024-04-09 18:46:59,092 - DEBUG - baseline evaluation
+2024-04-09 18:46:59,100 - DEBUG - real distribution: {'wineventlog:application 16384': 1, 'wineventlog:security 4624': 5, 'wineventlog:security 4625': 4, 'wineventlog:security 4634': 2, 'wineventlog:security 4672': 5, 'wineventlog:security 4735': 3, 'wineventlog:system 44': 48, 'wineventlog:system 1500': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 423, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 16': 1}
+2024-04-09 18:46:59,100 - DEBUG - fake distribution: {}
+2024-04-09 18:46:59,100 - INFO - state: [0.         0.         0.         0.         0.         0.01004016
+ 0.         0.         0.         0.         0.         0.01004016]
+2024-04-09 18:46:59,100 - DEBUG - True
+2024-04-09 18:46:59,100 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682924400.0 latest=1682928000.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:46:59,103 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:46:59,136 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:02,118 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682924400.0 latest=1682928000.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:47:02,120 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:02,144 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:04,437 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682924400.0 latest=1682928000.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:47:04,439 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:04,473 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:07,032 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682924400.0 latest=1682928000.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:47:07,034 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:07,066 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:09,345 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682924400.0 latest=1682928000.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:47:09,348 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:09,372 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:11,909 - INFO - alert value: 0
+2024-04-09 18:47:11,909 - INFO - duration value: 12.805334
+2024-04-09 18:47:11,910 - INFO - dist1: [0.         0.         0.         0.         0.         0.01004016]
+2024-04-09 18:47:11,910 - INFO - dist2: [0.         0.         0.         0.         0.         0.01004016]
+2024-04-09 18:47:11,910 - INFO - distributions value: 1e-12
+2024-04-09 18:47:11,910 - INFO - total reward: 1.1875157777998333
+2024-04-09 18:47:11,910 - INFO - resetting
+2024-04-09 18:47:11,910 - DEBUG - current time_range: ('05/01/2023:10:00:00', '05/01/2023:11:00:00')
+2024-04-09 18:47:11,910 - DEBUG - new time_range: ('05/01/2023:11:00:00', '05/01/2023:12:00:00')
+2024-04-09 18:47:11,911 - DEBUG - Current time: 2023-05-01 11:00:00
+2024-04-09 18:47:11,911 - DEBUG - baseline evaluation
+2024-04-09 18:47:11,919 - DEBUG - real distribution: {'wineventlog:application 257': 24, 'wineventlog:application 16384': 2, 'wineventlog:application 16394': 1, 'wineventlog:security 4624': 7, 'wineventlog:security 4634': 4, 'wineventlog:security 4672': 7, 'wineventlog:security 4702': 1, 'wineventlog:security 4735': 6, 'wineventlog:security 5061': 1, 'wineventlog:security 5379': 7, 'wineventlog:system 1500': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 419, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 16': 4}
+2024-04-09 18:47:11,919 - DEBUG - fake distribution: {}
+2024-04-09 18:47:11,919 - INFO - state: [0.         0.         0.         0.         0.         0.01440329
+ 0.         0.         0.         0.         0.         0.01440329]
+2024-04-09 18:47:11,919 - DEBUG - True
+2024-04-09 18:47:11,919 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682928000.0 latest=1682931600.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:47:11,921 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:12,046 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:14,584 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682928000.0 latest=1682931600.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:47:14,586 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:14,624 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:17,011 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682928000.0 latest=1682931600.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:47:17,014 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:17,048 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:19,582 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682928000.0 latest=1682931600.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:47:19,585 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:19,616 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:22,015 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682928000.0 latest=1682931600.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:47:22,017 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:22,051 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:24,560 - INFO - alert value: 0
+2024-04-09 18:47:24,560 - INFO - duration value: 12.63795
+2024-04-09 18:47:24,561 - INFO - dist1: [0.         0.         0.         0.         0.         0.01440329]
+2024-04-09 18:47:24,561 - INFO - dist2: [0.         0.         0.         0.         0.         0.01440329]
+2024-04-09 18:47:24,561 - INFO - distributions value: 1e-12
+2024-04-09 18:47:24,561 - INFO - total reward: 1.1763512649998333
+2024-04-09 18:47:24,561 - INFO - resetting
+2024-04-09 18:47:24,561 - DEBUG - current time_range: ('05/01/2023:11:00:00', '05/01/2023:12:00:00')
+2024-04-09 18:47:24,562 - DEBUG - new time_range: ('05/01/2023:12:00:00', '05/01/2023:13:00:00')
+2024-04-09 18:47:24,562 - DEBUG - Current time: 2023-05-01 12:00:00
+2024-04-09 18:47:24,562 - DEBUG - baseline evaluation
+2024-04-09 18:47:24,570 - DEBUG - real distribution: {'wineventlog:application 0': 4, 'wineventlog:application 1003': 2, 'wineventlog:application 1033': 1, 'wineventlog:application 1034': 10, 'wineventlog:application 8197': 2, 'wineventlog:application 8230': 2, 'wineventlog:application 12288': 1, 'wineventlog:application 12289': 1, 'wineventlog:application 16384': 6, 'wineventlog:application 16394': 6, 'wineventlog:security 4624': 6, 'wineventlog:security 4672': 6, 'wineventlog:security 4700': 2, 'wineventlog:security 4701': 3, 'wineventlog:system 44': 10, 'wineventlog:system 6013': 183, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 499, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 1, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 2}
+2024-04-09 18:47:24,570 - DEBUG - fake distribution: {}
+2024-04-09 18:47:24,570 - INFO - state: [0.         0.         0.         0.         0.         0.00803213
+ 0.         0.         0.         0.         0.         0.00803213]
+2024-04-09 18:47:24,570 - DEBUG - True
+2024-04-09 18:47:24,571 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682931600.0 latest=1682935200.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:47:24,573 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:24,605 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:26,997 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682931600.0 latest=1682935200.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:47:27,000 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:27,032 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:29,743 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682931600.0 latest=1682935200.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:47:29,745 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:29,806 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:31,931 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682931600.0 latest=1682935200.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:47:31,934 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:31,969 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:34,343 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682931600.0 latest=1682935200.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:47:34,346 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:34,376 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:36,682 - INFO - alert value: 1
+2024-04-09 18:47:36,683 - INFO - duration value: 12.108792
+2024-04-09 18:47:36,683 - INFO - dist1: [0.         0.         0.         0.         0.         0.00803213]
+2024-04-09 18:47:36,683 - INFO - dist2: [0.         0.         0.         0.         0.         0.00803213]
+2024-04-09 18:47:36,684 - INFO - distributions value: 1e-12
+2024-04-09 18:47:36,684 - INFO - total reward: 1.0577064263998333
+2024-04-09 18:47:36,684 - INFO - resetting
+2024-04-09 18:47:36,684 - DEBUG - current time_range: ('05/01/2023:12:00:00', '05/01/2023:13:00:00')
+2024-04-09 18:47:36,684 - DEBUG - new time_range: ('05/01/2023:13:00:00', '05/01/2023:14:00:00')
+2024-04-09 18:47:36,684 - DEBUG - Current time: 2023-05-01 13:00:00
+2024-04-09 18:47:36,684 - DEBUG - baseline evaluation
+2024-04-09 18:47:36,692 - DEBUG - real distribution: {'wineventlog:application 257': 12, 'wineventlog:security 4624': 6, 'wineventlog:security 4634': 5, 'wineventlog:security 4648': 1, 'wineventlog:security 4662': 1, 'wineventlog:security 4672': 6, 'wineventlog:security 4735': 6, 'wineventlog:system 1500': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 1': 412, 'xmlwineventlog:microsoft-windows-sysmon/operational 2': 4, 'xmlwineventlog:microsoft-windows-sysmon/operational 3': 81, 'xmlwineventlog:microsoft-windows-sysmon/operational 5': 2, 'xmlwineventlog:microsoft-windows-sysmon/operational 11': 12, 'xmlwineventlog:microsoft-windows-sysmon/operational 13': 8, 'xmlwineventlog:microsoft-windows-sysmon/operational 16': 1}
+2024-04-09 18:47:36,692 - DEBUG - fake distribution: {}
+2024-04-09 18:47:36,693 - INFO - state: [0.         0.         0.         0.         0.         0.01073345
+ 0.         0.         0.         0.         0.         0.01073345]
+2024-04-09 18:47:36,693 - DEBUG - True
+2024-04-09 18:47:36,693 - INFO - Running saved search Detect New Local Admin account with query: `wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)  earliest=1682935200.0 latest=1682938800.0| transaction member_id connected=false maxspan=180m | rename member_id as user | stats count min(_time) as firstTime max(_time) as lastTime by user dest | `security_content_ctime(firstTime)`| `security_content_ctime(lastTime)` | `detect_new_local_admin_account_filter`
+2024-04-09 18:47:36,695 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:36,730 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:39,224 - INFO - Running saved search ESCU Network Share Discovery Via Dir Command Rule with query: index=main `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1682935200.0 latest=1682938800.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`
+2024-04-09 18:47:39,227 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:39,261 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:41,825 - INFO - Running saved search Known Services Killed by Ransomware with query: `wineventlog_system` EventCode=7036 Message IN ("*Volume Shadow Copy*","*VSS*", "*backup*", "*sophos*", "*sql*", "*memtas*", "*mepocs*", "*veeam*", "*svc$*", "DefWatch", "ccEvtMgr", "ccSetMgr", "SavRoam", "RTVscan", "QBFCService", "QBIDPService", "Intuit.QuickBooks.FCS", "QBCFMonitorService" "YooBackup", "YooIT", "*Veeam*", "PDVFSService", "BackupExecVSSProvider", "BackupExecAgentAccelerator", "BackupExec*", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc", "WinDefend", "wscsvc", "Sense", "sppsvc", "SecurityHealthService") Message="*service entered the stopped state*"  earliest=1682935200.0 latest=1682938800.0| stats count min(_time) as firstTime max(_time) as lastTime by EventCode Message dest Type | `security_content_ctime(lastTime)` | `security_content_ctime(firstTime)` | `known_services_killed_by_ransomware_filter`
+2024-04-09 18:47:41,828 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:41,860 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:44,305 - INFO - Running saved search Non Chrome Process Accessing Chrome Default Dir with query: `wineventlog_security` EventCode=4663 NOT (process_name IN ("*\\chrome.exe", "*\\explorer.exe", "*sql*")) Object_Name="*\\Google\\Chrome\\User Data\\Default*"  earliest=1682935200.0 latest=1682938800.0| stats count min(_time) as firstTime max(_time) as lastTime by Object_Name Object_Type process_name Access_Mask Accesses Process_ID EventCode dest user | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `non_chrome_process_accessing_chrome_default_dir_filter`
+2024-04-09 18:47:44,307 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:44,353 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:46,881 - INFO - Running saved search Windows Event For Service Disabled with query: `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1682935200.0 latest=1682938800.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`
+2024-04-09 18:47:46,884 - DEBUG - Starting new HTTPS connection (1): 132.72.81.150:8089
+2024-04-09 18:47:46,915 - DEBUG - https://132.72.81.150:8089 "POST /services/search/jobs/export HTTP/1.1" 200 None
+2024-04-09 18:47:49,402 - INFO - alert value: 0
+2024-04-09 18:47:49,402 - INFO - duration value: 12.705997000000002
+2024-04-09 18:47:49,402 - INFO - dist1: [0.         0.         0.         0.         0.         0.01073345]
+2024-04-09 18:47:49,402 - INFO - dist2: [0.         0.         0.         0.         0.         0.01073345]
+2024-04-09 18:47:49,403 - INFO - distributions value: 1e-12
+2024-04-09 18:47:49,403 - INFO - total reward: 1.1808899998998335

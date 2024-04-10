@@ -2,16 +2,15 @@
 LogName=System  
 EventCode=7040  
 EventType=4  
-ComputerName=server.domain.com  
-SourceName=Service Control Manager  
-Type=Information  
+ComputerName=server.domain.com    
 User=DOMAIN\User  
 Sid=S-1-5-21-1234567890-1234567890-1234567890-1001  
+SidType=0 
+SourceName=Service Control Manager  
+Type=Information 
 RecordNumber=12345  
 Keywords=Classic  
 TaskCategory=None  
-service=Print Spooler  
-service_name=Spooler
 OpCode=Info  
-Message=The Print Spooler service was changed from demand start to disabled.  
+Message=The start type of the the Print Spooler service was changed from demand start to disabled.  
 [EOF]
