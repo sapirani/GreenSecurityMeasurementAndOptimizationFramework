@@ -17,7 +17,7 @@ saved_searches_path="/opt/splunk/etc/users/shouei/search/local/savedsearches.con
 echo $password | sudo -S sed -i 's/^max_searches_per_process = .*/max_searches_per_process = 1/' $limits_path
 train_episodes=300
 test_episodes=30
-env_name="splunk-v4"
+env_name="splunk-v6"
 
 # test_experiment="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/exp_20240207_180124"
 test_experiment="last"
@@ -32,20 +32,20 @@ config_path="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/confi
 # echo $password | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $test_experiment $test_episodes
 # wait
 # edit config file - change alpha beta gamma
-sed -i 's/"alpha": .*,/"alpha": 0.1667,/' $config_path
-sed -i 's/"beta": .*,/"beta": 0.1667,/' $config_path
-sed -i 's/"gamma": .*/"gamma": 0.667/' $config_path
+sed -i 's/"alpha": .*,/"alpha": 0.334,/' $config_path
+sed -i 's/"beta": .*,/"beta": 0.334,/' $config_path
+sed -i 's/"gamma": .*/"gamma": 0.334/' $config_path
 model="ppo"
 echo $password | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $env_name $model $train_episodes
 wait
 echo $password | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $env_name $model $test_episodes
 wait
-# echo $password | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline $env_name _ $test_episodes random
-# wait
-# echo $password | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" no_agent $env_name _ $test_episodes
-# wait
-# echo $password | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline $env_name _ $test_episodes autopic
-# wait
+echo $password | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline $env_name _ $test_episodes random
+wait
+echo $password | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" no_agent $env_name _ $test_episodes
+wait
+echo $password | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline $env_name _ $test_episodes autopic
+wait
 model="a2c"
 echo $password | sudo -S  -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $env_name $model $train_episodes
 wait
