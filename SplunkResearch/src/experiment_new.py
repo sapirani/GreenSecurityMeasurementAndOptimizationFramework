@@ -58,7 +58,7 @@ class Experiment:
         return env
     
     def load_environment(self, env_name, modifed_parameters={}):
-        parameters = self.load_parameters(f'{self.experiment_dir}/parameters_train.json')
+        parameters = self.load_parameters(f'{self.experiment_dir}/parameters_train.json') #BUG!!!!!!!!!!!!!!!!!!!!!!!!!
         parameters.update(modifed_parameters)
         env = self.setup_environment(env_name, parameters)
         return env, parameters
@@ -77,9 +77,9 @@ class Experiment:
         return parameters
 
     def train_model(self, parameters, env_name, model, num_of_episodes):
-        
+        learning_rate = parameters['learning_rate']
         alpha, beta, gamma = parameters['reward_parameters'].values()
-        prefix_path = f'{self.experiment_dir}/{model}_{alpha}_{beta}_{gamma}'
+        prefix_path = f'{self.experiment_dir}/{model}_{alpha}_{beta}_{gamma}__{learning_rate}'
         path = f'{prefix_path}/train'
         if not os.path.exists(path):
             os.makedirs(path)
@@ -92,7 +92,7 @@ class Experiment:
 
         self.save_parameters_to_file(parameters, f'{self.experiment_dir}/parameters_train.json')
         model_object = model_names[model]
-        model = model_object(MlpPolicy, env, n_steps=env.total_steps, verbose=1, stats_window_size=5, tensorboard_log=f"{path}/tensorboard/")
+        model = model_object(MlpPolicy, env, n_steps=env.total_steps, verbose=1, stats_window_size=5, tensorboard_log=f"{path}/tensorboard/", learning_rate=learning_rate)
 
         model.learn(total_timesteps=num_of_episodes*env.total_steps, tb_log_name=logger.name)
         model.save(f"{prefix_path}/splunk_attack")
@@ -113,9 +113,11 @@ class Experiment:
     
     def test_model(self, env_name, model, num_of_episodes):
         env, parameters = self.load_environment(env_name, {'measure_energy': False}) #changed to false
+        learning_rate = parameters['learning_rate']
         alpha, beta, gamma = parameters['reward_parameters'].values()
-        prefix_path = f'{self.experiment_dir}/{model}_{alpha}_{beta}_{gamma}'
+        prefix_path = f'{self.experiment_dir}/{model}_{alpha}_{beta}_{gamma}__{learning_rate}'
         path = f'{prefix_path}/test'
+        print(path)
         if not os.path.exists(path):
             os.makedirs(path)
         log_file = f'{path}/log.txt'
@@ -183,7 +185,8 @@ class Experiment:
         while not done:
             if agent_type == 'random':
                 # action = np.array([random.uniform(0, 1) for i in range((len(env.relevant_logtypes)-1)*2+2)])
-                action = np.random.dirichlet(np.ones(env.action_space.shape))
+                # action = np.random.dirichlet(np.ones(env.action_space.shape))
+                action = env.action_space.sample()
             elif agent_type == 'uniform':
                 action = 100/len(env.relevant_logtypes)  
             elif agent_type == 'autopic':

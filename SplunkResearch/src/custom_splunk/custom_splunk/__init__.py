@@ -108,7 +108,18 @@ log_generator_instance = LogGenerator(relevant_logtypes, splunk_tools_instance)
 additional_percentage = 0.1
 register(id='splunk-v7',
          entry_point='custom_splunk.envs:SplunkEnv',
-         kwargs={'rule_frequency':1, 'search_window':60, 'span_size':60,
+         kwargs={'rule_frequency':1, 'search_window':30, 'span_size':60,
+                 'splunk_tools_instance':splunk_tools_instance,
+                 "log_generator_instance": log_generator_instance,
+                 "relevant_logtypes": relevant_logtypes,
+                 "num_of_searches": len(savedsearches),
+                 "logs_per_minute": 300,"additional_percentage":additional_percentage,
+                 "fake_start_datetime": fake_start_datetime})
+#######################################
+additional_percentage = 0.5
+register(id='splunk-v8',
+         entry_point='custom_splunk.envs:SplunkEnv',
+         kwargs={'rule_frequency':1, 'search_window':30, 'span_size':60,
                  'splunk_tools_instance':splunk_tools_instance,
                  "log_generator_instance": log_generator_instance,
                  "relevant_logtypes": relevant_logtypes,

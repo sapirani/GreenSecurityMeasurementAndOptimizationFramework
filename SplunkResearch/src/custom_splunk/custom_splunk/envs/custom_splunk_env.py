@@ -60,7 +60,7 @@ class SplunkEnv(gym.Env):
         self.epsilon = 0
         
         # create the action space - a vector of size max_actions_value with values between 0 and 1
-        self.action_space = spaces.Box(low=0,high=self.action_upper_bound,shape=((len(self.relevant_logtypes)-1)*2+2, ),dtype=np.float64)
+        self.action_space = spaces.Box(low=0,high=self.action_upper_bound,shape=((len(self.relevant_logtypes)-1)*2+1, ),dtype=np.float64)
         self.observation_space = spaces.Box(low=0,high=self.action_upper_bound,shape=(len(self.relevant_logtypes)*2,),dtype=np.float64)
         self.action_per_episode = []
         self.current_episode_accumulated_action = np.zeros(self.action_space.shape)
@@ -130,14 +130,14 @@ class SplunkEnv(gym.Env):
         return self.state, reward, self.done, {}
 
     def action_preprocess(self, action):
+        logger.info(f"action before preprocessing: {action}")
+        # for i in range(len(action)):
+        #     act = action[i]
+        #     if act < 1/self.step_size:
+        #         action[i] = 0            
         action_norm_fcator = sum(action)
         if action_norm_fcator > 0:
             action /= action_norm_fcator
-        # for act in action:
-        #     if act < 0:
-        #         act = 0
-        #     elif act > 1:
-        #         act = 1
         return action
     
 
@@ -249,6 +249,7 @@ class SplunkEnv(gym.Env):
         return self.state 
 
     def update_timerange(self):
+        # new_start_time = self.time_range[1]
         new_start_time = self.time_range[1]
         new_end_time = self.dt_manager.add_time(new_start_time, minutes=self.search_window)
         logger.debug(f'current time_range: {self.time_range}')
