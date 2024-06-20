@@ -53,8 +53,13 @@ class Experiment:
             total_additional_logs = parameters['total_additional_logs']
         else:
             total_additional_logs = None
-        # logger.info(f'current parameters:\ntime range:{time_range} \nfake_start_datetime: {fake_start_datetime}\nrule frequency: {rule_frequency}\nsearch_window:{search_window}\nrunning time: {running_time}\nnumber of searches: {num_of_searches}\nalpha {alpha}\nbeta {beta}\n gama {gamma}\nsavedsearches: {savedsearches}\nrelevantlog_types: {relevant_logtypes}')
-        env = gym.make(env_name, total_additional_logs=total_additional_logs, reward_parameters=parameters['reward_parameters'], is_measure_energy=parameters['measure_energy'])
+        tf_log_path = f'{self.experiment_dir}/tensorboard'
+        if 'fake_start_datetime' in parameters: # datetime for test
+            fake_start_datetime = parameters['fake_start_datetime']
+            env = gym.make(env_name, fake_start_datetime=fake_start_datetime, total_additional_logs=total_additional_logs, reward_parameters=parameters['reward_parameters'], is_measure_energy=parameters['measure_energy'], tf_log_path=tf_log_path)
+            # logger.info(f'current parameters:\ntime range:{time_range} \nfake_start_datetime: {fake_start_datetime}\nrule frequency: {rule_frequency}\nsearch_window:{search_window}\nrunning time: {running_time}\nnumber of searches: {num_of_searches}\nalpha {alpha}\nbeta {beta}\n gama {gamma}\nsavedsearches: {savedsearches}\nrelevantlog_types: {relevant_logtypes}')
+        else:
+            env = gym.make(env_name, total_additional_logs=total_additional_logs, reward_parameters=parameters['reward_parameters'], is_measure_energy=parameters['measure_energy'], tf_log_path=tf_log_path)
         return env
     
     def load_environment(self, env_name, modifed_parameters={}):
@@ -77,9 +82,7 @@ class Experiment:
         return parameters
 
     def train_model(self, parameters, env_name, model, num_of_episodes):
-        learning_rate = parameters['learning_rate']
-        alpha, beta, gamma = parameters['reward_parameters'].values()
-        prefix_path = f'{self.experiment_dir}/{model}_{alpha}_{beta}_{gamma}__{learning_rate}'
+        learning_rate, prefix_path = self.get_prefix_path(parameters, model)
         path = f'{prefix_path}/train'
         if not os.path.exists(path):
             os.makedirs(path)
@@ -96,8 +99,16 @@ class Experiment:
 
         model.learn(total_timesteps=num_of_episodes*env.total_steps, tb_log_name=logger.name)
         model.save(f"{prefix_path}/splunk_attack")
+        parameters['fake_start_datetime'] = env.dt_manager.get_fake_current_datetime()
+        self.save_parameters_to_file(parameters, f'{self.experiment_dir}/parameters_train.json')
         self.save_assets(path, env)
         return model
+
+    def get_prefix_path(self, parameters, model):
+        learning_rate = parameters['learning_rate']
+        alpha, beta, gamma = parameters['reward_parameters'].values()
+        prefix_path = f'{self.experiment_dir}/{model}_{alpha}_{beta}_{gamma}__{learning_rate}'
+        return learning_rate,prefix_path
     
     # def retrain_model(self, parameters):
     #     logger.info('retrain the model')
@@ -116,7 +127,7 @@ class Experiment:
         learning_rate = parameters['learning_rate']
         alpha, beta, gamma = parameters['reward_parameters'].values()
         prefix_path = f'{self.experiment_dir}/{model}_{alpha}_{beta}_{gamma}__{learning_rate}'
-        path = f'{prefix_path}/test'
+        path = f'{prefix_path}/test_{num_of_episodes}'
         print(path)
         if not os.path.exists(path):
             os.makedirs(path)
@@ -132,7 +143,7 @@ class Experiment:
     
     def test_baseline_agent(self, env_name, num_of_episodes, agent_type='random'):
         
-        path = f'{self.experiment_dir}/baseline_{agent_type}'
+        path = f'{self.experiment_dir}/baseline_{agent_type}_{num_of_episodes}'
         if not os.path.exists(path):
             os.makedirs(path)
         log_file = f'{path}/log.txt'
@@ -150,7 +161,7 @@ class Experiment:
             
     def test_no_agent(self, env_name, num_of_episodes):
 
-        path = f'{self.experiment_dir}/no_agent'
+        path = f'{self.experiment_dir}/no_agent_{num_of_episodes}'
         if not os.path.exists(path):
             os.makedirs(path)
         log_file = f'{path}/log.txt'

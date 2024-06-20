@@ -38,8 +38,8 @@ def clean_env(splunk_tools_instance, time_range=None):
         empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:security.txt")
         empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:system.txt")
         return time_range
-    date = time_range[1].split(':')[0]
-    time_range = (f'{date}:00:00:00', f'{date}:23:59:59')
+    # date = time_range[1].split(':')[0]
+    # time_range = (f'{date}:00:00:00', f'{date}:23:59:59')
     splunk_tools_instance.delete_fake_logs(time_range)
     empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:security.txt")
     empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:system.txt")

@@ -15,50 +15,62 @@ saved_searches_path="/opt/splunk/etc/users/shouei/search/local/savedsearches.con
 # conda activate /home/shouei/anaconda3/envs/py38
 # which python
 echo $password | sudo -S sed -i 's/^max_searches_per_process = .*/max_searches_per_process = 1/' $limits_path
-train_episodes=100
-test_episodes=150
-env_name="splunk-v8"
+train_episodes=400
+test_episodes=60
+# env_name=
 
 # test_experiment="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/exp_20240207_180124"
 test_experiment="last"
 config_path="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/config.json"
 
 # greed search on learning rate alpha beta and gamma
-for learning_rate in 0.001 #0.01 0.001 0.005 0.00001
+for env_name in "splunk-v10" "splunk-v11" 
 do
-     for alpha in 0.5 #$(seq 0 0.5 1)
+    for learning_rate in 0.001 0.00001
     do
-        for beta in 0.1 #$(seq 0.1 0.5 $(echo "1 - $alpha" | bc))
+        for alpha in 0.1 #$(seq 0.1 0.5 1)
         do
-                gamma=$(awk "BEGIN {print 1 - $alpha - $beta}")
-                echo "learning_rate: $learning_rate, alpha: $alpha, beta: $beta, gamma: $gamma"
-                # edit config file - change alpha beta gamma
-                sed -i "s/\"learning_rate\": .*,/\"learning_rate\": $learning_rate,/" $config_path
-                sed -i "s/\"alpha\": .*,/\"alpha\": $alpha,/" $config_path
-                sed -i "s/\"beta\": .*,/\"beta\": $beta,/" $config_path
-                sed -i "s/\"gamma\": .*/\"gamma\": $gamma/" $config_path
-                model="a2c"
-                # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $env_name $model $train_episodes
-                # wait
-                echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $env_name $model $test_episodes
-                wait
-                echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline $env_name _ $test_episodes random
-                wait
-                echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" no_agent $env_name _ $test_episodes
-                wait
-                # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline $env_name _ $test_episodes autopic
-                wait
-                # model="ppo"
-                # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $env_name $model $train_episodes
-                # wait
-                # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $env_name $model $test_episodes
-                # wait
+            for beta in 0.6 #$(seq 0.1 0.5 $(echo "1 - $alpha" | bc))
+            do
+                    gamma=$(awk "BEGIN {print 1 - $alpha - $beta}")
+                    echo "learning_rate: $learning_rate, alpha: $alpha, beta: $beta, gamma: $gamma"
+                    # # edit config file - change alpha beta gamma
+                    # sed -i "s/\"learning_rate\": .*,/\"learning_rate\": $learning_rate,/" $config_path
+                    # sed -i "s/\"alpha\": .*,/\"alpha\": $alpha,/" $config_path
+                    # sed -i "s/\"beta\": .*,/\"beta\": $beta,/" $config_path
+                    # sed -i "s/\"gamma\": .*/\"gamma\": $gamma/" $config_path
 
-                echo $password | sudo -S chmod -R 777 "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. Linux 3.10.0-1160.108.1.el7.x86_64"
-                echo $password | sudo -S -E env PATH="$PATH" chmod -R 777 ./experiments__/
+                    # parameter_train_path="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments__/splunk-v9/parameters_train.json"
+                    
+                    # # # Use sed to update the JSON values
+                    # # sed -i "s/\"learning_rate\": [^,]*/\"learning_rate\": $learning_rate/" "$parameter_train_path"
+                    # # sed -i "s/\"alpha\": [^,]*/\"alpha\": $alpha/" "$parameter_train_path"
+                    # # sed -i "s/\"beta\": [^,]*/\"beta\": $beta/" "$parameter_train_path"
+                    # # sed -i "s/\"gamma\": [^,}]*/\"gamma\": $gamma/" "$parameter_train_path"
 
+
+                    # model="a2c"
+                    # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $env_name $model $train_episodes
+                    # wait
+                    # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $env_name $model $test_episodes
+                    # wait
+
+                    # model="ppo"
+                    # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $env_name $model $train_episodes
+                    # wait
+                    # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $env_name $model $test_episodes
+                    # wait
+
+                    # # echo $password | sudo -S chmod -R 777 "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. Linux 3.10.0-1160.108.1.el7.x86_64"
+                    # echo $password | sudo -S -E env PATH="$PATH" chmod -R 777 ./experiments__/
+
+            done
         done
     done
+    echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline $env_name _ $test_episodes random
+    wait
+    echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" no_agent $env_name _ $test_episodes
+    wait
 done
 
 
