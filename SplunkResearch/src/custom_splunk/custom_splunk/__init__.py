@@ -162,3 +162,15 @@ register(id='splunk-v11',
                  "num_of_searches": len(savedsearches),
                  "logs_per_minute": 300,"additional_percentage":additional_percentage,
                  "fake_start_datetime": fake_start_datetime})
+#######################################
+additional_percentage = 1
+fake_start_datetime = "04/26/2024:13:00:00"
+register(id='splunk-v12',
+         entry_point='custom_splunk.envs:SplunkEnv',
+         kwargs={'rule_frequency':1, 'search_window':30, 'span_size':60,
+                 'splunk_tools_instance':splunk_tools_instance,
+                 "log_generator_instance": log_generator_instance,
+                 "relevant_logtypes": relevant_logtypes,
+                 "num_of_searches": len(savedsearches),
+                 "logs_per_minute": 300,"additional_percentage":additional_percentage,
+                 "fake_start_datetime": fake_start_datetime})

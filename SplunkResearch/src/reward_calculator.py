@@ -61,10 +61,7 @@ class RewardCalc:
         logger.info(f"alert value: {alert_val}")
         logger.info(f"duration value: {duration_val}")
         self.reward_values_dict['duration'].append(duration_val)
-        
-        if duration_val > 1.05 * self.num_of_searches * 2.5:
-            return duration_val
-        
+  
         alert_reward = 1/(alert_val+1)
         distributions_reward = self.get_partial_reward(real_distribution, current_state)
         duration_reward = duration_val/(self.num_of_searches*2)
@@ -78,7 +75,12 @@ class RewardCalc:
             tf.summary.scalar('alert_val', alert_val, step=len(self.reward_values_dict['alerts']))
             tf.summary.scalar('distributions_val', distributions_reward, step=len(self.reward_values_dict['distributions']))
             tf.summary.scalar('duration_val', duration_val, step=len(self.reward_values_dict['duration']))
-
+            
+        if alert_val > self.num_of_searches:
+            return -alert_val
+        if duration_val > 1.1 * self.num_of_searches * 2.5:
+            return duration_val
+        
         
         return total_reward
 

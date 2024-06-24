@@ -48,31 +48,33 @@ class Experiment:
 
 
     
-    def setup_environment(self, env_name, parameters):       
-        if "total_additional_logs" in parameters:
-            total_additional_logs = parameters['total_additional_logs']
+    def setup_environment(self, env_name, **kwargs):     
+        reward_parameters = {'alpha': kwargs['alpha'], 'beta': kwargs['beta'], 'gamma': kwargs['gamma']}  
+        if "total_additional_logs" in kwargs:
+            total_additional_logs = kwargs['total_additional_logs']
         else:
             total_additional_logs = None
         tf_log_path = f'{self.experiment_dir}/tensorboard'
-        if 'fake_start_datetime' in parameters: # datetime for test
-            fake_start_datetime = parameters['fake_start_datetime']
-            env = gym.make(env_name, fake_start_datetime=fake_start_datetime, total_additional_logs=total_additional_logs, reward_parameters=parameters['reward_parameters'], is_measure_energy=parameters['measure_energy'], tf_log_path=tf_log_path)
+        if 'fake_start_datetime' in kwargs: # datetime for test
+            fake_start_datetime = kwargs['fake_start_datetime']
+            env = gym.make(env_name, fake_start_datetime=fake_start_datetime, total_additional_logs=total_additional_logs, reward_parameters=reward_parameters, is_measure_energy=None, tf_log_path=tf_log_path)
             # logger.info(f'current parameters:\ntime range:{time_range} \nfake_start_datetime: {fake_start_datetime}\nrule frequency: {rule_frequency}\nsearch_window:{search_window}\nrunning time: {running_time}\nnumber of searches: {num_of_searches}\nalpha {alpha}\nbeta {beta}\n gama {gamma}\nsavedsearches: {savedsearches}\nrelevantlog_types: {relevant_logtypes}')
         else:
-            env = gym.make(env_name, total_additional_logs=total_additional_logs, reward_parameters=parameters['reward_parameters'], is_measure_energy=parameters['measure_energy'], tf_log_path=tf_log_path)
+            env = gym.make(env_name, total_additional_logs=total_additional_logs, reward_parameters=reward_parameters, is_measure_energy=None, tf_log_path=tf_log_path)
         return env
     
-    def load_environment(self, env_name, modifed_parameters={}):
-        parameters = self.load_parameters(f'{self.experiment_dir}/parameters_train.json') #BUG!!!!!!!!!!!!!!!!!!!!!!!!!
-        parameters.update(modifed_parameters)
-        env = self.setup_environment(env_name, parameters)
-        return env, parameters
+    def load_environment(self, env_name, **kwargs):
+        # parameters = self.load_parameters(f'{self.experiment_dir}/parameters_train.json') #BUG!!!!!!!!!!!!!!!!!!!!!!!!!
+        
+        # parameters.update(modifed_parameters)
+        env = self.setup_environment(env_name, **kwargs)
+        return env #, parameters
     
-    def save_parameters_to_file(self, parameters, filename):
-        with open(filename, 'w') as fp:
+    def save_parameters_to_file(self, parameters, path):
+        with open(f"{path}/parameters_train.json", 'w') as fp:
             json.dump(parameters, fp)
         # save reward_calculator.py to the experiment directory
-        with open(f'{self.experiment_dir}/reward_calculator.py', 'w') as fp:
+        with open(f'{path}/reward_calculator.py', 'w') as fp:
             with open(r'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/reward_calculator.py', 'r') as fp2:
                 fp.write(fp2.read())
     
@@ -81,8 +83,9 @@ class Experiment:
             parameters = json.load(fp)
         return parameters
 
-    def train_model(self, parameters, env_name, model, num_of_episodes):
-        learning_rate, prefix_path = self.get_prefix_path(parameters, model)
+    def train_model(self, env_name, model, num_of_episodes,**kwargs):
+        alpha, beta, gamma, learning_rate = kwargs['alpha'], kwargs['beta'], kwargs['gamma'], kwargs['learning_rate']
+        prefix_path = self.get_prefix_path(model, alpha, beta, gamma, learning_rate)            
         path = f'{prefix_path}/train'
         if not os.path.exists(path):
             os.makedirs(path)
@@ -90,25 +93,26 @@ class Experiment:
         self.setup_logging(log_file)
 
         logger.info('train the model')
-        parameters['measure_energy'] = False
-        env = self.setup_environment(env_name, parameters)
+        env = self.setup_environment(env_name, **kwargs)
 
-        self.save_parameters_to_file(parameters, f'{self.experiment_dir}/parameters_train.json')
+        # self.save_parameters_to_file(parameters, f'{self.experiment_dir}/parameters_train.json')
         model_object = model_names[model]
         model = model_object(MlpPolicy, env, n_steps=env.total_steps, verbose=1, stats_window_size=5, tensorboard_log=f"{path}/tensorboard/", learning_rate=learning_rate)
 
         model.learn(total_timesteps=num_of_episodes*env.total_steps, tb_log_name=logger.name)
         model.save(f"{prefix_path}/splunk_attack")
-        parameters['fake_start_datetime'] = env.dt_manager.get_fake_current_datetime()
-        self.save_parameters_to_file(parameters, f'{self.experiment_dir}/parameters_train.json')
+        self.save_test_start_fake_time(path, env)
+        self.save_parameters_to_file(kwargs, path)
         self.save_assets(path, env)
         return model
-
-    def get_prefix_path(self, parameters, model):
-        learning_rate = parameters['learning_rate']
-        alpha, beta, gamma = parameters['reward_parameters'].values()
+    
+    def save_test_start_fake_time(self, path, env):
+        with open(f'{path}/test_start_fake_time.txt', 'w') as fp:
+            fp.write(str(env.dt_manager.get_fake_current_datetime()))
+            
+    def get_prefix_path(self, model, alpha, beta, gamma, learning_rate):
         prefix_path = f'{self.experiment_dir}/{model}_{alpha}_{beta}_{gamma}__{learning_rate}'
-        return learning_rate,prefix_path
+        return prefix_path
     
     # def retrain_model(self, parameters):
     #     logger.info('retrain the model')
@@ -122,11 +126,14 @@ class Experiment:
     #     self.save_assets(path, env)
     #     return model
     
-    def test_model(self, env_name, model, num_of_episodes):
-        env, parameters = self.load_environment(env_name, {'measure_energy': False}) #changed to false
-        learning_rate = parameters['learning_rate']
-        alpha, beta, gamma = parameters['reward_parameters'].values()
-        prefix_path = f'{self.experiment_dir}/{model}_{alpha}_{beta}_{gamma}__{learning_rate}'
+    def test_model(self, env_name, model_name, num_of_episodes, **kwargs):
+        alpha, beta, gamma, learning_rate = kwargs['alpha'], kwargs['beta'], kwargs['gamma'], kwargs['learning_rate']
+        prefix_path = self.get_prefix_path(model_name, alpha, beta, gamma, learning_rate)     
+        fake_start_datetime = None
+        with open(f'{prefix_path}/train/test_start_fake_time.txt', 'r') as fp:
+            fake_start_datetime = fp.read()
+        kwargs['fake_start_datetime'] = fake_start_datetime
+        env = self.load_environment(env_name, **kwargs) #changed to false
         path = f'{prefix_path}/test_{num_of_episodes}'
         print(path)
         if not os.path.exists(path):
@@ -134,7 +141,7 @@ class Experiment:
         log_file = f'{path}/log.txt'
         self.setup_logging(log_file)
         logger.info('test the model')
-        model_object = model_names[model]
+        model_object = model_names[model_name]
         model = model_object.load(f"{prefix_path}/splunk_attack")
         mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=num_of_episodes)
         logger.info(f"mean_reward:{mean_reward}, std_reward:{std_reward}")
@@ -151,7 +158,7 @@ class Experiment:
         
         
         logger.info(f'test baseline {agent_type} agent')
-        env, parameters = self.load_environment(env_name,{'measure_energy': False}) #changed to false
+        env = self.load_environment(env_name, alpha=0, beta=0, gamma=0, learning_rate=0)
         for i in range(num_of_episodes):
             env.reset()
             self.run_manual_episode(agent_type, env)
@@ -169,7 +176,7 @@ class Experiment:
 
         
         logger.info('test no agent')
-        env, parameters = self.load_environment(env_name,{'measure_energy': False}) #changed to false
+        env = self.load_environment(env_name, alpha=0, beta=0, gamma=0, learning_rate=0)
         for i in range(num_of_episodes):
             env.reset()
             env.evaluate_no_agent()

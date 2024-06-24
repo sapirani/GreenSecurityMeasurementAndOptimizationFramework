@@ -32,15 +32,24 @@ if __name__ == "__main__":
     
     model = sys.argv[3]
     num_of_episodes = int(sys.argv[4])
+
     with open(f'./src/config.json', 'r') as fp:
         parameters = json.load(fp)
     try:
         if mode == 'train':
-            experiment.train_model(parameters, env_name, model, num_of_episodes)
+            alpha = float(sys.argv[5])
+            beta = float(sys.argv[6])
+            gamma = float(sys.argv[7])
+            learning_rate = float(sys.argv[8])
+            experiment.train_model(env_name, model, num_of_episodes, alpha=alpha, beta=beta, gamma=gamma, learning_rate=learning_rate)
         # elif mode == 'retrain':
         #     experiment.retrain_model(env_name, parameters)
         elif mode == 'test':
-            experiment.test_model(env_name, model, num_of_episodes)
+            alpha = float(sys.argv[5])
+            beta = float(sys.argv[6])
+            gamma = float(sys.argv[7])
+            learning_rate = float(sys.argv[8])
+            experiment.test_model(env_name, model, num_of_episodes, alpha=alpha, beta=beta, gamma=gamma, learning_rate=learning_rate)
         elif mode == 'baseline':
             experiment.test_baseline_agent(env_name, num_of_episodes, agent_type=sys.argv[5])
         elif mode == 'no_agent':
