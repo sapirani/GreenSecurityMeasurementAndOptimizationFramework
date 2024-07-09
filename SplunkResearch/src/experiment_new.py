@@ -45,6 +45,8 @@ class Experiment:
             json.dump(env.reward_calculator.time_rules_energy, fp)   
         with open(f'{path}/action_dict.json', 'w') as fp:
                 json.dump(np.array(env.action_per_episode).tolist(), fp)
+        with open(f"{path}/no_agent_reward_values_dict.json", 'w') as fp:
+            json.dump(env.reward_calculator.no_agent_reward_values_dict, fp)
 
 
     
@@ -63,12 +65,13 @@ class Experiment:
             env = gym.make(env_name, total_additional_logs=total_additional_logs, reward_parameters=reward_parameters, is_measure_energy=None, tf_log_path=tf_log_path)
         return env
     
-    def load_environment(self, env_name, **kwargs):
-        # parameters = self.load_parameters(f'{self.experiment_dir}/parameters_train.json') #BUG!!!!!!!!!!!!!!!!!!!!!!!!!
-        
-        # parameters.update(modifed_parameters)
+    def load_environment(self, env_name, prefix_path, **kwargs):  
+        fake_start_datetime = None
+        with open(f'{prefix_path}/train/test_start_fake_time.txt', 'r') as fp:
+            fake_start_datetime = fp.read()
+        kwargs['fake_start_datetime'] = fake_start_datetime
         env = self.setup_environment(env_name, **kwargs)
-        return env #, parameters
+        return env , fake_start_datetime
     
     def save_parameters_to_file(self, parameters, path):
         with open(f"{path}/parameters_train.json", 'w') as fp:
@@ -106,6 +109,37 @@ class Experiment:
         self.save_assets(path, env)
         return model
     
+    def load_assets(self, path, env):
+        with open(f'{path}/reward_dict.json', 'r') as fp:
+            env.reward_calculator.reward_dict = json.load(fp)
+        with open(f'{path}/reward_values_dict.json', 'r') as fp:
+            env.reward_calculator.reward_values_dict = json.load(fp)
+        with open(f'{path}/time_rules_energy.json', 'r') as fp:
+            env.reward_calculator.time_rules_energy = json.load(fp)
+        with open(f'{path}/action_dict.json', 'r') as fp:
+            env.action_per_episode = json.load(fp)
+        with open(f"{path}/no_agent_reward_values_dict.json", 'r') as fp:
+            env.reward_calculator.no_agent_reward_values_dict = json.load(fp)
+            
+    def retrain_model(self, env_name, model_name, num_of_episodes, **kwargs):
+        alpha, beta, gamma, learning_rate = kwargs['alpha'], kwargs['beta'], kwargs['gamma'], kwargs['learning_rate']
+        prefix_path = self.get_prefix_path(model_name, alpha, beta, gamma, learning_rate)     
+        env, fake_start_datetime = self.load_environment(env_name, prefix_path, **kwargs)
+        self.load_assets(f'{prefix_path}/train', env)
+        path = f'{prefix_path}/train'
+        log_file = f'{path}/log.txt'
+        self.setup_logging(log_file)
+        logger.info('retrain the model')
+        model_object = model_names[model_name]
+        model = model_object.load(f"{prefix_path}/splunk_attack")
+        model.set_env(env)
+        model.learn(total_timesteps=num_of_episodes*env.total_steps, tb_log_name=logger.name)
+        model.save(f"{prefix_path}/splunk_attack")
+        self.save_test_start_fake_time(path, env)
+        self.save_parameters_to_file(kwargs, path)
+        self.save_assets(path, env)
+        return model
+    
     def save_test_start_fake_time(self, path, env):
         with open(f'{path}/test_start_fake_time.txt', 'w') as fp:
             fp.write(str(env.dt_manager.get_fake_current_datetime()))
@@ -114,26 +148,11 @@ class Experiment:
         prefix_path = f'{self.experiment_dir}/{model}_{alpha}_{beta}_{gamma}__{learning_rate}'
         return prefix_path
     
-    # def retrain_model(self, parameters):
-    #     logger.info('retrain the model')
-    #     parameters['measure_energy'] = False
-    #     env = self.load_environment()
-    #     model_object = model_names[parameters['model']]
-    #     model = model_object.load(f"{self.experiment_dir}/splunk_attack")
-    #     model.set_env(env)
-    #     model.learn(total_timesteps=parameters['episodes']*env.total_steps)
-    #     model.save(f"{self.experiment_dir}/splunk_attack")
-    #     self.save_assets(path, env)
-    #     return model
     
     def test_model(self, env_name, model_name, num_of_episodes, **kwargs):
         alpha, beta, gamma, learning_rate = kwargs['alpha'], kwargs['beta'], kwargs['gamma'], kwargs['learning_rate']
         prefix_path = self.get_prefix_path(model_name, alpha, beta, gamma, learning_rate)     
-        fake_start_datetime = None
-        with open(f'{prefix_path}/train/test_start_fake_time.txt', 'r') as fp:
-            fake_start_datetime = fp.read()
-        kwargs['fake_start_datetime'] = fake_start_datetime
-        env = self.load_environment(env_name, **kwargs) #changed to false
+        env, fake_start_datetime = self.load_environment(env_name, prefix_path, **kwargs) #changed to false
         path = f'{prefix_path}/test_{num_of_episodes}'
         print(path)
         if not os.path.exists(path):
@@ -148,17 +167,16 @@ class Experiment:
         self.save_assets(path, env)
         return env
     
-    def test_baseline_agent(self, env_name, num_of_episodes, agent_type='random'):
-        
-        path = f'{self.experiment_dir}/baseline_{agent_type}_{num_of_episodes}'
+    def test_baseline_agent(self, env_name, model_name, num_of_episodes, **kwargs):
+        alpha, beta, gamma, learning_rate, agent_type = kwargs['alpha'], kwargs['beta'], kwargs['gamma'], kwargs['learning_rate'], kwargs['agent_type']
+        prefix_path = self.get_prefix_path(model_name, alpha, beta, gamma, learning_rate)   
+        env, fake_start_datetime = self.load_environment(env_name, prefix_path, **kwargs)
+        path = f'{self.experiment_dir}/baseline_{agent_type}_{num_of_episodes}_{str(fake_start_datetime)}'
         if not os.path.exists(path):
             os.makedirs(path)
         log_file = f'{path}/log.txt'
         self.setup_logging(log_file)
-        
-        
         logger.info(f'test baseline {agent_type} agent')
-        env = self.load_environment(env_name, alpha=0, beta=0, gamma=0, learning_rate=0)
         for i in range(num_of_episodes):
             env.reset()
             self.run_manual_episode(agent_type, env)
@@ -166,37 +184,36 @@ class Experiment:
         return env
 
             
-    def test_no_agent(self, env_name, num_of_episodes):
-
-        path = f'{self.experiment_dir}/no_agent_{num_of_episodes}'
+    def test_no_agent(self, env_name, model_name, num_of_episodes, **kwargs):
+        alpha, beta, gamma, learning_rate = kwargs['alpha'], kwargs['beta'], kwargs['gamma'], kwargs['learning_rate']
+        prefix_path = self.get_prefix_path(model_name, alpha, beta, gamma, learning_rate)   
+        env, fake_start_datetime = self.load_environment(env_name, prefix_path, **kwargs)
+        path = f'{self.experiment_dir}/no_agent_{num_of_episodes}_{str(fake_start_datetime)}'
         if not os.path.exists(path):
             os.makedirs(path)
         log_file = f'{path}/log.txt'
-        self.setup_logging(log_file)
-
-        
+        self.setup_logging(log_file)        
         logger.info('test no agent')
-        env = self.load_environment(env_name, alpha=0, beta=0, gamma=0, learning_rate=0)
         for i in range(num_of_episodes):
             env.reset()
             env.evaluate_no_agent()
         self.save_assets(path, env)
         return env
     
-    def test_autopic_agent(self, env_name, num_of_episodes):
-        path = f'{self.experiment_dir}/autopic_agent'
-        if not os.path.exists(path):
-            os.makedirs(path)
-        log_file = f'{path}/log.txt'
-        self.setup_logging(log_file)
+    # def test_autopic_agent(self, env_name, num_of_episodes):
+    #     path = f'{self.experiment_dir}/autopic_agent'
+    #     if not os.path.exists(path):
+    #         os.makedirs(path)
+    #     log_file = f'{path}/log.txt'
+    #     self.setup_logging(log_file)
         
-        logger.info('test autopic agent')
-        env, parameters = self.load_environment(env_name,{'measure_energy': False})
-        for i in range(num_of_episodes):
-            env.reset()
-            env.run_manual_episode('autopic')
-        self.save_assets(path, env)
-        return env
+    #     logger.info('test autopic agent')
+    #     env, parameters = self.load_environment(env_name,{'measure_energy': False})
+    #     for i in range(num_of_episodes):
+    #         env.reset()
+    #         env.run_manual_episode('autopic')
+    #     self.save_assets(path, env)
+    #     return env
     
     def run_manual_episode(self, agent_type, env):
         done = False

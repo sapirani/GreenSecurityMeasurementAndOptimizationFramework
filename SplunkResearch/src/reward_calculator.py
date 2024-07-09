@@ -20,8 +20,8 @@ class RewardCalc:
         self.average_duration = 0
         self.epsilon = 0
         self.action_upper_bound = 1
-        self.reward_dict = {'energy': [0], 'alerts': [0], 'distributions': [], 'fraction': [], 'total': []}
-        self.reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'fraction': [], 'duration': [], "num_of_rules":[]}
+        self.reward_dict = {'energy': [0], 'alerts': [0], 'distributions': [], 'duration': [], 'total': []}
+        self.reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'duration': [], "num_of_rules":[]}
         self.top_logtypes = top_logtypes
         self.dt_manager = dt_manager
         self.splunk_tools = splunk_tools
@@ -35,21 +35,26 @@ class RewardCalc:
         self.alpha = alpha
         self.betta = beta
         self.gamma = gamma
+        self.no_agent_reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'duration': []}
         
         
         self.summary_writer = summary_writer
-    def get_previous_full_reward(self):
-        return self.reward_dict['alerts'][-1], self.reward_dict['energy'][-1]
 
     def get_partial_reward(self, real_distribution, current_state):
-        fraction_val, distributions_val = self.get_partial_reward_values(real_distribution, current_state)
-        return 1/(distributions_val+1)
+        distributions_distance = self.get_partial_reward_values(real_distribution, current_state)
+        return 1/(distributions_distance+1)
     
-    def get_log_type_index(self, current_state):
-        return current_state[-4]
-    
-    def get_fraction_state(self, current_state):
-        return current_state[-1]
+    def get_no_agent_reward(self, time_range):
+        alert_vals, duration_vals = self.splunk_tools.run_saved_searches(time_range)
+        alert_val = sum(alert_vals)
+        duration_val = sum(duration_vals)
+        self.no_agent_reward_values_dict['alerts'].append(alert_val)
+        self.no_agent_reward_values_dict['duration'].append(duration_val)
+        logger.info(f"no agent alert value: {alert_val}")
+        logger.info(f"no agent duration value: {duration_val}")
+        with self.summary_writer.as_default():
+            tf.summary.scalar('no_agent_alert_val', alert_val, step=len(self.no_agent_reward_values_dict['alerts']))
+            tf.summary.scalar('no_agent_duration_val', duration_val, step=len(self.no_agent_reward_values_dict['duration']))
     
     def get_full_reward(self, time_range, real_distribution, current_state):
         alert_vals, duration_vals = self.splunk_tools.run_saved_searches(time_range)
@@ -57,30 +62,50 @@ class RewardCalc:
         duration_val = sum(duration_vals)
         self.time_rules_energy.append({'time_range':str(time_range), 'rules':duration_vals})
         
+        ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")
+        no_agent_alert_val = self.no_agent_reward_values_dict['alerts'][-1]
+        # alert_reward = ((no_agent_alert_val+1) - alert_val)/(no_agent_alert_val+1)
+        alert_reward = (alert_val - no_agent_alert_val)/(no_agent_alert_val+0.0000000001)
+        # normalized_alert_reward = max(0, min(1, alert_reward)) # Normalize to be between 0 and 1
+        self.reward_dict['alerts'].append(alert_reward)
+        
+        ###### Duration Component ######
         logger.info(f"duration value: {duration_val}")
         self.reward_values_dict['duration'].append(duration_val)
-  
-        alert_reward = 1/(alert_val+1)
-        distributions_reward = self.get_partial_reward(real_distribution, current_state)
-        duration_reward = duration_val/(self.num_of_searches*2)
-        total_reward = self.alpha * alert_reward + self.betta * distributions_reward + self.gamma * duration_reward
+        no_agent_duration_val = self.no_agent_reward_values_dict['duration'][-1]
+        duration_reward = (duration_val - no_agent_duration_val)/(no_agent_duration_val)
+        duration_reward = (duration_reward + 1)/2 # Normalize to be between 0 and 1
+        self.reward_dict['duration'].append(duration_reward)
 
+        ###### Distributions Component ######
+        distributions_reward = self.get_partial_reward(real_distribution, current_state)
+        self.reward_dict['distributions'].append(distributions_reward)
+        
+        ###### Total Reward ######
+        # total_reward = self.alpha * alert_reward + self.betta * distributions_reward + self.gamma * duration_reward
+        total_reward = self.betta * distributions_reward + self.gamma * duration_reward
+        
+        if alert_reward < 0.5:
+            total_reward = total_reward * 1.5
+        if alert_reward < 1 and alert_reward > 0.5:
+            total_reward = total_reward
+        if alert_reward > 1:
+            total_reward = -(total_reward ** 2)
+        
+        # if alert_reward < -1:
+        #     total_reward = alert_reward
         # Log reward values to TensorBoard
         with self.summary_writer.as_default():
-            tf.summary.scalar('alert_reward', alert_reward, step=len(self.reward_values_dict['alerts']))
-            tf.summary.scalar('distributions_reward', distributions_reward, step=len(self.reward_values_dict['distributions']))
-            tf.summary.scalar('duration_reward', duration_reward, step=len(self.reward_values_dict['duration']))
+            tf.summary.scalar('alert_reward', alert_reward, step=len(self.reward_dict['alerts']))
+            tf.summary.scalar('distributions_reward', distributions_reward, step=len(self.reward_dict['distributions']))
+            tf.summary.scalar('duration_reward', duration_reward, step=len(self.reward_dict['duration']))
             tf.summary.scalar('alert_val', alert_val, step=len(self.reward_values_dict['alerts']))
             tf.summary.scalar('distributions_val', distributions_reward, step=len(self.reward_values_dict['distributions']))
             tf.summary.scalar('duration_val', duration_val, step=len(self.reward_values_dict['duration']))
             
-        if alert_val > self.num_of_searches:
-            return -alert_val
-        if duration_val > 1.1 * self.num_of_searches * 2.5:
-            return duration_val
-        
+
         
         return total_reward
 
@@ -112,14 +137,12 @@ class RewardCalc:
         return alert_val, energy_val, energy_increase, duration_val, duration_increase
     
     def get_partial_reward_values(self, real_distribution, current_state):
-        action_upper_bound = 1
-        fraction_val = action_upper_bound - 1
         distributions_val = self.compare_distributions(current_state[:len(self.top_logtypes)], current_state[len(self.top_logtypes):])     
         if distributions_val == 0:
             distributions_val = distributions_val + 0.000000000001
         self.reward_values_dict['distributions'].append(distributions_val)
         logger.info(f"distributions value: {distributions_val}")
-        return fraction_val, distributions_val
+        return distributions_val
     
     def compare_distributions(self, dist1, dist2):
         logger.info(f"dist1: {dist1}")

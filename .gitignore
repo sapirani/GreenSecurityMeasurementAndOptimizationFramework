@@ -18,3 +18,4 @@ SplunkResearch/unused_folders
 SplunkResearch/src/unused_scripts
 experiments
 config.json
+SplunkResearch/experiments__/*

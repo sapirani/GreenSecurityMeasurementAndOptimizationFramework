@@ -318,6 +318,34 @@ class SplunkTools:
     def get_time(self, y, m, d, h, mi, s):
         return datetime(y, m, d, h, mi, s).timestamp()
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
     # def extract_distribution(self, start_time, end_time):
     #     command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}") | eval is_fake=if(isnotnull(is_fake), is_fake, 0)|stats count by source EventCode is_fake| eventstats sum(count) as totalCount" -maxout 0 -auth shouei:'
     #     cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
@@ -404,10 +432,10 @@ class SplunkTools:
     #         logger.info(response.text)
     #         logger.info("\n".join(events))    
             
-if __name__ == "__main__":
+# if __name__ == "__main__":
    # test run saved searches for 01/05/2023
-    splunk_tools = SplunkTools()
-    splunk_tools.run_saved_searches(['05/01/2023:09:00:00', '05/01/2023:12:10:00'])
+    # splunk_tools = SplunkTools()
+    # splunk_tools.run_saved_searches(['05/01/2023:09:00:00', '05/01/2023:12:10:00'])
     # test get rules pids
     # pids = splunk_tools.get_rules_pids(['01/01/2022:00:00:00', '01/01/2022:00:10:00'], 10)
     # print(pids)

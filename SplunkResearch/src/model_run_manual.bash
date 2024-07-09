@@ -15,8 +15,8 @@ saved_searches_path="/opt/splunk/etc/users/shouei/search/local/savedsearches.con
 # conda activate /home/shouei/anaconda3/envs/py38
 # which python
 echo $password | sudo -S sed -i 's/^max_searches_per_process = .*/max_searches_per_process = 1/' $limits_path
-train_episodes=360
-test_episodes=60
+train_episodes=600
+test_episodes=1200
 # env_name=
 
 # test_experiment="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/exp_20240207_180124"
@@ -28,36 +28,26 @@ for env_name in "splunk-v12"
 do
     for learning_rate in 0.001 #0.00001
     do
-        for alpha in 0.15 #$(seq 0.1 0.5 1)
+        for alpha in 0 #$(seq 0.1 0.5 1)
         do
-            for beta in 0.6 #$(seq 0.1 0.5 $(echo "1 - $alpha" | bc))
+            for beta in 0.5 #$(seq 0.1 0.5 $(echo "1 - $alpha" | bc))
             do
                     gamma=$(awk "BEGIN {print 1 - $alpha - $beta}")
                     echo "learning_rate: $learning_rate, alpha: $alpha, beta: $beta, gamma: $gamma"
-                    # # edit config file - change alpha beta gamma
-                    # sed -i "s/\"learning_rate\": .*,/\"learning_rate\": $learning_rate,/" $config_path
-                    # sed -i "s/\"alpha\": .*,/\"alpha\": $alpha,/" $config_path
-                    # sed -i "s/\"beta\": .*,/\"beta\": $beta,/" $config_path
-                    # sed -i "s/\"gamma\": .*/\"gamma\": $gamma/" $config_path
-
-                    # parameter_train_path="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments__/splunk-v9/parameters_train.json"
-                    
-                    # # Use sed to update the JSON values
-                    # sed -i "s/\"learning_rate\": [^,]*/\"learning_rate\": $learning_rate/" "$parameter_train_path"
-                    # sed -i "s/\"alpha\": [^,]*/\"alpha\": $alpha/" "$parameter_train_path"
-                    # sed -i "s/\"beta\": [^,]*/\"beta\": $beta/" "$parameter_train_path"
-                    # sed -i "s/\"gamma\": [^,}]*/\"gamma\": $gamma/" "$parameter_train_path"
-
 
                     model="a2c"
-                    echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $env_name $model $train_episodes $alpha $beta $gamma $learning_rate
-                    wait
-                    echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $env_name $model $test_episodes $alpha $beta $gamma $learning_rate
-                    wait
+                    # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" retrain $env_name $model $train_episodes $alpha $beta $gamma $learning_rate
+                    # wait
+                    # # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $env_name $model $train_episodes $alpha $beta $gamma $learning_rate
+                    # # wait
+                    # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $env_name $model $test_episodes $alpha $beta $gamma $learning_rate
+                    # wait
 
                     # model="ppo"
-                    # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $env_name $model $train_episodes $alpha $beta $gamma $learning_rate
+                    # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" retrain $env_name $model $train_episodes $alpha $beta $gamma $learning_rate
                     # wait
+                    # # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $env_name $model $train_episodes $alpha $beta $gamma $learning_rate
+                    # # wait
                     # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $env_name $model $test_episodes $alpha $beta $gamma $learning_rate
                     # wait
 
@@ -67,9 +57,9 @@ do
             done
         done
     done
-    echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline $env_name _ $test_episodes random
-    wait
-    echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" no_agent $env_name _ $test_episodes
+    # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" baseline $env_name $model $test_episodes $alpha $beta $gamma $learning_rate random
+    # wait
+    echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" no_agent $env_name $model $test_episodes $alpha $beta $gamma $learning_rate
     wait
 done
 

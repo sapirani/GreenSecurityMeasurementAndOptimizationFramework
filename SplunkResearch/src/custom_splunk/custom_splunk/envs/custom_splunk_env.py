@@ -59,7 +59,6 @@ class SplunkEnv(gym.Env):
         
         self.step_counter = 1
         self.action_upper_bound = 1
-        self.sum_of_fractions = 0
         self.current_step = 0
         self.epsilon = 0
         
@@ -96,12 +95,7 @@ class SplunkEnv(gym.Env):
 
 
     def get_reward(self):
-        '''
-        reward use cases description:
-        if the sum of fractions is bigger than 1  the reward is very negative
-        if the sum  of fractions is smaller or equal to 1 the reward is the sum of fractions
-        if the sum of fractions is smaller or equal to 1 and the energy is bigger than the previous energy in more then 10% the reward is very positive 
-        '''
+ 
         logger.debug(self.done)
         
         fraction_real_distribution = [x/sum(self.real_distribution) if sum(self.real_distribution) != 0 else 1/len(self.real_distribution) for x in self.real_distribution ]
@@ -111,7 +105,6 @@ class SplunkEnv(gym.Env):
             # reward = self.reward_calculator.get_previous_full_reward()
             reward = self.reward_calculator.get_partial_reward(fraction_real_distribution, self.state)
             
-        # total_reward = self.alpha*energy_reward + self.beta*alert_reward + self.delta*distributions_reward + self.gamma*fraction_reward
         self.reward_calculator.reward_dict['total'].append(reward)
         with self.summary_writer.as_default():
             tf.summary.scalar('total_reward', reward, step=len(self.reward_calculator.reward_dict['total']))
@@ -186,9 +179,13 @@ class SplunkEnv(gym.Env):
 
     
     def update_state(self):
-        state = []
         now = self.dt_manager.get_fake_current_datetime()
         previous_now = self.dt_manager.subtract_time(now, seconds=self.action_duration)
+        real_state, fake_state = self.update_distributions(now, previous_now)
+        self.state = np.concatenate((real_state, fake_state))
+        logger.info(f"state: {self.state}")
+
+    def update_distributions(self, now, previous_now):
         real_distribution_dict = self.splunk_tools.get_real_distribution(previous_now, now)
         logger.debug(f"real distribution: {real_distribution_dict}")
         logger.debug(f"fake distribution: {self.fake_logtypes_counter}")
@@ -200,7 +197,6 @@ class SplunkEnv(gym.Env):
         real_state = []
         fake_state = []
         for i, logtype in enumerate(self.top_logtypes):
-        
             # create state vector
             logtype = ' '.join(logtype)
             if logtype in self.real_logtypeps_counter:
@@ -217,9 +213,7 @@ class SplunkEnv(gym.Env):
         fake_total_sum = sum(fake_state)
         real_state = [x/real_total_sum if real_total_sum!= 0 else 1/len(real_state) for x in real_state]
         fake_state = [x/fake_total_sum if fake_total_sum != 0 else 1/len(fake_state) for x in fake_state]
-        state = np.concatenate((real_state, fake_state))
-        self.state = state
-        logger.info(f"state: {self.state}")
+        return real_state,fake_state
             
      
     
@@ -234,7 +228,6 @@ class SplunkEnv(gym.Env):
         logger.info("resetting")
         self.action_per_episode.append(self.current_episode_accumulated_action)
         self.current_log_type = 0
-        self.sum_of_fractions = 0
         self.done = False
         self.step_counter = 1
         self.fake_distribution = np.zeros(len(self.top_logtypes))
@@ -243,17 +236,14 @@ class SplunkEnv(gym.Env):
         self.fake_logtypes_counter = {}
         self.real_logtypeps_counter = {}
         self.current_episode_accumulated_action = np.zeros(self.action_space.shape)
+        self.state = np.zeros(self.observation_space.shape)
+        
         if self.time_range_update:
             self.update_timerange()
-        
-        # self.splunk_tools.delete_fake_logs(self.time_range)
         logger.debug(f"Current time: {self.dt_manager.set_fake_current_datetime(self.time_range[0])}") 
-
         
-        self.state = np.zeros(self.observation_space.shape)
-         
-        # self.logtype_index_counter()  
-        # self.splunk_tools.update_all_searches(self.splunk_tools.update_search_time_range, self.time_range) #TODO
+        self.reward_calculator.get_no_agent_reward(self.time_range)        
+        
         return self.state 
 
     def update_timerange(self):
