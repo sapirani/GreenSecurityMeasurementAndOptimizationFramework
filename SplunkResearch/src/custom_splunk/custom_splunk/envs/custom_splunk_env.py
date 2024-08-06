@@ -31,11 +31,11 @@ PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. L
 INFINITY = 100000
 CPU_TDP = 200
 class SplunkEnv(gym.Env):
-    def __init__(self, log_generator_instance, splunk_tools_instance, fake_start_datetime, rule_frequency, search_window, num_of_searches, reward_parameters, is_measure_energy, tf_log_path, relevant_logtypes=[], span_size=1, total_additional_logs=None, logs_per_minute = 300, additional_percentage = 0.1):
+    def __init__(self, log_generator_instance, splunk_tools_instance, fake_start_datetime, rule_frequency, search_window, num_of_searches, reward_parameters, is_measure_energy, tf_log_path, relevant_logtypes=[], span_size=1, total_additional_logs=None, logs_per_minute = 300, additional_percentage = 0.1, env_id=None):
         
         self.log_generator = log_generator_instance
         self.splunk_tools = splunk_tools_instance
-        
+        self.env_id = env_id
         self.relevant_logtypes = relevant_logtypes
         self.top_logtypes = pd.read_csv("resources/top_logtypes.csv")
         self.top_logtypes = self.top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
@@ -76,7 +76,8 @@ class SplunkEnv(gym.Env):
         self.done = False
                 
         fake_start_datetime  = datetime.datetime.strptime(fake_start_datetime, '%m/%d/%Y:%H:%M:%S')
-        clean_env(splunk_tools_instance, (fake_start_datetime.strftime('%m/%d/%Y:%H:%M:%S'), (fake_start_datetime+datetime.timedelta(days=30)).strftime('%m/%d/%Y:%H:%M:%S')))
+        clean_env(splunk_tools_instance, (fake_start_datetime.timestamp(), (fake_start_datetime+datetime.timedelta(days=30)).timestamp()))
+        # clean_env(splunk_tools_instance, (fake_start_datetime.strftime('%m/%d/%Y:%H:%M:%S'), (fake_start_datetime+datetime.timedelta(days=30)).strftime('%m/%d/%Y:%H:%M:%S')))
         
         self.dt_manager = MockedDatetimeManager(fake_start_datetime=fake_start_datetime)
         end_time = self.dt_manager.get_fake_current_datetime()
@@ -90,7 +91,7 @@ class SplunkEnv(gym.Env):
         
         # TensorBoard setup
         self.summary_writer = tf.summary.create_file_writer(tf_log_path)
-        self.reward_calculator = RewardCalc(self.top_logtypes, self.dt_manager, splunk_tools_instance, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, self.summary_writer)
+        self.reward_calculator = RewardCalc(self.top_logtypes, self.dt_manager, splunk_tools_instance, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, self.summary_writer, env_id)
  
 
 
@@ -242,7 +243,7 @@ class SplunkEnv(gym.Env):
             self.update_timerange()
         logger.debug(f"Current time: {self.dt_manager.set_fake_current_datetime(self.time_range[0])}") 
         
-        self.reward_calculator.get_no_agent_reward(self.time_range)        
+        # self.reward_calculator.get_no_agent_reward(self.time_range)        
         
         return self.state 
 

@@ -48,10 +48,12 @@ class SplunkTools:
             "Content-Type": "application/json",
         }
         # measure running time of requests
+        k = 3
         time_start = datetime.now()
-        response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
+        for i in range(k):
+            response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
         time_end = datetime.now()
-        execution_time = time_end - time_start
+        execution_time = (time_end - time_start) / k
         if response.status_code != 200:
             logger.error(f'Error: {response}')
             return None

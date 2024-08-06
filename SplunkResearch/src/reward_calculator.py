@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 import subprocess
 from time import sleep
@@ -13,14 +14,16 @@ logger = logging.getLogger(__name__)
 CPU_TDP = 200
 PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. Linux 3.10.0-1160.92.1.el7.x86_64/Splunk Enterprise SIEM/Power Saver Plan/One Scan/'
 
+
+
 class RewardCalc:
-    def __init__(self, top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, summary_writer):
+    def __init__(self, top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, summary_writer, env_id):
         self.average_energy = 0
         self.average_alert = 0
         self.average_duration = 0
         self.epsilon = 0
         self.action_upper_bound = 1
-        self.reward_dict = {'energy': [0], 'alerts': [0], 'distributions': [], 'duration': [], 'total': []}
+        self.reward_dict = {'energy': [], 'alerts': [], 'distributions': [], 'duration': [], 'total': []}
         self.reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'duration': [], "num_of_rules":[]}
         self.top_logtypes = top_logtypes
         self.dt_manager = dt_manager
@@ -35,76 +38,90 @@ class RewardCalc:
         self.alpha = alpha
         self.betta = beta
         self.gamma = gamma
-        self.no_agent_reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'duration': []}
-        
+        self.env_id = env_id
+        try:
+            # with open(f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments__/{self.env_id}/no_agent_values.json", 'r') as f:
+            #     no_agent_values = json.load(f)
+            # self.no_agent_values = pd.DataFrame(no_agent_values)
+            # if 'start_time' not in self.no_agent_values.columns:
+            #     self.no_agent_values[['start_time','end_time']] = self.no_agent_values['time_ranges'].apply(pd.Series)
+            self.no_agent_values = pd.read_csv(f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments__/{self.env_id}/no_agent_values.csv")
+        except:
+            self.no_agent_values = pd.DataFrame(columns=['start_time', 'end_time', 'alert_values', 'duration_values'])
+
+        self.no_agent_alert_last_val = 0
+        self.no_agent_duration_last_val = 0
         
         self.summary_writer = summary_writer
 
     def get_partial_reward(self, real_distribution, current_state):
         distributions_distance = self.get_partial_reward_values(real_distribution, current_state)
-        return 1/(distributions_distance+1)
+        distributions_reward = - distributions_distance
+        self.reward_dict['distributions'].append(distributions_reward)
+        return distributions_reward
     
     def get_no_agent_reward(self, time_range):
-        alert_vals, duration_vals = self.splunk_tools.run_saved_searches(time_range)
-        alert_val = sum(alert_vals)
-        duration_val = sum(duration_vals)
-        self.no_agent_reward_values_dict['alerts'].append(alert_val)
-        self.no_agent_reward_values_dict['duration'].append(duration_val)
+        relevant_row = self.no_agent_values[(self.no_agent_values['start_time'] == time_range[0]) & (self.no_agent_values['end_time'] == time_range[1])]
+        if not relevant_row.empty:
+            alert_val = np.mean(relevant_row['alert_values'].values[0])
+            duration_val = np.mean(relevant_row['duration_values'].values[0])
+        else:
+            logger.info('Measure no agent reward values')
+            alert_vals, duration_vals = self.splunk_tools.run_saved_searches(time_range)
+            alert_val = sum(alert_vals)
+            duration_val = sum(duration_vals)
+            self.no_agent_values = pd.concat([self.no_agent_values, pd.DataFrame({'start_time':[time_range[0]], 'end_time':[time_range[1]], 'alert_values':[alert_val], 'duration_values':[duration_val]})])
+        self.no_agent_alert_last_val = alert_val
+        self.no_agent_duration_last_val = duration_val
         logger.info(f"no agent alert value: {alert_val}")
         logger.info(f"no agent duration value: {duration_val}")
-        with self.summary_writer.as_default():
-            tf.summary.scalar('no_agent_alert_val', alert_val, step=len(self.no_agent_reward_values_dict['alerts']))
-            tf.summary.scalar('no_agent_duration_val', duration_val, step=len(self.no_agent_reward_values_dict['duration']))
+        return alert_val, duration_val
+        
     
     def get_full_reward(self, time_range, real_distribution, current_state):
         alert_vals, duration_vals = self.splunk_tools.run_saved_searches(time_range)
         alert_val = sum(alert_vals)
         duration_val = sum(duration_vals)
         self.time_rules_energy.append({'time_range':str(time_range), 'rules':duration_vals})
-        
+        no_agent_alert_val, no_agent_duration_val = self.no_agent_alert_last_val, self.no_agent_duration_last_val
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")
-        no_agent_alert_val = self.no_agent_reward_values_dict['alerts'][-1]
+        # no_agent_alert_val = self.no_agent_reward_values_dict['alerts'][-1]
         # alert_reward = ((no_agent_alert_val+1) - alert_val)/(no_agent_alert_val+1)
-        alert_reward = (alert_val - no_agent_alert_val)/(no_agent_alert_val+0.0000000001)
+        alert_gap = alert_val - no_agent_alert_val
+        # alert_reward = alert_gap/(no_agent_alert_val)
         # normalized_alert_reward = max(0, min(1, alert_reward)) # Normalize to be between 0 and 1
-        self.reward_dict['alerts'].append(alert_reward)
         
         ###### Duration Component ######
         logger.info(f"duration value: {duration_val}")
         self.reward_values_dict['duration'].append(duration_val)
-        no_agent_duration_val = self.no_agent_reward_values_dict['duration'][-1]
+        # no_agent_duration_val = self.no_agent_reward_values_dict['duration'][-1]
         duration_reward = (duration_val - no_agent_duration_val)/(no_agent_duration_val)
         duration_reward = (duration_reward + 1)/2 # Normalize to be between 0 and 1
         self.reward_dict['duration'].append(duration_reward)
 
         ###### Distributions Component ######
         distributions_reward = self.get_partial_reward(real_distribution, current_state)
-        self.reward_dict['distributions'].append(distributions_reward)
         
         ###### Total Reward ######
         # total_reward = self.alpha * alert_reward + self.betta * distributions_reward + self.gamma * duration_reward
         total_reward = self.betta * distributions_reward + self.gamma * duration_reward
         
-        if alert_reward < 0.5:
-            total_reward = total_reward * 1.5
-        if alert_reward < 1 and alert_reward > 0.5:
+        if (no_agent_alert_val == 0) & (alert_gap > 3):
+            total_reward = -(total_reward * alert_gap)
+        elif (no_agent_alert_val == 0) & (alert_gap <= 3):
             total_reward = total_reward
-        if alert_reward > 1:
-            total_reward = -(total_reward ** 2)
-        
-        # if alert_reward < -1:
-        #     total_reward = alert_reward
-        # Log reward values to TensorBoard
-        with self.summary_writer.as_default():
-            tf.summary.scalar('alert_reward', alert_reward, step=len(self.reward_dict['alerts']))
-            tf.summary.scalar('distributions_reward', distributions_reward, step=len(self.reward_dict['distributions']))
-            tf.summary.scalar('duration_reward', duration_reward, step=len(self.reward_dict['duration']))
-            tf.summary.scalar('alert_val', alert_val, step=len(self.reward_values_dict['alerts']))
-            tf.summary.scalar('distributions_val', distributions_reward, step=len(self.reward_values_dict['distributions']))
-            tf.summary.scalar('duration_val', duration_val, step=len(self.reward_values_dict['duration']))
+        elif no_agent_alert_val > 0:
+            alert_reward = alert_gap/no_agent_alert_val
+            self.reward_dict['alerts'].append(alert_reward)
             
+            if alert_reward <= 0.6:
+                total_reward = total_reward * 100
+            if alert_reward <= 1 and alert_reward > 0.6:
+                total_reward = total_reward
+            if alert_reward > 1:
+                total_reward = -(total_reward * alert_reward)
 
         
         return total_reward
@@ -147,4 +164,6 @@ class RewardCalc:
     def compare_distributions(self, dist1, dist2):
         logger.info(f"dist1: {dist1}")
         logger.info(f"dist2: {dist2}")
-        return wasserstein_distance(dist1, dist2)
+        # return wasserstein_distance(dist1, dist2)
+        # return entropy(dist1, dist2)
+        return jensenshannon(dist1, dist2)#**2

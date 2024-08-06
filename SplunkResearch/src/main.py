@@ -40,16 +40,17 @@ if __name__ == "__main__":
         beta = float(sys.argv[6])
         gamma = float(sys.argv[7])
         learning_rate = float(sys.argv[8])
+        policy = sys.argv[9]
         if mode == 'train':
-            experiment.train_model(env_name, model, num_of_episodes, alpha=alpha, beta=beta, gamma=gamma, learning_rate=learning_rate)
+            experiment.train_model(env_name, model, num_of_episodes, alpha=alpha, beta=beta, gamma=gamma, learning_rate=learning_rate, policy=policy)
         elif mode == 'retrain':
-            experiment.retrain_model(env_name, model, num_of_episodes, alpha=alpha, beta=beta, gamma=gamma, learning_rate=learning_rate)
+            experiment.retrain_model(env_name, model, num_of_episodes, alpha=alpha, beta=beta, gamma=gamma, learning_rate=learning_rate, policy=policy)
         elif mode == 'test':
-            experiment.test_model(env_name, model, num_of_episodes, alpha=alpha, beta=beta, gamma=gamma, learning_rate=learning_rate)
+            experiment.test_model(env_name, model, num_of_episodes, alpha=alpha, beta=beta, gamma=gamma, learning_rate=learning_rate, policy=policy)
         elif mode == 'baseline':
-            experiment.test_baseline_agent(env_name, model, num_of_episodes, alpha=alpha, beta=beta, gamma=gamma, learning_rate=learning_rate, agent_type=sys.argv[9])
+            experiment.test_baseline_agent(env_name, model, num_of_episodes, alpha=alpha, beta=beta, gamma=gamma, learning_rate=learning_rate, policy=policy, agent_type=sys.argv[10])
         elif mode == 'no_agent':
-            experiment.test_no_agent(env_name, model, num_of_episodes, alpha=alpha, beta=beta, gamma=gamma, learning_rate=learning_rate)
+            experiment.test_no_agent(env_name, model, num_of_episodes, alpha=alpha, beta=beta, gamma=gamma, policy=policy, learning_rate=learning_rate)
     except Exception as e:
         logger = logging.getLogger(__name__)
         logger.error(f"An error occurred: {e}")
