@@ -1,19 +1,11 @@
-import asyncio
 import datetime
-import random
-import subprocess
-from threading import Thread, Timer
-import time
 import numpy as np
 import pandas as pd
 import sys
 import urllib3
 import logging
-from scipy.stats import entropy
 from env_utils import *
-from measurement import Measurement
 from datetime_manager import MockedDatetimeManager
-from reward_calculator import RewardCalc
 
 import tensorflow as tf
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment')
@@ -31,12 +23,12 @@ PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. L
 INFINITY = 100000
 CPU_TDP = 200
 class SplunkEnv(gym.Env):
-    def __init__(self, log_generator_instance, splunk_tools_instance, fake_start_datetime, rule_frequency, search_window, num_of_searches, reward_parameters, is_measure_energy, tf_log_path, relevant_logtypes=[], span_size=1, total_additional_logs=None, logs_per_minute = 300, additional_percentage = 0.1, env_id=None):
-        
+    def __init__(self, log_generator_instance, splunk_tools_instance, fake_start_datetime, rule_frequency, search_window, num_of_searches, relevant_logtypes=[], span_size=1, total_additional_logs=None, logs_per_minute = 300, additional_percentage = 0.1, env_id=None):
         self.log_generator = log_generator_instance
         self.splunk_tools = splunk_tools_instance
         self.env_id = env_id
         self.relevant_logtypes = relevant_logtypes
+        logger.info(f"relevant logtypes: {self.relevant_logtypes}")
         self.top_logtypes = pd.read_csv("resources/top_logtypes.csv")
         self.top_logtypes = self.top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
         self.top_logtypes = [(x[0].lower(), str(x[1])) for x in self.top_logtypes]
@@ -67,6 +59,7 @@ class SplunkEnv(gym.Env):
         self.observation_space = spaces.Box(low=0,high=self.action_upper_bound,shape=(len(self.top_logtypes)*2,),dtype=np.float64)
         self.action_per_episode = []
         self.current_episode_accumulated_action = np.zeros(self.action_space.shape)
+        self.current_action = np.zeros(self.action_space.shape)
         self.fake_logtypes_counter = {}
         self.real_logtypeps_counter = {}
         self.fake_distribution = np.zeros(len(self.top_logtypes))
@@ -76,7 +69,7 @@ class SplunkEnv(gym.Env):
         self.done = False
                 
         fake_start_datetime  = datetime.datetime.strptime(fake_start_datetime, '%m/%d/%Y:%H:%M:%S')
-        clean_env(splunk_tools_instance, (fake_start_datetime.timestamp(), (fake_start_datetime+datetime.timedelta(days=30)).timestamp()))
+        clean_env(splunk_tools_instance, (fake_start_datetime.timestamp(), (fake_start_datetime+datetime.timedelta(days=90)).timestamp()))
         # clean_env(splunk_tools_instance, (fake_start_datetime.strftime('%m/%d/%Y:%H:%M:%S'), (fake_start_datetime+datetime.timedelta(days=30)).strftime('%m/%d/%Y:%H:%M:%S')))
         
         self.dt_manager = MockedDatetimeManager(fake_start_datetime=fake_start_datetime)
@@ -85,15 +78,12 @@ class SplunkEnv(gym.Env):
         time_range = (start_time, end_time)
         self.time_range = time_range
         update_rules_frequency_and_time_range(splunk_tools_instance, rule_frequency, time_range)
-        
-        alpha, beta, gamma = reward_parameters['alpha'], reward_parameters['beta'], reward_parameters['gamma']
-        measurment_tool = Measurement(splunk_tools_instance, num_of_searches, measure_energy=is_measure_energy)
-        
-        # TensorBoard setup
-        self.summary_writer = tf.summary.create_file_writer(tf_log_path)
-        self.reward_calculator = RewardCalc(self.top_logtypes, self.dt_manager, splunk_tools_instance, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, self.summary_writer, env_id)
- 
+        self.reward_calculator = None
+        self.num_of_searches = num_of_searches
+        self.splunk_tools_instance = splunk_tools_instance
 
+    def set_reward_calculator(self, reward_calculator):
+        self.reward_calculator = reward_calculator
 
     def get_reward(self):
  
@@ -107,8 +97,6 @@ class SplunkEnv(gym.Env):
             reward = self.reward_calculator.get_partial_reward(fraction_real_distribution, self.state)
             
         self.reward_calculator.reward_dict['total'].append(reward)
-        with self.summary_writer.as_default():
-            tf.summary.scalar('total_reward', reward, step=len(self.reward_calculator.reward_dict['total']))
         logger.info(f"total reward: {reward}")               
         return reward
     
@@ -120,8 +108,11 @@ class SplunkEnv(gym.Env):
         return reward
     
     def step(self, action):
+        if self.step_counter == 1:
+            self.reward_calculator.get_no_agent_reward(self.time_range)
         logger.debug(f"step number: {self.step_counter}")
         action = self.action_preprocess(action)  
+        self.current_action = action
         # asyncio.run(self.perform_action(action))
         self.perform_action(action)
         if self.check_done():
@@ -237,6 +228,7 @@ class SplunkEnv(gym.Env):
         self.fake_logtypes_counter = {}
         self.real_logtypeps_counter = {}
         self.current_episode_accumulated_action = np.zeros(self.action_space.shape)
+        self.current_action = np.zeros(self.action_space.shape)
         self.state = np.zeros(self.observation_space.shape)
         
         if self.time_range_update:

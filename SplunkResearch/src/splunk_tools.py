@@ -3,8 +3,10 @@ import json
 import logging
 from multiprocessing import Pool
 import re
+import subprocess
 from dotenv import load_dotenv
 import os
+import numpy as np
 import pandas as pd
 import requests
 from datetime import datetime
@@ -48,12 +50,17 @@ class SplunkTools:
             "Content-Type": "application/json",
         }
         # measure running time of requests
-        k = 3
-        time_start = datetime.now()
+        k = 2
+        durations = []
         for i in range(k):
+            subprocess.run(f'echo 1 > /proc/sys/vm/drop_caches', shell=True)
+            time_start = datetime.now()
             response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
-        time_end = datetime.now()
-        execution_time = (time_end - time_start) / k
+            time_end = datetime.now()       
+            execution_time = (time_end - time_start)
+            durations.append(execution_time.total_seconds())
+        mean_execution_time = np.mean(durations)
+        std_execution_time = np.std(durations)
         if response.status_code != 200:
             logger.error(f'Error: {response}')
             return None
@@ -63,17 +70,19 @@ class SplunkTools:
         else:
             # Parse each line as JSON
             results = [json.loads(obj)['result'] for obj in json_objects]
-        return results, execution_time
+        return results, mean_execution_time, std_execution_time
     
     def run_saved_searches(self, time_range):
         saved_searches = self.active_saved_searches
-        execution_times = []
+        mean_execution_times = []
+        std_execution_times = []
         results_list = []
         for saved_search in saved_searches:
-            results, execution_time = self.run_saved_search(saved_search, time_range)
-            execution_times.append(execution_time)
+            results, mean_execution_time, std_execution_time = self.run_saved_search(saved_search, time_range)
+            mean_execution_times.append(mean_execution_time)
+            std_execution_times.append(std_execution_time)
             results_list.append(results)
-        return results_list, execution_times
+        return results_list, mean_execution_times, std_execution_times, [saved_search['title'] for saved_search in saved_searches]
     
     def run_saved_search(self, saved_search, time_range):
         search_name = saved_search['title']
@@ -85,9 +94,10 @@ class SplunkTools:
         query[0] = f'{query[0]} earliest={earliest_time} latest={latest_time}'
         query = '|'.join(query)
         logger.info(f'Running saved search {search_name} with query: {query}')
-        results, execution_time = self.query_splunk(query, earliest_time, latest_time)
-        return len(results), execution_time.total_seconds()
-        
+        # clear machine cache
+        results, mean_execution_time, std_execution_time = self.query_splunk(query, earliest_time, latest_time)
+        return len(results), mean_execution_time, std_execution_time
+            
     def make_splunk_request(self, endpoint, method='get', params=None, data=None, headers=None):  
         url = f"{self.base_url}{endpoint}"  
         try:  

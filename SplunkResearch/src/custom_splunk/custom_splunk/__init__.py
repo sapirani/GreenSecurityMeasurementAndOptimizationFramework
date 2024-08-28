@@ -188,3 +188,29 @@ register(id='splunk-v13',
                  "logs_per_minute": 300,"additional_percentage":additional_percentage,
                  "fake_start_datetime": fake_start_datetime,
                  "env_id": "splunk-v13"})
+#######################################
+additional_percentage = 0.1
+fake_start_datetime = "05/03/2024:13:00:00"
+register(id='splunk-v14',
+         entry_point='custom_splunk.envs:SplunkEnv',
+         kwargs={'rule_frequency':1, 'search_window':120, 'span_size':120, # search_window in minutes and span_size in seconds
+                 'splunk_tools_instance':splunk_tools_instance,
+                 "log_generator_instance": log_generator_instance,
+                 "relevant_logtypes": relevant_logtypes,
+                 "num_of_searches": len(savedsearches),
+                 "logs_per_minute": 300,"additional_percentage":additional_percentage,
+                 "fake_start_datetime": fake_start_datetime,
+                 "env_id": "splunk-v14"})
+#######################################
+additional_percentage = 0.5
+fake_start_datetime = "05/03/2024:13:00:00"
+register(id='splunk-v15',
+         entry_point='custom_splunk.envs:SplunkEnv',
+         kwargs={'rule_frequency':1, 'search_window':120, 'span_size':120, # search_window in minutes and span_size in seconds
+                 'splunk_tools_instance':splunk_tools_instance,
+                 "log_generator_instance": log_generator_instance,
+                 "relevant_logtypes": relevant_logtypes,
+                 "num_of_searches": len(savedsearches),
+                 "logs_per_minute": 300,"additional_percentage":additional_percentage,
+                 "fake_start_datetime": fake_start_datetime,
+                 "env_id": "splunk-v15"})

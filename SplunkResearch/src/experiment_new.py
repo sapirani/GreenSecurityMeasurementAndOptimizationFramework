@@ -1,3 +1,4 @@
+import datetime
 import os
 import numpy as np
 import urllib3
@@ -9,20 +10,69 @@ from stable_baselines3.ppo.policies import MlpPolicy
 from stable_baselines3.common.evaluation import evaluate_policy
 import gym
 import custom_splunk #dont remove!!!
+from sb3_contrib.ppo_recurrent.policies import MlpLstmPolicy
+from sb3_contrib import RecurrentPPO
 from stable_baselines3 import A2C, PPO, DQN
 urllib3.disable_warnings()
+from stable_baselines3.common.logger import configure
+from env_utils import *
+from measurement import Measurement
+from reward_calculators import *
 
 import logging
-from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 logger = logging.getLogger(__name__)
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
-model_names = {'a2c': A2C, 'ppo': PPO, 'dqn': DQN}
-policy_names = {'mlp': MlpPolicy}
+model_names = {'a2c': A2C, 'ppo': PPO, 'dqn': DQN, 'recurrentppo': RecurrentPPO}
+policy_names = {'mlp': MlpPolicy, 'lstm': MlpLstmPolicy}
+RewardCalc_classes = {'1': RewardCalc1, '2': RewardCalc2, "3": RewardCalc3, "4": RewardCalc4, "5": RewardCalc5, "6": RewardCalc6, "7": RewardCalc7, "8": RewardCalc8} 
+
+def eval_tensorboard_callback(locals_dict, globals_dict):
+    env = locals_dict["env"].envs[0]  # Accessing the actual environment inside the DummyVecEnv
+    model = locals_dict["model"]
+    current_step = env.step_counter
+    tb_logger = model.logger
+    tb_logger.record("test/distribution_val", env.reward_calculator.reward_values_dict['distributions'][-1])
+    tb_logger.record("test/distribution_reward", env.reward_calculator.reward_dict['distributions'][-1])
+    policy_dict = {}
+    for i, logtype in enumerate(env.relevant_logtypes):
+        for is_trigger in range(2):
+            policy_dict[f'{logtype}_{is_trigger}'] = env.current_action[i*2+is_trigger]
+            if i == len(env.relevant_logtypes)-1:
+                break
+    tb_logger.record("train/policy", policy_dict)
+    done_episodes = len(locals_dict["episode_lengths"])
+    total_steps = env.total_steps
+    no_agent_last_row = env.reward_calculator.no_agent_last_row
+    if current_step == 2:
+        # env.reward_calculator.get_no_agent_reward(env.time_range)
+        tb_logger.dump(done_episodes * total_steps + current_step-1)        
+        
+        tb_logger.record("test/no_agent_alert_val", no_agent_last_row['alert_values'].values[-1])
+        tb_logger.record("test/no_agent_duration_val", no_agent_last_row['duration_values'].values[-1])
+        tb_logger.record("test/no_agent_rules_alerts", {col: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_alert')})            
+        tb_logger.record("test/no_agent_rules_duration", {col: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_duration')})
+        tb_logger.dump(done_episodes+1 * total_steps + total_steps)
+    elif current_step == 1:
+        tb_logger.record("test/alert_reward", env.reward_calculator.reward_dict['alerts'][-1])
+        tb_logger.record("test/duration_reward", env.reward_calculator.reward_dict['duration'][-1])
+        tb_logger.record("test/total_reward", env.reward_calculator.reward_dict['total'][-1])
+        tb_logger.record("test/alert_val", env.reward_calculator.reward_values_dict['alerts'][-1])
+        tb_logger.record("test/duration_val", env.reward_calculator.reward_values_dict['duration'][-1])
+        tb_logger.record("test/duration_gap", env.reward_calculator.reward_values_dict['duration'][-1] - no_agent_last_row['duration_values'].values[-1])
+        tb_logger.record("test/alert_gap", env.reward_calculator.reward_values_dict['alerts'][-1] - no_agent_last_row['alert_values'].values[-1])
+        tb_logger.record("test/rules_duration", {key:env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_duration')})
+        tb_logger.record("test/rules_alerts", {key:env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_alert')})
+        tb_logger.record("test/rules_durations_gap", {key:env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1]  for key in no_agent_last_row.columns if key.startswith('rule_duration')})
+        tb_logger.record("test/rules_alerts_gap", {key:env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1] for key in no_agent_last_row.columns if key.startswith('rule_alert')})
+        tb_logger.dump(done_episodes * total_steps + total_steps)
+    else:
+        tb_logger.dump(done_episodes * total_steps + current_step-1)
+        
 
 
-
-
+    return True
 
 class TrainTensorboardCallback(BaseCallback):
     def __init__(self, verbose=1):
@@ -39,22 +89,43 @@ class TrainTensorboardCallback(BaseCallback):
         self.logger.record("train/alert_val", env.reward_calculator.reward_values_dict['alerts'][-1])
         self.logger.record("train/distribution_val", env.reward_calculator.reward_values_dict['distributions'][-1])
         self.logger.record("train/duration_val", env.reward_calculator.reward_values_dict['duration'][-1])
-
-        self.logger.record("train/duration_gap", env.reward_calculator.reward_values_dict['duration'][-1] - env.reward_calculator.no_agent_duration_last_val)
-        self.logger.record("train/alert_gap", env.reward_calculator.reward_values_dict['alerts'][-1] - env.reward_calculator.no_agent_alert_last_val)
-    
-    def _on_rollout_start(self) -> None:
-        env = self.training_env.envs[0]
-        env.reward_calculator.get_no_agent_reward(env.time_range)   
-        self.logger.record("train/no_agent_alert_val", env.reward_calculator.no_agent_alert_last_val)
-        self.logger.record("train/no_agent_duration_val", env.reward_calculator.no_agent_duration_last_val)  
+        no_agent_last_row = env.reward_calculator.no_agent_last_row
+        self.logger.record("train/duration_gap", env.reward_calculator.reward_values_dict['duration'][-1] - no_agent_last_row['duration_values'].values[-1])
+        self.logger.record("train/alert_gap", env.reward_calculator.reward_values_dict['alerts'][-1] - no_agent_last_row['alert_values'].values[-1])
+        self.logger.record("train/rules_duration", {key:env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_duration')})
+        self.logger.record("train/rules_alerts", {key:env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_alert')})
+        self.logger.record("train/rules_durations_gap", {key:env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1]  for key in no_agent_last_row.columns if key.startswith('rule_duration')})
+        self.logger.record("train/rules_alerts_gap", {key:env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1] for key in no_agent_last_row.columns if key.startswith('rule_alert')})
+        self.logger.record("train/rules_duration_std", {key:env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_std_duration_')})
+    # def _on_rollout_start(self) -> None:
+    #     env = self.training_env.envs[0]
+    #     env.reward_calculator.get_no_agent_reward(env.time_range)   
+    #     self.logger.record("train/no_agent_alert_val", env.reward_calculator.no_agent_alert_last_val)
+    #     self.logger.record("train/no_agent_duration_val", env.reward_calculator.no_agent_duration_last_val)  
         
         
     
     def _on_step(self) -> bool:
         env = self.training_env.envs[0]  # Accessing the actual environment inside the DummyVecEnv
+        current_step = env.step_counter
+        if current_step == 2:
+            no_agent_last_row = env.reward_calculator.no_agent_last_row
+            self.logger.record("train/no_agent_rules_alerts", {col: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_alert')})
+            self.logger.record("train/no_agent_rules_duration", {col: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_duration')})
+            self.logger.record("train/no_agent_alert_val", no_agent_last_row['alert_values'].values[-1])
+            self.logger.record("train/no_agent_duration_val", no_agent_last_row['duration_values'].values[-1])
         self.logger.record("train/distribution_val", env.reward_calculator.reward_values_dict['distributions'][-1])
         self.logger.record("train/distribution_reward", env.reward_calculator.reward_dict['distributions'][-1])
+        policy_dict = {}
+        for i, logtype in enumerate(env.relevant_logtypes):
+            for is_trigger in range(2):
+                policy_dict[f'{logtype}_{is_trigger}'] = env.current_action[i*2+is_trigger]
+                if i == len(env.relevant_logtypes)-1:
+                    break
+        self.logger.record("train/policy", policy_dict)
+        self.logger.dump(self.num_timesteps)
+        
+        return True
     
         
 
@@ -71,31 +142,36 @@ class Experiment:
         # print(env.reward_calculator.reward_values_dict)
         # create a directory for the assets if not exists
         with open(f'{path}/reward_dict.json', 'w') as fp:
-            json.dump(env.reward_calculator.reward_dict, fp)
+            json.dump(env.reward_calculator.reward_dict, fp, cls=NpEncoder)
         with open(f'{path}/reward_values_dict.json', 'w') as fp:
-            json.dump(env.reward_calculator.reward_values_dict, fp)
+            json.dump(env.reward_calculator.reward_values_dict, fp, cls=NpEncoder)
         with open(f'{path}/time_rules_energy.json', 'w') as fp:
-            json.dump(env.reward_calculator.time_rules_energy, fp)   
+            json.dump(env.reward_calculator.time_rules_energy, fp, cls=NpEncoder)
         with open(f'{path}/action_dict.json', 'w') as fp:
-                json.dump(np.array(env.action_per_episode).tolist(), fp)
+                json.dump(np.array(env.action_per_episode).tolist(), fp, cls=NpEncoder)
         env.reward_calculator.no_agent_values.to_csv(f"{self.experiment_dir}/no_agent_values.csv", index=False)
 
 
 
     
     def setup_environment(self, env_name, **kwargs):     
-        reward_parameters = {'alpha': kwargs['alpha'], 'beta': kwargs['beta'], 'gamma': kwargs['gamma']}  
+        alpha, beta, gamma = kwargs['alpha'], kwargs['beta'], kwargs['gamma']
         if "total_additional_logs" in kwargs:
             total_additional_logs = kwargs['total_additional_logs']
         else:
             total_additional_logs = None
-        tf_log_path = f'{kwargs["prefix_path"]}/tensorboard'
         if 'fake_start_datetime' in kwargs: # datetime for test
             fake_start_datetime = kwargs['fake_start_datetime']
-            env = gym.make(env_name, fake_start_datetime=fake_start_datetime, total_additional_logs=total_additional_logs, reward_parameters=reward_parameters, is_measure_energy=None, tf_log_path=tf_log_path)
+            env = gym.make(env_name, fake_start_datetime=fake_start_datetime, total_additional_logs=total_additional_logs)
             # logger.info(f'current parameters:\ntime range:{time_range} \nfake_start_datetime: {fake_start_datetime}\nrule frequency: {rule_frequency}\nsearch_window:{search_window}\nrunning time: {running_time}\nnumber of searches: {num_of_searches}\nalpha {alpha}\nbeta {beta}\n gama {gamma}\nsavedsearches: {savedsearches}\nrelevantlog_types: {relevant_logtypes}')
         else:
-            env = gym.make(env_name, total_additional_logs=total_additional_logs, reward_parameters=reward_parameters, is_measure_energy=None, tf_log_path=tf_log_path)
+            env = gym.make(env_name, total_additional_logs=total_additional_logs)
+        
+        measurment_tool = Measurement(env.splunk_tools_instance, env.num_of_searches, measure_energy=False)
+        RewardCalc = RewardCalc_classes[kwargs['reward_calculator_version']]
+        logger.info(f'current parameters:\nalpha {alpha}\nbeta {beta}\n gama {gamma}\nreward_calculator_version: {kwargs["reward_calculator_version"]}')
+        reward_calculator = RewardCalc(env.top_logtypes, env.dt_manager, env.splunk_tools_instance, env.rule_frequency, env.num_of_searches, measurment_tool, alpha, beta, gamma, env.env_id)
+        env.set_reward_calculator(reward_calculator)
         return env
     
     def load_environment(self, env_name, prefix_path, **kwargs):  
@@ -104,6 +180,8 @@ class Experiment:
             fake_start_datetime = fp.read()
         kwargs['fake_start_datetime'] = fake_start_datetime
         kwargs["prefix_path"] = prefix_path
+        parameters = self.load_parameters(f"{prefix_path}/train/parameters_train.json")
+        kwargs['reward_calculator_version'] = parameters['reward_calculator_version']
         env = self.setup_environment(env_name, **kwargs)
         return env , fake_start_datetime
     
@@ -111,9 +189,9 @@ class Experiment:
         with open(f"{path}/parameters_train.json", 'w') as fp:
             json.dump(parameters, fp)
         # save reward_calculator.py to the experiment directory
-        with open(f'{path}/reward_calculator.py', 'w') as fp:
-            with open(r'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/reward_calculator.py', 'r') as fp2:
-                fp.write(fp2.read())
+        # with open(f'{path}/reward_calculator.py', 'w') as fp:
+        #     with open(r'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/reward_calculator.py', 'r') as fp2:
+        #         fp.write(fp2.read())
     
     def load_parameters(self, filename):
         with open(filename, 'r') as fp:
@@ -131,16 +209,20 @@ class Experiment:
         kwargs["prefix_path"] = prefix_path
         logger.info('train the model')
         env = self.setup_environment(env_name, **kwargs)
+        fake_start_datetime = datetime.datetime.strptime(env.time_range[0], '%m/%d/%Y:%H:%M:%S')
         policy_name = kwargs['policy']
         model_object = model_names[model]
         policy_object =  policy_names[policy_name]
-        model = model_object(policy_object, env, n_steps=env.total_steps, verbose=1, stats_window_size=5, tensorboard_log=f"{path}/tensorboard/", learning_rate=learning_rate)
-
+        ent_coef = kwargs.get('ent_coef', 0.01)
+        df = kwargs.get('df', 0.99)
+        model = model_object(policy_object, env, n_steps=env.total_steps, verbose=1, stats_window_size=5, tensorboard_log=f"{path}/tensorboard/", learning_rate=learning_rate, ent_coef=ent_coef, gamma=df)
         model.learn(total_timesteps=num_of_episodes*env.total_steps, tb_log_name=logger.name, callback=TrainTensorboardCallback())
         model.save(f"{prefix_path}/splunk_attack")
         self.save_test_start_fake_time(path, env)
         self.save_parameters_to_file(kwargs, path)
         self.save_assets(path, env)
+        end_time_datetime = datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S')
+        clean_env(env.splunk_tools_instance, (fake_start_datetime.timestamp(), end_time_datetime.timestamp()))
         return model
     
     def load_assets(self, path, env):
@@ -153,11 +235,11 @@ class Experiment:
         with open(f'{path}/action_dict.json', 'r') as fp:
             env.action_per_episode = json.load(fp)
     
-    def test_model(self, env_name, model_name, num_of_episodes, **kwargs):
-        alpha, beta, gamma, learning_rate, policy = kwargs['alpha'], kwargs['beta'], kwargs['gamma'], kwargs['learning_rate'], kwargs['policy']
-        prefix_path = self.get_prefix_path(model_name, alpha, beta, gamma, learning_rate, policy)     
+    def test_model(self, env_name, model, num_of_episodes, **kwargs):
+        alpha, beta, gamma, learning_rate, policy, experiment_num = kwargs['alpha'], kwargs['beta'], kwargs['gamma'], kwargs['learning_rate'], kwargs['policy'], kwargs['experiment_num']
+        prefix_path = self.get_prefix_path(model, alpha, beta, gamma, learning_rate, policy, experiment_num)     
         env, fake_start_datetime = self.load_environment(env_name, prefix_path, **kwargs) #changed to false
-        path = f'{prefix_path}/test_{num_of_episodes}'
+        path = f'{prefix_path}/test_{num_of_episodes}_{str(fake_start_datetime)}'
         print(path)
         if not os.path.exists(path):
             os.makedirs(path)
@@ -165,12 +247,17 @@ class Experiment:
         self.setup_logging(log_file)
         logger.info('test the model')
         policy_name = kwargs['policy']
-        model_object = model_names[model_name]
+        model_object = model_names[model]
         policy_object =  policy_names[policy_name]
+        tb_logger = configure(f"{path}/tensorboard/", ['tensorboard']) 
         model = model_object.load(f"{prefix_path}/splunk_attack")
-        mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=num_of_episodes)
+        model.set_logger(tb_logger)
+        mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=num_of_episodes, render=False, callback=eval_tensorboard_callback)
         logger.info(f"mean_reward:{mean_reward}, std_reward:{std_reward}")
         self.save_assets(path, env)
+        fake_start_datetime = datetime.datetime.strptime(env.time_range[0], '%m/%d/%Y:%H:%M:%S')
+        end_time_datetime = datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S')
+        clean_env(env.splunk_tools_instance, (fake_start_datetime.timestamp(), end_time_datetime.timestamp()))
         return env
     
     def test_baseline_agent(self, env_name, model_name, num_of_episodes, **kwargs):
@@ -190,8 +277,8 @@ class Experiment:
         return env
             
     def test_no_agent(self, env_name, model_name, num_of_episodes, **kwargs):
-        alpha, beta, gamma, learning_rate, policy = kwargs['alpha'], kwargs['beta'], kwargs['gamma'], kwargs['learning_rate'], kwargs['policy']
-        prefix_path = self.get_prefix_path(model_name, alpha, beta, gamma, learning_rate, policy)   
+        alpha, beta, gamma, learning_rate, policy, experiment_num = kwargs['alpha'], kwargs['beta'], kwargs['gamma'], kwargs['learning_rate'], kwargs['policy'], kwargs['experiment_num']
+        prefix_path = self.get_prefix_path(model_name, alpha, beta, gamma, learning_rate, policy, experiment_num)   
         env, fake_start_datetime = self.load_environment(env_name, prefix_path, **kwargs)
         path = f'{self.experiment_dir}/no_agent_{num_of_episodes}_{str(fake_start_datetime)}'
         if not os.path.exists(path):
@@ -199,31 +286,49 @@ class Experiment:
         log_file = f'{path}/log.txt'
         self.setup_logging(log_file)        
         logger.info('test no agent')
+        tb_logger = configure(f"{path}/tensorboard/", ['tensorboard']) 
         for i in range(num_of_episodes):
             env.reset()
+            env.reward_calculator.get_no_agent_reward(env.time_range)
             env.evaluate_no_agent()
+            tb_logger.record("test_no_agent/alert_reward", env.reward_calculator.reward_dict['alerts'][-1])
+            tb_logger.record("test_no_agent/duration_reward", env.reward_calculator.reward_dict['duration'][-1])
+            tb_logger.record("test_no_agent/total_reward", env.reward_calculator.reward_dict['total'][-1])
+            tb_logger.record("test_no_agent/alert_val", env.reward_calculator.reward_values_dict['alerts'][-1])
+            tb_logger.record("test_no_agent/duration_val", env.reward_calculator.reward_values_dict['duration'][-1])
+            tb_logger.record("test_no_agent/duration_gap", env.reward_calculator.reward_values_dict['duration'][-1] - env.reward_calculator.no_agent_duration_last_val)
+            tb_logger.record("test_no_agent/alert_gap", env.reward_calculator.reward_values_dict['alerts'][-1] - env.reward_calculator.no_agent_alert_last_val)
+            tb_logger.dump(i)
         self.save_assets(path, env)
+        fake_start_datetime = datetime.datetime.strptime(env.time_range[0], '%m/%d/%Y:%H:%M:%S')
+        end_time_datetime = datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S')
+        clean_env(env.splunk_tools_instance, (fake_start_datetime.timestamp(), end_time_datetime.timestamp()))
         return env
             
-    def retrain_model(self, env_name, model_name, num_of_episodes, **kwargs):
-        alpha, beta, gamma, learning_rate, policy = kwargs['alpha'], kwargs['beta'], kwargs['gamma'], kwargs['learning_rate'], kwargs['policy']
-        prefix_path = self.get_prefix_path(model_name, alpha, beta, gamma, learning_rate, policy)     
-        env, fake_start_datetime = self.load_environment(env_name, prefix_path, **kwargs)
-        self.load_assets(f'{prefix_path}/train', env)
+    def retrain_model(self, env_name, model, num_of_episodes, **kwargs):
+        alpha, beta, gamma, learning_rate, policy, experiment_num = kwargs['alpha'], kwargs['beta'], kwargs['gamma'], kwargs['learning_rate'], kwargs['policy'], kwargs['experiment_num']
+        prefix_path = self.get_prefix_path(model, alpha, beta, gamma, learning_rate, policy, experiment_num)    
         path = f'{prefix_path}/train'
         log_file = f'{path}/log.txt'
         self.setup_logging(log_file)
+        env, fake_start_datetime = self.load_environment(env_name, prefix_path, **kwargs)
+        self.load_assets(f'{prefix_path}/train', env)
+
         logger.info('retrain the model')
         policy_name = kwargs['policy']
-        model_object = model_names[model_name]
+        model_object = model_names[model]
         policy_object =  policy_names[policy_name]
         model = model_object.load(f"{prefix_path}/splunk_attack")
         model.set_env(env)
-        model.learn(total_timesteps=num_of_episodes*env.total_steps, tb_log_name=logger.name, callback=TrainTensorboardCallback())
+        # model.set_logger(configure(f"{path}/tensorboard/", ['tensorboard']))
+        model.learn(total_timesteps=num_of_episodes*env.total_steps, callback=TrainTensorboardCallback(), tb_log_name=logger.name, reset_num_timesteps=False)
         model.save(f"{prefix_path}/splunk_attack")
         self.save_test_start_fake_time(path, env)
-        self.save_parameters_to_file(kwargs, path)
+        # self.save_parameters_to_file(kwargs, path)
         self.save_assets(path, env)
+        fake_start_datetime = datetime.datetime.strptime(env.time_range[0], '%m/%d/%Y:%H:%M:%S')
+        end_time_datetime = datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S')
+        clean_env(env.splunk_tools_instance, (fake_start_datetime.timestamp(), end_time_datetime.timestamp()))
         return model
     
     def save_test_start_fake_time(self, path, env):
@@ -239,16 +344,19 @@ class Experiment:
             i += 1
         return prefix_path
     
-    def get_prefix_path(self, model, alpha, beta, gamma, learning_rate, policy):
-        # find the experiment dir with the latest serial number
-        i = 1
-        # find the last experiment
-        prefix_path = f'{self.experiment_dir}/{policy}_{model}_{alpha}_{beta}_{gamma}__{learning_rate}/Experiment_{i}'
+    def get_prefix_path(self, model, alpha, beta, gamma, learning_rate, policy, experiment_num):
+        if experiment_num == 'last':
+            # find the experiment dir with the latest serial number
+            i = 1
+            # find the last experiment
+            prefix_path = f'{self.experiment_dir}/{policy}_{model}_{alpha}_{beta}_{gamma}__{learning_rate}/Experiment_{i}'
 
-        while os.path.exists(prefix_path):
-            prefix_path = f'{self.experiment_dir}/{policy}_{model}_{alpha}_{beta}_{gamma}__{learning_rate}/Experiment_{i+1}'
-            i += 1
-        return f'{self.experiment_dir}/{policy}_{model}_{alpha}_{beta}_{gamma}__{learning_rate}/Experiment_{i-1}'
+            while os.path.exists(prefix_path):
+                prefix_path = f'{self.experiment_dir}/{policy}_{model}_{alpha}_{beta}_{gamma}__{learning_rate}/Experiment_{i+1}'
+                i += 1
+            return f'{self.experiment_dir}/{policy}_{model}_{alpha}_{beta}_{gamma}__{learning_rate}/Experiment_{i-1}'
+        else:
+            return f'{self.experiment_dir}/{policy}_{model}_{alpha}_{beta}_{gamma}__{learning_rate}/Experiment_{experiment_num}'
         
             
     

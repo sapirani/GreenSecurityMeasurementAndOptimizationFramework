@@ -15,7 +15,7 @@ from resources.section_logtypes import section_logtypes
 import logging
 from experiment_manager import ExperimentManager
 from splunk_tools import SplunkTools
-from reward_calculator import RewardCalc
+from reward_calculators.reward_calculator_base import RewardCalc
 import random
 import subprocess
 from stable_baselines3.ppo.policies import MlpPolicy
