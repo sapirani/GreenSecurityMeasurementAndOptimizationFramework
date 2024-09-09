@@ -24,7 +24,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class SplunkTools:
-    def __init__(self, active_saved_searches=None):
+    def __init__(self, active_saved_searches=None, num_of_measurements=1):
         self.splunk_host = os.getenv("SPLUNK_HOST")
         self.splunk_port = os.getenv("SPLUNK_PORT")
         self.base_url = f"https://{self.splunk_host}:{self.splunk_port}"
@@ -36,6 +36,7 @@ class SplunkTools:
         self.auth = requests.auth.HTTPBasicAuth(self.splunk_username, self.splunk_password)
         self.real_logs_distribution = pd.DataFrame(data=None, columns=['source', 'EventCode', '_time', 'count'])
         self.active_saved_searches = self.get_saved_search_names(active_saved_searches)
+        self.num_of_measurements = num_of_measurements
         
     def query_splunk(self, query, earliest_time, latest_time):
         url = f"{self.base_url}/services/search/jobs/export"
@@ -50,10 +51,10 @@ class SplunkTools:
             "Content-Type": "application/json",
         }
         # measure running time of requests
-        k = 2
+        k = self.num_of_measurements
         durations = []
         for i in range(k):
-            subprocess.run(f'echo 1 > /proc/sys/vm/drop_caches', shell=True)
+            # subprocess.run(f'echo 1 > /proc/sys/vm/drop_caches', shell=True)
             time_start = datetime.now()
             response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
             time_end = datetime.now()       

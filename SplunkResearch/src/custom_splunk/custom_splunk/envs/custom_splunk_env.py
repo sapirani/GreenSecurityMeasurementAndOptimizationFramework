@@ -13,7 +13,9 @@ import os
 from dotenv import load_dotenv
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/.env')
 urllib3.disable_warnings()
-
+from splunk_tools import SplunkTools
+from log_generator import LogGenerator
+from resources.section_logtypes import section_logtypes
 import gym
 from gym import spaces
 import logging
@@ -23,10 +25,13 @@ PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. L
 INFINITY = 100000
 CPU_TDP = 200
 class SplunkEnv(gym.Env):
-    def __init__(self, log_generator_instance, splunk_tools_instance, fake_start_datetime, rule_frequency, search_window, num_of_searches, relevant_logtypes=[], span_size=1, total_additional_logs=None, logs_per_minute = 300, additional_percentage = 0.1, env_id=None):
-        self.log_generator = log_generator_instance
-        self.splunk_tools = splunk_tools_instance
+    def __init__(self, fake_start_datetime, rule_frequency, search_window, savedsearches, span_size=1, total_additional_logs=None, logs_per_minute = 300, additional_percentage = 0.1, env_id=None, num_of_measurements=1):
         self.env_id = env_id
+        relevant_logtypes = sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]})) #[(x[0], str(x[1])) for x in state_span]
+        relevant_logtypes.append(('wineventlog:security', '4624'))
+        num_of_searches = len(savedsearches)
+        self.splunk_tools_instance  = SplunkTools(savedsearches, num_of_measurements)
+        self.log_generator = LogGenerator(relevant_logtypes, self.splunk_tools_instance)
         self.relevant_logtypes = relevant_logtypes
         logger.info(f"relevant logtypes: {self.relevant_logtypes}")
         self.top_logtypes = pd.read_csv("resources/top_logtypes.csv")
@@ -56,7 +61,8 @@ class SplunkEnv(gym.Env):
         
         # create the action space - a vector of size max_actions_value with values between 0 and 1
         self.action_space = spaces.Box(low=0,high=self.action_upper_bound,shape=((len(self.relevant_logtypes)-1)*2+1, ),dtype=np.float64)
-        self.observation_space = spaces.Box(low=0,high=self.action_upper_bound,shape=(len(self.top_logtypes)*2,),dtype=np.float64)
+        # self.observation_space = spaces.Box(low=0,high=self.action_upper_bound,shape=(len(self.top_logtypes)*2,),dtype=np.float64)
+        self.observation_space = spaces.Box(low=0,high=self.action_upper_bound,shape=(len(self.top_logtypes),),dtype=np.float64)
         self.action_per_episode = []
         self.current_episode_accumulated_action = np.zeros(self.action_space.shape)
         self.current_action = np.zeros(self.action_space.shape)
@@ -69,7 +75,7 @@ class SplunkEnv(gym.Env):
         self.done = False
                 
         fake_start_datetime  = datetime.datetime.strptime(fake_start_datetime, '%m/%d/%Y:%H:%M:%S')
-        clean_env(splunk_tools_instance, (fake_start_datetime.timestamp(), (fake_start_datetime+datetime.timedelta(days=90)).timestamp()))
+        clean_env(self.splunk_tools_instance, (fake_start_datetime.timestamp(), (fake_start_datetime+datetime.timedelta(days=90)).timestamp()))
         # clean_env(splunk_tools_instance, (fake_start_datetime.strftime('%m/%d/%Y:%H:%M:%S'), (fake_start_datetime+datetime.timedelta(days=30)).strftime('%m/%d/%Y:%H:%M:%S')))
         
         self.dt_manager = MockedDatetimeManager(fake_start_datetime=fake_start_datetime)
@@ -77,10 +83,9 @@ class SplunkEnv(gym.Env):
         start_time = self.dt_manager.subtract_time(end_time, minutes=search_window)
         time_range = (start_time, end_time)
         self.time_range = time_range
-        update_rules_frequency_and_time_range(splunk_tools_instance, rule_frequency, time_range)
+        update_rules_frequency_and_time_range(self.splunk_tools_instance, rule_frequency, time_range)
         self.reward_calculator = None
         self.num_of_searches = num_of_searches
-        self.splunk_tools_instance = splunk_tools_instance
 
     def set_reward_calculator(self, reward_calculator):
         self.reward_calculator = reward_calculator
@@ -158,7 +163,7 @@ class SplunkEnv(gym.Env):
         absolute_act = int(act*self.step_size)
         self.current_episode_accumulated_action[i*2+istrigger] += absolute_act
         fake_logs = self.log_generator.generate_logs(logsource, eventcode, istrigger,time_range, absolute_act)
-        self.splunk_tools.write_logs_to_monitor(fake_logs, logsource)
+        self.splunk_tools_instance.write_logs_to_monitor(fake_logs, logsource)
         logger.debug(f"inserted {len(fake_logs)} logs of type {logsource} {eventcode} {istrigger}")
         if f"{logsource} {eventcode}" in self.fake_logtypes_counter:
             self.fake_logtypes_counter[f"{logsource} {eventcode}"] += absolute_act
@@ -174,11 +179,12 @@ class SplunkEnv(gym.Env):
         now = self.dt_manager.get_fake_current_datetime()
         previous_now = self.dt_manager.subtract_time(now, seconds=self.action_duration)
         real_state, fake_state = self.update_distributions(now, previous_now)
-        self.state = np.concatenate((real_state, fake_state))
+        self.state = np.array(fake_state)
+        # self.state = np.concatenate((real_state, fake_state))
         logger.info(f"state: {self.state}")
 
     def update_distributions(self, now, previous_now):
-        real_distribution_dict = self.splunk_tools.get_real_distribution(previous_now, now)
+        real_distribution_dict = self.splunk_tools_instance.get_real_distribution(previous_now, now)
         logger.debug(f"real distribution: {real_distribution_dict}")
         logger.debug(f"fake distribution: {self.fake_logtypes_counter}")
         for logtype in real_distribution_dict:

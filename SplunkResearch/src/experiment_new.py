@@ -1,5 +1,6 @@
 import datetime
 import os
+import inspect
 import numpy as np
 import urllib3
 import json
@@ -20,113 +21,139 @@ from measurement import Measurement
 from reward_calculators import *
 
 import logging
-from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback, CallbackList
+from stable_baselines3.common.logger import HParam
 logger = logging.getLogger(__name__)
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 model_names = {'a2c': A2C, 'ppo': PPO, 'dqn': DQN, 'recurrentppo': RecurrentPPO}
 policy_names = {'mlp': MlpPolicy, 'lstm': MlpLstmPolicy}
-RewardCalc_classes = {'1': RewardCalc1, '2': RewardCalc2, "3": RewardCalc3, "4": RewardCalc4, "5": RewardCalc5, "6": RewardCalc6, "7": RewardCalc7, "8": RewardCalc8} 
+# Dynamically find all reward calculator classes
+RewardCalc_classes = {}
+for name, obj in inspect.getmembers(sys.modules['reward_calculators'], inspect.isclass):
+    if issubclass(obj, RewardCalc) and obj is not RewardCalc:
+        RewardCalc_classes[name.split("RewardCalc")[1]] = obj
 
-def eval_tensorboard_callback(locals_dict, globals_dict):
-    env = locals_dict["env"].envs[0]  # Accessing the actual environment inside the DummyVecEnv
-    model = locals_dict["model"]
-    current_step = env.step_counter
-    tb_logger = model.logger
-    tb_logger.record("test/distribution_val", env.reward_calculator.reward_values_dict['distributions'][-1])
-    tb_logger.record("test/distribution_reward", env.reward_calculator.reward_dict['distributions'][-1])
-    policy_dict = {}
-    for i, logtype in enumerate(env.relevant_logtypes):
-        for is_trigger in range(2):
-            policy_dict[f'{logtype}_{is_trigger}'] = env.current_action[i*2+is_trigger]
-            if i == len(env.relevant_logtypes)-1:
-                break
-    tb_logger.record("train/policy", policy_dict)
-    done_episodes = len(locals_dict["episode_lengths"])
-    total_steps = env.total_steps
-    no_agent_last_row = env.reward_calculator.no_agent_last_row
-    if current_step == 2:
-        # env.reward_calculator.get_no_agent_reward(env.time_range)
-        tb_logger.dump(done_episodes * total_steps + current_step-1)        
+logger.info(f"Loaded RewardCalc_classes: {RewardCalc_classes}")
+
+from stable_baselines3.common.callbacks import BaseCallback
+import numpy as np
+
+class ModularTensorboardCallback(BaseCallback):
+    def __init__(self, verbose=1, phase="train", experiment_kwargs=None):
+        super(ModularTensorboardCallback, self).__init__(verbose)
+        self.phase = phase  # This will determine whether it's "train" or "test"
+        print("Experiment kwargs: ", experiment_kwargs)
+        self.experiment_kwargs = experiment_kwargs
         
-        tb_logger.record("test/no_agent_alert_val", no_agent_last_row['alert_values'].values[-1])
-        tb_logger.record("test/no_agent_duration_val", no_agent_last_row['duration_values'].values[-1])
-        tb_logger.record("test/no_agent_rules_alerts", {col: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_alert')})            
-        tb_logger.record("test/no_agent_rules_duration", {col: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_duration')})
-        tb_logger.dump(done_episodes+1 * total_steps + total_steps)
-    elif current_step == 1:
-        tb_logger.record("test/alert_reward", env.reward_calculator.reward_dict['alerts'][-1])
-        tb_logger.record("test/duration_reward", env.reward_calculator.reward_dict['duration'][-1])
-        tb_logger.record("test/total_reward", env.reward_calculator.reward_dict['total'][-1])
-        tb_logger.record("test/alert_val", env.reward_calculator.reward_values_dict['alerts'][-1])
-        tb_logger.record("test/duration_val", env.reward_calculator.reward_values_dict['duration'][-1])
-        tb_logger.record("test/duration_gap", env.reward_calculator.reward_values_dict['duration'][-1] - no_agent_last_row['duration_values'].values[-1])
-        tb_logger.record("test/alert_gap", env.reward_calculator.reward_values_dict['alerts'][-1] - no_agent_last_row['alert_values'].values[-1])
-        tb_logger.record("test/rules_duration", {key:env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_duration')})
-        tb_logger.record("test/rules_alerts", {key:env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_alert')})
-        tb_logger.record("test/rules_durations_gap", {key:env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1]  for key in no_agent_last_row.columns if key.startswith('rule_duration')})
-        tb_logger.record("test/rules_alerts_gap", {key:env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1] for key in no_agent_last_row.columns if key.startswith('rule_alert')})
-        tb_logger.dump(done_episodes * total_steps + total_steps)
-    else:
-        tb_logger.dump(done_episodes * total_steps + current_step-1)
+    def log_common_metrics(self, env):
+        # Record common metrics for both training and evaluation phases
+        self.logger.record(f"{self.phase}/distribution_val", env.reward_calculator.reward_values_dict['distributions'][-1])
+        self.logger.record(f"{self.phase}/distribution_reward", env.reward_calculator.reward_dict['distributions'][-1])
         
-
-
-    return True
-
-class TrainTensorboardCallback(BaseCallback):
-    def __init__(self, verbose=1):
-        super(TrainTensorboardCallback, self).__init__(verbose)
-
-
-    def _on_rollout_end(self) -> None:
-        logger.info("rollout end")
-        env = self.training_env.envs[0]  # Accessing the actual environment inside the DummyVecEnv
-        self.logger.record("train/alert_reward", env.reward_calculator.reward_dict['alerts'][-1])
-        self.logger.record("train/distribution_reward", env.reward_calculator.reward_dict['distributions'][-1])
-        self.logger.record("train/duration_reward", env.reward_calculator.reward_dict['duration'][-1])
-        self.logger.record("train/total_reward", env.reward_calculator.reward_dict['total'][-1])
-        self.logger.record("train/alert_val", env.reward_calculator.reward_values_dict['alerts'][-1])
-        self.logger.record("train/distribution_val", env.reward_calculator.reward_values_dict['distributions'][-1])
-        self.logger.record("train/duration_val", env.reward_calculator.reward_values_dict['duration'][-1])
-        no_agent_last_row = env.reward_calculator.no_agent_last_row
-        self.logger.record("train/duration_gap", env.reward_calculator.reward_values_dict['duration'][-1] - no_agent_last_row['duration_values'].values[-1])
-        self.logger.record("train/alert_gap", env.reward_calculator.reward_values_dict['alerts'][-1] - no_agent_last_row['alert_values'].values[-1])
-        self.logger.record("train/rules_duration", {key:env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_duration')})
-        self.logger.record("train/rules_alerts", {key:env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_alert')})
-        self.logger.record("train/rules_durations_gap", {key:env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1]  for key in no_agent_last_row.columns if key.startswith('rule_duration')})
-        self.logger.record("train/rules_alerts_gap", {key:env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1] for key in no_agent_last_row.columns if key.startswith('rule_alert')})
-        self.logger.record("train/rules_duration_std", {key:env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_std_duration_')})
-    # def _on_rollout_start(self) -> None:
-    #     env = self.training_env.envs[0]
-    #     env.reward_calculator.get_no_agent_reward(env.time_range)   
-    #     self.logger.record("train/no_agent_alert_val", env.reward_calculator.no_agent_alert_last_val)
-    #     self.logger.record("train/no_agent_duration_val", env.reward_calculator.no_agent_duration_last_val)  
-        
-        
-    
-    def _on_step(self) -> bool:
-        env = self.training_env.envs[0]  # Accessing the actual environment inside the DummyVecEnv
-        current_step = env.step_counter
-        if current_step == 2:
-            no_agent_last_row = env.reward_calculator.no_agent_last_row
-            self.logger.record("train/no_agent_rules_alerts", {col: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_alert')})
-            self.logger.record("train/no_agent_rules_duration", {col: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_duration')})
-            self.logger.record("train/no_agent_alert_val", no_agent_last_row['alert_values'].values[-1])
-            self.logger.record("train/no_agent_duration_val", no_agent_last_row['duration_values'].values[-1])
-        self.logger.record("train/distribution_val", env.reward_calculator.reward_values_dict['distributions'][-1])
-        self.logger.record("train/distribution_reward", env.reward_calculator.reward_dict['distributions'][-1])
+        # Policy logging
         policy_dict = {}
         for i, logtype in enumerate(env.relevant_logtypes):
             for is_trigger in range(2):
-                policy_dict[f'{logtype}_{is_trigger}'] = env.current_action[i*2+is_trigger]
-                if i == len(env.relevant_logtypes)-1:
+                policy_dict[f'{logtype}_{is_trigger}'] = env.current_action[i*2 + is_trigger]
+                if i == len(env.relevant_logtypes) - 1:
                     break
-        self.logger.record("train/policy", policy_dict)
-        self.logger.dump(self.num_timesteps)
+        self.logger.record(f"{self.phase}/policy", policy_dict)
+
+    def log_detailed_metrics(self, env, no_agent_last_row):
+        # Logging more detailed metrics that are common between train and evaluation
+        self.logger.record(f"{self.phase}/alert_reward", env.reward_calculator.reward_dict['alerts'][-1])
+        self.logger.record(f"{self.phase}/duration_reward", env.reward_calculator.reward_dict['duration'][-1])
+        self.logger.record(f"{self.phase}/total_reward", env.reward_calculator.reward_dict['total'][-1])
+        self.logger.record(f"{self.phase}/alert_val", env.reward_calculator.reward_values_dict['alerts'][-1])
+        self.logger.record(f"{self.phase}/duration_val", env.reward_calculator.reward_values_dict['duration'][-1])
+        self.logger.record(f"{self.phase}/duration_gap", env.reward_calculator.reward_values_dict['duration'][-1] - no_agent_last_row['duration_values'].values[-1])
+        self.logger.record(f"{self.phase}/alert_gap", env.reward_calculator.reward_values_dict['alerts'][-1] - no_agent_last_row['alert_values'].values[-1])
         
+        # Rule-based metrics
+        self.logger.record(f"{self.phase}/rules_duration", {key: env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_duration')})
+        self.logger.record(f"{self.phase}/rules_alerts", {key: env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_alert')})
+        self.logger.record(f"{self.phase}/rules_durations_gap", {key: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1] for key in no_agent_last_row.columns if key.startswith('rule_duration')})
+        self.logger.record(f"{self.phase}/rules_alerts_gap", {key: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1] for key in no_agent_last_row.columns if key.startswith('rule_alert')})
+        policy_dict = {}
+        for i, logtype in enumerate(env.relevant_logtypes):
+            for is_trigger in range(2):
+                policy_dict[f'{logtype}_{is_trigger}'] = env.action_per_episode[-1][i*2+is_trigger]
+                if i == len(env.relevant_logtypes)-1:
+                    break 
+        self.logger.record("train/episodic_policy", policy_dict)
+
+    def log_no_agent_metrics(self, env, no_agent_last_row):
+        # Log metrics related to no-agent scenario
+        self.logger.record(f"{self.phase}/no_agent_alert_val", no_agent_last_row['alert_values'].values[-1])
+        self.logger.record(f"{self.phase}/no_agent_duration_val", no_agent_last_row['duration_values'].values[-1])
+        self.logger.record(f"{self.phase}/no_agent_rules_alerts", {col: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_alert')})
+        self.logger.record(f"{self.phase}/no_agent_rules_duration", {col: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_duration')})
+    
+
+
+class HparamsCallback(BaseCallback):
+    def __init__(self, verbose=1, experiment_kwargs=None, phase="train" ):
+        super(HparamsCallback, self).__init__(verbose)
+        self.experiment_kwargs = experiment_kwargs
+        self.phase = phase
+    def _on_training_start(self) -> None:
+        metric_dict = {f"{self.phase}/{tag}": 0 for tag in ["distribution_val", "distribution_reward", "alert_reward", "duration_reward", "total_reward", "alert_val", "duration_val", "duration_gap", "alert_gap", "rules_duration", "rules_alerts", "rules_durations_gap", "rules_alerts_gap", "no_agent_alert_val", "no_agent_duration_val", "no_agent_rules_alerts", "no_agent_rules_duration"]}
+        hparams = HParam(self.experiment_kwargs, metric_dict)
+        self.logger.record("hparams", hparams, exclude=("stdout", "log", "json", "csv"))
+    
+    def _on_step(self) -> bool:
+        return True
+
+class TrainTensorboardCallback(ModularTensorboardCallback):
+    def __init__(self, verbose=1, experiment_kwargs=None):
+        super(TrainTensorboardCallback, self).__init__(verbose, phase="train", experiment_kwargs=experiment_kwargs)
+
+    def _on_rollout_end(self) -> None:
+        env = self.training_env.envs[0]
+        no_agent_last_row = env.reward_calculator.no_agent_last_row
+        self.log_detailed_metrics(env, no_agent_last_row)
+
+    def _on_step(self) -> bool:
+        env = self.training_env.envs[0]
+        current_step = env.step_counter
+        if current_step == 2:
+            no_agent_last_row = env.reward_calculator.no_agent_last_row
+            self.log_no_agent_metrics(env, no_agent_last_row)
+        self.log_common_metrics(env)
+        self.logger.dump(self.num_timesteps)
         return True
     
+    # def _on_training_start(self) -> None:
+    #     super()._on_training_start()
+    #     self.log_hparams(self.experiment_kwargs)
+    
+
+        
+def eval_tensorboard_callback(locals_dict, globals_dict):
+    env = locals_dict["env"].envs[0]
+    model = locals_dict["model"]
+    tb_logger = model.logger
+    current_step = env.step_counter
+    done_episodes = len(locals_dict["episode_lengths"])
+    total_steps = env.total_steps
+    no_agent_last_row = env.reward_calculator.no_agent_last_row
+
+    # Use the shared ModularTensorboardCallback for logging
+    modular_callback = ModularTensorboardCallback(phase="test")
+    modular_callback.logger = tb_logger
+    modular_callback.log_common_metrics(env)
+    if current_step == 2:
+        modular_callback.log_no_agent_metrics(env, no_agent_last_row)
+        tb_logger.dump(done_episodes * total_steps + current_step - 1)
+    elif current_step == 1:
+        modular_callback.log_detailed_metrics(env, no_agent_last_row)
+        tb_logger.dump(done_episodes * total_steps + total_steps)
+    else:
+        tb_logger.dump(done_episodes * total_steps + current_step - 1)
+
+    return True
+
         
 
 
@@ -216,10 +243,11 @@ class Experiment:
         ent_coef = kwargs.get('ent_coef', 0.01)
         df = kwargs.get('df', 0.99)
         model = model_object(policy_object, env, n_steps=env.total_steps, verbose=1, stats_window_size=5, tensorboard_log=f"{path}/tensorboard/", learning_rate=learning_rate, ent_coef=ent_coef, gamma=df)
-        model.learn(total_timesteps=num_of_episodes*env.total_steps, tb_log_name=logger.name, callback=TrainTensorboardCallback())
+        self.save_parameters_to_file(kwargs, path)
+        callback_list = CallbackList([TrainTensorboardCallback(experiment_kwargs=kwargs), HparamsCallback(experiment_kwargs=kwargs)])
+        model.learn(total_timesteps=num_of_episodes*env.total_steps, tb_log_name=logger.name, callback=callback_list)
         model.save(f"{prefix_path}/splunk_attack")
         self.save_test_start_fake_time(path, env)
-        self.save_parameters_to_file(kwargs, path)
         self.save_assets(path, env)
         end_time_datetime = datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S')
         clean_env(env.splunk_tools_instance, (fake_start_datetime.timestamp(), end_time_datetime.timestamp()))

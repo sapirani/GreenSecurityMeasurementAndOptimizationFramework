@@ -214,3 +214,11 @@ register(id='splunk-v15',
                  "logs_per_minute": 300,"additional_percentage":additional_percentage,
                  "fake_start_datetime": fake_start_datetime,
                  "env_id": "splunk-v15"})
+#######################################
+#######################################
+register(id='splunk-v16',
+        entry_point='custom_splunk.envs:SplunkEnv', 
+        kwargs={
+                'savedsearches':savedsearches,
+                'env_id':'splunk-v16'
+        })
