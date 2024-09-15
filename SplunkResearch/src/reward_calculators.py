@@ -25,7 +25,7 @@ class RewardCalc:
         self.epsilon = 0
         self.action_upper_bound = 1
         self.reward_dict = {'energy': [], 'alerts': [], 'distributions': [], 'duration': [], 'total': []}
-        self.reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'duration': [], "num_of_rules":[]}
+        self.reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'duration': [], "num_of_rules":[], "p_values":[], "t_values":[], "degrees_of_freedom":[]}
         self.top_logtypes = top_logtypes
         self.dt_manager = dt_manager
         self.splunk_tools = splunk_tools
@@ -66,9 +66,9 @@ class RewardCalc:
     def get_no_agent_reward(self, time_range):
         relevant_row = self.no_agent_values[(self.no_agent_values['start_time'] == time_range[0]) & (self.no_agent_values['end_time'] == time_range[1])]
         if not relevant_row.empty:
-            alert_val = relevant_row['alert_values'].values[0]
-            duration_val = relevant_row['duration_values'].values[0]
-            std_duration_val = relevant_row['std_duration_values'].values[0]
+            alert_val = sum([relevant_row[col].values[0] for col in relevant_row.columns if col.startswith('rule_alert_')])
+            duration_val = sum([relevant_row[col].values[0] for col in relevant_row.columns if col.startswith('rule_duration_')])
+            std_duration_val = sum([relevant_row[col].values[0] for col in relevant_row.columns if col.startswith('rule_std_duration_')])
         else:
             logger.info('Measure no agent reward values')
             alert_vals, duration_vals, std_duration_vals, saved_searches = self.splunk_tools.run_saved_searches(time_range)
@@ -81,8 +81,8 @@ class RewardCalc:
                                                                                   **{f"rule_duration_{saved_searches[i]}":[duration_vals[i]] for i in range(len(saved_searches))},
                                                                                   **{f"rule_std_duration_{saved_searches[i]}": [std_duration_vals[i]] for i in range(len(saved_searches))},
                                                                                   'alert_values':[alert_val], 'duration_values':[duration_val], 'std_duration_values':[std_duration_val]})])
-            current_minute = datetime.datetime.now().minute
-            if current_minute % 2 == 0:
+            random_val = np.random.randint(0, 10)
+            if random_val % 3 == 0:
                 self.no_agent_values.to_csv(self.no_agent_table_path, index=False)
             relevant_row = self.no_agent_values[(self.no_agent_values['start_time'] == time_range[0]) & (self.no_agent_values['end_time'] == time_range[1])]
         self.no_agent_last_row = relevant_row
@@ -750,6 +750,84 @@ class RewardCalc10(RewardCalc):
         p_value = 1 - stats.t.cdf(t, degree_of_freedom)
         duration_reward = 1 - p_value
         self.reward_dict['duration'].append(duration_reward)
+        
+        ###### Distributions Component ######
+        distributions_reward = self.get_partial_reward(real_distribution, current_state)
+        
+        ###### Total Reward ######
+        # total_reward = self.alpha * alert_reward + self.betta * distributions_reward + self.gamma * duration_reward
+        total_reward = self.betta * distributions_reward + self.gamma * duration_reward
+        num_of_steps = len(self.reward_values_dict['distributions'])/len(self.reward_values_dict['alerts'])
+        logger.info(f"num of steps: {num_of_steps}")
+        logger.info(f"alert gap: {alert_gap}")
+        if (no_agent_alert_val == 0) & (alert_gap > 3):
+            total_reward = distributions_reward * alert_gap
+            self.reward_dict['alerts'].append(alert_gap)
+            logger.info(f"alert gap as reward: {alert_gap}")
+        elif (no_agent_alert_val == 0) & (alert_gap <= 3):
+            total_reward = total_reward
+            self.reward_dict['alerts'].append(alert_gap)
+            logger.info(f"alert gap as reward: {alert_gap}")
+        elif no_agent_alert_val > 0:
+            alert_reward = alert_gap/no_agent_alert_val
+            self.reward_dict['alerts'].append(alert_reward)
+            
+            if alert_reward <= 1:
+                total_reward = total_reward * 1000
+            if alert_reward <= 2 and alert_reward > 1:
+                total_reward = total_reward * num_of_steps
+            if alert_reward > 2:
+                total_reward = distributions_reward * alert_reward
+            logger.info(f"alet reward: {alert_reward}")
+
+        
+        return duration_reward
+
+class RewardCalc11(RewardCalc):
+    
+    def __init__(self, top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=None):
+        super().__init__(top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=no_agent_table_path)
+
+
+    def get_partial_reward(self, real_distribution, current_state):
+        distributions_distance = self.get_partial_reward_values(real_distribution, current_state)
+        distributions_reward = - distributions_distance
+        self.reward_dict['distributions'].append(distributions_reward)
+        return 0
+    
+    def get_full_reward(self, time_range, real_distribution, current_state):
+        alert_vals, duration_vals, std_duration_vals, saved_searches = self.splunk_tools.run_saved_searches(time_range)
+        alert_val = sum(alert_vals)
+        duration_val = sum(duration_vals)
+        std_duration_val = sum(std_duration_vals)
+        self.time_rules_energy.append({'time_range':str(time_range),
+                                       **{f"rule_duration_{saved_searches[i]}":duration_vals[i] for i in range(len(saved_searches))}, 
+                                       **{f"rule_alert_{saved_searches[i]}":alert_vals[i] for i in range(len(saved_searches))}, 
+                                       **{f"rule_std_duration_{saved_searches[i]}":std_duration_vals[i] for i in range(len(saved_searches))}})
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        ###### Alert Component ######
+        self.reward_values_dict['alerts'].append(alert_val)
+        logger.info(f"alert value: {alert_val}")
+        alert_gap = alert_val - no_agent_alert_val
+
+        
+        ###### Duration Component ######
+        logger.info(f"duration value: {duration_val}")
+        self.reward_values_dict['duration'].append(duration_val)
+        # welch t test
+        n = self.splunk_tools.num_of_measurements
+        mean_duration_gap = (duration_val - no_agent_duration_val)
+        t = mean_duration_gap/np.sqrt((std_duration_val**2)/n + (no_agent_std_duration_val**2)/n)
+        self.reward_values_dict['t_values'].append(t)
+        degree_of_freedom = (std_duration_val**2/n + no_agent_std_duration_val**2/n)**2 / ((std_duration_val**2/n)**2/(n-1) + (no_agent_std_duration_val**2/n)**2/(n-1))
+        self.reward_values_dict['degrees_of_freedom'].append(degree_of_freedom)
+        p_value = 1 - stats.t.cdf(t, degree_of_freedom)
+        self.reward_values_dict['p_values'].append(p_value)
+        duration_reward = t / p_value
+        self.reward_dict['duration'].append(duration_reward)
+        logger.info(f"t: {t}")
+        logger.info(f"p_value: {p_value}")
+        logger.info(f"degree_of_freedom: {degree_of_freedom}")
         
         ###### Distributions Component ######
         distributions_reward = self.get_partial_reward(real_distribution, current_state)

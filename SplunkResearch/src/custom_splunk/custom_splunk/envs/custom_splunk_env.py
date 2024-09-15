@@ -73,7 +73,7 @@ class SplunkEnv(gym.Env):
         self.state = np.zeros(self.observation_space.shape).tolist()
         self.abs_distribution = {}
         self.done = False
-                
+        self.fake_start_datetime = fake_start_datetime   
         fake_start_datetime  = datetime.datetime.strptime(fake_start_datetime, '%m/%d/%Y:%H:%M:%S')
         clean_env(self.splunk_tools_instance, (fake_start_datetime.timestamp(), (fake_start_datetime+datetime.timedelta(days=90)).timestamp()))
         # clean_env(splunk_tools_instance, (fake_start_datetime.strftime('%m/%d/%Y:%H:%M:%S'), (fake_start_datetime+datetime.timedelta(days=30)).strftime('%m/%d/%Y:%H:%M:%S')))
@@ -122,7 +122,7 @@ class SplunkEnv(gym.Env):
         self.perform_action(action)
         if self.check_done():
             self.done = True
-        self.update_state()   
+        # self.update_state()   
         reward = self.get_reward()
         logger.info(f"########################################################################################################################")
         self.step_counter += 1
@@ -178,8 +178,8 @@ class SplunkEnv(gym.Env):
     def update_state(self):
         now = self.dt_manager.get_fake_current_datetime()
         previous_now = self.dt_manager.subtract_time(now, seconds=self.action_duration)
-        real_state, fake_state = self.update_distributions(now, previous_now)
-        self.state = np.array(fake_state)
+        real_state, fake_state, diff_state = self.update_distributions(now, previous_now)
+        self.state = np.array(diff_state)#fake_state)
         # self.state = np.concatenate((real_state, fake_state))
         logger.info(f"state: {self.state}")
 
@@ -209,9 +209,11 @@ class SplunkEnv(gym.Env):
 
         real_total_sum = sum(real_state)
         fake_total_sum = sum(fake_state)
+        diff_state = [x-y for x,y in zip(fake_state, real_state)]
+        diff_state = [x/sum(diff_state) if sum(diff_state) != 0 else 1/len(diff_state) for x in diff_state]
         real_state = [x/real_total_sum if real_total_sum!= 0 else 1/len(real_state) for x in real_state]
         fake_state = [x/fake_total_sum if fake_total_sum != 0 else 1/len(fake_state) for x in fake_state]
-        return real_state,fake_state
+        return real_state,fake_state, diff_state
             
      
     

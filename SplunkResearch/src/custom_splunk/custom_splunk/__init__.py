@@ -216,9 +216,47 @@ register(id='splunk-v15',
                  "env_id": "splunk-v15"})
 #######################################
 #######################################
-register(id='splunk-v16',
+fake_start_datetime = "05/03/2024:13:00:00"
+register(id='splunk_train-v0',
         entry_point='custom_splunk.envs:SplunkEnv', 
         kwargs={
                 'savedsearches':savedsearches,
-                'env_id':'splunk-v16'
+                'fake_start_datetime':fake_start_datetime,
+                'env_id':'splunk_train-v0'
+        })
+#######################################
+#######################################
+fake_start_datetime = "06/03/2024:13:00:00"
+register(id='splunk_eval-v0',
+        entry_point='custom_splunk.envs:SplunkEnv', 
+        kwargs={
+                'savedsearches':savedsearches,
+                'fake_start_datetime':fake_start_datetime,
+                'env_id':'splunk_eval-v0'
+        })
+#######################################
+#######################################
+savedsearches = [
+                 "ESCU Network Share Discovery Via Dir Command Rule",
+                 "Kerberoasting spn request with RC4 encryption",
+                 "Clop Ransomware Known Service Name"]
+fake_start_datetime = "05/03/2024:13:00:00"
+env_id = "splunk_train-v1"
+register(id=env_id,
+        entry_point='custom_splunk.envs:SplunkEnv', 
+        kwargs={
+                'savedsearches':savedsearches,
+                'fake_start_datetime':fake_start_datetime,
+                'env_id':env_id
+        })
+#######################################
+#######################################
+fake_start_datetime = "06/03/2024:13:00:00"
+env_id = "splunk_eval-v1"
+register(id=env_id,
+        entry_point='custom_splunk.envs:SplunkEnv', 
+        kwargs={
+                'savedsearches':savedsearches,
+                'fake_start_datetime':fake_start_datetime,
+                'env_id':env_id
         })

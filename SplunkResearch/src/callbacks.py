@@ -58,10 +58,16 @@ class ModularTensorboardCallback(BaseCallback):
         self.logger.record(f"{self.phase}/duration_val", env.reward_calculator.reward_values_dict['duration'][-1])
         self.logger.record(f"{self.phase}/duration_gap", env.reward_calculator.reward_values_dict['duration'][-1] - no_agent_last_row['duration_values'].values[-1])
         self.logger.record(f"{self.phase}/alert_gap", env.reward_calculator.reward_values_dict['alerts'][-1] - no_agent_last_row['alert_values'].values[-1])
+        # log p_values t_values and degrees_of_freedom fro mreward_values_dict
+        self.logger.record(f"{self.phase}/p_values", env.reward_calculator.reward_values_dict['p_values'][-1])
+        self.logger.record(f"{self.phase}/t_values", env.reward_calculator.reward_values_dict['t_values'][-1])
+        self.logger.record(f"{self.phase}/degrees_of_freedom", env.reward_calculator.reward_values_dict['degrees_of_freedom'][-1])
+        
         
         # Rule-based metrics
         
         self.logger.record(f"{self.phase}/rules_duration", {key.split('rule_duration_')[1]: env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_duration')})
+        self.logger.record(f"{self.phase}/rule_std_duration", {key.split('rule_std_duration')[1]: env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_std_duration')})
         self.logger.record(f"{self.phase}/rules_alerts", {key.split('rule_alert_')[1]: env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_alert')})
         self.logger.record(f"{self.phase}/rules_durations_gap", {key.split('rule_duration_')[1]: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1] for key in no_agent_last_row.columns if key.startswith('rule_duration')})
         self.logger.record(f"{self.phase}/rules_alerts_gap", {key.split('rule_alert_')[1]: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1] for key in no_agent_last_row.columns if key.startswith('rule_alert')})
@@ -71,7 +77,7 @@ class ModularTensorboardCallback(BaseCallback):
                 policy_dict[f'{logtype}_{is_trigger}'] = env.action_per_episode[-1][i*2+is_trigger]
                 if i == len(env.relevant_logtypes)-1:
                     break 
-        self.logger.record("train/episodic_policy", policy_dict)
+        self.logger.record(f"{self.phase}/episodic_policy", policy_dict)
 
     def log_no_agent_metrics(self, env, no_agent_last_row):
         # Log metrics related to no-agent scenario
@@ -79,6 +85,7 @@ class ModularTensorboardCallback(BaseCallback):
         self.logger.record(f"{self.phase}/no_agent_duration_val", no_agent_last_row['duration_values'].values[-1])
         self.logger.record(f"{self.phase}/no_agent_rules_alerts", {col.split('rule_alert_')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_alert')})
         self.logger.record(f"{self.phase}/no_agent_rules_duration", {col.split('rule_duration_')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_duration')})
+        self.logger.record(f"{self.phase}/no_agent_rules_std_duration", {col.split('rule_std_duration')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_std_duration')})
         
     
 
@@ -100,7 +107,7 @@ class HparamsCallback(BaseCallback):
 
 class TrainTensorboardCallback(ModularTensorboardCallback):
     def __init__(self, verbose=1, experiment_kwargs=None, phase="train"):
-        super(TrainTensorboardCallback, self).__init__(verbose, phase="train", experiment_kwargs=experiment_kwargs)
+        super(TrainTensorboardCallback, self).__init__(verbose, phase=phase, experiment_kwargs=experiment_kwargs)
 
     def _on_rollout_end(self) -> None:
         env = self.training_env.envs[0]
@@ -116,6 +123,12 @@ class TrainTensorboardCallback(ModularTensorboardCallback):
         self.log_common_metrics(env)
         self.logger.dump(self.num_timesteps)
         return True
+
+    def _on_training_end(self) -> None:
+        env = self.training_env.envs[0]
+        start_time_datetime = datetime.datetime.strptime(env.fake_start_datetime, '%m/%d/%Y:%H:%M:%S')#datetime.datetime.strptime(kwargs['fake_start_datetime'], '%m/%d/%Y:%H:%M:%S')
+        end_time_datetime = datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S')
+        clean_env(env.splunk_tools_instance, (start_time_datetime.timestamp(), end_time_datetime.timestamp()))
     
     # def _on_training_start(self) -> None:
     #     super()._on_training_start()
@@ -123,26 +136,26 @@ class TrainTensorboardCallback(ModularTensorboardCallback):
     
 
         
-def eval_tensorboard_callback(locals_dict, globals_dict):
-    env = locals_dict["env"].envs[0]
-    model = locals_dict["model"]
-    tb_logger = model.logger
-    current_step = env.step_counter
-    done_episodes = len(locals_dict["episode_lengths"])
-    total_steps = env.total_steps
-    no_agent_last_row = env.reward_calculator.no_agent_last_row
+# def eval_tensorboard_callback(locals_dict, globals_dict):
+#     env = locals_dict["env"].envs[0]
+#     model = locals_dict["model"]
+#     tb_logger = model.logger
+#     current_step = env.step_counter
+#     done_episodes = len(locals_dict["episode_lengths"])
+#     total_steps = env.total_steps
+#     no_agent_last_row = env.reward_calculator.no_agent_last_row
 
-    # Use the shared ModularTensorboardCallback for logging
-    modular_callback = ModularTensorboardCallback(phase="test")
-    modular_callback.logger = tb_logger
-    modular_callback.log_common_metrics(env)
-    if current_step == 2:
-        modular_callback.log_no_agent_metrics(env, no_agent_last_row)
-        tb_logger.dump(done_episodes * total_steps + current_step - 1)
-    elif current_step == 1:
-        modular_callback.log_detailed_metrics(env, no_agent_last_row)
-        tb_logger.dump(done_episodes * total_steps + total_steps)
-    else:
-        tb_logger.dump(done_episodes * total_steps + current_step - 1)
+#     # Use the shared ModularTensorboardCallback for logging
+#     modular_callback = ModularTensorboardCallback(phase="test")
+#     modular_callback.logger = tb_logger
+#     modular_callback.log_common_metrics(env)
+#     if current_step == 2:
+#         modular_callback.log_no_agent_metrics(env, no_agent_last_row)
+#         tb_logger.dump(done_episodes * total_steps + current_step - 1)
+#     elif current_step == 1:
+#         modular_callback.log_detailed_metrics(env, no_agent_last_row)
+#         tb_logger.dump(done_episodes * total_steps + total_steps)
+#     else:
+#         tb_logger.dump(done_episodes * total_steps + current_step - 1)
 
-    return True
+#     return True
