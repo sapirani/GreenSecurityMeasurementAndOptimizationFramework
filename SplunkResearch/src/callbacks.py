@@ -21,7 +21,7 @@ urllib3.disable_warnings()
 from stable_baselines3.common.logger import configure
 from env_utils import *
 from measurement import Measurement
-from reward_calculators import *
+from reward_strategy import *
 
 import logging
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback, CallbackList

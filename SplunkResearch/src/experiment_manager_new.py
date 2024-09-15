@@ -29,7 +29,7 @@ urllib3.disable_warnings()
 from stable_baselines3.common.logger import configure
 from env_utils import *
 from measurement import Measurement
-from reward_calculators import *
+from reward_strategy import *
 from pathlib import Path
 import logging
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback, CallbackList
@@ -43,7 +43,7 @@ policy_names = {'mlp': MlpPolicy, 'lstm': MlpLstmPolicy}
 # Dynamically find all reward calculator classes
 RewardCalc_classes = {}
 for name, obj in inspect.getmembers(sys.modules['reward_calculators'], inspect.isclass):
-    if issubclass(obj, RewardCalc) and obj is not RewardCalc:
+    if issubclass(obj, RewardStrategy) and obj is not RewardStrategy:
         RewardCalc_classes[name.split("RewardCalc")[1]] = obj
 
 logger.info(f"Loaded RewardCalc_classes: {RewardCalc_classes}")
