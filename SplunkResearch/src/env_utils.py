@@ -32,9 +32,9 @@ def choose_random_rules(splunk_tools_instance, num_of_searches, is_get_only_enab
             splunk_tools_instance.enable_search(savedsearch)
     return random_savedsearch
 
-def update_rules_frequency_and_time_range(splunk_tools_instance, rule_frequency, time_range):
+def update_rules_frequency_and_time_range(splunk_tools_instance, time_range):
     logger.info('update rules frequency')
-    splunk_tools_instance.update_all_searches(splunk_tools_instance.update_search_cron_expression, f'*/{rule_frequency} * * * *')
+    splunk_tools_instance.update_all_searches(splunk_tools_instance.update_search_cron_expression, f'*/{splunk_tools_instance.rule_frequency} * * * *')
     logger.info('update time range of rules')
     splunk_tools_instance.update_all_searches(splunk_tools_instance.update_search_time_range, time_range)   
     

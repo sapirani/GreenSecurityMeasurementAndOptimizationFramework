@@ -24,7 +24,7 @@ test_experiment="last"
 config_path="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/config.json"
 
 # greed search on learning rate alpha beta and gamma
-for env_name in 1 
+for env_name in 0 
 do
     for learning_rate in 0.0005 #0.0001 #0.00001
     do
@@ -64,7 +64,8 @@ do
                                 kwargs['beta']=$beta
                                 kwargs['gamma']=$gamma
                                 kwargs['learning_rate']=$learning_rate
-                                kwargs['reward_calc']=11
+                                kwargs['reward_calculator_version']=11
+                                kwargs['state_strategy_version']=2
 
                                 kwargs['env_name']="splunk_train-v"$env_name
                                 kwargs['num_of_episodes']=$train_episodes

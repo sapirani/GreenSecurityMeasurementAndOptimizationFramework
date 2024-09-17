@@ -23,8 +23,19 @@ PREFIX_PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/'
 import logging
 logger = logging.getLogger(__name__)
 
-class SplunkTools:
-    def __init__(self, active_saved_searches=None, num_of_measurements=1):
+class SplunkTools(object):
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(SplunkTools, cls).__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
+    def __init__(self, active_saved_searches=None, num_of_measurements=1, rule_frequency=1):
+        if self._initialized:
+            return
+        
         self.splunk_host = os.getenv("SPLUNK_HOST")
         self.splunk_port = os.getenv("SPLUNK_PORT")
         self.base_url = f"https://{self.splunk_host}:{self.splunk_port}"
@@ -37,7 +48,15 @@ class SplunkTools:
         self.real_logs_distribution = pd.DataFrame(data=None, columns=['source', 'EventCode', '_time', 'count'])
         self.active_saved_searches = self.get_saved_search_names(active_saved_searches)
         self.num_of_measurements = num_of_measurements
+        self.real_logtypes_counter = {}
+        self.rule_frequency = rule_frequency
         
+        self._initialized = True
+    
+    
+    def get_num_of_searches(self):
+        return len(self.active_saved_searches)
+    
     def query_splunk(self, query, earliest_time, latest_time):
         url = f"{self.base_url}/services/search/jobs/export"
         data = {
@@ -205,7 +224,14 @@ class SplunkTools:
         relevant_logs = self.get_releveant_distribution(start_time, end_time)
         relevant_logs = relevant_logs.groupby(['source', 'EventCode']).agg({'count': 'sum'}).reset_index()
         res_dict = {f"{row['source'].lower()} {row['EventCode']}": row['count'] for index, row in relevant_logs.iterrows()}
-        return res_dict
+        logger.debug(f"current real distribution: {res_dict}")
+        
+        for logtype in res_dict:
+            if logtype in self.real_logtypes_counter:
+                self.real_logtypes_counter[logtype] += res_dict[logtype]
+            else:
+                self.real_logtypes_counter[logtype] = res_dict[logtype]
+        return self.real_logtypes_counter
         
     def get_search_details(self, search,  is_measure_energy=False):
         search_id = search['search_id'].strip('\'')

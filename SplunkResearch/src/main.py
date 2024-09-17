@@ -2,7 +2,6 @@ import json
 import os
 import sys
 import traceback
-from experiment_new import Experiment
 from experiment_manager_new import ExperimentManager
 import logging
 import argparse
@@ -47,7 +46,8 @@ if __name__ == "__main__":
     parser.add_argument('--gamma', type=float, help="Gamma value for training.")
     parser.add_argument('--learning_rate', type=float, help="Learning rate.")
     parser.add_argument('--policy', type=str, help="Policy type, e.g., 'MlpPolicy'.")
-    parser.add_argument('--reward_calculator_version', type=str, help="Reward calculator version, e.g., 'reward_calc_1'.")
+    parser.add_argument('--reward_calculator_version', type=str, help="Reward calculator version, e.g., '1'.")
+    parser.add_argument('--state_strategy_version', type=str, help="State strategy version, e.g., '1'.")
     parser.add_argument('--ent_coef', type=float, help="Entropy coefficient.")
     # parser.add_argument('--agent_type', type=str, help="Type of agent for baseline testing.")
     parser.add_argument('--df', type=float, help="Discount factor.")

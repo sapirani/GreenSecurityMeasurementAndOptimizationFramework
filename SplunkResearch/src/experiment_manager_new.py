@@ -8,6 +8,8 @@ from email.message import EmailMessage
 import ssl
 from dotenv import load_dotenv
 import os
+
+from state_strategy import *
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env')
 import datetime
 import os
@@ -35,6 +37,9 @@ import logging
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback, CallbackList
 from stable_baselines3.common.logger import HParam
 from callbacks import *
+from datetime_manager import MockedDatetimeManager
+from splunk_tools import SplunkTools
+
 logger = logging.getLogger(__name__)
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
@@ -42,11 +47,15 @@ model_names = {'a2c': A2C, 'ppo': PPO, 'dqn': DQN, 'recurrentppo': RecurrentPPO}
 policy_names = {'mlp': MlpPolicy, 'lstm': MlpLstmPolicy}
 # Dynamically find all reward calculator classes
 RewardCalc_classes = {}
-for name, obj in inspect.getmembers(sys.modules['reward_calculators'], inspect.isclass):
+for name, obj in inspect.getmembers(sys.modules['reward_strategy'], inspect.isclass):
     if issubclass(obj, RewardStrategy) and obj is not RewardStrategy:
-        RewardCalc_classes[name.split("RewardCalc")[1]] = obj
-
+        RewardCalc_classes[name.split("RewardStrategy")[1]] = obj
 logger.info(f"Loaded RewardCalc_classes: {RewardCalc_classes}")
+StateStrategy_classes = {}
+for name, obj in inspect.getmembers(sys.modules['state_strategy'], inspect.isclass):
+    if issubclass(obj, StateStrategy) and obj is not StateStrategy:
+        StateStrategy_classes[name.split("StateStrategy")[1]] = obj
+logger.info(f"Loaded StateStrategy_classes: {StateStrategy_classes}")
 
 
         
@@ -150,37 +159,36 @@ class ExperimentManager:
         env_kwargs['num_of_measurements'] = kwargs['num_of_measurements']
         env_kwargs['id'] = kwargs['env_name']
         env_kwargs['search_window'] = kwargs['search_window']
+        env_kwargs['state_strategy'] = StateStrategy_classes[kwargs['state_strategy_version']]
         env = gym.make(**env_kwargs)
-        
-        reward_calculator = self.setup_reward_calc(kwargs, env)
-        
+        reward_calculator = self.setup_reward_calc(kwargs)
         env.set_reward_calculator(reward_calculator)
+        
         return env
 
-    def setup_reward_calc(self, kwargs, env):
-        measurment_tool = Measurement(env.splunk_tools_instance, env.num_of_searches, measure_energy=False)
+    def setup_reward_calc(self, kwargs):
+        splunk_tools_instance = SplunkTools()
+        num_of_searches = splunk_tools_instance.get_num_of_searches()
+        measurment_tool = Measurement(splunk_tools_instance, num_of_searches, measure_energy=False)
         
         reward_calc_kwargs = {}
         reward_calc_kwargs['alpha'] = kwargs['alpha']
         reward_calc_kwargs['beta'] = kwargs['beta']
         reward_calc_kwargs['gamma'] = kwargs['gamma']
-        reward_calc_kwargs['env_id'] = env.env_id
-        reward_calc_kwargs['splunk_tools'] = env.splunk_tools_instance
-        reward_calc_kwargs['dt_manager'] = env.dt_manager
-        reward_calc_kwargs['rule_frequency'] = env.rule_frequency
-        reward_calc_kwargs['num_of_searches'] = env.num_of_searches
+        reward_calc_kwargs['splunk_tools'] = splunk_tools_instance
+        reward_calc_kwargs['dt_manager'] = MockedDatetimeManager()
+        reward_calc_kwargs['num_of_searches'] = num_of_searches
         reward_calc_kwargs['measurment_tool'] = measurment_tool
-        reward_calc_kwargs['top_logtypes'] = env.top_logtypes
-        reward_calc_kwargs['no_agent_table_path'] = self.get_no_agent_table_path(kwargs, env)
+        reward_calc_kwargs['no_agent_table_path'] = self.get_no_agent_table_path(kwargs)
         RewardCalc = RewardCalc_classes[kwargs['reward_calculator_version']]
         reward_calculator = RewardCalc(**reward_calc_kwargs)
         self.save_master_tables()
         return reward_calculator
     
-    def get_no_agent_table_path(self, kwargs, env):
+    def get_no_agent_table_path(self, kwargs):
         """Returns the table name for the no agent baseline."""
         no_agent_kwargs = {}
-        no_agent_kwargs['env_id'] = env.env_id
+        no_agent_kwargs['env_id'] = kwargs['env_name']
         no_agent_kwargs['search_window'] = kwargs['search_window']
         no_agent_kwargs['num_of_measurements'] = kwargs['num_of_measurements']
         filtered_df = self.no_agent_master.copy()

@@ -19,7 +19,7 @@ PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. L
 
 
 class RewardStrategy(ABC):
-    def __init__(self, top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=None):
+    def __init__(self,  dt_manager, splunk_tools, num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=None):
         self.average_energy = 0
         self.average_alert = 0
         self.average_duration = 0
@@ -27,10 +27,9 @@ class RewardStrategy(ABC):
         self.action_upper_bound = 1
         self.reward_dict = {'energy': [], 'alerts': [], 'distributions': [], 'duration': [], 'total': []}
         self.reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'duration': [], "num_of_rules":[], "p_values":[], "t_values":[], "degrees_of_freedom":[]}
-        self.top_logtypes = top_logtypes
         self.dt_manager = dt_manager
         self.splunk_tools = splunk_tools
-        self.rule_frequency = rule_frequency
+        self.rule_frequency = self.splunk_tools.rule_frequency
         self.time_rules_energy = []
         self.current_measurement_path = ''
         self.num_of_searches = num_of_searches  
@@ -40,7 +39,6 @@ class RewardStrategy(ABC):
         self.alpha = alpha
         self.betta = beta
         self.gamma = gamma
-        self.env_id = env_id
         self.no_agent_table_path = no_agent_table_path
         try: 
             self.no_agent_values = pd.read_csv(no_agent_table_path)
@@ -90,7 +88,6 @@ class RewardStrategy(ABC):
     
     def get_partial_reward_values(self, real_distribution, current_state):
         distributions_val = self.compare_distributions(real_distribution, current_state)     
-        # distributions_val = self.compare_distributions(current_state[:len(self.top_logtypes)], current_state[len(self.top_logtypes):])     
         if distributions_val == 0:
             distributions_val = distributions_val + 0.000000000001
         self.reward_values_dict['distributions'].append(distributions_val)
@@ -138,8 +135,8 @@ class RewardStrategy(ABC):
 
 
 class RewardStrategy1(RewardStrategy):
-    def __init__(self, top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=None):
-        super().__init__(top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=no_agent_table_path)
+    def __init__(self,  dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
 
 
     def get_full_reward(self, time_range, real_distribution, current_state):
@@ -195,8 +192,8 @@ class RewardStrategy1(RewardStrategy):
 
 class RewardStrategy2(RewardStrategy):
     
-    def __init__(self, top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=None):
-        super().__init__(top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=no_agent_table_path)
+    def __init__(self,  dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
 
 
     def get_full_reward(self, time_range, real_distribution, current_state):
@@ -251,8 +248,8 @@ class RewardStrategy2(RewardStrategy):
 
 class RewardStrategy3(RewardStrategy):
     
-    def __init__(self, top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=None):
-        super().__init__(top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=no_agent_table_path)
+    def __init__(self,  dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
 
 
     def get_full_reward(self, time_range, real_distribution, current_state):
@@ -306,8 +303,8 @@ class RewardStrategy3(RewardStrategy):
 
 class RewardStrategy4(RewardStrategy):
     
-    def __init__(self, top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=None):
-        super().__init__(top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=no_agent_table_path)
+    def __init__(self,  dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
 
 
     def get_full_reward(self, time_range, real_distribution, current_state):
@@ -364,8 +361,8 @@ class RewardStrategy4(RewardStrategy):
 
 class RewardStrategy5(RewardStrategy):
     
-    def __init__(self, top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=None):
-        super().__init__(top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=no_agent_table_path)
+    def __init__(self,  dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
 
 
     def get_full_reward(self, time_range, real_distribution, current_state):
@@ -419,8 +416,8 @@ class RewardStrategy5(RewardStrategy):
 
 class RewardStrategy6(RewardStrategy):
     
-    def __init__(self, top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=None):
-        super().__init__(top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=no_agent_table_path)
+    def __init__(self,  dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
 
 
     def get_partial_reward(self, real_distribution, current_state):
@@ -446,8 +443,8 @@ class RewardStrategy6(RewardStrategy):
 
 class RewardStrategy7(RewardStrategy):
     
-    def __init__(self, top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=None):
-        super().__init__(top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=no_agent_table_path)
+    def __init__(self,  dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
 
     def get_partial_reward(self, real_distribution, current_state):
         distributions_distance = self.get_partial_reward_values(real_distribution, current_state)
@@ -471,8 +468,8 @@ class RewardStrategy7(RewardStrategy):
 
 class RewardStrategy8(RewardStrategy):
     
-    def __init__(self, top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=None):
-        super().__init__(top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=no_agent_table_path)
+    def __init__(self,  dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
 
     def get_partial_reward(self, real_distribution, current_state):
         distributions_distance = self.get_partial_reward_values(real_distribution, current_state)
@@ -496,8 +493,8 @@ class RewardStrategy8(RewardStrategy):
     
 class RewardStrategy9(RewardStrategy):
     
-    def __init__(self, top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=None):
-        super().__init__(top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=no_agent_table_path)
+    def __init__(self,  dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
 
 
     def get_partial_reward(self, real_distribution, current_state):
@@ -524,8 +521,8 @@ class RewardStrategy9(RewardStrategy):
 
 class RewardStrategy10(RewardStrategy):
     
-    def __init__(self, top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=None):
-        super().__init__(top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=no_agent_table_path)
+    def __init__(self,  dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
 
 
     def get_partial_reward(self, real_distribution, current_state):
@@ -561,8 +558,8 @@ class RewardStrategy10(RewardStrategy):
 
 class RewardStrategy11(RewardStrategy):
     
-    def __init__(self, top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=None):
-        super().__init__(top_logtypes, dt_manager, splunk_tools, rule_frequency, num_of_searches, measurment_tool, alpha, beta, gamma, env_id, no_agent_table_path=no_agent_table_path)
+    def __init__(self,  dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
 
 
     def get_partial_reward(self, real_distribution, current_state):

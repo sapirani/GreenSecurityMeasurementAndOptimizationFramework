@@ -12,19 +12,28 @@ class MockedDatetime(datetime.datetime):
         # Return the fake datetime adjusted by the elapsed time
         return MockedDatetimeManager._fake_start_datetime + delta
 
+
 class MockedDatetimeManager:
-    
+    _instance = None
     _initial_real_datetime = datetime.datetime.now()
     _fake_start_datetime = datetime.datetime(2023, 1, 1, 12, 0, 0)
-    
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(MockedDatetimeManager, cls).__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
     def __init__(self, fake_start_datetime=None):
+        if self._initialized:
+            return
+        
         if fake_start_datetime:
             MockedDatetimeManager._fake_start_datetime = fake_start_datetime
         
-       
-        self.current_fake_time = fake_start_datetime
-
-    
+        self.current_fake_time = MockedDatetimeManager._fake_start_datetime
+        self._initialized = True
+        
     def _real_now(self, *args, **kwargs):
         real_dt = self.get_real_current_datetime()
         return datetime.datetime.strptime(real_dt, '%m/%d/%Y:%H:%M:%S').timetuple()

@@ -34,43 +34,49 @@ class ModularTensorboardCallback(BaseCallback):
         self.phase = phase  # This will determine whether it's "train" or "test"
         print("Experiment kwargs: ", experiment_kwargs)
         self.experiment_kwargs = experiment_kwargs
-        
+
+    def _safe_log(self, key, value_list):
+        # Check if value_list is a pandas Series or a list
+        if isinstance(value_list, pd.Series):
+            # For pandas Series, check if it's empty
+            if not value_list.empty:
+                self.logger.record(key, value_list.iloc[-1])
+        elif isinstance(value_list, list) and len(value_list) > 0:
+            # For lists, check if it's non-empty
+            self.logger.record(key, value_list[-1])
+
     def log_common_metrics(self, env):
         # Record common metrics for both training and evaluation phases
-        self.logger.record(f"{self.phase}/distribution_val", env.reward_calculator.reward_values_dict['distributions'][-1])
-        self.logger.record(f"{self.phase}/distribution_reward", env.reward_calculator.reward_dict['distributions'][-1])
-        
-        # Policy logging
-        policy_dict = {}
-        for i, logtype in enumerate(env.relevant_logtypes):
-            for is_trigger in range(2):
-                policy_dict[f'{logtype}_{is_trigger}'] = env.current_action[i*2 + is_trigger]
-                if i == len(env.relevant_logtypes) - 1:
-                    break
-        self.logger.record(f"{self.phase}/policy", policy_dict)
+        self._safe_log(f"{self.phase}/distribution_val", env.reward_calculator.reward_values_dict.get('distributions', []))
+        self._safe_log(f"{self.phase}/distribution_reward", env.reward_calculator.reward_dict.get('distributions', []))
 
     def log_detailed_metrics(self, env, no_agent_last_row):
-        # Logging more detailed metrics that are common between train and evaluation
-        self.logger.record(f"{self.phase}/alert_reward", env.reward_calculator.reward_dict['alerts'][-1])
-        self.logger.record(f"{self.phase}/duration_reward", env.reward_calculator.reward_dict['duration'][-1])
-        self.logger.record(f"{self.phase}/total_reward", env.reward_calculator.reward_dict['total'][-1])
-        self.logger.record(f"{self.phase}/alert_val", env.reward_calculator.reward_values_dict['alerts'][-1])
-        self.logger.record(f"{self.phase}/duration_val", env.reward_calculator.reward_values_dict['duration'][-1])
-        self.logger.record(f"{self.phase}/duration_gap", env.reward_calculator.reward_values_dict['duration'][-1] - no_agent_last_row['duration_values'].values[-1])
-        self.logger.record(f"{self.phase}/alert_gap", env.reward_calculator.reward_values_dict['alerts'][-1] - no_agent_last_row['alert_values'].values[-1])
-        # log p_values t_values and degrees_of_freedom fro mreward_values_dict
-        self.logger.record(f"{self.phase}/p_values", env.reward_calculator.reward_values_dict['p_values'][-1])
-        self.logger.record(f"{self.phase}/t_values", env.reward_calculator.reward_values_dict['t_values'][-1])
-        self.logger.record(f"{self.phase}/degrees_of_freedom", env.reward_calculator.reward_values_dict['degrees_of_freedom'][-1])
-        
-        
+        # Log detailed metrics while safely checking list indices
+        self._safe_log(f"{self.phase}/alert_reward", env.reward_calculator.reward_dict.get('alerts', []))
+        self._safe_log(f"{self.phase}/duration_reward", env.reward_calculator.reward_dict.get('duration', []))
+        self._safe_log(f"{self.phase}/total_reward", env.reward_calculator.reward_dict.get('total', []))
+        self._safe_log(f"{self.phase}/alert_val", env.reward_calculator.reward_values_dict.get('alerts', []))
+        self._safe_log(f"{self.phase}/duration_val", env.reward_calculator.reward_values_dict.get('duration', []))
+        self._safe_log(f"{self.phase}/duration_gap", env.reward_calculator.reward_values_dict.get('duration', []) - no_agent_last_row.get('duration_values', []))
+        self._safe_log(f"{self.phase}/p_values", env.reward_calculator.reward_values_dict.get('p_values', []))
+        self._safe_log(f"{self.phase}/t_values", env.reward_calculator.reward_values_dict.get('t_values', []))
+        self._safe_log(f"{self.phase}/degrees_of_freedom", env.reward_calculator.reward_values_dict.get('degrees_of_freedom', []))
+
         # Rule-based metrics
-        
-        self.logger.record(f"{self.phase}/rules_duration", {key.split('rule_duration_')[1]: env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_duration')})
-        self.logger.record(f"{self.phase}/rule_std_duration", {key.split('rule_std_duration')[1]: env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_std_duration')})
-        self.logger.record(f"{self.phase}/rules_alerts", {key.split('rule_alert_')[1]: env.reward_calculator.time_rules_energy[-1][key] for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_alert')})
-        self.logger.record(f"{self.phase}/rules_durations_gap", {key.split('rule_duration_')[1]: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1] for key in no_agent_last_row.columns if key.startswith('rule_duration')})
-        self.logger.record(f"{self.phase}/rules_alerts_gap", {key.split('rule_alert_')[1]: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1] for key in no_agent_last_row.columns if key.startswith('rule_alert')})
+        if env.reward_calculator.time_rules_energy and len(env.reward_calculator.time_rules_energy) > 0:
+            self.logger.record(f"{self.phase}/rules_duration", 
+                               {key.split('rule_duration_')[1]: env.reward_calculator.time_rules_energy[-1][key]
+                                for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_duration')})
+            self.logger.record(f"{self.phase}/rules_alerts", 
+                               {key.split('rule_alert_')[1]: env.reward_calculator.time_rules_energy[-1][key]
+                                for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_alert')})
+            self.logger.record(f"{self.phase}/rules_std_duration",
+                                 {key.split('rule_std_duration')[1]: env.reward_calculator.time_rules_energy[-1][key]
+                                  for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith('rule_std_duration')})
+            self.logger.record(f"{self.phase}/rules_durations_gap",
+                               {key.split('rule_duration_')[1]: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1]
+                                for key in no_agent_last_row.columns if key.startswith('rule_duration')})
+        # log episodic policy
         policy_dict = {}
         for i, logtype in enumerate(env.relevant_logtypes):
             for is_trigger in range(2):
@@ -80,9 +86,10 @@ class ModularTensorboardCallback(BaseCallback):
         self.logger.record(f"{self.phase}/episodic_policy", policy_dict)
 
     def log_no_agent_metrics(self, env, no_agent_last_row):
-        # Log metrics related to no-agent scenario
-        self.logger.record(f"{self.phase}/no_agent_alert_val", no_agent_last_row['alert_values'].values[-1])
-        self.logger.record(f"{self.phase}/no_agent_duration_val", no_agent_last_row['duration_values'].values[-1])
+        # Log metrics related to no-agent scenario while safely checking list indices
+        self._safe_log(f"{self.phase}/no_agent_alert_val", no_agent_last_row.get('alert_values', []))
+        self._safe_log(f"{self.phase}/no_agent_duration_val", no_agent_last_row.get('duration_values', []))
+
         self.logger.record(f"{self.phase}/no_agent_rules_alerts", {col.split('rule_alert_')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_alert')})
         self.logger.record(f"{self.phase}/no_agent_rules_duration", {col.split('rule_duration_')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_duration')})
         self.logger.record(f"{self.phase}/no_agent_rules_std_duration", {col.split('rule_std_duration')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_std_duration')})

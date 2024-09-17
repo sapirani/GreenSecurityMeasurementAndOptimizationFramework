@@ -25,12 +25,12 @@ PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. L
 INFINITY = 100000
 CPU_TDP = 200
 class SplunkEnv(gym.Env):
-    def __init__(self, fake_start_datetime, rule_frequency, search_window, savedsearches, span_size=1, total_additional_logs=None, logs_per_minute = 300, additional_percentage = 0.1, env_id=None, num_of_measurements=1):
+    def __init__(self, fake_start_datetime, rule_frequency, search_window, savedsearches, state_strategy, span_size=1, total_additional_logs=None, logs_per_minute = 300, additional_percentage = 0.1, env_id=None, num_of_measurements=1):
         self.env_id = env_id
         relevant_logtypes = sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]})) #[(x[0], str(x[1])) for x in state_span]
         relevant_logtypes.append(('wineventlog:security', '4624'))
         num_of_searches = len(savedsearches)
-        self.splunk_tools_instance  = SplunkTools(savedsearches, num_of_measurements)
+        self.splunk_tools_instance  = SplunkTools(savedsearches, num_of_measurements, rule_frequency)
         self.log_generator = LogGenerator(relevant_logtypes, self.splunk_tools_instance)
         self.relevant_logtypes = relevant_logtypes
         logger.info(f"relevant logtypes: {self.relevant_logtypes}")
@@ -38,7 +38,6 @@ class SplunkEnv(gym.Env):
         self.top_logtypes = self.top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
         self.top_logtypes = [(x[0].lower(), str(x[1])) for x in self.top_logtypes]
         self.top_logtypes = set(self.top_logtypes)|set(self.relevant_logtypes)
-        self.rule_frequency = rule_frequency
         self.search_window = search_window
         if total_additional_logs:
             self.step_size = total_additional_logs
@@ -62,16 +61,16 @@ class SplunkEnv(gym.Env):
         # create the action space - a vector of size max_actions_value with values between 0 and 1
         self.action_space = spaces.Box(low=0,high=self.action_upper_bound,shape=((len(self.relevant_logtypes)-1)*2+1, ),dtype=np.float64)
         # self.observation_space = spaces.Box(low=0,high=self.action_upper_bound,shape=(len(self.top_logtypes)*2,),dtype=np.float64)
-        self.observation_space = spaces.Box(low=0,high=self.action_upper_bound,shape=(len(self.top_logtypes),),dtype=np.float64)
+        self.state_strategy = state_strategy(self.top_logtypes)
+        self.observation_space = self.state_strategy.create_state()
         self.action_per_episode = []
         self.current_episode_accumulated_action = np.zeros(self.action_space.shape)
         self.current_action = np.zeros(self.action_space.shape)
         self.fake_logtypes_counter = {}
-        self.real_logtypeps_counter = {}
-        self.fake_distribution = np.zeros(len(self.top_logtypes))
+        self.splunk_tools_instance.real_logtypes_counter = {}
         self.real_distribution = np.zeros(len(self.top_logtypes))
         self.state = np.zeros(self.observation_space.shape).tolist()
-        self.abs_distribution = {}
+
         self.done = False
         self.fake_start_datetime = fake_start_datetime   
         fake_start_datetime  = datetime.datetime.strptime(fake_start_datetime, '%m/%d/%Y:%H:%M:%S')
@@ -83,7 +82,7 @@ class SplunkEnv(gym.Env):
         start_time = self.dt_manager.subtract_time(end_time, minutes=search_window)
         time_range = (start_time, end_time)
         self.time_range = time_range
-        update_rules_frequency_and_time_range(self.splunk_tools_instance, rule_frequency, time_range)
+        # update_rules_frequency_and_time_range(self.splunk_tools_instance, time_range)
         self.reward_calculator = None
         self.num_of_searches = num_of_searches
 
@@ -94,7 +93,7 @@ class SplunkEnv(gym.Env):
  
         logger.debug(self.done)
         
-        fraction_real_distribution = [x/sum(self.real_distribution) if sum(self.real_distribution) != 0 else 1/len(self.real_distribution) for x in self.real_distribution ]
+        fraction_real_distribution = [x/sum(self.real_distribution) if sum(self.real_distribution) != 0 else 1/len(self.real_distribution) for x in self.real_distribution ] #BUG WTF?
         if self.done:
             reward = self.reward_calculator.get_full_reward(self.time_range, fraction_real_distribution, self.state)
         else:
@@ -178,45 +177,11 @@ class SplunkEnv(gym.Env):
     def update_state(self):
         now = self.dt_manager.get_fake_current_datetime()
         previous_now = self.dt_manager.subtract_time(now, seconds=self.action_duration)
-        real_state, fake_state, diff_state = self.update_distributions(now, previous_now)
-        self.state = np.array(diff_state)#fake_state)
-        # self.state = np.concatenate((real_state, fake_state))
+        real_logtypes_counter = self.splunk_tools_instance.get_real_distribution(previous_now, now)
+        self.state = self.state_strategy.update_state(real_logtypes_counter, self.fake_logtypes_counter)
         logger.info(f"state: {self.state}")
-
-    def update_distributions(self, now, previous_now):
-        real_distribution_dict = self.splunk_tools_instance.get_real_distribution(previous_now, now)
-        logger.debug(f"real distribution: {real_distribution_dict}")
-        logger.debug(f"fake distribution: {self.fake_logtypes_counter}")
-        for logtype in real_distribution_dict:
-            if logtype in self.real_logtypeps_counter:
-                self.real_logtypeps_counter[logtype] += real_distribution_dict[logtype]
-            else:
-                self.real_logtypeps_counter[logtype] = real_distribution_dict[logtype]
-        real_state = []
-        fake_state = []
-        for i, logtype in enumerate(self.top_logtypes):
-            # create state vector
-            logtype = ' '.join(logtype)
-            if logtype in self.real_logtypeps_counter:
-                real_count = self.real_logtypeps_counter[logtype]
-                real_state.append(real_count)
-                fake_state.append(real_count)
-            else:
-                real_state.append(0)
-                fake_state.append(0)
-            if logtype in self.fake_logtypes_counter:
-                fake_state[i] += self.fake_logtypes_counter[logtype]
-
-        real_total_sum = sum(real_state)
-        fake_total_sum = sum(fake_state)
-        diff_state = [x-y for x,y in zip(fake_state, real_state)]
-        diff_state = [x/sum(diff_state) if sum(diff_state) != 0 else 1/len(diff_state) for x in diff_state]
-        real_state = [x/real_total_sum if real_total_sum!= 0 else 1/len(real_state) for x in real_state]
-        fake_state = [x/fake_total_sum if fake_total_sum != 0 else 1/len(fake_state) for x in fake_state]
-        return real_state,fake_state, diff_state
-            
-     
-    
+        return self.state
+        
     def check_done(self):
         # Define the termination conditions based on the current state or other criteria
         if self.step_counter == self.total_steps:
@@ -232,12 +197,11 @@ class SplunkEnv(gym.Env):
         self.step_counter = 1
         self.fake_distribution = np.zeros(len(self.top_logtypes))
         self.real_distribution = np.zeros(len(self.top_logtypes))
-        self.abs_distribution = {}
         self.fake_logtypes_counter = {}
-        self.real_logtypeps_counter = {}
         self.current_episode_accumulated_action = np.zeros(self.action_space.shape)
         self.current_action = np.zeros(self.action_space.shape)
         self.state = np.zeros(self.observation_space.shape)
+        self.splunk_tools_instance.real_logtypes_counter = {}
         
         if self.time_range_update:
             self.update_timerange()
