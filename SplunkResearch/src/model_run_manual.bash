@@ -51,7 +51,7 @@ do
                                 kwargs['model']="recurrentppo"
                                 kwargs['policy']="lstm"
                                 kwargs['additional_percentage']=$additional_percentage
-                                kwargs['span_size']=120
+                                kwargs['span_size']=7200
                                 #kwargs['fake_start_datetime']="05/03/2024:13:00:00"
                                 kwargs['search_window']=$search_window
 
@@ -65,7 +65,7 @@ do
                                 kwargs['gamma']=$gamma
                                 kwargs['learning_rate']=$learning_rate
                                 kwargs['reward_calculator_version']=11
-                                kwargs['state_strategy_version']=2
+                                kwargs['state_strategy_version']=3
 
                                 kwargs['env_name']="splunk_train-v"$env_name
                                 kwargs['num_of_episodes']=$train_episodes
@@ -76,7 +76,7 @@ do
                                 done
                                 echo $args
 
-                                echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $args
+                                # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $args
                                 wait
                                 
                                 kwargs['env_name']="splunk_eval-v"$env_name

@@ -232,6 +232,8 @@ class ExperimentManager:
         model_kwargs['tensorboard_log'] = self.train_tensorboard_dir
         model_kwargs['verbose'] = 1
         model_kwargs['stats_window_size'] = 5
+        model_kwargs["policy_kwargs"] = {"net_arch": [dict(pi=[64, 64], vf=[64, 64])]}
+        model_kwargs["max_grad_norm"] = 0.5  # Add this line for gradient clipping
         return model_object(**model_kwargs)
         
     def train_model(self, **kwargs):
@@ -245,7 +247,6 @@ class ExperimentManager:
     def test_model(self, **kwargs):
         """Evaluates a model."""
         num_episodes, env, model, callback_list = self.prepare_experiment('eval', kwargs)
-        name = kwargs['name']
         episode_rewards = self.custom_evaluate_policy(model, env, callback_list, num_episodes=num_episodes)
         self.post_experiment('eval', env, model, kwargs)
         return episode_rewards

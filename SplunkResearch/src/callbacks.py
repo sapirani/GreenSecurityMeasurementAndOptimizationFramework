@@ -57,10 +57,12 @@ class ModularTensorboardCallback(BaseCallback):
         self._safe_log(f"{self.phase}/total_reward", env.reward_calculator.reward_dict.get('total', []))
         self._safe_log(f"{self.phase}/alert_val", env.reward_calculator.reward_values_dict.get('alerts', []))
         self._safe_log(f"{self.phase}/duration_val", env.reward_calculator.reward_values_dict.get('duration', []))
-        self._safe_log(f"{self.phase}/duration_gap", env.reward_calculator.reward_values_dict.get('duration', []) - no_agent_last_row.get('duration_values', []))
         self._safe_log(f"{self.phase}/p_values", env.reward_calculator.reward_values_dict.get('p_values', []))
         self._safe_log(f"{self.phase}/t_values", env.reward_calculator.reward_values_dict.get('t_values', []))
         self._safe_log(f"{self.phase}/degrees_of_freedom", env.reward_calculator.reward_values_dict.get('degrees_of_freedom', []))
+        
+        self.logger.record(f"{self.phase}/duration_gap", env.reward_calculator.reward_values_dict['duration'][-1] - no_agent_last_row['duration_values'].values[-1])
+        
 
         # Rule-based metrics
         if env.reward_calculator.time_rules_energy and len(env.reward_calculator.time_rules_energy) > 0:

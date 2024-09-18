@@ -121,7 +121,7 @@ class SplunkEnv(gym.Env):
         self.perform_action(action)
         if self.check_done():
             self.done = True
-        # self.update_state()   
+        self.update_state()   
         reward = self.get_reward()
         logger.info(f"########################################################################################################################")
         self.step_counter += 1
@@ -178,7 +178,8 @@ class SplunkEnv(gym.Env):
         now = self.dt_manager.get_fake_current_datetime()
         previous_now = self.dt_manager.subtract_time(now, seconds=self.action_duration)
         real_logtypes_counter = self.splunk_tools_instance.get_real_distribution(previous_now, now)
-        self.state = self.state_strategy.update_state(real_logtypes_counter, self.fake_logtypes_counter)
+        self.state_strategy.update_distributions(real_logtypes_counter, self.fake_logtypes_counter)
+        self.state = self.state_strategy.update_state()
         logger.info(f"state: {self.state}")
         return self.state
         
