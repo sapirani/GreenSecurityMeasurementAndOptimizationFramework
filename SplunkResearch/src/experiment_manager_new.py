@@ -32,6 +32,7 @@ from stable_baselines3.common.logger import configure
 from env_utils import *
 from measurement import Measurement
 from reward_strategy import *
+from action_strategy import *
 from pathlib import Path
 import logging
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback, CallbackList
@@ -56,6 +57,10 @@ for name, obj in inspect.getmembers(sys.modules['state_strategy'], inspect.iscla
     if issubclass(obj, StateStrategy) and obj is not StateStrategy:
         StateStrategy_classes[name.split("StateStrategy")[1]] = obj
 logger.info(f"Loaded StateStrategy_classes: {StateStrategy_classes}")
+ActionStrategy_classes = {}
+for name, obj in inspect.getmembers(sys.modules['action_strategy'], inspect.isclass):
+    if issubclass(obj, ActionStrategy) and obj is not ActionStrategy:
+        ActionStrategy_classes[name.split("ActionStrategy")[1]] = obj
 
 
         
@@ -160,6 +165,7 @@ class ExperimentManager:
         env_kwargs['id'] = kwargs['env_name']
         env_kwargs['search_window'] = kwargs['search_window']
         env_kwargs['state_strategy'] = StateStrategy_classes[kwargs['state_strategy_version']]
+        env_kwargs['action_strategy'] = ActionStrategy_classes[kwargs['action_strategy_version']]
         env = gym.make(**env_kwargs)
         reward_calculator = self.setup_reward_calc(kwargs)
         env.set_reward_calculator(reward_calculator)

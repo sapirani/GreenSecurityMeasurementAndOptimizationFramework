@@ -66,6 +66,7 @@ do
                                 kwargs['learning_rate']=$learning_rate
                                 kwargs['reward_calculator_version']=11
                                 kwargs['state_strategy_version']=3
+                                kwargs['action_strategy_version']=1
 
                                 kwargs['env_name']="splunk_train-v"$env_name
                                 kwargs['num_of_episodes']=$train_episodes
@@ -76,7 +77,7 @@ do
                                 done
                                 echo $args
 
-                                # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $args
+                                echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $args
                                 wait
                                 
                                 kwargs['env_name']="splunk_eval-v"$env_name

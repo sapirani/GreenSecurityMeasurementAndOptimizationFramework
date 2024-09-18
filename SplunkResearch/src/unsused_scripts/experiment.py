@@ -13,7 +13,7 @@ from resources.logtypes import logtypes
 from resources.state_span import state_span
 from resources.section_logtypes import section_logtypes
 import logging
-from experiment_manager import ExperimentManager
+from unsused_scripts.experiment_manager import ExperimentManager
 from splunk_tools import SplunkTools
 from reward_calculators.reward_calculator_base import RewardCalc
 import random

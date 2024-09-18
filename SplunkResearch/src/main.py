@@ -48,6 +48,7 @@ if __name__ == "__main__":
     parser.add_argument('--policy', type=str, help="Policy type, e.g., 'MlpPolicy'.")
     parser.add_argument('--reward_calculator_version', type=str, help="Reward calculator version, e.g., '1'.")
     parser.add_argument('--state_strategy_version', type=str, help="State strategy version, e.g., '1'.")
+    parser.add_argument('--action_strategy_version', type=str, help="Action strategy version, e.g., '1'.")
     parser.add_argument('--ent_coef', type=float, help="Entropy coefficient.")
     # parser.add_argument('--agent_type', type=str, help="Type of agent for baseline testing.")
     parser.add_argument('--df', type=float, help="Discount factor.")
