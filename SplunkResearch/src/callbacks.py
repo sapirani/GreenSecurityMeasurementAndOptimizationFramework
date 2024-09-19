@@ -17,6 +17,7 @@ import custom_splunk #dont remove!!!
 from sb3_contrib.ppo_recurrent.policies import MlpLstmPolicy
 from sb3_contrib import RecurrentPPO
 from stable_baselines3 import A2C, PPO, DQN
+import stable_baselines3 as sb3
 urllib3.disable_warnings()
 from stable_baselines3.common.logger import configure
 from env_utils import *
@@ -41,9 +42,12 @@ class ModularTensorboardCallback(BaseCallback):
             # For pandas Series, check if it's empty
             if not value_list.empty:
                 self.logger.record(key, value_list.iloc[-1])
+                return True
         elif isinstance(value_list, list) and len(value_list) > 0:
             # For lists, check if it's non-empty
             self.logger.record(key, value_list[-1])
+            return True
+        return False
 
     def log_common_metrics(self, env):
         # Record common metrics for both training and evaluation phases
@@ -56,12 +60,13 @@ class ModularTensorboardCallback(BaseCallback):
         self._safe_log(f"{self.phase}/duration_reward", env.reward_calculator.reward_dict.get('duration', []))
         self._safe_log(f"{self.phase}/total_reward", env.reward_calculator.reward_dict.get('total', []))
         self._safe_log(f"{self.phase}/alert_val", env.reward_calculator.reward_values_dict.get('alerts', []))
-        self._safe_log(f"{self.phase}/duration_val", env.reward_calculator.reward_values_dict.get('duration', []))
+        success = self._safe_log(f"{self.phase}/duration_val", env.reward_calculator.reward_values_dict.get('duration', []))
+        if success:
+            self.logger.record(f"{self.phase}/duration_gap", env.reward_calculator.reward_values_dict['duration'][-1] - no_agent_last_row['duration_values'].values[-1])   
         self._safe_log(f"{self.phase}/p_values", env.reward_calculator.reward_values_dict.get('p_values', []))
         self._safe_log(f"{self.phase}/t_values", env.reward_calculator.reward_values_dict.get('t_values', []))
         self._safe_log(f"{self.phase}/degrees_of_freedom", env.reward_calculator.reward_values_dict.get('degrees_of_freedom', []))
         
-        self.logger.record(f"{self.phase}/duration_gap", env.reward_calculator.reward_values_dict['duration'][-1] - no_agent_last_row['duration_values'].values[-1])
         
 
         # Rule-based metrics

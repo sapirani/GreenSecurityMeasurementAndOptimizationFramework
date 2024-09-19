@@ -51,6 +51,7 @@ class SplunkEnv(gym.Env):
         self.action_strategy = action_strategy(self.relevant_logtypes, 1, self.step_size, self.action_duration, self.splunk_tools_instance, self.log_generator)
         self.action_space = self.action_strategy.create_action_space()
         self.action_per_episode = []
+        self.current_action = None
         
         self.top_logtypes = pd.read_csv("resources/top_logtypes.csv")
         self.top_logtypes = self.top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
@@ -91,10 +92,10 @@ class SplunkEnv(gym.Env):
         
         fraction_real_distribution = [x/sum(self.real_distribution) if sum(self.real_distribution) != 0 else 1/len(self.real_distribution) for x in self.real_distribution ] #BUG WTF?
         if self.done:
-            reward = self.reward_calculator.get_full_reward(self.time_range, fraction_real_distribution, self.state)
+            reward = self.reward_calculator.get_full_reward(self.time_range, fraction_real_distribution, self.state, self.current_action)
         else:
             # reward = self.reward_calculator.get_previous_full_reward()
-            reward = self.reward_calculator.get_partial_reward(fraction_real_distribution, self.state)
+            reward = self.reward_calculator.get_partial_reward(fraction_real_distribution, self.state, self.current_action)
             
         self.reward_calculator.reward_dict['total'].append(reward)
         logger.info(f"total reward: {reward}")               
@@ -108,6 +109,7 @@ class SplunkEnv(gym.Env):
         return reward
     
     def step(self, action):
+        self.current_action = action
         if self.step_counter == 1:
             self.reward_calculator.get_no_agent_reward(self.time_range)
         logger.debug(f"step number: {self.step_counter}")

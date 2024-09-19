@@ -51,7 +51,7 @@ do
                                 kwargs['model']="recurrentppo"
                                 kwargs['policy']="lstm"
                                 kwargs['additional_percentage']=$additional_percentage
-                                kwargs['span_size']=7200
+                                kwargs['span_size']=2 #7200
                                 #kwargs['fake_start_datetime']="05/03/2024:13:00:00"
                                 kwargs['search_window']=$search_window
 
@@ -64,9 +64,9 @@ do
                                 kwargs['beta']=$beta
                                 kwargs['gamma']=$gamma
                                 kwargs['learning_rate']=$learning_rate
-                                kwargs['reward_calculator_version']=11
-                                kwargs['state_strategy_version']=3
-                                kwargs['action_strategy_version']=1
+                                kwargs['reward_calculator_version']=12
+                                kwargs['state_strategy_version']=2
+                                kwargs['action_strategy_version']=2
 
                                 kwargs['env_name']="splunk_train-v"$env_name
                                 kwargs['num_of_episodes']=$train_episodes
