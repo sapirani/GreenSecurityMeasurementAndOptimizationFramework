@@ -11,6 +11,9 @@ class StateStrategy(ABC):
         self.real_logtype_distribution = None
         self.fake_logtype_distribution = None
         self.top_logtypes = top_logtypes
+        self.real_state = None
+        self.fake_state = None
+        self.diff_state = None
     
     @abstractmethod
     def create_state(self):
@@ -38,6 +41,9 @@ class StateStrategy(ABC):
         diff_state = [x/sum(diff_state) if sum(diff_state) != 0 else 1/len(diff_state) for x in diff_state]
         real_state = [x/real_total_sum if real_total_sum!= 0 else 1/len(real_state) for x in real_state]
         fake_state = [x/fake_total_sum if fake_total_sum != 0 else 1/len(fake_state) for x in fake_state]
+        self.real_state = real_state
+        self.fake_state = fake_state
+        self.diff_state = diff_state
         return real_state,fake_state, diff_state
     
     def update_distributions(self, real_distribution_dict, fake_logtypes_counter):

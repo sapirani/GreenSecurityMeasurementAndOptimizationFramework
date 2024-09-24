@@ -89,13 +89,11 @@ class SplunkEnv(gym.Env):
     def get_reward(self):
  
         logger.debug(self.done)
-        
-        fraction_real_distribution = [x/sum(self.real_distribution) if sum(self.real_distribution) != 0 else 1/len(self.real_distribution) for x in self.real_distribution ] #BUG WTF?
         if self.done:
-            reward = self.reward_calculator.get_full_reward(self.time_range, fraction_real_distribution, self.state, self.current_action)
+            reward = self.reward_calculator.get_full_reward(self.time_range, self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action)
         else:
             # reward = self.reward_calculator.get_previous_full_reward()
-            reward = self.reward_calculator.get_partial_reward(fraction_real_distribution, self.state, self.current_action)
+            reward = self.reward_calculator.get_partial_reward(self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action)
             
         self.reward_calculator.reward_dict['total'].append(reward)
         logger.info(f"total reward: {reward}")               
@@ -115,6 +113,7 @@ class SplunkEnv(gym.Env):
         logger.debug(f"step number: {self.step_counter}")
         time_range = self.dt_manager.get_time_range_action(self.action_duration)        
         self.action_strategy.perform_action(action, time_range)
+        logger.debug(f"Current time: {self.dt_manager.set_fake_current_datetime(time_range[-1])}") # dont remove!!
         if self.check_done():
             self.done = True
         self.update_state()   
@@ -167,7 +166,7 @@ class SplunkEnv(gym.Env):
         self.splunk_tools_instance.real_logtypes_counter = {}
         self.update_timerange()
         logger.debug(f"Current time: {self.dt_manager.set_fake_current_datetime(self.time_range[0])}") 
-        
+        self.action_strategy.reset()
         # self.reward_calculator.get_no_agent_reward(self.time_range)        
         
         return self.state 

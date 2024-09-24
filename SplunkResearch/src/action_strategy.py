@@ -25,10 +25,14 @@ class ActionStrategy(ABC):
 
     @abstractmethod
     def perform_action(self, env, action):
-        pass
+        pass 
     
     @abstractmethod
     def perform_act(self, time_range, i, istrigger, act):
+        pass
+    
+    @abstractmethod
+    def reset(self):
         pass
 
 class ActionStrategy0(ActionStrategy):
@@ -39,8 +43,14 @@ class ActionStrategy0(ActionStrategy):
 
     def create_action_space(self):
         return spaces.Box(low=0, high=self.action_upper_bound, shape=((len(self.relevant_logtypes)-1)*2+1,), dtype=np.float64)
-
+    
+    def preprocess_action(self, action):
+        return action
+    
     def perform_action(self, action, time_range):
+        logger.debug(f"performing action {action}")
+        logger.debug(f"Sum of action: {sum(action)}")
+        super().perform_action(action, time_range)
         for i, logtype in enumerate(self.relevant_logtypes):
             for istrigger in range(2):
                 act = action[i*2+istrigger]
@@ -65,6 +75,9 @@ class ActionStrategy0(ActionStrategy):
 
     def get_action_duration(self):
         return self.action_duration
+    
+    def reset(self):
+        self.current_episode_accumulated_action = np.zeros(((len(self.relevant_logtypes)-1)*2+1,))
 
 class ActionStrategy1(ActionStrategy0):
     def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator):
@@ -78,6 +91,7 @@ class ActionStrategy1(ActionStrategy0):
         return action
 
     def perform_action(self, action, time_range):
+        logger.debug(f"performing action {action}")
         action = self.preprocess_action(action)
         super().perform_action(action, time_range)
 
@@ -90,27 +104,8 @@ class ActionStrategy2(ActionStrategy0):
         pass
     
     def perform_action(self, action, time_range):
+        logger.debug(f"performing action {action}")
+        super().perform_action(action, time_range) 
         if sum(action) > 1:
             return
         super().perform_action(action, time_range)
-    
-# class ActionStrategy2(ActionStrategy):
-#     def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator):
-#         super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator)
-#         self.current_episode_accumulated_action = np.zeros(((len(self.relevant_logtypes)-1)*2+1,))
-    
-#     def create_action_space(self):
-#         # action is a tuple of (logtype, istrigger, act)
-#         return spaces.Tuple([spaces.Discrete(len(self.relevant_logtypes)), spaces.Discrete(2), spaces.Box(low=0, high=self.action_upper_bound, shape=(1,), dtype=np.float64)])
-    
-#     def perform_action(self, action, time_range):
-#         logtype, istrigger, act = action
-#         if logtype == len(self.relevant_logtypes)-1 and istrigger == 1:
-#             return
-#         logsource = self.relevant_logtypes[logtype][0].lower()
-#         eventcode = self.relevant_logtypes[logtype][1]
-#         absolute_act = int(act*self.step_size)
-#         self.current_episode_accumulated_action[logtype*2+istrigger] += absolute_act
-#         fake_logs = self.log_generator.generate_logs(logsource, eventcode, istrigger, time_range, absolute_act)
-#         self.splunk_tools_instance.write_logs_to_monitor(fake_logs, logsource)
-#         logger.debug(f"inserted {len(fake_logs)} logs of type {logsource} {eventcode} {istrigger}")

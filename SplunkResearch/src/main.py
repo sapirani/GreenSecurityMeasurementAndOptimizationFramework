@@ -9,7 +9,7 @@ import argparse
 def run_experiment(mode, **kwargs):
     try:
         # Define the base directory for experiments
-        base_dir = "experiments___"
+        base_dir = "experiments____"
         
         # Initialize the experiment manager
         experiment_manager = ExperimentManager(base_dir=base_dir, log_level=logging.DEBUG)

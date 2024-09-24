@@ -40,12 +40,17 @@ from stable_baselines3.common.logger import HParam
 from callbacks import *
 from datetime_manager import MockedDatetimeManager
 from splunk_tools import SplunkTools
-
+from stable_baselines3.common.distributions  import DirichletDistribution
+from policy import *
+# disable sb3 warning
+import warnings
+warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 model_names = {'a2c': A2C, 'ppo': PPO, 'dqn': DQN, 'recurrentppo': RecurrentPPO}
-policy_names = {'mlp': MlpPolicy, 'lstm': MlpLstmPolicy}
+policy_names = {'mlp': MlpPolicy, 'lstm': MlpLstmPolicy, "custommlp": CustomActor}
+
 # Dynamically find all reward calculator classes
 RewardCalc_classes = {}
 for name, obj in inspect.getmembers(sys.modules['reward_strategy'], inspect.isclass):
@@ -66,7 +71,7 @@ for name, obj in inspect.getmembers(sys.modules['action_strategy'], inspect.iscl
         
 class ExperimentManager:
     
-    def __init__(self, base_dir="experiments___", log_level=logging.INFO):
+    def __init__(self, base_dir="experiments____", log_level=logging.INFO):
         self.log_level = log_level
         self.base_dir = base_dir
         self.train_dir = os.path.join(self.base_dir, 'train')
@@ -238,8 +243,6 @@ class ExperimentManager:
         model_kwargs['tensorboard_log'] = self.train_tensorboard_dir
         model_kwargs['verbose'] = 1
         model_kwargs['stats_window_size'] = 5
-        model_kwargs["policy_kwargs"] = {"net_arch": [dict(pi=[64, 64], vf=[64, 64])]}
-        model_kwargs["max_grad_norm"] = 0.5  # Add this line for gradient clipping
         return model_object(**model_kwargs)
         
     def train_model(self, **kwargs):
@@ -301,10 +304,12 @@ class ExperimentManager:
     
     def get_model(self, kwargs, name, env, mode):
         if mode == 'train':
-            return self.setup_model(kwargs, env)
+            model = self.setup_model(kwargs, env)
         elif mode == 'eval' or mode == 'retrain':
             model_name = self.get_train_experiment_name(kwargs)
-            return self.load_model(kwargs, name, env, model_name, mode)
+            model = self.load_model(kwargs, name, env, model_name, mode)
+        # model.policy.action_dist = NormalizedDiagGaussianDistribution(int(np.prod(env.action_space.shape))) # DirichletDistribution(env.action_space.shape[0])
+        return model
 
     def load_model(self, kwargs, name, env, model_name, mode):
         if mode == 'eval':
@@ -325,7 +330,7 @@ class ExperimentManager:
             episode_reward = 0
             done = False
             while not done:
-                action, _states = model.predict(obs, deterministic=True)
+                action, _states = model.predict(obs, deterministic=False)
                 obs, reward, done, info = env.step(action)
                 episode_reward += reward
                 # callbacks.update_child_locals(locals())

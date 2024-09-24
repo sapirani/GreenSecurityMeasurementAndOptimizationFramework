@@ -15,8 +15,8 @@ saved_searches_path="/opt/splunk/etc/users/shouei/search/local/savedsearches.con
 # conda activate /home/shouei/anaconda3/envs/py38
 # which python
 echo $password | sudo -S sed -i 's/^max_searches_per_process = .*/max_searches_per_process = 1/' $limits_path
-train_episodes=100
-test_episodes=30
+train_episodes=50
+test_episodes=10
 # env_name=
 
 # test_experiment="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/exp_20240207_180124"
@@ -26,32 +26,34 @@ config_path="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/confi
 # greed search on learning rate alpha beta and gamma
 for env_name in 0 
 do
-    for learning_rate in 0.0005 #0.0001 #0.00001
+    for learning_rate in 0.0001 #0.0001 #0.00001
     do
-        for alpha in 0 #$(seq 0.1 0.5 1)
+        for model in ppo 
         do
-            for beta in 0.2 #$(seq 0.1 0.5 $(echo "1 - $alpha" | bc))
+            for state_strategy_version in 2 1 
             do
                 for search_window in 240
                 do
-                    for additional_percentage in 1 #1
+                    for additional_percentage in 0.2 #1
                     do
-                        for num_of_measurements in 5 
+                        for reward_calculator_version in 14
                         do
-                            for df in 0.991 #0.95 0.9
+                            for df in 0.95  #0.95 0.9
                             do
-                                for ent_coef in 0 #0.01
+                                for ent_coef in 0.01
                                 do
+                                alpha=0
+                                beta=0.2
                                 gamma=$(awk "BEGIN {print 1 - $alpha - $beta}")
                                 echo "learning_rate: $learning_rate, alpha: $alpha, beta: $beta, gamma: $gamma"
 
                                 declare -A kwargs
 
                                 # Add key-value pairs
-                                kwargs['model']="recurrentppo"
-                                kwargs['policy']="lstm"
+                                kwargs['model']=$model #"recurrentppo"
+                                kwargs['policy']="mlp" #"lstm"
                                 kwargs['additional_percentage']=$additional_percentage
-                                kwargs['span_size']=2 #7200
+                                kwargs['span_size']=120 #7200
                                 #kwargs['fake_start_datetime']="05/03/2024:13:00:00"
                                 kwargs['search_window']=$search_window
 
@@ -59,14 +61,14 @@ do
                                 kwargs['df']=$df
                                 kwargs['rule_frequency']=1
                                 kwargs['logs_per_minute']=300
-                                kwargs['num_of_measurements']=$num_of_measurements
+                                kwargs['num_of_measurements']=3
                                 kwargs['alpha']=$alpha
                                 kwargs['beta']=$beta
                                 kwargs['gamma']=$gamma
                                 kwargs['learning_rate']=$learning_rate
-                                kwargs['reward_calculator_version']=12
-                                kwargs['state_strategy_version']=2
-                                kwargs['action_strategy_version']=2
+                                kwargs['reward_calculator_version']=$reward_calculator_version
+                                kwargs['state_strategy_version']=$state_strategy_version
+                                kwargs['action_strategy_version']=1
 
                                 kwargs['env_name']="splunk_train-v"$env_name
                                 kwargs['num_of_episodes']=$train_episodes
