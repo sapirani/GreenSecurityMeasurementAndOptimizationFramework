@@ -31,22 +31,15 @@ class SplunkEnv(gym.Env):
         relevant_logtypes.append(('wineventlog:security', '4624'))
         self.relevant_logtypes = relevant_logtypes
         logger.info(f"relevant logtypes: {self.relevant_logtypes}")
-        
         num_of_searches = len(savedsearches)
         self.splunk_tools_instance  = SplunkTools(savedsearches, num_of_measurements, rule_frequency)
         self.log_generator = LogGenerator(relevant_logtypes, self.splunk_tools_instance)
-
-        
         self.search_window = search_window
         self.total_additional_logs = additional_percentage*logs_per_minute*self.search_window #//60    
-        self.action_duration = span_size #TODO change span_size to minutes
-        
+        self.action_duration = span_size #TODO change span_size to minutes 
         self.step_size = int((self.total_additional_logs//self.search_window)*self.action_duration//60)
         self.total_steps = self.search_window*60//self.action_duration
         logger.debug(f"total steps: {self.total_steps} action duration: {self.action_duration} step size: {self.step_size} total additional logs: {self.total_additional_logs}")
-        
-
-        
         # create the action space - a vector of size max_actions_value with values between 0 and 1
         self.action_strategy = action_strategy(self.relevant_logtypes, 1, self.step_size, self.action_duration, self.splunk_tools_instance, self.log_generator)
         self.action_space = self.action_strategy.create_action_space()
@@ -82,6 +75,10 @@ class SplunkEnv(gym.Env):
         # update_rules_frequency_and_time_range(self.splunk_tools_instance, time_range)
         self.reward_calculator = None
         self.num_of_searches = num_of_searches
+        
+                
+        # run the saved searches for warmup
+        self.splunk_tools_instance.run_saved_searches(time_range)
 
     def set_reward_calculator(self, reward_calculator):
         self.reward_calculator = reward_calculator
@@ -134,7 +131,7 @@ class SplunkEnv(gym.Env):
             fake_logtypes_counter[f"{logsource} {eventcode}"] = self.action_strategy.current_episode_accumulated_action[i*2]
             if i == len(self.relevant_logtypes)-1:
                 break
-            fake_logtypes_counter[f"{logsource} {eventcode}"] = self.action_strategy.current_episode_accumulated_action[i*2+1]
+            fake_logtypes_counter[f"{logsource} {eventcode}"] += self.action_strategy.current_episode_accumulated_action[i*2+1]
         return fake_logtypes_counter
     
     

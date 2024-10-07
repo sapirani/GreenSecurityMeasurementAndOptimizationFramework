@@ -36,6 +36,48 @@ from stable_baselines3.common.torch_layers import (
 )
 from sb3_contrib.common.recurrent.type_aliases import RNNStates
 
+
+from stable_baselines3.common.policies import BasePolicy
+
+class ManualPolicy(BasePolicy):
+    def __init__(self, action_dict, observation_space, action_space):
+        super().__init__(observation_space, action_space)
+        self.action = np.zeros(action_space.shape[0])
+        for key, value in action_dict.items():
+            self.action[key] = value
+
+    def _predict(self, observation, deterministic=False):
+        return self.action
+
+    def forward(self, obs):
+        # This method is required by BasePolicy but not used in manual policies
+        return self._predict(obs), None
+
+class TrainingEnv:
+    def __init__(self, envs):
+        self.envs = envs
+    
+class ManualPolicyModel:
+    def __init__(self, policy, env):
+        self.policy = policy
+        self.env = TrainingEnv(env)
+        
+    def get_env(self):
+        return self.env
+        
+    def predict(self, observation, state=None, episode_start=None, deterministic=False):
+        return self.policy._predict(observation), state
+
+    def save(self, path):
+        # Implement if you want to save manual policies
+        pass
+
+    def load(self, path):
+        # Implement if you want to load manual policies
+        pass
+
+
+
 class NormalizedDiagGaussianDistribution(DiagGaussianDistribution):
     def __init__(self, action_dim):
         super(NormalizedDiagGaussianDistribution, self).__init__(action_dim)

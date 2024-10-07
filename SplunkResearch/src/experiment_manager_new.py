@@ -67,7 +67,25 @@ for name, obj in inspect.getmembers(sys.modules['action_strategy'], inspect.iscl
     if issubclass(obj, ActionStrategy) and obj is not ActionStrategy:
         ActionStrategy_classes[name.split("ActionStrategy")[1]] = obj
 
-
+manual_policy_dict = {
+    '4663_0': {0:1},
+    '4663_1': {1:1},
+    '4732_0': {2:1},
+    '4732_1': {3:1},
+    '4769_0': {4:1},
+    '4769_1': {5:1},
+    '5140_0': {6:1},
+    '5140_1': {7:1},
+    '7036_0': {8:1},
+    '7036_1': {9:1},
+    '7040_0': {10:1},
+    '7040_1': {11:1},
+    '7045_0': {12:1},
+    '7045_1': {13:1},
+    '4624_0': {14:1},
+    'equal_1': {1:1/7, 3:1/7, 5:1/7, 7:1/7, 9:1/7, 11:1/7, 13:1/7},
+    'equal_0': {0:1/7, 2:1/7, 4:1/7, 6:1/7, 8:1/7, 10:1/7, 12:1/7, 14:1/7},
+}
         
 class ExperimentManager:
     
@@ -151,7 +169,7 @@ class ExperimentManager:
         """Sets up logging to write to the specified log file."""
         if mode == 'train':
             log_file = os.path.join(self.train_logs_dir, f"{name}.log")
-        elif mode == 'eval':
+        elif mode == 'eval' or mode == 'manual_policy_eval':
             log_file = os.path.join(self.eval_logs_dir, f"{name}.log")
         elif mode == 'retrain':
             log_file = os.path.join(self.retrain_model_logs_dir, f"{name}.log")
@@ -162,7 +180,11 @@ class ExperimentManager:
         """Sets up the environment for the experiment."""
         env_kwargs = {}
         env_kwargs['additional_percentage'] = kwargs['additional_percentage']
-        # env_kwargs['fake_start_datetime'] = kwargs['fake_start_datetime']
+        if 'fake_start_datetime' in kwargs:
+            # convert fake_start_datetime format
+            kwargs['fake_start_datetime'] = datetime.datetime.strptime(kwargs['fake_start_datetime'], '%Y-%m-%d %H:%M:%S')
+            kwargs['fake_start_datetime'] = kwargs['fake_start_datetime'].strftime('%m/%d/%Y:%H:%M:%S')
+            env_kwargs['fake_start_datetime'] = kwargs['fake_start_datetime']
         env_kwargs['rule_frequency'] = kwargs['rule_frequency']
         env_kwargs['span_size'] = kwargs['span_size']
         env_kwargs['logs_per_minute'] = kwargs['logs_per_minute']
@@ -219,11 +241,14 @@ class ExperimentManager:
     def get_train_experiment_name(self, kwargs):
         """Returns the name of the train experiment."""
         filtered_df = self.train_master.copy()
-        kwargs.pop('num_of_episodes')
         for key, value in kwargs.items():
             if key not in filtered_df.columns:
                 logger.error(f"Key: {key} not found in train_master.")
                 break
+            if key == 'env_name':
+                value = value.split('-v')[1]
+            if key == 'num_of_episodes':
+                continue                
             filtered_df = filtered_df[filtered_df[key].astype(str) == str(value)]
             if len(filtered_df) == 0:
                 raise ValueError(f"Key: {key} with value: {value} not found in train_master.")
@@ -247,24 +272,38 @@ class ExperimentManager:
         
     def train_model(self, **kwargs):
         """Trains a model."""
-        num_of_episodes, env, model, callback_list = self.prepare_experiment('train', kwargs)
+        env, model, callback_list = self.prepare_experiment('train', kwargs)
         name = kwargs['name']
-        model.learn(total_timesteps=env.total_steps*num_of_episodes, callback=callback_list, tb_log_name=name)
+        model.learn(total_timesteps=env.total_steps*kwargs['num_of_episodes'], callback=callback_list, tb_log_name=name)
         self.post_experiment('train', env, model, kwargs)
         return model
         
     def test_model(self, **kwargs):
         """Evaluates a model."""
-        num_episodes, env, model, callback_list = self.prepare_experiment('eval', kwargs)
-        episode_rewards = self.custom_evaluate_policy(model, env, callback_list, num_episodes=num_episodes)
+        env, model, callback_list = self.prepare_experiment('eval', kwargs)
+        episode_rewards = self.custom_evaluate_policy(model, env, callback_list, num_episodes=kwargs['num_of_episodes'])
         self.post_experiment('eval', env, model, kwargs)
         return episode_rewards
     
+    def manual_policy_eval(self, **kwargs):
+        """Evaluates a model."""
+        env, model, callback_list = self.prepare_experiment('manual_policy_eval', kwargs)
+        episode_rewards = self.custom_evaluate_policy(model, env, callback_list, num_episodes=kwargs['num_of_episodes'])
+        self.post_experiment('manual_policy_eval', env, model, kwargs)
+        return episode_rewards
+    
+    def get_fake_start_datetime(self, kwargs):
+        """Returns the fake start datetime."""
+        train_experiment_name = self.get_train_experiment_name(kwargs)
+        return self.train_master[self.train_master['name'] == train_experiment_name]['end_time'].values[0]
+    
     def retrain_model(self, **kwargs):
         """Retrains a model."""
-        num_of_episodes, env, model, callback_list = self.prepare_experiment('retrain', kwargs)
+        kwargs['fake_start_datetime'] = self.get_fake_start_datetime(kwargs)
+        env, model, callback_list = self.prepare_experiment('retrain', kwargs)
+        logger.info(f"Retraining model from datetime: {kwargs['fake_start_datetime']}")
         name = kwargs['name']
-        model.learn(total_timesteps=env.total_steps*num_of_episodes, callback=callback_list, tb_log_name=name)        
+        model.learn(total_timesteps=env.total_steps*kwargs['num_of_episodes'], callback=callback_list, tb_log_name=name)        
         self.retrain_master = self.update_master_tables(self.retrain_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), kwargs)        
         self.post_experiment('retrain', env, model, kwargs)        
         return model
@@ -281,19 +320,17 @@ class ExperimentManager:
         self.setup_logging(mode, name)
         logger.info(f"Preparing experiment with env kwargs: {kwargs}")
         env = self.setup_envionment(**kwargs)
-        kwargs['env_name'] = kwargs['env_name'].split('-v')[1]
-        num_of_episodes = kwargs['num_of_episodes']
         model = self.get_model(kwargs, name, env, mode)
         kwargs['name'] = name
         callback_list = CallbackList([TrainTensorboardCallback(experiment_kwargs=kwargs, verbose=3), HparamsCallback(experiment_kwargs=kwargs, verbose=3)])
-        return num_of_episodes, env, model, callback_list
+        return env, model, callback_list
     
     def post_experiment(self, mode, env, model, kwargs):
         """Post experiment actions."""
         if mode == 'train':
             self.train_master = self.update_master_tables(self.train_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), kwargs)
             model.save(os.path.join(self.models_dir, kwargs['name']))            
-        elif mode == 'eval':
+        elif mode == 'eval' or mode == 'manual_policy_eval':
             self.eval_master = self.update_master_tables(self.eval_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), kwargs)
         elif mode == 'retrain':
             self.retrain_master = self.update_master_tables(self.retrain_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), kwargs)
@@ -308,6 +345,10 @@ class ExperimentManager:
         elif mode == 'eval' or mode == 'retrain':
             model_name = self.get_train_experiment_name(kwargs)
             model = self.load_model(kwargs, name, env, model_name, mode)
+        elif mode == "manual_policy_eval":
+            model = ManualPolicyModel(ManualPolicy(manual_policy_dict[kwargs['policy']],env.observation_space, env.action_space), [env])
+            tb_logger = configure(os.path.join(self.eval_tensorboard_dir, name), ["stdout", "tensorboard"])
+            model.logger = tb_logger
         # model.policy.action_dist = NormalizedDiagGaussianDistribution(int(np.prod(env.action_space.shape))) # DirichletDistribution(env.action_space.shape[0])
         return model
 
@@ -344,28 +385,3 @@ class ExperimentManager:
     
 
 
-
-    
-    # def evaluate_custom_policy(self, env, callbacks, model, custom_policy, num_episodes=100):
-    #     episode_rewards = []
-    #     model.num_timesteps = 0
-    #     callbacks.init_callback(model)
-    #     callbacks.on_training_start(globals(), locals())
-    #     obs = env.reset()
-    #     for episode in range(num_episodes):
-    #         episode_reward = 0
-    #         done = False
-    #         while not done:
-    #             action = custom_policy
-    #             obs, reward, done, info = env.step(action)
-    #             episode_reward += reward
-    #             model.num_timesteps += 1
-    #             callbacks.on_step()
-    #         episode_rewards.append(episode_reward)
-    #         obs = env.reset()
-    #         callbacks.on_rollout_end()
-    #     callbacks.on_training_end()
-    #     return episode_rewards
-    
-    # def test_ideal_model(self, **kwargs):
-    #     """Evaluates a the env by using the ideal policy. perform experiment without agent. each experiment with max step size for each log type"""

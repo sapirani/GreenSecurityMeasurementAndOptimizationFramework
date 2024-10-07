@@ -52,7 +52,7 @@ class SplunkTools(object):
         self.rule_frequency = rule_frequency
         
         self._initialized = True
-    
+
     
     def get_num_of_searches(self):
         return len(self.active_saved_searches)
@@ -90,6 +90,7 @@ class SplunkTools(object):
         else:
             # Parse each line as JSON
             results = [json.loads(obj)['result'] for obj in json_objects]
+        logger.info(f'Query: {query} returned {results}')
         return results, mean_execution_time, std_execution_time
     
     def run_saved_searches(self, time_range):
