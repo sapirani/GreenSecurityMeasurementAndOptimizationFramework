@@ -793,3 +793,110 @@ class RewardStrategy17(RewardStrategy):
             return 5 * mean_duration_gap/no_agent_duration_val
         else:
             return 0
+class RewardStrategy18(RewardStrategy):
+    
+    def __init__(self,  dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
+
+
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+        return 0
+    
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
+        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        ###### Alert Component ######
+        self.reward_values_dict['alerts'].append(alert_val)
+        logger.info(f"alert value: {alert_val}")
+        ###### Duration Component ######
+        logger.info(f"duration value: {duration_val}")
+        self.reward_values_dict['duration'].append(duration_val)
+        # welch t test
+        n = self.splunk_tools.num_of_measurements
+        mean_duration_gap = (duration_val - no_agent_duration_val)
+        t = mean_duration_gap/np.sqrt((std_duration_val**2)/n + (no_agent_std_duration_val**2)/n)
+        self.reward_values_dict['t_values'].append(t)
+        degree_of_freedom = (std_duration_val**2/n + no_agent_std_duration_val**2/n)**2 / ((std_duration_val**2/n)**2/(n-1) + (no_agent_std_duration_val**2/n)**2/(n-1))
+        self.reward_values_dict['degrees_of_freedom'].append(degree_of_freedom)
+        p_value = 1 - stats.t.cdf(t, degree_of_freedom)
+        self.reward_values_dict['p_values'].append(p_value)
+        if p_value < 0.05:
+            duration_reward = (1 - p_value) * 1000
+        elif p_value > 0.05 and p_value < 0.1:
+            duration_reward = (1 - p_value) * 10
+        else:
+            duration_reward = -100 * p_value
+        self.reward_dict['duration'].append(duration_reward)
+        logger.info(f"t: {t}")
+        logger.info(f"p_value: {p_value}")
+        logger.info(f"degree_of_freedom: {degree_of_freedom}")
+        return duration_reward
+
+class RewardStrategy19(RewardStrategy):
+    
+    def __init__(self,  dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
+
+
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+        return 0
+    
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
+        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        ###### Alert Component ######
+        self.reward_values_dict['alerts'].append(alert_val)
+        logger.info(f"alert value: {alert_val}")
+        ###### Duration Component ######
+        logger.info(f"duration value: {duration_val}")
+        self.reward_values_dict['duration'].append(duration_val)
+        # welch t test
+        n = self.splunk_tools.num_of_measurements
+        mean_duration_gap = (duration_val - no_agent_duration_val)
+        t = mean_duration_gap/np.sqrt((std_duration_val**2)/n + (no_agent_std_duration_val**2)/n)
+        self.reward_values_dict['t_values'].append(t)
+        degree_of_freedom = (std_duration_val**2/n + no_agent_std_duration_val**2/n)**2 / ((std_duration_val**2/n)**2/(n-1) + (no_agent_std_duration_val**2/n)**2/(n-1))
+        self.reward_values_dict['degrees_of_freedom'].append(degree_of_freedom)
+        p_value = 1 - stats.t.cdf(t, degree_of_freedom)
+        self.reward_values_dict['p_values'].append(p_value)
+        duration_reward = 100000000000**(-p_value)
+        self.reward_dict['duration'].append(duration_reward)
+        logger.info(f"t: {t}")
+        logger.info(f"p_value: {p_value}")
+        logger.info(f"degree_of_freedom: {degree_of_freedom}")
+        return duration_reward
+    
+    
+class RewardStrategy20(RewardStrategy):
+    
+    def __init__(self,  dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
+
+
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+        return 0
+    
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
+        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        ###### Alert Component ######
+        self.reward_values_dict['alerts'].append(alert_val)
+        logger.info(f"alert value: {alert_val}")
+        ###### Duration Component ######
+        logger.info(f"duration value: {duration_val}")
+        self.reward_values_dict['duration'].append(duration_val)
+        # welch t test
+        n = self.splunk_tools.num_of_measurements
+        mean_duration_gap = (duration_val - no_agent_duration_val)
+        t = mean_duration_gap/np.sqrt((std_duration_val**2)/n + (no_agent_std_duration_val**2)/n)
+        self.reward_values_dict['t_values'].append(t)
+        degree_of_freedom = (std_duration_val**2/n + no_agent_std_duration_val**2/n)**2 / ((std_duration_val**2/n)**2/(n-1) + (no_agent_std_duration_val**2/n)**2/(n-1))
+        self.reward_values_dict['degrees_of_freedom'].append(degree_of_freedom)
+        p_value = 1 - stats.t.cdf(t, degree_of_freedom)
+        self.reward_values_dict['p_values'].append(p_value)
+        duration_reward = -np.log(p_value)
+        self.reward_dict['duration'].append(duration_reward)
+        logger.info(f"t: {t}")
+        logger.info(f"p_value: {p_value}")
+        logger.info(f"degree_of_freedom: {degree_of_freedom}")
+        return duration_reward

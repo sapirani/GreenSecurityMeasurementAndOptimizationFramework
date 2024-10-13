@@ -101,19 +101,20 @@ def save_data_to_csv(data, output_dir):
                     df.to_csv(filename, index=False)
                     print(f"Saved {run_name} - {phase} - {metric} data to {filename}")
 
-def aggregate_data(all_data, metric_to_aggregate, hparam_to_include):
+def aggregate_data(all_data, metric_to_aggregate, hparams_to_include):
     aggregated_data = []
     for run_name, run_data in all_data.items():
         if 'train' in run_data and metric_to_aggregate in run_data['train']:
             df = run_data['train'][metric_to_aggregate].copy()
             df['run_name'] = run_name
             
-            # Add the specified hparam value if it exists
-            if 'hparams' in run_data and hparam_to_include in run_data['hparams']:
-                df[hparam_to_include] = run_data['hparams'][hparam_to_include]
-            else:
-                df[hparam_to_include] = None
-            
+            for hparam_to_include in hparams_to_include:
+                # Add the specified hparam value if it exists
+                if 'hparams' in run_data and hparam_to_include in run_data['hparams']:
+                    df[hparam_to_include] = run_data['hparams'][hparam_to_include]
+                else:
+                    df[hparam_to_include] = None
+                
             aggregated_data.append(df)
     
     return pd.concat(aggregated_data, ignore_index=True)
@@ -126,6 +127,6 @@ tags_to_load = ["train/p_values", "train/duration_gap"]
 all_data = load_data_from_multiple_dirs(base_dir, tags=tags_to_load)
 save_data_to_csv(all_data, output_dir)
 
-# Aggregate and save hyperparameters
-aggregated_hparams = aggregate_data(all_data, 'train/duration_gap', 'policy')
-aggregated_hparams.to_csv(os.path.join(output_dir, 'aggregated_hparams.csv'), index=False)
+for metric in ["train/p_values", "train/duration_gap"]:
+    aggregated_data = aggregate_data(all_data, metric, ['policy', 'additional_percentage', "reward_calculator_version"])
+    aggregated_data.to_csv(os.path.join(output_dir, f"{metric.split('/')[-1]}.csv"), index=False)

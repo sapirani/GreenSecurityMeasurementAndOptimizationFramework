@@ -45,7 +45,7 @@ do
 
                             # Add key-value pairs
                             kwargs['policy']=$policy
-                            kwargs['additional_percentage']=1
+                            kwargs['additional_percentage']=0.2
                             kwargs['span_size']=3600 #450 
                             #kwargs['fake_start_datetime']="05/03/2024:13:00:00"
                             kwargs['search_window']=$search_window

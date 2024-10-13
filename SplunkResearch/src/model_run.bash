@@ -15,8 +15,8 @@ saved_searches_path="/opt/splunk/etc/users/shouei/search/local/savedsearches.con
 # conda activate /home/shouei/anaconda3/envs/py38
 # which python
 echo $password | sudo -S sed -i 's/^max_searches_per_process = .*/max_searches_per_process = 1/' $limits_path
-train_episodes=150
-test_episodes=10
+train_episodes=100
+test_episodes=20
 # env_name=
 
 # test_experiment="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/exp_20240207_180124"
@@ -26,23 +26,23 @@ config_path="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/confi
 # greed search on learning rate alpha beta and gamma
 for env_name in 0 
 do
-    for learning_rate in 0.0001 0.005 #0.00001
+    for learning_rate in 0.0001 #0.00001
     do
         for model in ppo a2c
         do
-            for state_strategy_version in 2 1
+            for state_strategy_version in 2
             do
                 for search_window in 120
                 do
-                    for additional_percentage in 1
+                    for additional_percentage in .2
                     do
-                        for reward_calculator_version in 16 13 11
+                        for reward_calculator_version in 20
                         do
                             for action_strategy_version in 1
                             do
-                                for df in 1 0.95 0.9
+                                for df in 0.99 0.96
                                 do
-                                    for ent_coef in 0 0.01
+                                    for ent_coef in 0.01
                                     do
                                         alpha=0
                                         beta=0.2
@@ -95,7 +95,6 @@ do
 
                                         echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $args
                                         wait
-
 
 
                                         echo $password | sudo -S -E env PATH="$PATH" chmod -R 777 ./experiments__/

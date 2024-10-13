@@ -328,6 +328,7 @@ class ExperimentManager:
     def post_experiment(self, mode, env, model, kwargs):
         """Post experiment actions."""
         if mode == 'train':
+            kwargs['env_name'] = kwargs['env_name'].split('-v')[1]
             self.train_master = self.update_master_tables(self.train_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), kwargs)
             model.save(os.path.join(self.models_dir, kwargs['name']))            
         elif mode == 'eval' or mode == 'manual_policy_eval':
@@ -371,7 +372,7 @@ class ExperimentManager:
             episode_reward = 0
             done = False
             while not done:
-                action, _states = model.predict(obs, deterministic=False)
+                action, _states = model.predict(obs, deterministic=True)
                 obs, reward, done, info = env.step(action)
                 episode_reward += reward
                 # callbacks.update_child_locals(locals())
