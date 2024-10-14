@@ -60,6 +60,11 @@ class ModularTensorboardCallback(BaseCallback):
         self._safe_log(f"{self.phase}/duration_reward", env.reward_calculator.reward_dict.get('duration', []))
         self._safe_log(f"{self.phase}/total_reward", env.reward_calculator.reward_dict.get('total', []))
         self._safe_log(f"{self.phase}/alert_val", env.reward_calculator.reward_values_dict.get('alerts', []))
+        self._safe_log(f"{self.phase}/alert_gap", env.reward_calculator.reward_values_dict.get('alerts', [])[-1] - no_agent_last_row['alert_values'].values[-1])
+        self._safe_log(f"{self.phase}/cpu_val", env.reward_calculator.reward_values_dict.get('cpu', []))
+        self._safe_log(f"{self.phase}/cpu_gap", env.reward_calculator.reward_values_dict.get('cpu', [])[-1] - no_agent_last_row['cpu_values'].values[-1])
+        self._safe_log(f"{self.phase}/disk_val", env.reward_calculator.reward_values_dict.get('disk', []))
+        self._safe_log(f"{self.phase}/disk_gap", env.reward_calculator.reward_values_dict.get('disk', [])[-1] - no_agent_last_row['disk_values'].values[-1])
         success = self._safe_log(f"{self.phase}/duration_val", env.reward_calculator.reward_values_dict.get('duration', []))
         if success:
             self.logger.record(f"{self.phase}/duration_gap", env.reward_calculator.reward_values_dict['duration'][-1] - no_agent_last_row['duration_values'].values[-1])   
@@ -83,6 +88,12 @@ class ModularTensorboardCallback(BaseCallback):
             self.logger.record(f"{self.phase}/rules_durations_gap",
                                {key.split('rule_duration_')[1]: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1]
                                 for key in no_agent_last_row.columns if key.startswith('rule_duration')})
+            self.logger.record(f"{self.phase}/rules_cpu_gap",
+                                 {key.split('rule_cpu_')[1]: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1]
+                                  for key in no_agent_last_row.columns if key.startswith('rule_cpu')})
+            self.logger.record(f"{self.phase}/rules_disk_gap",
+                                    {key.split('rule_disk_')[1]: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1]
+                                    for key in no_agent_last_row.columns if key.startswith('rule_disk')})
         # log episodic policy
         policy_dict = {}
         for i, logtype in enumerate(env.relevant_logtypes):

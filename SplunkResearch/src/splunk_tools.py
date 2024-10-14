@@ -3,6 +3,11 @@ import json
 import logging
 from multiprocessing import Pool
 import re
+import time
+import splunklib.client as client
+import splunklib.results as splunk_results
+import psutil
+
 import subprocess
 from dotenv import load_dotenv
 import os
@@ -50,7 +55,12 @@ class SplunkTools(object):
         self.num_of_measurements = num_of_measurements
         self.real_logtypes_counter = {}
         self.rule_frequency = rule_frequency
-        
+        self.service = client.connect(
+            host=self.splunk_host,
+            port=self.splunk_port,
+            username=self.splunk_username,
+            password=self.splunk_password
+        )
         self._initialized = True
 
     
@@ -58,52 +68,94 @@ class SplunkTools(object):
         return len(self.active_saved_searches)
     
     def query_splunk(self, query, earliest_time, latest_time):
-        url = f"{self.base_url}/services/search/jobs/export"
-        data = {
-            "search": "search "+query,
-            "exec_mode": "oneshot",
-            "earliest_time": earliest_time,
-            "latest_time": latest_time,
-            "output_mode": "json"
-        }
-        headers = {
-            "Content-Type": "application/json",
-        }
-        # measure running time of requests
+        query = f" search {query}"
         k = self.num_of_measurements
-        durations = []
+        results = []
+        execution_times = []
+        cpu_percents = []
+        disk_usages = []
         for i in range(k):
-            # subprocess.run(f'echo 1 > /proc/sys/vm/drop_caches', shell=True)
-            time_start = datetime.now()
-            response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
-            time_end = datetime.now()       
-            execution_time = (time_end - time_start)
-            durations.append(execution_time.total_seconds())
-        mean_execution_time = np.mean(durations)
-        std_execution_time = np.std(durations)
-        if response.status_code != 200:
-            logger.error(f'Error: {response}')
-            return None
-        json_objects = response.text.splitlines()
-        if 'result' not in json.loads(json_objects[0]):
+            logger.info(f'Meaurement {i+1}/{k} - Running query: {query}')
+            # Create a new search job
+            job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
+            process_cpu_percents = []
+            # A blocking call to wait for the job to finish    
+            while True:
+                job.refresh()
+                stats = job.content
+                pid = stats.get('pid', None)
+                if pid is not None:
+                    try:
+                        job.refresh()                        
+                        process = psutil.Process(int(pid))
+                        with process.oneshot():
+                            while process.is_running():
+                                job.refresh()
+                                process = psutil.Process(int(pid))
+                                stats = job.content
+                                # Extract relevant resource metrics
+                                scan_count = stats.get('scanCount', 0)
+                                event_count = stats.get('eventCount', 0)
+                                result_count = stats.get('resultCount', 0)
+                                disk_usage = stats.get('diskUsage', 0)
+                                run_duration = stats.get('runDuration', 0)
+                                cpu_num = psutil.cpu_count()                                
+                                cpu_percent = process.cpu_percent(interval=.1)/cpu_num
+                                cpu_times = process.cpu_times()
+                                memory_info = process.memory_info()
+                                io_counters = process.io_counters()
+                                process_cpu_percents.append(cpu_percent)
+                                
+                                time.sleep(0.01)
+                    except psutil.NoSuchProcess:
+                        logger.info(f"Process with PID {pid} does not exist.")
+                        break
+                    except psutil.AccessDenied:
+                        print(f"Access denied to process with PID {pid}.")
+                    
+            job.refresh()       
+            cpu_percents.append(np.mean(process_cpu_percents))
+            disk_usages.append(int(disk_usage))
+
+            # Extract the results
+            response = job.results(output_mode='json')
+            reader = splunk_results.JSONResultsReader(response)
+            # print("Raw response:", response.read())
+
+
             results = []
-        else:
-            # Parse each line as JSON
-            results = [json.loads(obj)['result'] for obj in json_objects]
-        logger.info(f'Query: {query} returned {results}')
-        return results, mean_execution_time, std_execution_time
+            for result in reader:
+                logger.info(result)
+                if isinstance(result, dict):
+                    results.append(result)
+            # Extract the execution time
+            execution_times.append(float(run_duration))
+
+        mean_execution_time = np.mean(execution_times)
+        std_execution_time = np.std(execution_times)
+        logger.info(f'Query: {query} - Mean execution time: {mean_execution_time} - Std execution time: {std_execution_time}')
+        logger.info(f'CPU percents: {cpu_percents}')
+        logger.info(f'Disk usages: {disk_usages}')
+        logger.info(f'Duration: {run_duration}')
+        mean_cpu_percent = np.mean(cpu_percents)
+        mean_disk_usage = np.mean(disk_usages)
+        return results, mean_execution_time, std_execution_time, mean_cpu_percent, mean_disk_usage
     
     def run_saved_searches(self, time_range):
         saved_searches = self.active_saved_searches
         mean_execution_times = []
         std_execution_times = []
+        mean_cpu_percents = []
+        mean_disk_usages = []
         results_list = []
         for saved_search in saved_searches:
-            results, mean_execution_time, std_execution_time = self.run_saved_search(saved_search, time_range)
+            results, mean_execution_time, std_execution_time, mean_cpu_percent, mean_disk_usage = self.run_saved_search(saved_search, time_range)
             mean_execution_times.append(mean_execution_time)
             std_execution_times.append(std_execution_time)
             results_list.append(results)
-        return results_list, mean_execution_times, std_execution_times, [saved_search['title'] for saved_search in saved_searches]
+            mean_cpu_percents.append(mean_cpu_percent)
+            mean_disk_usages.append(mean_disk_usage)
+        return results_list, mean_execution_times, std_execution_times, [saved_search['title'] for saved_search in saved_searches], mean_cpu_percents, mean_disk_usages
     
     def run_saved_search(self, saved_search, time_range):
         search_name = saved_search['title']
@@ -116,8 +168,8 @@ class SplunkTools(object):
         query = '|'.join(query)
         logger.info(f'Running saved search {search_name} with query: {query}')
         # clear machine cache
-        results, mean_execution_time, std_execution_time = self.query_splunk(query, earliest_time, latest_time)
-        return len(results), mean_execution_time, std_execution_time
+        results, mean_execution_time, std_execution_time, mean_cpu_percent, mean_disk_usage = self.query_splunk(query, earliest_time, latest_time)
+        return len(results), mean_execution_time, std_execution_time, mean_cpu_percent, mean_disk_usage
             
     def make_splunk_request(self, endpoint, method='get', params=None, data=None, headers=None):  
         url = f"{self.base_url}{endpoint}"  

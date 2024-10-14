@@ -36,11 +36,13 @@ def monitor_search_resources(host, port, username, password, search_query, durat
 
         if pid != 0:
             try:
-                process = psutil.Process(2327)
-                
+                process = psutil.Process(pid)
+                cpu_num = psutil.cpu_count()
                 
                 with process.oneshot():
                     while process.is_running():
+                        process = psutil.Process(pid)
+                        
                         job.refresh()
                         stats = job.content
                         # Extract relevant resource metrics
@@ -49,8 +51,8 @@ def monitor_search_resources(host, port, username, password, search_query, durat
                         result_count = stats.get('resultCount', 0)
                         disk_usage = stats.get('diskUsage', 0)
                         run_duration = stats.get('runDuration', 0)
-                        cpu_percent = process.cpu_percent(interval=.1)
-                        cpu_num = psutil.cpu_count()
+                        
+                        cpu_percent = process.cpu_percent(interval=.1)/cpu_num
                         cpu_times = process.cpu_times()
                         memory_info = process.memory_info()
                         io_counters = process.io_counters()
@@ -75,7 +77,6 @@ def monitor_search_resources(host, port, username, password, search_query, durat
                         # print(f"Network Out: {network_bytes_out} bytes")
                         print("---")
                         
-                        time.sleep(0.001)
             except psutil.NoSuchProcess:
                 return None
             except psutil.AccessDenied:
@@ -96,6 +97,6 @@ if __name__ == "__main__":
         username=os.getenv("SPLUNK_USERNAME"),
         password=os.getenv("SPLUNK_PASSWORD"),
         # search_query='search `wineventlog_security` EventCode=5140 ShareName IN("\\\\*\\ADMIN$","\\\\*\\C$","*\\\\*\\IPC$") AccessMask= 0x1  earliest=1717437600.0 latest=1717452000.0| stats min(_time) as firstTime max(_time) as lastTime count by ShareName SourceAddress ObjectType AccountName AccountDomain SourcePort AccessMask Computer | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `network_share_discovery_via_dir_command_filter`',
-        search_query='search `wineventlog_system` EventCode=7040  Message = "*service was changed from demand start to disabled."  earliest=1717408800.0 latest=1717416000.0| stats count min(_time) as firstTime max(_time) as lastTime by ComputerName EventCode Message User Sid service service_name | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `windows_event_for_service_disabled_filter`',
+        search_query='search `wineventlog_system` EventCode=7045 Service_Name IN ("SecurityCenterIBM", "WinCheckDRVs")  earliest=1714723200.0 latest=1714730400.0| stats count min(_time) as firstTime max(_time) as lastTime by dest EventCode Service_File_Name Service_Name Service_Start_Type Service_Type | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)` | `clop_ransomware_known_service_name_filter`',
         duration_minutes=3
     )

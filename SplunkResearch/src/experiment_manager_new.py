@@ -173,7 +173,7 @@ class ExperimentManager:
             log_file = os.path.join(self.eval_logs_dir, f"{name}.log")
         elif mode == 'retrain':
             log_file = os.path.join(self.retrain_model_logs_dir, f"{name}.log")
-        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s', filename=log_file)
+        logging.basicConfig(level=self.log_level, format='%(asctime)s - %(levelname)s - %(message)s', filename=log_file)
         
         
     def setup_envionment(self, **kwargs):

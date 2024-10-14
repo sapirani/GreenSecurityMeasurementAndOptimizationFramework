@@ -26,7 +26,7 @@ class RewardStrategy(ABC):
         self.epsilon = 0
         self.action_upper_bound = 1
         self.reward_dict = {'energy': [], 'alerts': [], 'distributions': [], 'duration': [], 'total': []}
-        self.reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'duration': [], "num_of_rules":[], "p_values":[], "t_values":[], "degrees_of_freedom":[]}
+        self.reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'duration': [], "num_of_rules":[], "p_values":[], "t_values":[], "degrees_of_freedom":[], "cpu":[], "disk":[]}
         self.dt_manager = dt_manager
         self.splunk_tools = splunk_tools
         self.rule_frequency = self.splunk_tools.rule_frequency
@@ -55,9 +55,13 @@ class RewardStrategy(ABC):
             alert_val = sum([relevant_row[col].values[0] for col in relevant_row.columns if col.startswith('rule_alert_')])
             duration_val = sum([relevant_row[col].values[0] for col in relevant_row.columns if col.startswith('rule_duration_')])
             std_duration_val = sum([relevant_row[col].values[0] for col in relevant_row.columns if col.startswith('rule_std_duration_')])
+            cpu_val = np.mean([relevant_row[col].values[0] for col in relevant_row.columns if col.startswith('rule_cpu_')])
+            disk_val = np.mean([relevant_row[col].values[0] for col in relevant_row.columns if col.startswith('rule_disk_')])
         else:
             logger.info('Measure no agent reward values')
-            alert_vals, duration_vals, std_duration_vals, saved_searches = self.splunk_tools.run_saved_searches(time_range)
+            alert_vals, duration_vals, std_duration_vals, saved_searches, mean_cpu_percents, mean_disk_usages = self.splunk_tools.run_saved_searches(time_range)
+            cpu_val = np.mean(mean_cpu_percents)
+            disk_val = np.mean(mean_disk_usages)
             alert_val = sum(alert_vals)
             duration_val = sum(duration_vals)
             std_duration_val = sum(std_duration_vals)
@@ -66,7 +70,9 @@ class RewardStrategy(ABC):
                                                                                   **{f"rule_alert_{saved_searches[i]}":[alert_vals[i]] for i in range(len(saved_searches))},
                                                                                   **{f"rule_duration_{saved_searches[i]}":[duration_vals[i]] for i in range(len(saved_searches))},
                                                                                   **{f"rule_std_duration_{saved_searches[i]}": [std_duration_vals[i]] for i in range(len(saved_searches))},
-                                                                                  'alert_values':[alert_val], 'duration_values':[duration_val], 'std_duration_values':[std_duration_val]})])
+                                                                                  **{f"rule_cpu_{saved_searches[i]}": [mean_cpu_percents[i]] for i in range(len(saved_searches))},
+                                                                                  **{f"rule_disk_{saved_searches[i]}": [mean_disk_usages[i]] for i in range(len(saved_searches))},
+                                                                                  'alert_values':[alert_val], 'duration_values':[duration_val], 'std_duration_values':[std_duration_val], 'cpu_values':[cpu_val], 'disk_values':[disk_val]})])
             random_val = np.random.randint(0, 10)
             if random_val % 3 == 0:
                 self.no_agent_values.to_csv(self.no_agent_table_path, index=False)
@@ -74,12 +80,17 @@ class RewardStrategy(ABC):
         self.no_agent_last_row = relevant_row
         logger.info(f"no agent alert value: {alert_val}")
         logger.info(f"no agent duration value: {duration_val}")
-        return alert_val, duration_val, std_duration_val
+        logger.info(f"no agent std duration value: {std_duration_val}")
+        logger.info(f"no agent cpu value: {cpu_val}")
+        logger.info(f"no agent disk value: {disk_val}")
+        return alert_val, duration_val, std_duration_val, cpu_val, disk_val
         
         
-    @abstractmethod
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        pass
+        alert_val, duration_val, std_duration_val, mean_cpu_percents, mean_disk_usages = self.get_duration_reward_values(time_range)
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = self.get_no_agent_reward(time_range)
+        return alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages
+    
     @abstractmethod
     def get_partial_reward(self, real_distribution, fake_distribution, current_action):
         pass
@@ -102,16 +113,20 @@ class RewardStrategy(ABC):
         return jensenshannon(dist1, dist2)#**2
     
     def get_duration_reward_values(self, time_range):
-        alert_vals, duration_vals, std_duration_vals, saved_searches = self.splunk_tools.run_saved_searches(time_range)
+        alert_vals, duration_vals, std_duration_vals, saved_searches, mean_cpu_percents, mean_disk_usages = self.splunk_tools.run_saved_searches(time_range)
         alert_val = sum(alert_vals)
         duration_val = sum(duration_vals)
         std_duration_val = sum(std_duration_vals)
+        cpu_val = np.mean(mean_cpu_percents)
+        disk_val = np.mean(mean_disk_usages)
         self.time_rules_energy.append({'time_range':str(time_range),
                                         **{f"rule_duration_{saved_searches[i]}":duration_vals[i] for i in range(len(saved_searches))}, 
                                         **{f"rule_alert_{saved_searches[i]}":alert_vals[i] for i in range(len(saved_searches))}, 
-                                        **{f"rule_std_duration_{saved_searches[i]}":std_duration_vals[i] for i in range(len(saved_searches))}})
+                                        **{f"rule_std_duration_{saved_searches[i]}":std_duration_vals[i] for i in range(len(saved_searches))},
+                                        **{f"rule_cpu_{saved_searches[i]}":mean_cpu_percents[i] for i in range(len(saved_searches))},
+                                        **{f"rule_disk_{saved_searches[i]}":mean_disk_usages[i] for i in range(len(saved_searches))}})
         
-        return alert_val, duration_val, std_duration_val
+        return alert_val, duration_val, std_duration_val, cpu_val, disk_val
     
     def get_hardware_reward_values(self, time_range):
         logger.info('wait til next rule frequency')
@@ -140,8 +155,8 @@ class RewardStrategy1(RewardStrategy):
 
 
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")
@@ -197,8 +212,8 @@ class RewardStrategy2(RewardStrategy):
 
 
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")
@@ -308,8 +323,8 @@ class RewardStrategy4(RewardStrategy):
 
 
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")
@@ -366,8 +381,8 @@ class RewardStrategy5(RewardStrategy):
 
 
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")
@@ -424,8 +439,8 @@ class RewardStrategy6(RewardStrategy):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")
@@ -447,8 +462,8 @@ class RewardStrategy7(RewardStrategy):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")       
@@ -469,8 +484,8 @@ class RewardStrategy8(RewardStrategy):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")       
@@ -492,8 +507,8 @@ class RewardStrategy9(RewardStrategy):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")       
@@ -517,8 +532,8 @@ class RewardStrategy10(RewardStrategy):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")
@@ -551,8 +566,8 @@ class RewardStrategy11(RewardStrategy):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")
@@ -609,8 +624,8 @@ class RewardStrategy13(RewardStrategy):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")
@@ -646,8 +661,8 @@ class RewardStrategy14(RewardStrategy):
         return distributions_reward
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         partial_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action)
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
@@ -683,8 +698,8 @@ class RewardStrategy15(RewardStrategy):
         return action_variance
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         partial_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action)
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
@@ -722,8 +737,8 @@ class RewardStrategy16(RewardStrategy):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")
@@ -762,8 +777,8 @@ class RewardStrategy17(RewardStrategy):
         return distributions_reward
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")
@@ -803,8 +818,8 @@ class RewardStrategy18(RewardStrategy):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")
@@ -842,14 +857,20 @@ class RewardStrategy19(RewardStrategy):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")
         ###### Duration Component ######
         logger.info(f"duration value: {duration_val}")
         self.reward_values_dict['duration'].append(duration_val)
+        ##### CPU Component ######
+        logger.info(f"mean cpu percents value: {mean_cpu_percents}")
+        self.reward_values_dict['cpu'].append(mean_cpu_percents)
+        ##### Disk Component ######
+        logger.info(f"mean disk usages value: {mean_disk_usages}")
+        self.reward_values_dict['disk'].append(mean_disk_usages)
         # welch t test
         n = self.splunk_tools.num_of_measurements
         mean_duration_gap = (duration_val - no_agent_duration_val)
@@ -877,8 +898,7 @@ class RewardStrategy20(RewardStrategy):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        alert_val, duration_val, std_duration_val = self.get_duration_reward_values(time_range)
-        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = self.get_no_agent_reward(time_range)
+        alert_val, duration_val, std_duration_val, no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, mean_cpu_percents, mean_disk_usages, no_agent_mean_cpu_percents, no_agent_mean_disk_usages = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")

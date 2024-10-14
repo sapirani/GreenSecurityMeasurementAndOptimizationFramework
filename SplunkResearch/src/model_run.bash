@@ -15,7 +15,7 @@ saved_searches_path="/opt/splunk/etc/users/shouei/search/local/savedsearches.con
 # conda activate /home/shouei/anaconda3/envs/py38
 # which python
 echo $password | sudo -S sed -i 's/^max_searches_per_process = .*/max_searches_per_process = 1/' $limits_path
-train_episodes=100
+train_episodes=150
 test_episodes=20
 # env_name=
 
@@ -36,7 +36,7 @@ do
                 do
                     for additional_percentage in .2
                     do
-                        for reward_calculator_version in 20
+                        for reward_calculator_version in 19
                         do
                             for action_strategy_version in 1
                             do
@@ -63,7 +63,7 @@ do
                                         kwargs['df']=$df
                                         kwargs['rule_frequency']=1
                                         kwargs['logs_per_minute']=300
-                                        kwargs['num_of_measurements']=6
+                                        kwargs['num_of_measurements']=4
                                         kwargs['alpha']=$alpha
                                         kwargs['beta']=$beta
                                         kwargs['gamma']=$gamma

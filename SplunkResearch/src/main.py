@@ -12,7 +12,7 @@ def run_experiment(mode, **kwargs):
         base_dir = "experiments_____"
         
         # Initialize the experiment manager
-        experiment_manager = ExperimentManager(base_dir=base_dir, log_level=logging.DEBUG)
+        experiment_manager = ExperimentManager(base_dir=base_dir, log_level=logging.INFO)
         
         # Call the appropriate method based on the mode
         if mode == 'train':
