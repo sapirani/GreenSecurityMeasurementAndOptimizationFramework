@@ -72,13 +72,15 @@ class SplunkTools(object):
         k = self.num_of_measurements
         results = []
         execution_times = []
-        cpu_percents = []
-        disk_usages = []
+        cpu_integral = []
+        io_metrics = []
+        interval = 0.1
         for i in range(k):
             logger.info(f'Meaurement {i+1}/{k} - Running query: {query}')
             # Create a new search job
             job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
             process_cpu_percents = []
+            io_counters_dict = {"read_chars": 0, "write_chars": 0, "read_count": 0, "write_count": 0, "read_bytes": 0, "write_bytes": 0}
             # A blocking call to wait for the job to finish    
             while True:
                 job.refresh()
@@ -100,13 +102,26 @@ class SplunkTools(object):
                                 disk_usage = stats.get('diskUsage', 0)
                                 run_duration = stats.get('runDuration', 0)
                                 cpu_num = psutil.cpu_count()                                
-                                cpu_percent = process.cpu_percent(interval=.1)/cpu_num
+                                cpu_percent = process.cpu_percent(interval=interval)
                                 cpu_times = process.cpu_times()
                                 memory_info = process.memory_info()
                                 io_counters = process.io_counters()
+                                read_chars = io_counters.read_chars
+                                write_chars = io_counters.write_chars
+                                read_count = io_counters.read_count
+                                write_count = io_counters.write_count
+                                read_bytes = io_counters.read_bytes
+                                write_bytes = io_counters.write_bytes
                                 process_cpu_percents.append(cpu_percent)
+                                io_counters_dict["read_chars"] += int(read_chars)
+                                io_counters_dict["write_chars"] +=int( write_chars)
+                                io_counters_dict["read_count"] += int(read_count)
+                                io_counters_dict["write_count"] +=int( write_count)
+                                io_counters_dict["read_bytes"] += int(read_bytes)
+                                io_counters_dict["write_bytes"] +=int( write_bytes)
                                 
-                                time.sleep(0.01)
+                                
+                                # time.sleep(0.01)
                     except psutil.NoSuchProcess:
                         logger.info(f"Process with PID {pid} does not exist.")
                         break
@@ -114,15 +129,13 @@ class SplunkTools(object):
                         print(f"Access denied to process with PID {pid}.")
                     
             job.refresh()       
-            cpu_percents.append(np.mean(process_cpu_percents))
-            disk_usages.append(int(disk_usage))
-
+            cpu_auc = np.trapz(process_cpu_percents, dx=interval)
+            cpu_integral.append(cpu_auc)
+            io_metrics.append(io_counters_dict)
+                       
             # Extract the results
             response = job.results(output_mode='json')
             reader = splunk_results.JSONResultsReader(response)
-            # print("Raw response:", response.read())
-
-
             results = []
             for result in reader:
                 logger.info(result)
@@ -131,32 +144,49 @@ class SplunkTools(object):
             # Extract the execution time
             execution_times.append(float(run_duration))
 
-        mean_execution_time = np.mean(execution_times)
-        std_execution_time = np.std(execution_times)
-        logger.info(f'Query: {query} - Mean execution time: {mean_execution_time} - Std execution time: {std_execution_time}')
-        logger.info(f'CPU percents: {cpu_percents}')
-        logger.info(f'Disk usages: {disk_usages}')
-        logger.info(f'Duration: {run_duration}')
-        mean_cpu_percent = np.mean(cpu_percents)
-        mean_disk_usage = np.mean(disk_usages)
-        return results, mean_execution_time, std_execution_time, mean_cpu_percent, mean_disk_usage
+        return results, execution_times, cpu_integral, io_metrics
     
     def run_saved_searches(self, time_range):
         saved_searches = self.active_saved_searches
         mean_execution_times = []
         std_execution_times = []
-        mean_cpu_percents = []
-        mean_disk_usages = []
+        cpu= []
+        std_cpu = []
         results_list = []
+        read_chars = []
+        write_chars = []
+        read_count = []
+        write_count = []
+        read_bytes = []
+        write_bytes = []
         for saved_search in saved_searches:
-            results, mean_execution_time, std_execution_time, mean_cpu_percent, mean_disk_usage = self.run_saved_search(saved_search, time_range)
+            results_len, mean_execution_time, std_execution_time, mean_cpu_integral, std_cpu_integrals, sum_read_chars, sum_write_chars, sum_read_count, sum_write_count, sum_read_bytes, sum_write_bytes = self.run_saved_search(saved_search, time_range)
             mean_execution_times.append(mean_execution_time)
             std_execution_times.append(std_execution_time)
-            results_list.append(results)
-            mean_cpu_percents.append(mean_cpu_percent)
-            mean_disk_usages.append(mean_disk_usage)
-        return results_list, mean_execution_times, std_execution_times, [saved_search['title'] for saved_search in saved_searches], mean_cpu_percents, mean_disk_usages
+            results_list.append(results_len)
+            cpu.append(mean_cpu_integral)
+            std_cpu.append(std_cpu_integrals)
+            read_chars.append(sum_read_chars)
+            write_chars.append(sum_write_chars)
+            read_count.append(sum_read_count)
+            write_count.append(sum_write_count)
+            read_bytes.append(sum_read_bytes)
+            write_bytes.append(sum_write_bytes)
+        return results_list, mean_execution_times, std_execution_times, [saved_search['title'] for saved_search in saved_searches], cpu, std_cpu, read_chars, write_chars, read_count, write_count, read_bytes, write_bytes
     
+    def query_metrics_combiner(self, results, execution_times, cpu_integral, io_metrics):
+        mean_execution_time = np.mean(execution_times)
+        std_execution_time = np.std(execution_times)
+        mean_cpu_integral = np.mean(cpu_integral)
+        std_cpu_integral = np.std(cpu_integral)
+        sum_read_chars = sum([io['read_chars'] for io in io_metrics])
+        sum_write_chars = sum([io['write_chars'] for io in io_metrics])
+        sum_read_count = sum([io['read_count'] for io in io_metrics])
+        sum_write_count = sum([io['write_count'] for io in io_metrics])
+        sum_read_bytes = sum([io['read_bytes'] for io in io_metrics])
+        sum_write_bytes = sum([io['write_bytes'] for io in io_metrics])
+        return len(results), mean_execution_time, std_execution_time, mean_cpu_integral, std_cpu_integral, sum_read_chars, sum_write_chars, sum_read_count, sum_write_count, sum_read_bytes, sum_write_bytes
+
     def run_saved_search(self, saved_search, time_range):
         search_name = saved_search['title']
         query = saved_search['search']
@@ -168,8 +198,8 @@ class SplunkTools(object):
         query = '|'.join(query)
         logger.info(f'Running saved search {search_name} with query: {query}')
         # clear machine cache
-        results, mean_execution_time, std_execution_time, mean_cpu_percent, mean_disk_usage = self.query_splunk(query, earliest_time, latest_time)
-        return len(results), mean_execution_time, std_execution_time, mean_cpu_percent, mean_disk_usage
+        results, execution_times, cpu_integral, io_metrics = self.query_splunk(query, earliest_time, latest_time)
+        return self.query_metrics_combiner(results, execution_times, cpu_integral, io_metrics)
             
     def make_splunk_request(self, endpoint, method='get', params=None, data=None, headers=None):  
         url = f"{self.base_url}{endpoint}"  

@@ -15,7 +15,7 @@ saved_searches_path="/opt/splunk/etc/users/shouei/search/local/savedsearches.con
 # conda activate /home/shouei/anaconda3/envs/py38
 # which python
 echo $password | sudo -S sed -i 's/^max_searches_per_process = .*/max_searches_per_process = 1/' $limits_path
-train_episodes=150
+train_episodes=200
 test_episodes=20
 # env_name=
 
@@ -24,7 +24,7 @@ test_experiment="last"
 config_path="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/config.json"
 
 # greed search on learning rate alpha beta and gamma
-for env_name in 0 
+for env_name in 0
 do
     for learning_rate in 0.0001 #0.00001
     do
@@ -36,7 +36,7 @@ do
                 do
                     for additional_percentage in .2
                     do
-                        for reward_calculator_version in 19
+                        for reward_calculator_version in 21
                         do
                             for action_strategy_version in 1
                             do
@@ -63,7 +63,7 @@ do
                                         kwargs['df']=$df
                                         kwargs['rule_frequency']=1
                                         kwargs['logs_per_minute']=300
-                                        kwargs['num_of_measurements']=4
+                                        kwargs['num_of_measurements']=5
                                         kwargs['alpha']=$alpha
                                         kwargs['beta']=$beta
                                         kwargs['gamma']=$gamma
@@ -81,7 +81,7 @@ do
                                         done
                                         echo $args
 
-                                        echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $args
+                                        echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" retrain $args
                                         wait
                                         
                                         kwargs['env_name']="splunk_eval-v"$env_name
