@@ -97,6 +97,7 @@ class ModularTensorboardCallback(BaseCallback):
         self.logger.record(f"{self.phase}/no_agent_rules_alerts", {col.split('rule_alert_')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_alert')})
         self.logger.record(f"{self.phase}/no_agent_rules_duration", {col.split('rule_duration_')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_duration')})
         self.logger.record(f"{self.phase}/no_agent_rules_std_duration", {col.split('rule_std_duration')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_std_duration')})
+        self.logger.record(f"{self.phase}/logs_amount", env.time_range_logs_amount[-1])
         
     
 

@@ -36,6 +36,7 @@ class SplunkEnv(gym.Env):
         self.log_generator = LogGenerator(relevant_logtypes, self.splunk_tools_instance)
         self.search_window = search_window
         self.total_additional_logs = additional_percentage*logs_per_minute*self.search_window #//60    
+        self.remainig_quota = self.total_additional_logs
         self.action_duration = span_size #TODO change span_size to minutes 
         self.step_size = int((self.total_additional_logs//self.search_window)*self.action_duration//60)
         self.total_steps = self.search_window*60//self.action_duration
@@ -75,10 +76,10 @@ class SplunkEnv(gym.Env):
         # update_rules_frequency_and_time_range(self.splunk_tools_instance, time_range)
         self.reward_calculator = None
         self.num_of_searches = num_of_searches
-        
+        self.time_range_logs_amount = []
                 
         # run the saved searches for warmup
-        self.splunk_tools_instance.run_saved_searches(time_range)
+        # self.splunk_tools_instance.run_saved_searches(time_range)
 
     def set_reward_calculator(self, reward_calculator):
         self.reward_calculator = reward_calculator
@@ -161,20 +162,27 @@ class SplunkEnv(gym.Env):
         self.real_distribution = np.zeros(len(self.top_logtypes))
         self.state = np.zeros(self.observation_space.shape)
         self.splunk_tools_instance.real_logtypes_counter = {}
-        self.update_timerange()
-        logger.debug(f"Current time: {self.dt_manager.set_fake_current_datetime(self.time_range[0])}") 
+        # create random date from the last 90 days
+        # time = self.dt_manager.get_random_datetime() 
+        # self.update_timerange(time)
+        # self.update_timerange(self.time_range[0])
+        self.update_timerange(self.time_range[1])
+        logger.info(f"Current time: {self.dt_manager.set_fake_current_datetime(self.time_range[0])}") 
         self.action_strategy.reset()
         # self.reward_calculator.get_no_agent_reward(self.time_range)        
-        
+        clean_env(self.splunk_tools_instance, self.time_range)
+        # get the amount of logs in the time range
+        self.time_range_logs_amount.append(self.splunk_tools_instance.get_logs_amount(self.time_range))
+        logger.info(f"Time range logs amount: {self.time_range_logs_amount[-1]}")
         return self.state 
 
-    def update_timerange(self):
+    def update_timerange(self, new_start_time):
         # new_start_time = self.time_range[1]
-        new_start_time = self.time_range[1]
+        # new_start_time = self.time_range[1]
         new_end_time = self.dt_manager.add_time(new_start_time, minutes=self.search_window)
-        logger.debug(f'current time_range: {self.time_range}')
+        logger.info(f'current time_range: {self.time_range}')
         self.time_range = (new_start_time, new_end_time)
-        logger.debug(f'new time_range: {self.time_range}')       
+        logger.info(f'new time_range: {self.time_range}')       
             
     def render(self, mode='human'):
         logger.info(f"Current state: {self.state}")

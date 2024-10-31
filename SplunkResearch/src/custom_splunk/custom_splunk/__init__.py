@@ -267,3 +267,32 @@ register(id=env_id,
                 'fake_start_datetime':fake_start_datetime,
                 'env_id':env_id
         })
+#######################################
+#######################################
+savedsearches = ["Windows Event For Service Disabled",
+                 "Detect New Local Admin account",
+                 "ESCU Network Share Discovery Via Dir Command Rule",
+                 "Known Services Killed by Ransomware",
+                 "Non Chrome Process Accessing Chrome Default Dir",
+                 "Kerberoasting spn request with RC4 encryption",
+                 "Clop Ransomware Known Service Name"]
+fake_start_datetime = "09/03/2023:13:00:00"
+env_id = "splunk_train-v2"
+register(id=env_id,
+        entry_point='custom_splunk.envs:SplunkEnv', 
+        kwargs={
+                'savedsearches':savedsearches,
+                'fake_start_datetime':fake_start_datetime,
+                'env_id':env_id
+        })
+#######################################
+#######################################
+fake_start_datetime = "09/03/2023:13:00:00"
+env_id = "splunk_eval-v2"
+register(id=env_id,
+        entry_point='custom_splunk.envs:SplunkEnv', 
+        kwargs={
+                'savedsearches':savedsearches,
+                'fake_start_datetime':fake_start_datetime,
+                'env_id':env_id
+        })

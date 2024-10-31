@@ -1,5 +1,6 @@
 import datetime
 import logging
+import random
 from unittest.mock import patch
 import time
 
@@ -46,7 +47,16 @@ class MockedDatetimeManager:
     def set_fake_current_datetime(self, fake_current_datetime):
         self.current_fake_time = datetime.datetime.strptime(fake_current_datetime, '%m/%d/%Y:%H:%M:%S') 
         return self.current_fake_time
-        
+    
+    def get_random_datetime(self):
+        # create a random datetime from last 90 days
+        random_dt =  datetime.datetime.now() - datetime.timedelta(days=90)
+        random_dt += datetime.timedelta(days=random.randint(0, 90))
+        random_dt += datetime.timedelta(hours=random.randint(0, 23))
+        random_dt += datetime.timedelta(minutes=random.randint(0, 59))
+        random_dt += datetime.timedelta(seconds=random.randint(0, 59))
+        return random_dt.strftime('%m/%d/%Y:%H:%M:%S')
+     
     def get_fake_current_datetime(self):
         return self.current_fake_time.strftime('%m/%d/%Y:%H:%M:%S')
         # with patch('datetime.datetime', MockedDatetime):

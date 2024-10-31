@@ -14,6 +14,7 @@ class StateStrategy(ABC):
         self.real_state = None
         self.fake_state = None
         self.diff_state = None
+        self.remainig_quota = 0
     
     @abstractmethod
     def create_state(self):
@@ -49,6 +50,9 @@ class StateStrategy(ABC):
     def update_distributions(self, real_distribution_dict, fake_logtypes_counter):
         self.real_logtype_distribution = real_distribution_dict
         self.fake_logtype_distribution = fake_logtypes_counter
+    
+    def update_quota(self, quota):
+        self.remainig_quota = quota
     
 class StateStrategy1(StateStrategy):
     def __init__(self, top_logtypes):
@@ -93,6 +97,18 @@ class StateStrategy4(StateStrategy):
     
     def create_state(self):
         self.observation_spaces = spaces.Box(low=0,high=1,shape=(len(self.top_logtypes)*2,),dtype=np.float64)
+        return self.observation_spaces
+    
+    def update_state(self):
+        real_state, fake_state, diff_state = super().update_state()
+        return np.array(real_state + fake_state)
+
+class StateStrategy5(StateStrategy):
+    def __init__(self, top_logtypes):
+        super().__init__(top_logtypes)
+    
+    def create_state(self):
+        self.observation_spaces = spaces.Box(low=-np.inf,high=np.inf,shape=(len(self.top_logtypes)+1,),dtype=np.float64)
         return self.observation_spaces
     
     def update_state(self):

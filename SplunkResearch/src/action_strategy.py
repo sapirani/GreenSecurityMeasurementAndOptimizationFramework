@@ -47,6 +47,9 @@ class ActionStrategy(ABC):
     def get_action_duration(self):
         return self.action_duration
     
+    def check_done(self):
+        pass
+    
     def reset(self):
         self.current_episode_accumulated_action = np.zeros(((len(self.relevant_logtypes)-1)*2+1,))
         
@@ -124,3 +127,25 @@ class ActionStrategy3(ActionStrategy):
         i = action[1]//2
         istrigger = action[1]%2
         self.perform_act(time_range, i, istrigger, act)
+        
+class ActionStrategy4(ActionStrategy0):
+    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator):
+        super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator)
+
+    def create_action_space(self):
+        return spaces.MultiBinary((len(self.relevant_logtypes)-1)*2+1)
+    
+    def preprocess_action(self, action):
+        return action
+    
+    def perform_action(self, action, time_range):
+        logger.debug(f"performing action {action}")
+        logger.debug(f"Sum of action: {sum(action)}")
+        super().perform_action(action, time_range)
+        for i, logtype in enumerate(self.relevant_logtypes):
+            for istrigger in range(2):
+                act = action[i*2+istrigger]
+                if act:
+                    self.perform_act(time_range, i, istrigger, self.step_size)
+                if i == len(self.relevant_logtypes)-1:
+                    break

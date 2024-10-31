@@ -15,7 +15,7 @@ saved_searches_path="/opt/splunk/etc/users/shouei/search/local/savedsearches.con
 # conda activate /home/shouei/anaconda3/envs/py38
 # which python
 echo $password | sudo -S sed -i 's/^max_searches_per_process = .*/max_searches_per_process = 1/' $limits_path
-train_episodes=200
+train_episodes=100
 test_episodes=20
 # env_name=
 
@@ -26,9 +26,9 @@ config_path="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/confi
 # greed search on learning rate alpha beta and gamma
 for env_name in 0
 do
-    for learning_rate in 0.0001 #0.00001
+    for learning_rate in 0.001 #0.00001
     do
-        for model in ppo a2c
+        for model in a2c
         do
             for state_strategy_version in 2
             do
@@ -38,11 +38,11 @@ do
                     do
                         for reward_calculator_version in 21
                         do
-                            for action_strategy_version in 1
+                            for action_strategy_version in 4
                             do
-                                for df in 0.99 0.96
+                                for df in 1
                                 do
-                                    for ent_coef in 0.01
+                                    for num_of_measurements in 2
                                     do
                                         alpha=0
                                         beta=0.2
@@ -59,11 +59,11 @@ do
                                         #kwargs['fake_start_datetime']="05/03/2024:13:00:00"
                                         kwargs['search_window']=$search_window
 
-                                        kwargs['ent_coef']=$ent_coef
+                                        kwargs['ent_coef']=0
                                         kwargs['df']=$df
                                         kwargs['rule_frequency']=1
                                         kwargs['logs_per_minute']=300
-                                        kwargs['num_of_measurements']=5
+                                        kwargs['num_of_measurements']=$num_of_measurements
                                         kwargs['alpha']=$alpha
                                         kwargs['beta']=$beta
                                         kwargs['gamma']=$gamma
@@ -81,7 +81,7 @@ do
                                         done
                                         echo $args
 
-                                        echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" retrain $args
+                                        echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $args
                                         wait
                                         
                                         kwargs['env_name']="splunk_eval-v"$env_name
