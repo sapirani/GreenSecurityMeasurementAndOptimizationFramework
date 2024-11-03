@@ -9,7 +9,7 @@ import ssl
 from dotenv import load_dotenv
 import os
 
-from state_strategy import *
+from strategies.state_strategy import *
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env')
 import datetime
 import os
@@ -31,8 +31,8 @@ urllib3.disable_warnings()
 from stable_baselines3.common.logger import configure
 from env_utils import *
 from measurement import Measurement
-from reward_strategy import *
-from action_strategy import *
+from strategies.reward_strategy import *
+from strategies.action_strategy import *
 from pathlib import Path
 import logging
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback, CallbackList
@@ -53,17 +53,17 @@ policy_names = {'mlp': MlpPolicy, 'lstm': MlpLstmPolicy, "custommlp": CustomActo
 
 # Dynamically find all reward calculator classes
 RewardCalc_classes = {}
-for name, obj in inspect.getmembers(sys.modules['reward_strategy'], inspect.isclass):
+for name, obj in inspect.getmembers(sys.modules['strategies.reward_strategy'], inspect.isclass):
     if issubclass(obj, RewardStrategy) and obj is not RewardStrategy:
         RewardCalc_classes[name.split("RewardStrategy")[1]] = obj
 logger.info(f"Loaded RewardCalc_classes: {RewardCalc_classes}")
 StateStrategy_classes = {}
-for name, obj in inspect.getmembers(sys.modules['state_strategy'], inspect.isclass):
+for name, obj in inspect.getmembers(sys.modules['strategies.state_strategy'], inspect.isclass):
     if issubclass(obj, StateStrategy) and obj is not StateStrategy:
         StateStrategy_classes[name.split("StateStrategy")[1]] = obj
 logger.info(f"Loaded StateStrategy_classes: {StateStrategy_classes}")
 ActionStrategy_classes = {}
-for name, obj in inspect.getmembers(sys.modules['action_strategy'], inspect.isclass):
+for name, obj in inspect.getmembers(sys.modules['strategies.action_strategy'], inspect.isclass):
     if issubclass(obj, ActionStrategy) and obj is not ActionStrategy:
         ActionStrategy_classes[name.split("ActionStrategy")[1]] = obj
 

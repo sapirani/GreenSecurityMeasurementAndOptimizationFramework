@@ -21,6 +21,20 @@ class StateStrategy(ABC):
         pass
     
     def update_state(self):
+        real_state, fake_state = self.get_abs_states()
+
+        real_total_sum = sum(real_state)
+        fake_total_sum = sum(fake_state)
+        diff_state = [x-y for x,y in zip(fake_state, real_state)]
+        diff_state = [x/sum(diff_state) if sum(diff_state) != 0 else 1/len(diff_state) for x in diff_state]
+        real_state = [x/real_total_sum if real_total_sum!= 0 else 1/len(real_state) for x in real_state]
+        fake_state = [x/fake_total_sum if fake_total_sum != 0 else 1/len(fake_state) for x in fake_state]
+        self.real_state = real_state
+        self.fake_state = fake_state
+        self.diff_state = diff_state
+        return real_state,fake_state, diff_state
+
+    def get_abs_states(self):
         real_state = []
         fake_state = []
         for i, logtype in enumerate(self.top_logtypes):
@@ -35,17 +49,7 @@ class StateStrategy(ABC):
                 fake_state.append(0)
             if logtype in self.fake_logtype_distribution:
                 fake_state[i] += self.fake_logtype_distribution[logtype]
-
-        real_total_sum = sum(real_state)
-        fake_total_sum = sum(fake_state)
-        diff_state = [x-y for x,y in zip(fake_state, real_state)]
-        diff_state = [x/sum(diff_state) if sum(diff_state) != 0 else 1/len(diff_state) for x in diff_state]
-        real_state = [x/real_total_sum if real_total_sum!= 0 else 1/len(real_state) for x in real_state]
-        fake_state = [x/fake_total_sum if fake_total_sum != 0 else 1/len(fake_state) for x in fake_state]
-        self.real_state = real_state
-        self.fake_state = fake_state
-        self.diff_state = diff_state
-        return real_state,fake_state, diff_state
+        return real_state,fake_state
     
     def update_distributions(self, real_distribution_dict, fake_logtypes_counter):
         self.real_logtype_distribution = real_distribution_dict
@@ -113,4 +117,4 @@ class StateStrategy5(StateStrategy):
     
     def update_state(self):
         real_state, fake_state, diff_state = super().update_state()
-        return np.array(real_state + fake_state)
+        return np.array(real_state + fake_state + [self.remainig_quota])

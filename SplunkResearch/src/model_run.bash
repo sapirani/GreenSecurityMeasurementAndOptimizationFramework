@@ -15,7 +15,7 @@ saved_searches_path="/opt/splunk/etc/users/shouei/search/local/savedsearches.con
 # conda activate /home/shouei/anaconda3/envs/py38
 # which python
 echo $password | sudo -S sed -i 's/^max_searches_per_process = .*/max_searches_per_process = 1/' $limits_path
-train_episodes=100
+train_episodes=1000
 test_episodes=20
 # env_name=
 
@@ -24,25 +24,25 @@ test_experiment="last"
 config_path="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/config.json"
 
 # greed search on learning rate alpha beta and gamma
-for env_name in 0
+for env_name in 1
 do
     for learning_rate in 0.001 #0.00001
     do
         for model in a2c
         do
-            for state_strategy_version in 2
+            for state_strategy_version in 5
             do
                 for search_window in 120
                 do
                     for additional_percentage in .2
                     do
-                        for reward_calculator_version in 21
+                        for reward_calculator_version in 22
                         do
-                            for action_strategy_version in 4
+                            for action_strategy_version in 5
                             do
                                 for df in 1
                                 do
-                                    for num_of_measurements in 2
+                                    for num_of_measurements in 3
                                     do
                                         alpha=0
                                         beta=0.2
@@ -55,7 +55,7 @@ do
                                         kwargs['model']=$model #"recurrentppo"
                                         kwargs['policy']="mlp" #"lstm"
                                         kwargs['additional_percentage']=$additional_percentage
-                                        kwargs['span_size']=240 #450 
+                                        kwargs['span_size']=7200
                                         #kwargs['fake_start_datetime']="05/03/2024:13:00:00"
                                         kwargs['search_window']=$search_window
 

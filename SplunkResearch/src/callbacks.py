@@ -22,7 +22,7 @@ urllib3.disable_warnings()
 from stable_baselines3.common.logger import configure
 from env_utils import *
 from measurement import Measurement
-from reward_strategy import *
+from strategies.reward_strategy import *
 
 import logging
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback, CallbackList
@@ -62,9 +62,10 @@ class ModularTensorboardCallback(BaseCallback):
         self._safe_log(f"{self.phase}/duration_reward", env.reward_calculator.reward_dict.get('duration', []))
         self._safe_log(f"{self.phase}/total_reward", env.reward_calculator.reward_dict.get('total', []))
         for metric in self.episodic_metrics:
-            success = self._safe_log(f"{self.phase}/{metric}", [env.reward_calculator.time_rules_energy[-1].get(metric, [])])
-            if success:
-                self._safe_log(f"{self.phase}/{metric}_gap", [env.reward_calculator.time_rules_energy[-1].get(metric, []) - no_agent_last_row[metric].values[-1]])
+            if len(env.reward_calculator.time_rules_energy):
+                success = self._safe_log(f"{self.phase}/{metric}", [env.reward_calculator.time_rules_energy[-1].get(metric, [])])
+                if success:
+                    self._safe_log(f"{self.phase}/{metric}_gap", [env.reward_calculator.time_rules_energy[-1].get(metric, []) - no_agent_last_row[metric].values[-1]])
         for metric in self.reward_values:
             self._safe_log(f"{self.phase}/{metric}", env.reward_calculator.reward_values_dict.get(metric, []))
 
@@ -73,12 +74,13 @@ class ModularTensorboardCallback(BaseCallback):
         for metric in self.episodic_metrics:
             for i, rule in enumerate(env.splunk_tools_instance.active_saved_searches):
                 rule = rule['title']
-                self.logger.record(f"{self.phase}/rules_{metric}", 
-                               {key.split(f'rule_{metric}_')[1]: env.reward_calculator.time_rules_energy[-1][key]
-                                for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith(f'rule_{metric}')})
-                self.logger.record(f"{self.phase}/rules_{metric}_gap", 
-                               {key.split(f'rule_{metric}_')[1]: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1]
-                                for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith(f'rule_{metric}')})
+                if len(env.reward_calculator.time_rules_energy):
+                    self.logger.record(f"{self.phase}/rules_{metric}", 
+                                {key.split(f'rule_{metric}_')[1]: env.reward_calculator.time_rules_energy[-1][key]
+                                    for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith(f'rule_{metric}')})
+                    self.logger.record(f"{self.phase}/rules_{metric}_gap", 
+                                {key.split(f'rule_{metric}_')[1]: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1]
+                                    for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith(f'rule_{metric}')})
                 
         # log episodic policy
         policy_dict = {}

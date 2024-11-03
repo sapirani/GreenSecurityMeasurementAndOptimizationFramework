@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 class ActionStrategy(ABC):
     @abstractmethod
-    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator):
+    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator, remaining_quota):
         self.relevant_logtypes = relevant_logtypes
         self.action_upper_bound = action_upper_bound
         self.step_size = step_size
@@ -15,7 +15,9 @@ class ActionStrategy(ABC):
         self.splunk_tools_instance = splunk_tools_instance
         self.log_generator = log_generator
         self.current_episode_accumulated_action = np.zeros(((len(self.relevant_logtypes)-1)*2+1,))
-
+        self.quota = remaining_quota
+        self.remaining_quota = remaining_quota
+        
     @abstractmethod
     def create_action_space(self):
         pass
@@ -35,11 +37,7 @@ class ActionStrategy(ABC):
         self.current_episode_accumulated_action[i*2+istrigger] += absolute_act
         fake_logs = self.log_generator.generate_logs(logsource, eventcode, istrigger,time_range, absolute_act)
         self.splunk_tools_instance.write_logs_to_monitor(fake_logs, logsource)
-        logger.debug(f"inserted {len(fake_logs)} logs of type {logsource} {eventcode} {istrigger}")
-    
-    @abstractmethod
-    def reset(self):
-        pass
+        logger.info(f"inserted {len(fake_logs)} logs of type {logsource} {eventcode} {istrigger}")
     
     def get_step_size(self):
         return self.step_size
@@ -47,15 +45,15 @@ class ActionStrategy(ABC):
     def get_action_duration(self):
         return self.action_duration
     
-    def check_done(self):
-        pass
     
     def reset(self):
         self.current_episode_accumulated_action = np.zeros(((len(self.relevant_logtypes)-1)*2+1,))
+        self.remaining_quota = self.quota
+        
         
 class ActionStrategy0(ActionStrategy):
-    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator):
-        super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator)
+    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota):
+        super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota)
 
 
     def create_action_space(self):
@@ -75,13 +73,13 @@ class ActionStrategy0(ActionStrategy):
                 if act:
                     self.perform_act(time_range, i, istrigger, absoulte_act)
                 if i == len(self.relevant_logtypes)-1:
-                    break
+                    return 0
 
 
 
 class ActionStrategy1(ActionStrategy0):
-    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator):
-        super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator)
+    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator, remaining_quota):
+        super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator, remaining_quota)
 
     def preprocess_action(self, action):
         action_norm_factor = sum(action)
@@ -95,22 +93,21 @@ class ActionStrategy1(ActionStrategy0):
         super().perform_action(action, time_range)
 
 class ActionStrategy2(ActionStrategy0):
-    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator):
-        super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator)
+    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota):
+        super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota)
     
     def preprocess_action(self, action):
         pass
     
     def perform_action(self, action, time_range):
         logger.debug(f"performing action {action}")
-        super().perform_action(action, time_range) 
         if sum(action) > 1:
-            return
+            return 1
         super().perform_action(action, time_range)
         
 class ActionStrategy3(ActionStrategy):
-    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator):
-        super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator)
+    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator, remaining_quota):
+        super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota)
 
 
     def create_action_space(self):
@@ -127,10 +124,11 @@ class ActionStrategy3(ActionStrategy):
         i = action[1]//2
         istrigger = action[1]%2
         self.perform_act(time_range, i, istrigger, act)
-        
-class ActionStrategy4(ActionStrategy0):
-    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator):
-        super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator)
+        return 0
+    
+class ActionStrategy4(ActionStrategy):
+    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota):
+        super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota)
 
     def create_action_space(self):
         return spaces.MultiBinary((len(self.relevant_logtypes)-1)*2+1)
@@ -148,4 +146,41 @@ class ActionStrategy4(ActionStrategy0):
                 if act:
                     self.perform_act(time_range, i, istrigger, self.step_size)
                 if i == len(self.relevant_logtypes)-1:
-                    break
+                    return 0
+
+class ActionStrategy5(ActionStrategy0):
+    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota):
+        super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota)
+    
+    def preprocess_action(self, action):
+        return action
+    
+    def perform_act(self, time_range, i, istrigger, absolute_act):
+        logtype = self.relevant_logtypes[i]
+        logsource = logtype[0].lower()
+        eventcode = logtype[1]
+        self.current_episode_accumulated_action[i*2+istrigger] += absolute_act
+        if self.remaining_quota >= 0:
+            fake_logs = self.log_generator.generate_logs(logsource, eventcode, istrigger,time_range, absolute_act)
+            self.splunk_tools_instance.write_logs_to_monitor(fake_logs, logsource)
+            logger.info(f"inserted {len(fake_logs)} logs of type {logsource} {eventcode} {istrigger}")
+        
+    def perform_action(self, action, time_range):
+        logger.info(f"performing action {action}")
+        logger.debug(f"Sum of action: {sum(action)}")
+        for i, logtype in enumerate(self.relevant_logtypes):
+            for istrigger in range(2):
+                act = action[i*2+istrigger]
+                absoulte_act = int(act*self.quota)
+                self.remaining_quota -= absoulte_act
+                
+                if act:
+                    self.perform_act(time_range, i, istrigger, absoulte_act)
+                if i == len(self.relevant_logtypes)-1:
+                    if sum(action) <= 1 and self.remaining_quota >= 0:
+                        return 0
+                    else:
+                        break
+        if self.remaining_quota < 0 or sum(action) > 1:
+            return 1
+

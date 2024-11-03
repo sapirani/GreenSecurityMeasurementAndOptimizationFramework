@@ -36,13 +36,13 @@ class SplunkEnv(gym.Env):
         self.log_generator = LogGenerator(relevant_logtypes, self.splunk_tools_instance)
         self.search_window = search_window
         self.total_additional_logs = additional_percentage*logs_per_minute*self.search_window #//60    
-        self.remainig_quota = self.total_additional_logs
+        self.remaining_quota = self.total_additional_logs
         self.action_duration = span_size #TODO change span_size to minutes 
         self.step_size = int((self.total_additional_logs//self.search_window)*self.action_duration//60)
         self.total_steps = self.search_window*60//self.action_duration
         logger.debug(f"total steps: {self.total_steps} action duration: {self.action_duration} step size: {self.step_size} total additional logs: {self.total_additional_logs}")
         # create the action space - a vector of size max_actions_value with values between 0 and 1
-        self.action_strategy = action_strategy(self.relevant_logtypes, 1, self.step_size, self.action_duration, self.splunk_tools_instance, self.log_generator)
+        self.action_strategy = action_strategy(self.relevant_logtypes, 1, self.step_size, self.action_duration, self.splunk_tools_instance, self.log_generator, self.remaining_quota)
         self.action_space = self.action_strategy.create_action_space()
         self.action_per_episode = []
         self.current_action = None
@@ -58,7 +58,7 @@ class SplunkEnv(gym.Env):
         self.state = np.zeros(self.observation_space.shape).tolist()
 
 
-
+        self.action_done = False
         self.done = False
         self.step_counter = 1
         self.action_upper_bound = 1
@@ -88,7 +88,7 @@ class SplunkEnv(gym.Env):
  
         logger.debug(self.done)
         if self.done:
-            reward = self.reward_calculator.get_full_reward(self.time_range, self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action)
+            reward = self.reward_calculator.get_full_reward(self.time_range, self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action, self.remaining_quota)
         else:
             # reward = self.reward_calculator.get_previous_full_reward()
             reward = self.reward_calculator.get_partial_reward(self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action)
@@ -110,7 +110,9 @@ class SplunkEnv(gym.Env):
             self.reward_calculator.get_no_agent_reward(self.time_range)
         logger.debug(f"step number: {self.step_counter}")
         time_range = self.dt_manager.get_time_range_action(self.action_duration)        
-        self.action_strategy.perform_action(action, time_range)
+        self.action_done = self.action_strategy.perform_action(action, time_range)
+        self.remaining_quota = self.action_strategy.remaining_quota
+        logger.info(f"Remaining quota: {self.remaining_quota}")
         logger.debug(f"Current time: {self.dt_manager.set_fake_current_datetime(time_range[-1])}") # dont remove!!
         if self.check_done():
             self.done = True
@@ -142,13 +144,15 @@ class SplunkEnv(gym.Env):
         real_logtypes_counter = self.splunk_tools_instance.get_real_distribution(previous_now, now)
         fake_logtypes_counter = self.get_fake_distribution()
         self.state_strategy.update_distributions(real_logtypes_counter, fake_logtypes_counter)
+        self.state_strategy.update_quota(self.remaining_quota)
         self.state = self.state_strategy.update_state()
         logger.info(f"state: {self.state}")
         return self.state
         
     def check_done(self):
         # Define the termination conditions based on the current state or other criteria
-        if self.step_counter == self.total_steps:
+        if self.step_counter == self.total_steps or self.action_done or self.remaining_quota == 0:
+            logger.info(f"done: {self.step_counter == self.total_steps} {self.action_done} {self.remaining_quota == 0}")
             return True
         else:
             return False
@@ -165,8 +169,10 @@ class SplunkEnv(gym.Env):
         # create random date from the last 90 days
         # time = self.dt_manager.get_random_datetime() 
         # self.update_timerange(time)
-        # self.update_timerange(self.time_range[0])
-        self.update_timerange(self.time_range[1])
+        if self.action_done:
+            self.update_timerange(self.time_range[0])
+        else:
+            self.update_timerange(self.time_range[1])
         logger.info(f"Current time: {self.dt_manager.set_fake_current_datetime(self.time_range[0])}") 
         self.action_strategy.reset()
         # self.reward_calculator.get_no_agent_reward(self.time_range)        
@@ -174,6 +180,8 @@ class SplunkEnv(gym.Env):
         # get the amount of logs in the time range
         self.time_range_logs_amount.append(self.splunk_tools_instance.get_logs_amount(self.time_range))
         logger.info(f"Time range logs amount: {self.time_range_logs_amount[-1]}")
+        self.remaining_quota = self.total_additional_logs
+        self.done = False
         return self.state 
 
     def update_timerange(self, new_start_time):

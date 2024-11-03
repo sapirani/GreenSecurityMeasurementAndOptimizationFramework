@@ -29,7 +29,6 @@ HEADERS = {
 PREFIX_PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/'
 import logging
 logger = logging.getLogger(__name__)
-
 class SplunkTools(object):
     _instance = None
 
@@ -80,13 +79,14 @@ class SplunkTools(object):
         for i in range(k):
             # clear cache before each measurement
             # subprocess.run(f'echo 1 > /proc/sys/vm/drop_caches', shell=True)
-            logger.info(f'Meaurement {i+1}/{k} - Running query: {query}')
-            # Create a new search job
-            job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
-            process_cpu_percents = []
-            io_counters_dict = {"read_chars": 0, "write_chars": 0, "read_count": 0, "write_count": 0, "read_bytes": 0, "write_bytes": 0}
-            # A blocking call to wait for the job to finish    
+
             while True:
+                logger.info(f'Meaurement {i+1}/{k} - Running query: {query}')
+                # Create a new search job
+                job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
+                process_cpu_percents = []
+                io_counters_dict = {"read_chars": 0, "write_chars": 0, "read_count": 0, "write_count": 0, "read_bytes": 0, "write_bytes": 0}
+                # A blocking call to wait for the job to finish    
                 job.refresh()
                 stats = job.content
                 pid = stats.get('pid', None)
@@ -97,10 +97,12 @@ class SplunkTools(object):
                         process = psutil.Process(int(pid))
                         found = True
                         with process.oneshot():
-                            while process.is_running():
+                            while (process.is_running() and not process.status() == 'sleeping') or job.content['isDone'] == '0':
+                                logger.debug(f"Process with PID {pid} is {process.status()}.")
                                 job.refresh()
-                                process = psutil.Process(int(pid))
                                 stats = job.content
+
+                                process = psutil.Process(int(pid))
                                 # Extract relevant resource metrics
                                 scan_count = stats.get('scanCount', 0)
                                 event_count = stats.get('eventCount', 0)
@@ -125,8 +127,23 @@ class SplunkTools(object):
                                 io_counters_dict["write_count"] +=int( write_count)
                                 io_counters_dict["read_bytes"] += int(read_bytes)
                                 io_counters_dict["write_bytes"] +=int( write_bytes)
-                                
-                                
+                                # print(f"Duration: {run_duration}")
+                                # print(f"CPU percent: {cpu_percent}")
+                                # print(f"CPU times: {cpu_times}")
+                                # print(f"Memory info: {memory_info}")
+                                # print(f"IO counters: {io_counters}")
+                                # print(f"Read chars: {read_chars}")
+                                # print(f"Write chars: {write_chars}")
+                                # print(f"Read count: {read_count}")
+                                # print(f"Write count: {write_count}")
+                                # print(f"Read bytes: {read_bytes}")
+                                # print(f"Write bytes: {write_bytes}")
+
+                        job.refresh()
+                        logger.info(f"Process with PID {pid} is {process.status()} isdone={job.content['isDone']}.")
+                        if job.content['isDone'] == '1':
+                            break
+
                                 # time.sleep(0.01)
                     except psutil.NoSuchProcess:
                         if found:
@@ -135,9 +152,9 @@ class SplunkTools(object):
                         else:
                             logger.info(f"Process with PID {pid} does not exist.")
                             job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
-                            print(f"Job was recreated.")
+                            logger.info(f"Job was recreated.")
                     except psutil.AccessDenied:
-                        print(f"Access denied to process with PID {pid}.")
+                        logger.info(f"Access denied to process with PID {pid}.")
                     
             job.refresh()       
             cpu_auc = np.trapz(process_cpu_percents, dx=interval)
@@ -146,7 +163,9 @@ class SplunkTools(object):
                        
             # Extract the results
             response = job.results(output_mode='json')
+            logger.info("Results:")
             reader = splunk_results.JSONResultsReader(response)
+            # reader = splunk_results.ResultsReader(job.results())
             results = []
             for result in reader:
                 logger.info(result)
@@ -155,6 +174,9 @@ class SplunkTools(object):
             # Extract the execution time
             execution_times.append(float(run_duration))
             # time.sleep(randint(1, 5)/5)
+            logger.info(f"Execution time: {run_duration}")
+            logger.info(f"CPU integral: {cpu_auc}")
+            logger.info(f"Aletrt count: {len(results)}")
         return results, execution_times, cpu_integral, io_metrics
     
     def run_saved_searches(self, time_range):

@@ -67,7 +67,7 @@ class RewardStrategy(ABC):
         return combined_rules_metrics
         
         
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
         return self.get_duration_reward_values(time_range), self.get_no_agent_reward(time_range)
     
     @abstractmethod
@@ -124,8 +124,8 @@ class RewardStrategy1(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
 
 
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
         ###### Alert Component ######
@@ -182,8 +182,8 @@ class RewardStrategy2(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
 
 
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
         ###### Alert Component ######
@@ -239,8 +239,8 @@ class RewardStrategy3(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
 
 
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
@@ -294,8 +294,8 @@ class RewardStrategy4(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
 
 
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
         ###### Alert Component ######
@@ -353,8 +353,8 @@ class RewardStrategy5(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
 
 
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
         ###### Alert Component ######
@@ -412,8 +412,8 @@ class RewardStrategy6(RewardStrategy):
     def get_partial_reward(self, real_distribution, fake_distribution, current_action):
         return 0
     
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
         ###### Alert Component ######
@@ -436,8 +436,8 @@ class RewardStrategy7(RewardStrategy):
     def get_partial_reward(self, real_distribution, fake_distribution, current_action):
         return 0
     
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
         ###### Alert Component ######
@@ -459,8 +459,8 @@ class RewardStrategy8(RewardStrategy):
     def get_partial_reward(self, real_distribution, fake_distribution, current_action):
         return 0
     
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
         ###### Alert Component ######
@@ -483,8 +483,8 @@ class RewardStrategy9(RewardStrategy):
     def get_partial_reward(self, real_distribution, fake_distribution, current_action):
         return 0
     
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
         ###### Alert Component ######
@@ -509,8 +509,8 @@ class RewardStrategy10(RewardStrategy):
     def get_partial_reward(self, real_distribution, fake_distribution, current_action):
         return 0
     
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
         ###### Alert Component ######
@@ -544,8 +544,8 @@ class RewardStrategy11(RewardStrategy):
     def get_partial_reward(self, real_distribution, fake_distribution, current_action):
         return 0
     
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
         ###### Alert Component ######
@@ -588,11 +588,11 @@ class RewardStrategy12(RewardStrategy11):
         else:
             return 0
     
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
         partial_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action)
         if partial_reward:
             return partial_reward
-        return super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+        return super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 class RewardStrategy13(RewardStrategy):
     
@@ -603,8 +603,8 @@ class RewardStrategy13(RewardStrategy):
     def get_partial_reward(self, real_distribution, fake_distribution, current_action):
         return 0
     
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
         ###### Alert Component ######
@@ -641,8 +641,8 @@ class RewardStrategy14(RewardStrategy):
         self.reward_dict['distributions'].append(distributions_reward)
         return distributions_reward
     
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
         partial_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action)
@@ -679,8 +679,8 @@ class RewardStrategy15(RewardStrategy):
         action_variance = np.var(current_action)
         return action_variance
     
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
         partial_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action)
@@ -719,8 +719,8 @@ class RewardStrategy16(RewardStrategy):
     def get_partial_reward(self, real_distribution, fake_distribution, current_action):
         return 0
     
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
         ###### Alert Component ######
@@ -760,8 +760,8 @@ class RewardStrategy17(RewardStrategy):
         self.reward_dict['distributions'].append(distributions_reward)
         return distributions_reward
     
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
         ###### Alert Component ######
@@ -802,8 +802,8 @@ class RewardStrategy18(RewardStrategy):
     def get_partial_reward(self, real_distribution, fake_distribution, current_action):
         return 0
     
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
         ###### Alert Component ######
@@ -842,8 +842,8 @@ class RewardStrategy19(RewardStrategy):
     def get_partial_reward(self, real_distribution, fake_distribution, current_action):
         return 0
     
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
         alert_val, duration_val, std_duration_val = values['alert'], values['duration'], values['std_duration']
         no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = no_agent_values['alert'], no_agent_values['duration'], no_agent_values['std_duration']
 
@@ -873,8 +873,8 @@ class RewardStrategy20(RewardStrategy):
     def get_partial_reward(self, real_distribution, fake_distribution, current_action):
         return 0
     
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
         alert_val, duration_val, std_duration_val = values['alerts'], values['duration'], values['std_duration']
         no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = no_agent_values['alerts'], no_agent_values['duration'], no_agent_values['std_duration']
 
@@ -909,8 +909,8 @@ class RewardStrategy21(RewardStrategy):
     def get_partial_reward(self, real_distribution, fake_distribution, current_action):
         return 0
     
-    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action):
-        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action)
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
         alert_val, duration_val, std_duration_val = values['alert'], values['duration'], values['std_duration']
         no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = no_agent_values['alert'], no_agent_values['duration'], no_agent_values['std_duration']
 
@@ -924,6 +924,40 @@ class RewardStrategy21(RewardStrategy):
         p_value = 1 - stats.t.cdf(t, degree_of_freedom)
         self.reward_values_dict['p_values'].append(p_value)
         duration_reward = -np.log10(20*p_value)
+        self.reward_dict['duration'].append(duration_reward)
+        logger.info(f"t: {t}")
+        logger.info(f"p_value: {p_value}")
+        logger.info(f"degree_of_freedom: {degree_of_freedom}")
+        return duration_reward
+
+class RewardStrategy22(RewardStrategy):
+    
+    def __init__(self,  dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma,  no_agent_table_path=no_agent_table_path)
+
+
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+        return 0
+    
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+        if remaining_quota < 0:
+            return -(remaining_quota**2)
+        
+        values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
+        alert_val, duration_val, std_duration_val = values['alert'], values['duration'], values['std_duration']
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = no_agent_values['alert'], no_agent_values['duration'], no_agent_values['std_duration']
+
+        # welch t test
+        n = self.splunk_tools.num_of_measurements
+        mean_duration_gap = (duration_val - no_agent_duration_val)
+        t = mean_duration_gap/np.sqrt((std_duration_val**2)/n + (no_agent_std_duration_val**2)/n)
+        self.reward_values_dict['t_values'].append(t)
+        degree_of_freedom = (std_duration_val**2/n + no_agent_std_duration_val**2/n)**2 / ((std_duration_val**2/n)**2/(n-1) + (no_agent_std_duration_val**2/n)**2/(n-1))
+        self.reward_values_dict['degrees_of_freedom'].append(degree_of_freedom)
+        p_value = 1 - stats.t.cdf(t, degree_of_freedom)
+        
+        self.reward_values_dict['p_values'].append(p_value)
+        duration_reward = 10 * ((1/p_value)**2)
         self.reward_dict['duration'].append(duration_reward)
         logger.info(f"t: {t}")
         logger.info(f"p_value: {p_value}")
