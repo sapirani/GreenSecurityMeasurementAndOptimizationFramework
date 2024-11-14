@@ -180,9 +180,9 @@ class ExperimentManager:
         """Sets up the environment for the experiment."""
         env_kwargs = {}
         env_kwargs['additional_percentage'] = kwargs['additional_percentage']
-        if 'fake_start_datetime' in kwargs:
+        if fake_start_datetime := kwargs.get('fake_start_datetime'):
             # convert fake_start_datetime format
-            kwargs['fake_start_datetime'] = datetime.datetime.strptime(kwargs['fake_start_datetime'], '%Y-%m-%d %H:%M:%S')
+            kwargs['fake_start_datetime'] = datetime.datetime.strptime(fake_start_datetime, '%Y-%m-%d %H:%M:%S')
             kwargs['fake_start_datetime'] = kwargs['fake_start_datetime'].strftime('%m/%d/%Y:%H:%M:%S')
             env_kwargs['fake_start_datetime'] = kwargs['fake_start_datetime']
         env_kwargs['rule_frequency'] = kwargs['rule_frequency']
@@ -239,6 +239,8 @@ class ExperimentManager:
         return os.path.join(self.no_agent_baseline_experiment_dir, f"{table_name}.csv")
     
     def get_train_experiment_name(self, kwargs):
+        if experiment_name := kwargs.get('experiment_name'):
+            return experiment_name
         """Returns the name of the train experiment."""
         filtered_df = self.train_master.copy()
         for key, value in kwargs.items():
@@ -268,6 +270,12 @@ class ExperimentManager:
         model_kwargs['tensorboard_log'] = self.train_tensorboard_dir
         model_kwargs['verbose'] = 1
         model_kwargs['stats_window_size'] = 5
+        model_kwargs['policy_kwargs'] = dict(
+                                        net_arch=dict(
+                                            pi=[128, 128, 64],    # 3 layers
+                                            vf=[128, 128, 64]
+                                        )
+                                    )
         return model_object(**model_kwargs)
         
     def train_model(self, **kwargs):
@@ -294,9 +302,13 @@ class ExperimentManager:
     
     def get_fake_start_datetime(self, kwargs):
         """Returns the fake start datetime."""
-        train_experiment_name = self.get_train_experiment_name(kwargs)
-        return self.train_master[self.train_master['name'] == train_experiment_name]['end_time'].values[0]
-    
+        try:
+            train_experiment_name = self.get_train_experiment_name(kwargs)
+            return self.train_master[self.train_master['name'] == train_experiment_name]['end_time'].values[0]
+        except Exception as e:
+            logger.warning(f"Error getting fake_start_datetime: {e}")
+            return None
+            
     def retrain_model(self, **kwargs):
         """Retrains a model."""
         kwargs['fake_start_datetime'] = self.get_fake_start_datetime(kwargs)
@@ -322,7 +334,7 @@ class ExperimentManager:
         env = self.setup_envionment(**kwargs)
         model = self.get_model(kwargs, name, env, mode)
         kwargs['name'] = name
-        callback_list = CallbackList([TrainTensorboardCallback(experiment_kwargs=kwargs, verbose=3), HparamsCallback(experiment_kwargs=kwargs, verbose=3)])
+        callback_list = CallbackList([TrainTensorboardCallback(experiment_kwargs=kwargs, verbose=3), HparamsCallback(experiment_kwargs=kwargs, verbose=3), SaveModelCallback(save_path=os.path.join(self.models_dir, kwargs['name']))])
         return env, model, callback_list
     
     def post_experiment(self, mode, env, model, kwargs):

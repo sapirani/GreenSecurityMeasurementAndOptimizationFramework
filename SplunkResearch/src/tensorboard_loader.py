@@ -5,7 +5,7 @@ import pandas as pd
 import os
 import glob
 
-def load_tensorboard_data(log_dir, phases=["train", "test"], tags=None):
+def load_tensorboard_data(log_dir, phases=["train"], tags=None):
     print(f"Loading data from: {log_dir}")
     ea = event_accumulator.EventAccumulator(log_dir, size_guidance={
         event_accumulator.TENSORS: 0,  # Load all tensors
@@ -76,6 +76,8 @@ def load_data_from_multiple_dirs(base_dir, tags=None):
     for log_dir in log_dirs:
         if os.path.isdir(log_dir):
             run_name = os.path.basename(log_dir)
+            if run_name in {"train_20241014_230426_1", "train_20241105_202344_1","train_20241106_190929_1"}:
+                continue
             print(f"\nProcessing run: {run_name}")
             run_data = load_tensorboard_data(log_dir, tags=tags)
             all_data[run_name] = run_data
@@ -86,6 +88,7 @@ def save_data_to_csv(data, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     for run_name, run_data in data.items():
         run_dir = os.path.join(output_dir, run_name)
+
         os.makedirs(run_dir, exist_ok=True)
         for phase, phase_data in run_data.items():
             if phase == 'hparams':
@@ -121,12 +124,12 @@ def aggregate_data(all_data, metric_to_aggregate, hparams_to_include):
 
 # Example usage
 # Example usage
-base_dir = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments_____/eval/tensorboard'
-output_dir = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments_____/processed_tesnorboard'
-tags_to_load = ["train/p_values", "train/duration_gap"]
+base_dir = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/best_experiments/tensorboard'
+output_dir = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/best_experiments/processed_tesnorboard'
+tags_to_load =  ["train/p_values", "train/duration_gap", "train/duration"]
 all_data = load_data_from_multiple_dirs(base_dir, tags=tags_to_load)
 save_data_to_csv(all_data, output_dir)
 
-for metric in ["train/p_values", "train/duration_gap"]:
-    aggregated_data = aggregate_data(all_data, metric, ['policy', 'additional_percentage', "reward_calculator_version"])
+for metric in tags_to_load:
+    aggregated_data = aggregate_data(all_data, metric, ["env_name"])
     aggregated_data.to_csv(os.path.join(output_dir, f"{metric.split('/')[-1]}.csv"), index=False)

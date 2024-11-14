@@ -15,7 +15,7 @@ saved_searches_path="/opt/splunk/etc/users/shouei/search/local/savedsearches.con
 # conda activate /home/shouei/anaconda3/envs/py38
 # which python
 echo $password | sudo -S sed -i 's/^max_searches_per_process = .*/max_searches_per_process = 1/' $limits_path
-train_episodes=1000
+train_episodes=50000
 test_episodes=20
 # env_name=
 
@@ -24,9 +24,9 @@ test_experiment="last"
 config_path="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/config.json"
 
 # greed search on learning rate alpha beta and gamma
-for env_name in 1
+for env_name in 5
 do
-    for learning_rate in 0.001 #0.00001
+    for learning_rate in 0.001
     do
         for model in a2c
         do
@@ -36,7 +36,7 @@ do
                 do
                     for additional_percentage in .2
                     do
-                        for reward_calculator_version in 22
+                        for reward_calculator_version in 24
                         do
                             for action_strategy_version in 5
                             do
@@ -55,7 +55,7 @@ do
                                         kwargs['model']=$model #"recurrentppo"
                                         kwargs['policy']="mlp" #"lstm"
                                         kwargs['additional_percentage']=$additional_percentage
-                                        kwargs['span_size']=7200
+                                        kwargs['span_size']=72
                                         #kwargs['fake_start_datetime']="05/03/2024:13:00:00"
                                         kwargs['search_window']=$search_window
 
@@ -81,20 +81,25 @@ do
                                         done
                                         echo $args
 
-                                        echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $args
-                                        wait
-                                        
-                                        kwargs['env_name']="splunk_eval-v"$env_name
-                                        kwargs['num_of_episodes']=$test_episodes
-                                        
-                                        args=""
-                                        for key in "${!kwargs[@]}"; do
-                                            args+="--$key ${kwargs[$key]} "
-                                        done
-                                        echo $args
+                                        # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" retrain $args
+                                        # wait
 
-                                        echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $args
-                                        wait
+                                        echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" train $args
+                                        
+                                        # ######################
+
+                                        # kwargs['experiment_name']="train_20241112_120658"
+                                        # kwargs['env_name']="splunk_eval-v"$env_name
+                                        # kwargs['num_of_episodes']=$test_episodes
+                                        
+                                        # args=""
+                                        # for key in "${!kwargs[@]}"; do
+                                        #     args+="--$key ${kwargs[$key]} "
+                                        # done
+                                        # echo $args
+
+                                        # echo $password | sudo -S -E env PATH="$PATH" python3 "$PYTHON_SCRIPT" test $args
+                                        # wait
 
 
                                         echo $password | sudo -S -E env PATH="$PATH" chmod -R 777 ./experiments__/

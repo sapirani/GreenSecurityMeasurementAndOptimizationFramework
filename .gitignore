@@ -21,3 +21,4 @@ config.json
 SplunkResearch/experiments*
 SplunkResearch/monitor_files/wineventlog:security.txt
 SplunkResearch/monitor_files/wineventlog:system.txt
+SplunkResearch/best_experiments

@@ -29,6 +29,17 @@ from stable_baselines3.common.callbacks import BaseCallback, EvalCallback, Callb
 from stable_baselines3.common.logger import HParam
 logger = logging.getLogger(__name__)
 
+class SaveModelCallback(BaseCallback):
+    def __init__(self, verbose=1, save_freq=500, save_path=None):
+        super(SaveModelCallback, self).__init__(verbose)
+        self.save_freq = save_freq
+        self.save_path = save_path
+
+    def _on_step(self) -> bool:
+        if self.n_calls % self.save_freq == 0:
+            self.model.save(self.save_path)
+        return True
+
 class ModularTensorboardCallback(BaseCallback):
     def __init__(self, verbose=1, phase="train", experiment_kwargs=None):
         super(ModularTensorboardCallback, self).__init__(verbose)
@@ -64,7 +75,7 @@ class ModularTensorboardCallback(BaseCallback):
         for metric in self.episodic_metrics:
             if len(env.reward_calculator.time_rules_energy):
                 success = self._safe_log(f"{self.phase}/{metric}", [env.reward_calculator.time_rules_energy[-1].get(metric, [])])
-                if success:
+                if success and no_agent_last_row is not None:
                     self._safe_log(f"{self.phase}/{metric}_gap", [env.reward_calculator.time_rules_energy[-1].get(metric, []) - no_agent_last_row[metric].values[-1]])
         for metric in self.reward_values:
             self._safe_log(f"{self.phase}/{metric}", env.reward_calculator.reward_values_dict.get(metric, []))
@@ -78,7 +89,8 @@ class ModularTensorboardCallback(BaseCallback):
                     self.logger.record(f"{self.phase}/rules_{metric}", 
                                 {key.split(f'rule_{metric}_')[1]: env.reward_calculator.time_rules_energy[-1][key]
                                     for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith(f'rule_{metric}')})
-                    self.logger.record(f"{self.phase}/rules_{metric}_gap", 
+                    if no_agent_last_row is not None:
+                        self.logger.record(f"{self.phase}/rules_{metric}_gap", 
                                 {key.split(f'rule_{metric}_')[1]: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1]
                                     for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith(f'rule_{metric}')})
                 
@@ -93,6 +105,8 @@ class ModularTensorboardCallback(BaseCallback):
 
     def log_no_agent_metrics(self, env, no_agent_last_row):
         # Log metrics related to no-agent scenario while safely checking list indices
+        if no_agent_last_row is None:
+            return
         self._safe_log(f"{self.phase}/no_agent_alert_val", no_agent_last_row.get('alert', []))
         self._safe_log(f"{self.phase}/no_agent_duration_val", no_agent_last_row.get('duration', []))
 
@@ -126,14 +140,15 @@ class TrainTensorboardCallback(ModularTensorboardCallback):
     def _on_rollout_end(self) -> None:
         env = self.training_env.envs[0]
         no_agent_last_row = env.reward_calculator.no_agent_last_row
+        self.log_no_agent_metrics(env, no_agent_last_row)
         self.log_detailed_metrics(env, no_agent_last_row)
 
     def _on_step(self) -> bool:
         env = self.training_env.envs[0]
         current_step = env.step_counter
-        if current_step == 2:
-            no_agent_last_row = env.reward_calculator.no_agent_last_row
-            self.log_no_agent_metrics(env, no_agent_last_row)
+        # if current_step == 2:
+        #     no_agent_last_row = env.reward_calculator.no_agent_last_row
+        #     self.log_no_agent_metrics(env, no_agent_last_row)
         self.log_common_metrics(env)
         self.logger.dump(self.num_timesteps)
         return True

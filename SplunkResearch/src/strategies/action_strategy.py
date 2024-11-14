@@ -30,12 +30,12 @@ class ActionStrategy(ABC):
     def perform_action(self, env, action):
         pass 
     
-    def perform_act(self, time_range, i, istrigger, absolute_act):
+    def perform_act(self, time_range, i, istrigger, absoulte_act):
         logtype = self.relevant_logtypes[i]
         logsource = logtype[0].lower()
         eventcode = logtype[1]
-        self.current_episode_accumulated_action[i*2+istrigger] += absolute_act
-        fake_logs = self.log_generator.generate_logs(logsource, eventcode, istrigger,time_range, absolute_act)
+        self.current_episode_accumulated_action[i*2+istrigger] += absoulte_act
+        fake_logs = self.log_generator.generate_logs(logsource, eventcode, istrigger,time_range, absoulte_act)
         self.splunk_tools_instance.write_logs_to_monitor(fake_logs, logsource)
         logger.info(f"inserted {len(fake_logs)} logs of type {logsource} {eventcode} {istrigger}")
     
@@ -155,26 +155,29 @@ class ActionStrategy5(ActionStrategy0):
     def preprocess_action(self, action):
         return action
     
-    def perform_act(self, time_range, i, istrigger, absolute_act):
+    def perform_act(self, time_range, i, istrigger, absoulte_act):
         logtype = self.relevant_logtypes[i]
         logsource = logtype[0].lower()
         eventcode = logtype[1]
-        self.current_episode_accumulated_action[i*2+istrigger] += absolute_act
         if self.remaining_quota >= 0:
-            fake_logs = self.log_generator.generate_logs(logsource, eventcode, istrigger,time_range, absolute_act)
+            fake_logs = self.log_generator.generate_logs(logsource, eventcode, istrigger,time_range, absoulte_act)
             self.splunk_tools_instance.write_logs_to_monitor(fake_logs, logsource)
             logger.info(f"inserted {len(fake_logs)} logs of type {logsource} {eventcode} {istrigger}")
         
     def perform_action(self, action, time_range):
         logger.info(f"performing action {action}")
         logger.debug(f"Sum of action: {sum(action)}")
+        # if self.remaining_quota - self.quota * sum(action) < 0:
+        #     self.remaining_quota -= self.quota * sum(action)
+        #     return 1
         for i, logtype in enumerate(self.relevant_logtypes):
             for istrigger in range(2):
                 act = action[i*2+istrigger]
                 absoulte_act = int(act*self.quota)
                 self.remaining_quota -= absoulte_act
+                self.current_episode_accumulated_action[i*2+istrigger] += absoulte_act
                 
-                if act:
+                if act and sum(action) <= 1 and self.remaining_quota >= 0:
                     self.perform_act(time_range, i, istrigger, absoulte_act)
                 if i == len(self.relevant_logtypes)-1:
                     if sum(action) <= 1 and self.remaining_quota >= 0:
@@ -183,4 +186,5 @@ class ActionStrategy5(ActionStrategy0):
                         break
         if self.remaining_quota < 0 or sum(action) > 1:
             return 1
+
 

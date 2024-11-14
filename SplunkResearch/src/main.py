@@ -61,6 +61,7 @@ if __name__ == "__main__":
     parser.add_argument('--logs_per_minute', type=int, default=300, help="Logs per minute, default is 300.")
     parser.add_argument('--num_of_measurements', type=int, default=1, help="Number of measurements, default is 1.")
     parser.add_argument('--search_window', type=int, default=1, help="Search window, default is 1.")
+    parser.add_argument('--experiment_name', type=str, help="Experiment name.")
 
     # Parse the arguments
     args = parser.parse_args()

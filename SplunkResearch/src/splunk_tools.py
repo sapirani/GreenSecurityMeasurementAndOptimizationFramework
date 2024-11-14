@@ -52,16 +52,24 @@ class SplunkTools(object):
         self.hec_token2 = os.getenv('HEC_TOKEN2')
         self.auth = requests.auth.HTTPBasicAuth(self.splunk_username, self.splunk_password)
         self.real_logs_distribution = pd.DataFrame(data=None, columns=['source', 'EventCode', '_time', 'count'])
-        self.active_saved_searches = self.get_saved_search_names(active_saved_searches)
-        self.num_of_measurements = num_of_measurements
-        self.real_logtypes_counter = {}
-        self.rule_frequency = rule_frequency
-        self.service = client.connect(
-            host=self.splunk_host,
-            port=self.splunk_port,
-            username=self.splunk_username,
-            password=self.splunk_password
-        )
+
+        while True:
+            try:
+                self.active_saved_searches = self.get_saved_search_names(active_saved_searches)
+                self.num_of_measurements = num_of_measurements
+                self.real_logtypes_counter = {}
+                self.rule_frequency = rule_frequency
+                self.service = client.connect(
+                    host=self.splunk_host,
+                    port=self.splunk_port,
+                    username=self.splunk_username,
+                    password=self.splunk_password,
+                    autologin=True
+                )
+                break
+            except Exception as e:
+                logger.error(f'Failed to connect to Splunk: {str(e)}')
+                time.sleep(5)
         self._initialized = True
 
     
@@ -89,15 +97,27 @@ class SplunkTools(object):
                 # A blocking call to wait for the job to finish    
                 job.refresh()
                 stats = job.content
+                logger.info(f"Job status: {stats['isDone']}")
                 pid = stats.get('pid', None)
+                if pid is None:
+                    while pid is None:
+                        job.refresh()
+                        stats = job.content
+                        pid = stats.get('pid', None)
+                        if pid is not None or stats['isDone'] == '1':
+                            break
+                        time.sleep(0.1)
+                logger.info(f"PID: {pid}")
                 if pid is not None:
                     found = False
                     try:
                         job.refresh()                        
                         process = psutil.Process(int(pid))
+                        logger.info(f"Process with PID {pid} is {process.status()}.")
                         found = True
                         with process.oneshot():
-                            while (process.is_running() and not process.status() == 'sleeping') or job.content['isDone'] == '0':
+                            # while (process.is_running() and not process.status() == 'sleeping') or job.content['isDone'] == '0':
+                            while process.is_running() and job.content['isDone'] == '0':
                                 logger.debug(f"Process with PID {pid} is {process.status()}.")
                                 job.refresh()
                                 stats = job.content
@@ -138,11 +158,12 @@ class SplunkTools(object):
                                 # print(f"Write count: {write_count}")
                                 # print(f"Read bytes: {read_bytes}")
                                 # print(f"Write bytes: {write_bytes}")
-
+                                time.sleep(interval)
                         job.refresh()
                         logger.info(f"Process with PID {pid} is {process.status()} isdone={job.content['isDone']}.")
                         if job.content['isDone'] == '1':
                             break
+                        time.sleep(0.1)
 
                                 # time.sleep(0.01)
                     except psutil.NoSuchProcess:
@@ -176,7 +197,7 @@ class SplunkTools(object):
             # time.sleep(randint(1, 5)/5)
             logger.info(f"Execution time: {run_duration}")
             logger.info(f"CPU integral: {cpu_auc}")
-            logger.info(f"Aletrt count: {len(results)}")
+            logger.info(f"Alert count: {len(results)}")
         return results, execution_times, cpu_integral, io_metrics
     
     def run_saved_searches(self, time_range):
@@ -325,9 +346,15 @@ class SplunkTools(object):
                 end_date_time_file = datetime.strptime(f"{end_date_file} {end_time_file}", '%Y-%m-%d %H-%M-%S').timestamp()
                 if start_date_time_file <= ts_start_time and end_date_time_file >= ts_end_time:
                     self.real_logs_distribution = pd.read_csv(f'{PREFIX_PATH}resources/output_buckets/{file}')
-                    self.real_logs_distribution['_time'] = pd.to_datetime(self.real_logs_distribution['_time'], format='%Y-%m-%d %H:%M:%S%z')
-                    self.real_logs_distribution['_time'] = self.real_logs_distribution['_time'].dt.tz_localize(None)
-                    return
+                    self.real_logs_distribution['_time'] = pd.to_datetime(self.real_logs_distribution['_time'], format='%Y-%m-%d %H:%M:%S%z', errors='coerce')
+                    try:
+                        if self.real_logs_distribution['_time'].isnull().sum() > 0:
+                            self.real_logs_distribution = self.real_logs_distribution.dropna(subset=['_time'])
+                        self.real_logs_distribution['_time'] = self.real_logs_distribution['_time'].dt.tz_localize(None)
+                        return
+                    except Exception as e:
+                        logger.info(f'Error: {str(e)}')
+                        logger.info(self.real_logs_distribution.head())
             self.create_new_distribution_bucket(ts_start_time, ts_end_time)
 
     def create_new_distribution_bucket(self, start_time, end_time):
@@ -357,7 +384,11 @@ class SplunkTools(object):
         self.real_logs_distribution = pd.DataFrame(results, index=None)
         self.real_logs_distribution.to_csv(f'{PREFIX_PATH}resources/output_buckets/{file}')
         self.real_logs_distribution['_time'] = pd.to_datetime(self.real_logs_distribution['_time'], format='%Y-%m-%d %H:%M:%S%z')
-        self.real_logs_distribution['_time'] = self.real_logs_distribution['_time'].dt.tz_localize(None)
+        try:
+            self.real_logs_distribution['_time'] = self.real_logs_distribution['_time'].dt.tz_localize(None)
+        except Exception as e:
+            logger.info(f'Error: {str(e)}')
+            logger.info(self.real_logs_distribution.head())
         
                              
     def get_releveant_distribution(self, start_time, end_time):
