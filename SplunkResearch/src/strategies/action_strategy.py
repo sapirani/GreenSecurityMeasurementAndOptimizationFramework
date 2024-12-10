@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import time
 import gym
 from gym import spaces
 import numpy as np
@@ -17,6 +18,7 @@ class ActionStrategy(ABC):
         self.current_episode_accumulated_action = np.zeros(((len(self.relevant_logtypes)-1)*2+1,))
         self.quota = remaining_quota
         self.remaining_quota = remaining_quota
+        self.should_delete = False
         
     @abstractmethod
     def create_action_space(self):
@@ -38,6 +40,7 @@ class ActionStrategy(ABC):
         fake_logs = self.log_generator.generate_logs(logsource, eventcode, istrigger,time_range, absoulte_act)
         self.splunk_tools_instance.write_logs_to_monitor(fake_logs, logsource)
         logger.info(f"inserted {len(fake_logs)} logs of type {logsource} {eventcode} {istrigger}")
+        
     
     def get_step_size(self):
         return self.step_size
@@ -49,6 +52,7 @@ class ActionStrategy(ABC):
     def reset(self):
         self.current_episode_accumulated_action = np.zeros(((len(self.relevant_logtypes)-1)*2+1,))
         self.remaining_quota = self.quota
+        self.should_delete = False
         
         
 class ActionStrategy0(ActionStrategy):
@@ -163,6 +167,7 @@ class ActionStrategy5(ActionStrategy0):
             fake_logs = self.log_generator.generate_logs(logsource, eventcode, istrigger,time_range, absoulte_act)
             self.splunk_tools_instance.write_logs_to_monitor(fake_logs, logsource)
             logger.info(f"inserted {len(fake_logs)} logs of type {logsource} {eventcode} {istrigger}")
+            self.should_delete = True
         
     def perform_action(self, action, time_range):
         logger.info(f"performing action {action}")
@@ -187,4 +192,46 @@ class ActionStrategy5(ActionStrategy0):
         if self.remaining_quota < 0 or sum(action) > 1:
             return 1
 
+
+
+class ActionStrategy6(ActionStrategy0):
+    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota):
+        super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota)
+    
+    def preprocess_action(self, action):
+        return action
+    
+    def perform_act(self, time_range, i, istrigger, absoulte_act):
+        logtype = self.relevant_logtypes[i]
+        logsource = logtype[0].lower()
+        eventcode = logtype[1]
+        fake_logs = self.log_generator.generate_logs(logsource, eventcode, istrigger,time_range, absoulte_act)
+        self.splunk_tools_instance.write_logs_to_monitor(fake_logs, logsource)
+        logger.info(f"inserted {len(fake_logs)} logs of type {logsource} {eventcode} {istrigger}")
+        self.should_delete = True
+        
+    def record_action(self, action):
+        for i, logtype in enumerate(self.relevant_logtypes):
+            for istrigger in range(2):
+                act = action[i*2+istrigger]
+                absoulte_act = int(act*self.quota)
+                self.remaining_quota -= absoulte_act
+                self.current_episode_accumulated_action[i*2+istrigger] += absoulte_act
+                if i == len(self.relevant_logtypes)-1:
+                    return   
+    
+    def perform_action(self, action, time_range):
+        logger.info(f"performing action {action}")
+        logger.debug(f"Sum of action: {sum(action)}")
+        for i, logtype in enumerate(self.relevant_logtypes):
+            for istrigger in range(2):
+                act = action[i*2+istrigger]
+                absoulte_act = int(act*self.quota)
+                if act:
+                    self.perform_act(time_range, i, istrigger, absoulte_act)
+                    time.sleep(.1)
+                if i == len(self.relevant_logtypes)-1:
+                    return 0
+ 
+        
 

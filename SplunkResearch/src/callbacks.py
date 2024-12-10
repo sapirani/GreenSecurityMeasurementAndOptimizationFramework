@@ -1,4 +1,5 @@
 
+import random
 from stable_baselines3.common.callbacks import BaseCallback
 import numpy as np
 import datetime
@@ -46,9 +47,11 @@ class ModularTensorboardCallback(BaseCallback):
         self.phase = phase  # This will determine whether it's "train" or "test"
         print("Experiment kwargs: ", experiment_kwargs)
         self.experiment_kwargs = experiment_kwargs
-        self.episodic_metrics = ["alert", "duration", "std_duration", "cpu", "std_cpu", "read_bytes", "read_chars","read_count", "write_bytes", "write_chars", "write_count"]
+        self.episodic_metrics = ["alert", "duration", "std_duration", "cpu", "std_cpu", "read_bytes", "read_chars","read_count", "write_bytes", "write_chars", "write_count", "total_cpu_usage", "median_cpu_usage"]
         self.reward_values = [ "p_values", "t_values", "degrees_of_freedom"] 
-
+        self.started_measurements = False
+        self.time_rules_energy_current_len = 0
+        
     def _safe_log(self, key, value_list):
         # Check if value_list is a pandas Series or a list
         if isinstance(value_list, pd.Series):
@@ -63,45 +66,51 @@ class ModularTensorboardCallback(BaseCallback):
         return False
 
     def log_common_metrics(self, env):
-        # Record common metrics for both training and evaluation phases
-        self._safe_log(f"{self.phase}/distribution_val", env.reward_calculator.reward_values_dict.get('distributions', []))
-        self._safe_log(f"{self.phase}/distribution_reward", env.reward_calculator.reward_dict.get('distributions', []))
+        if self.started_measurements or random.randint(0, 100) == 2:
+            # Record common metrics for both training and evaluation phases
+            self._safe_log(f"{self.phase}/distribution_val", env.reward_calculator.reward_values_dict.get('distributions', []))
+            self._safe_log(f"{self.phase}/distribution_reward", env.reward_calculator.reward_dict.get('distributions', []))
 
     def log_detailed_metrics(self, env, no_agent_last_row):
         # Log detailed metrics while safely checking list indices
-        self._safe_log(f"{self.phase}/alert_reward", env.reward_calculator.reward_dict.get('alerts', []))
-        self._safe_log(f"{self.phase}/duration_reward", env.reward_calculator.reward_dict.get('duration', []))
         self._safe_log(f"{self.phase}/total_reward", env.reward_calculator.reward_dict.get('total', []))
-        for metric in self.episodic_metrics:
-            if len(env.reward_calculator.time_rules_energy):
-                success = self._safe_log(f"{self.phase}/{metric}", [env.reward_calculator.time_rules_energy[-1].get(metric, [])])
-                if success and no_agent_last_row is not None:
-                    self._safe_log(f"{self.phase}/{metric}_gap", [env.reward_calculator.time_rules_energy[-1].get(metric, []) - no_agent_last_row[metric].values[-1]])
-        for metric in self.reward_values:
-            self._safe_log(f"{self.phase}/{metric}", env.reward_calculator.reward_values_dict.get(metric, []))
-
-
-        # Rule-based metrics
-        for metric in self.episodic_metrics:
-            for i, rule in enumerate(env.splunk_tools_instance.active_saved_searches):
-                rule = rule['title']
+        if len(env.reward_calculator.time_rules_energy) > self.time_rules_energy_current_len:
+            self.time_rules_energy_current_len = len(env.reward_calculator.time_rules_energy)
+            print(f"Time rules energy length: {self.time_rules_energy_current_len}")
+            self._safe_log(f"{self.phase}/alert_reward", env.reward_calculator.reward_dict.get('alerts', []))
+            self._safe_log(f"{self.phase}/duration_reward", env.reward_calculator.reward_dict.get('duration', []))
+            for metric in self.episodic_metrics:
                 if len(env.reward_calculator.time_rules_energy):
-                    self.logger.record(f"{self.phase}/rules_{metric}", 
-                                {key.split(f'rule_{metric}_')[1]: env.reward_calculator.time_rules_energy[-1][key]
-                                    for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith(f'rule_{metric}')})
-                    if no_agent_last_row is not None:
-                        self.logger.record(f"{self.phase}/rules_{metric}_gap", 
-                                {key.split(f'rule_{metric}_')[1]: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1]
-                                    for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith(f'rule_{metric}')})
-                
-        # log episodic policy
-        policy_dict = {}
-        for i, logtype in enumerate(env.relevant_logtypes):
-            for is_trigger in range(2):
-                policy_dict[f'{logtype}_{is_trigger}'] = env.action_per_episode[-1][i*2+is_trigger]
-                if i == len(env.relevant_logtypes)-1:
-                    break 
-        self.logger.record(f"{self.phase}/episodic_policy", policy_dict)
+                    success = self._safe_log(f"{self.phase}/{metric}", [env.reward_calculator.time_rules_energy[-1].get(metric, [])])
+                    if success:
+                        self.started_measurements = True
+                    if success and no_agent_last_row is not None:
+                        self._safe_log(f"{self.phase}/{metric}_gap", [env.reward_calculator.time_rules_energy[-1].get(metric, []) - no_agent_last_row[metric].values[-1]])
+            for metric in self.reward_values:
+                self._safe_log(f"{self.phase}/{metric}", env.reward_calculator.reward_values_dict.get(metric, []))
+
+
+            # Rule-based metrics
+            for metric in self.episodic_metrics:
+                for i, rule in enumerate(env.splunk_tools_instance.active_saved_searches):
+                    rule = rule['title']
+                    if len(env.reward_calculator.time_rules_energy):
+                        self.logger.record(f"{self.phase}/rules_{metric}", 
+                                    {key.split(f'rule_{metric}_')[1]: env.reward_calculator.time_rules_energy[-1][key]
+                                        for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith(f'rule_{metric}')})
+                        if no_agent_last_row is not None:
+                            self.logger.record(f"{self.phase}/rules_{metric}_gap", 
+                                    {key.split(f'rule_{metric}_')[1]: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1]
+                                        for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith(f'rule_{metric}')})
+                    
+            # log episodic policy
+            policy_dict = {}
+            for i, logtype in enumerate(env.relevant_logtypes):
+                for is_trigger in range(2):
+                    policy_dict[f'{logtype}_{is_trigger}'] = env.action_per_episode[-1][i*2+is_trigger]
+                    if i == len(env.relevant_logtypes)-1:
+                        break 
+            self.logger.record(f"{self.phase}/episodic_policy", policy_dict)
 
     def log_no_agent_metrics(self, env, no_agent_last_row):
         # Log metrics related to no-agent scenario while safely checking list indices
@@ -137,20 +146,25 @@ class TrainTensorboardCallback(ModularTensorboardCallback):
     def __init__(self, verbose=1, experiment_kwargs=None, phase="train"):
         super(TrainTensorboardCallback, self).__init__(verbose, phase=phase, experiment_kwargs=experiment_kwargs)
 
-    def _on_rollout_end(self) -> None:
-        env = self.training_env.envs[0]
-        no_agent_last_row = env.reward_calculator.no_agent_last_row
-        self.log_no_agent_metrics(env, no_agent_last_row)
-        self.log_detailed_metrics(env, no_agent_last_row)
+    # def _on_rollout_end(self) -> None:
+    #     env = self.training_env.envs[0]
+    #     no_agent_last_row = env.reward_calculator.no_agent_last_row
+    #     self.log_no_agent_metrics(env, no_agent_last_row)
+    #     self.log_detailed_metrics(env, no_agent_last_row)
 
     def _on_step(self) -> bool:
         env = self.training_env.envs[0]
-        current_step = env.step_counter
+        current_step = env.all_steps_counter
         # if current_step == 2:
         #     no_agent_last_row = env.reward_calculator.no_agent_last_row
         #     self.log_no_agent_metrics(env, no_agent_last_row)
         self.log_common_metrics(env)
-        self.logger.dump(self.num_timesteps)
+        if self.locals.get('dones')[0]:#env.done:#
+            # no_agent_last_row = env.reward_calculator.no_agent_last_row
+            no_agent_last_row = None
+            # self.log_no_agent_metrics(env, no_agent_last_row)
+            self.log_detailed_metrics(env, no_agent_last_row)
+        self.logger.dump(current_step)
         return True
 
     def _on_training_end(self) -> None:

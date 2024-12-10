@@ -26,13 +26,13 @@ def load_tensorboard_data(log_dir, phases=["train"], tags=None):
             f"{phase}/duration_reward",
             f"{phase}/total_reward",
             f"{phase}/alert_val",
-            f"{phase}/duration_val",
+            f"{phase}/duration",
             f"{phase}/duration_gap",
             f"{phase}/p_values",
             f"{phase}/t_values",
             f"{phase}/degrees_of_freedom",
             f"{phase}/no_agent_alert_val",
-            f"{phase}/no_agent_duration_val",
+            f"{phase}/no_agent_duration",
             f"{phase}/rules_duration",
             f"{phase}/rules_alerts",
             f"{phase}/rules_std_duration",
@@ -53,13 +53,12 @@ def load_tensorboard_data(log_dir, phases=["train"], tags=None):
                                                   columns=['wall_time', 'step', 'value'])
         
         data[phase] = phase_data
-    
-    # Load hyperparameters
-    hparams = load_hparams(ea)
-    if hparams:
+    try:
+        # Load hyperparameters
+        hparams = load_hparams(ea)
         data['hparams'] = hparams
-    else:
-        print("No hparams found in this run.")
+    except KeyError:
+            print("No hparams found in this run.")
     
     return data
 
@@ -72,7 +71,7 @@ def load_hparams(ea):
 def load_data_from_multiple_dirs(base_dir, tags=None):
     all_data = {}
     log_dirs = glob.glob(os.path.join(base_dir, "*"))
-    
+    log_dirs.append(base_dir)
     for log_dir in log_dirs:
         if os.path.isdir(log_dir):
             run_name = os.path.basename(log_dir)
@@ -81,6 +80,7 @@ def load_data_from_multiple_dirs(base_dir, tags=None):
             print(f"\nProcessing run: {run_name}")
             run_data = load_tensorboard_data(log_dir, tags=tags)
             all_data[run_name] = run_data
+    
     
     return all_data
 
@@ -124,10 +124,10 @@ def aggregate_data(all_data, metric_to_aggregate, hparams_to_include):
 
 # Example usage
 # Example usage
-base_dir = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/best_experiments/tensorboard'
-output_dir = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/best_experiments/processed_tesnorboard'
-tags_to_load =  ["train/p_values", "train/duration_gap", "train/duration"]
-all_data = load_data_from_multiple_dirs(base_dir, tags=tags_to_load)
+base_dir = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments_____/train/tensorboard/train_20241201_142030_1'
+output_dir = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments_____/train/processed_tesnorboard'
+tags_to_load =  ["train/p_values", "train/duration_gap", "train/duration", "train/episodic_policy"]
+all_data = load_data_from_multiple_dirs(base_dir)#), tags=tags_to_load)
 save_data_to_csv(all_data, output_dir)
 
 for metric in tags_to_load:

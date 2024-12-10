@@ -21,12 +21,13 @@ import sys
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
 import logging
 from stable_baselines3.ppo.policies import MlpPolicy
+from stable_baselines3.ddpg.policies import MlpPolicy as DDPGMlpPolicy
 from stable_baselines3.common.evaluation import evaluate_policy
 import gym
 import custom_splunk #dont remove!!!
 from sb3_contrib.ppo_recurrent.policies import MlpLstmPolicy
 from sb3_contrib import RecurrentPPO
-from stable_baselines3 import A2C, PPO, DQN
+from stable_baselines3 import A2C, PPO, DQN, DDPG
 urllib3.disable_warnings()
 from stable_baselines3.common.logger import configure
 from env_utils import *
@@ -48,8 +49,8 @@ warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
-model_names = {'a2c': A2C, 'ppo': PPO, 'dqn': DQN, 'recurrentppo': RecurrentPPO}
-policy_names = {'mlp': MlpPolicy, 'lstm': MlpLstmPolicy, "custommlp": CustomActor}
+model_names = {'a2c': A2C, 'ppo': PPO, 'dqn': DQN, 'recurrentppo': RecurrentPPO, 'ddpg': DDPG}
+policy_names = {'mlp': MlpPolicy, 'lstm': MlpLstmPolicy, "custommlp": CustomActor, "ddpgmlp": DDPGMlpPolicy}
 
 # Dynamically find all reward calculator classes
 RewardCalc_classes = {}
@@ -85,6 +86,7 @@ manual_policy_dict = {
     '4624_0': {14:1},
     'equal_1': {1:1/7, 3:1/7, 5:1/7, 7:1/7, 9:1/7, 11:1/7, 13:1/7},
     'equal_0': {0:1/7, 2:1/7, 4:1/7, 6:1/7, 8:1/7, 10:1/7, 12:1/7, 14:1/7},
+    'no_agent': {}
 }
         
 class ExperimentManager:
@@ -173,7 +175,7 @@ class ExperimentManager:
             log_file = os.path.join(self.eval_logs_dir, f"{name}.log")
         elif mode == 'retrain':
             log_file = os.path.join(self.retrain_model_logs_dir, f"{name}.log")
-        logging.basicConfig(level=self.log_level, format='%(asctime)s - %(levelname)s - %(message)s', filename=log_file)
+        logging.basicConfig(level=self.log_level, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', filename=log_file)
         
         
     def setup_envionment(self, **kwargs):
@@ -264,18 +266,28 @@ class ExperimentManager:
         model_kwargs['env'] = env
         model_kwargs['policy'] = policy_names[kwargs['policy']]
         model_kwargs['learning_rate'] = kwargs['learning_rate']
-        model_kwargs['ent_coef'] = kwargs['ent_coef']
+        if kwargs['model'] != 'ddpg':
+            model_kwargs['ent_coef'] = kwargs['ent_coef']
+            model_kwargs['n_steps'] = env.total_steps
+            model_kwargs['stats_window_size'] = 5
+            model_kwargs['policy_kwargs'] = dict(
+                                net_arch=dict(
+                                    pi=[128, 128, 64],    # 3 layers
+                                    vf=[128, 128, 64]
+                                )
+                            )
+        else:
+            model_kwargs['policy_kwargs'] = dict(
+            net_arch=dict(
+                pi=[128, 128, 64],
+                qf=[128, 128, 64]  # For DDPG, use 'qf' instead of 'vf'
+                )
+            )
+            
         model_kwargs['gamma'] = kwargs['df']
-        model_kwargs['n_steps'] = env.total_steps
         model_kwargs['tensorboard_log'] = self.train_tensorboard_dir
         model_kwargs['verbose'] = 1
-        model_kwargs['stats_window_size'] = 5
-        model_kwargs['policy_kwargs'] = dict(
-                                        net_arch=dict(
-                                            pi=[128, 128, 64],    # 3 layers
-                                            vf=[128, 128, 64]
-                                        )
-                                    )
+
         return model_object(**model_kwargs)
         
     def train_model(self, **kwargs):
@@ -380,12 +392,15 @@ class ExperimentManager:
         episode_rewards = []
         callbacks.init_callback(model)
         callbacks.on_training_start(globals(), locals())
+        dones = [False]
         for episode in range(num_episodes):
             episode_reward = 0
             done = False
             while not done:
-                action, _states = model.predict(obs, deterministic=True)
+                action, _states = model.predict(obs, deterministic=False)
                 obs, reward, done, info = env.step(action)
+                dones[0] = done
+                callbacks.update_locals(locals())
                 episode_reward += reward
                 # callbacks.update_child_locals(locals())
                 callbacks.on_step()

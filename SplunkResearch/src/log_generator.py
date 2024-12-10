@@ -69,17 +69,15 @@ class LogGenerator:
     #     return time
     
     def generate_fake_time(self, start_date, end_date):
+        # Get total seconds between dates for more precise randomization
         time_delta = end_date - start_date
-        random_days = random.randint(0, time_delta.days)
-        random_seconds = random.randint(0, time_delta.seconds-1)
-        # random_microseconds = random.randint(0, time_delta.microseconds)
-
-        random_date_time = start_date + timedelta(
-            days=random_days,
-            seconds=random_seconds,
-            # microseconds=random_microseconds
-        )
-
+        total_seconds = time_delta.days * 86400 + time_delta.seconds
+        
+        # Generate random number of seconds between 0 and total_seconds
+        random_seconds = random.randint(0, total_seconds)
+        
+        # Create the random datetime by adding seconds to start_date
+        random_date_time = start_date + timedelta(seconds=random_seconds)
         return random_date_time
     
     def init_logs_to_duplicate_dict(self, logtypes):

@@ -7,7 +7,11 @@ import time
 import splunklib.client as client
 import splunklib.results as splunk_results
 import psutil
+import concurrent.futures
 
+from concurrent.futures import ThreadPoolExecutor
+import threading
+import queue
 import subprocess
 from dotenv import load_dotenv
 import os
@@ -52,7 +56,9 @@ class SplunkTools(object):
         self.hec_token2 = os.getenv('HEC_TOKEN2')
         self.auth = requests.auth.HTTPBasicAuth(self.splunk_username, self.splunk_password)
         self.real_logs_distribution = pd.DataFrame(data=None, columns=['source', 'EventCode', '_time', 'count'])
-
+        self.max_workers = 3
+        self.total_cpu_queue = queue.Queue()
+        self.stop_cpu_monitor = threading.Event()
         while True:
             try:
                 self.active_saved_searches = self.get_saved_search_names(active_saved_searches)
@@ -76,6 +82,16 @@ class SplunkTools(object):
     def get_num_of_searches(self):
         return len(self.active_saved_searches)
     
+    def monitor_total_cpu(self, interval=0.1):
+        """Monitor total CPU usage of the machine"""
+        cpu_measurements = []
+        while not self.stop_cpu_monitor.is_set():
+            cpu_percent = psutil.cpu_percent(interval=interval)
+            cpu_measurements.append(cpu_percent)
+            self.total_cpu_queue.put(cpu_percent)
+            time.sleep(interval/2)
+        return cpu_measurements
+    
     def query_splunk(self, query, earliest_time, latest_time):
         query = f" search {query}"
         k = self.num_of_measurements
@@ -84,181 +100,179 @@ class SplunkTools(object):
         cpu_integral = []
         io_metrics = []
         interval = 0.1
-        for i in range(k):
-            # clear cache before each measurement
-            # subprocess.run(f'echo 1 > /proc/sys/vm/drop_caches', shell=True)
 
+        for i in range(k):
+            logger.info(f'Measurement {i+1}/{k} - Running query: {query}')
+            job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
+            process_cpu_percents = []
+            io_counters_dict = { "read_count": 0,  "write_count": 0, "read_bytes": 0, "write_bytes": 0}
+            
+            # Wait for job to get PID
             while True:
-                logger.info(f'Meaurement {i+1}/{k} - Running query: {query}')
-                # Create a new search job
-                job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
-                process_cpu_percents = []
-                io_counters_dict = {"read_chars": 0, "write_chars": 0, "read_count": 0, "write_count": 0, "read_bytes": 0, "write_bytes": 0}
-                # A blocking call to wait for the job to finish    
                 job.refresh()
                 stats = job.content
-                logger.info(f"Job status: {stats['isDone']}")
                 pid = stats.get('pid', None)
-                if pid is None:
-                    while pid is None:
-                        job.refresh()
-                        stats = job.content
-                        pid = stats.get('pid', None)
-                        if pid is not None or stats['isDone'] == '1':
-                            break
-                        time.sleep(0.1)
-                logger.info(f"PID: {pid}")
-                if pid is not None:
-                    found = False
-                    try:
-                        job.refresh()                        
-                        process = psutil.Process(int(pid))
-                        logger.info(f"Process with PID {pid} is {process.status()}.")
-                        found = True
-                        with process.oneshot():
-                            # while (process.is_running() and not process.status() == 'sleeping') or job.content['isDone'] == '0':
-                            while process.is_running() and job.content['isDone'] == '0':
-                                logger.debug(f"Process with PID {pid} is {process.status()}.")
-                                job.refresh()
-                                stats = job.content
+                if pid is not None or stats['isDone'] == '1':
+                    break
+                time.sleep(0.1)
 
-                                process = psutil.Process(int(pid))
-                                # Extract relevant resource metrics
-                                scan_count = stats.get('scanCount', 0)
-                                event_count = stats.get('eventCount', 0)
-                                result_count = stats.get('resultCount', 0)
-                                disk_usage = stats.get('diskUsage', 0)
-                                run_duration = stats.get('runDuration', 0)
-                                cpu_num = psutil.cpu_count()                                
-                                cpu_percent = process.cpu_percent(interval=interval)
-                                cpu_times = process.cpu_times()
-                                memory_info = process.memory_info()
-                                io_counters = process.io_counters()
-                                read_chars = io_counters.read_chars
-                                write_chars = io_counters.write_chars
-                                read_count = io_counters.read_count
-                                write_count = io_counters.write_count
-                                read_bytes = io_counters.read_bytes
-                                write_bytes = io_counters.write_bytes
-                                process_cpu_percents.append(cpu_percent)
-                                io_counters_dict["read_chars"] += int(read_chars)
-                                io_counters_dict["write_chars"] +=int( write_chars)
-                                io_counters_dict["read_count"] += int(read_count)
-                                io_counters_dict["write_count"] +=int( write_count)
-                                io_counters_dict["read_bytes"] += int(read_bytes)
-                                io_counters_dict["write_bytes"] +=int( write_bytes)
-                                # print(f"Duration: {run_duration}")
-                                # print(f"CPU percent: {cpu_percent}")
-                                # print(f"CPU times: {cpu_times}")
-                                # print(f"Memory info: {memory_info}")
-                                # print(f"IO counters: {io_counters}")
-                                # print(f"Read chars: {read_chars}")
-                                # print(f"Write chars: {write_chars}")
-                                # print(f"Read count: {read_count}")
-                                # print(f"Write count: {write_count}")
-                                # print(f"Read bytes: {read_bytes}")
-                                # print(f"Write bytes: {write_bytes}")
-                                time.sleep(interval)
-                        job.refresh()
-                        logger.info(f"Process with PID {pid} is {process.status()} isdone={job.content['isDone']}.")
-                        if job.content['isDone'] == '1':
-                            break
-                        time.sleep(0.1)
-
-                                # time.sleep(0.01)
-                    except psutil.NoSuchProcess:
-                        if found:
-                            logger.info(f"process endded")
-                            break
-                        else:
-                            logger.info(f"Process with PID {pid} does not exist.")
-                            job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
-                            logger.info(f"Job was recreated.")
-                    except psutil.AccessDenied:
-                        logger.info(f"Access denied to process with PID {pid}.")
+            if pid is not None:
+                try:
+                    process = psutil.Process(int(pid))
+                    process_start_time = time.time()
                     
-            job.refresh()       
-            cpu_auc = np.trapz(process_cpu_percents, dx=interval)
+                    while True:
+                        try:
+                            if not process.is_running():
+                                logger.debug(f"Process {pid} has finished running")
+                                break
+                                
+                            job.refresh()
+                            if job.content['isDone'] == '1':
+                                logger.debug(f"Job is marked as done")
+                                break
+                            cpu_percent = process.cpu_percent(interval=interval)
+                            process_cpu_percents.append(cpu_percent)
+                            with process.oneshot():
+                                io_counters = process.io_counters()
+                                
+                                # Update IO metrics
+                                for key in io_counters_dict:
+                                    io_counters_dict[key] += getattr(io_counters, key)
+                                
+                            time.sleep(interval/2)
+                            
+                        except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+                            # If the process disappeared but the job isn't done, it might have spawned a new process
+                            if job.content['isDone'] == '0':
+                                logger.debug(f"Process {pid} disappeared but job isn't done. Waiting for job completion.")
+                                time.sleep(interval)
+                                continue
+                            else:
+                                logger.debug(f"Process {pid} no longer exists but job is done")
+                                break
+                            
+                        # Add timeout protection
+                        if time.time() - process_start_time > 300:  # 5 minute timeout
+                            logger.warning(f"Process monitoring timed out after 5 minutes for pid {pid}")
+                            break
+                            
+                except psutil.NoSuchProcess:
+                    logger.debug(f"Initial process {pid} not found")
+                except Exception as e:
+                    logger.error(f"Unexpected error monitoring process {pid}: {e}")
+                finally:
+                    # Ensure we get the final job status
+                    try:
+                        job.refresh()
+                    except Exception as e:
+                        logger.error(f"Error refreshing job status: {e}")
+
+            job.refresh()
+            stats = job.content
+            run_duration = stats.get('runDuration', 0)
+            
+            # Calculate CPU integral
+            cpu_auc = np.median(process_cpu_percents) 
             cpu_integral.append(cpu_auc)
             io_metrics.append(io_counters_dict)
-                       
-            # Extract the results
+            
+            # Get results
             response = job.results(output_mode='json')
-            logger.info("Results:")
-            reader = splunk_results.JSONResultsReader(response)
-            # reader = splunk_results.ResultsReader(job.results())
-            results = []
-            for result in reader:
-                logger.info(result)
-                if isinstance(result, dict):
-                    results.append(result)
-            # Extract the execution time
+            results = [result for result in splunk_results.JSONResultsReader(response) if isinstance(result, dict)]
             execution_times.append(float(run_duration))
-            # time.sleep(randint(1, 5)/5)
-            logger.info(f"Execution time: {run_duration}")
-            logger.info(f"CPU integral: {cpu_auc}")
-            logger.info(f"Alert count: {len(results)}")
+
         return results, execution_times, cpu_integral, io_metrics
-    
-    def run_saved_searches(self, time_range):
+
+    def run_saved_search_parallel(self, saved_search, time_range):
+        search_name = saved_search['title']
+        query = saved_search['search']
+        earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
+        latest_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').timestamp()
+        
+        # Modify query with time range
+        query = query.split('|')
+        query[0] = f'{query[0]} earliest={earliest_time} latest={latest_time}'
+        query = '|'.join(query)
+        
+        logger.info(f'Running saved search {search_name} with query: {query}')
+        results, execution_times, cpu_integral, io_metrics = self.query_splunk(query, earliest_time, latest_time)
+        return self.query_metrics_combiner(results, execution_times, cpu_integral, io_metrics)
+
+    def run_saved_searches_parallel(self, time_range):
+        self.stop_cpu_monitor = threading.Event()
         saved_searches = self.active_saved_searches
-        mean_execution_times = []
-        std_execution_times = []
-        cpu= []
-        std_cpu = []
-        results_list = []
-        read_chars = []
-        write_chars = []
-        read_count = []
-        write_count = []
-        read_bytes = []
-        write_bytes = []
-        saved_searches_titles = []
-        # make random order of the saved searches
-        np.random.shuffle(saved_searches)
-        for saved_search in saved_searches:
-            results_len, mean_execution_time, std_execution_time, mean_cpu_integral, std_cpu_integrals, sum_read_chars, sum_write_chars, sum_read_count, sum_write_count, sum_read_bytes, sum_write_bytes = self.run_saved_search(saved_search, time_range)
-            mean_execution_times.append(mean_execution_time)
-            std_execution_times.append(std_execution_time)
-            results_list.append(results_len)
-            cpu.append(mean_cpu_integral)
-            std_cpu.append(std_cpu_integrals)
-            read_chars.append(sum_read_chars)
-            write_chars.append(sum_write_chars)
-            read_count.append(sum_read_count)
-            write_count.append(sum_write_count)
-            read_bytes.append(sum_read_bytes)
-            write_bytes.append(sum_write_bytes)
-            saved_searches_titles.append(saved_search['title'])
-        return results_list, mean_execution_times, std_execution_times, saved_searches_titles, cpu, std_cpu, read_chars, write_chars, read_count, write_count, read_bytes, write_bytes
-    
+        results = {
+            'mean_execution_times': [], 'std_execution_times': [], 
+            'results_list': [], 'cpu': [], 'std_cpu': [],
+            'read_chars': [], 'write_chars': [], 'read_count': [],
+            'write_count': [], 'read_bytes': [], 'write_bytes': [],
+            'saved_searches_titles': [], 'total_cpu_usage': []
+        }
+
+        # Start CPU monitoring in a separate thread
+        cpu_monitor_thread = threading.Thread(target=self.monitor_total_cpu)
+        cpu_monitor_thread.start()
+
+        try:
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                future_to_search = {
+                    executor.submit(self.run_saved_search_parallel, search, time_range): search['title']
+                    for search in saved_searches
+                }
+
+                for future in concurrent.futures.as_completed(future_to_search):
+                    search_title = future_to_search[future]
+                    try:
+                        (results_len, mean_exec_time, std_exec_time, 
+                         mean_cpu_integral, std_cpu_integrals, 
+                          sum_read_count, sum_write_count, 
+                         sum_read_bytes, sum_write_bytes) = future.result()
+
+                        # Store results
+                        results['mean_execution_times'].append(mean_exec_time)
+                        results['std_execution_times'].append(std_exec_time)
+                        results['results_list'].append(results_len)
+                        results['cpu'].append(mean_cpu_integral)
+                        results['std_cpu'].append(std_cpu_integrals)
+                        results['read_count'].append(sum_read_count)
+                        results['write_count'].append(sum_write_count)
+                        results['read_bytes'].append(sum_read_bytes)
+                        results['write_bytes'].append(sum_write_bytes)
+                        results['saved_searches_titles'].append(search_title)
+
+                    except Exception as e:
+                        logger.error(f"Search {search_title} generated an exception: {e}")
+
+        finally:
+            # Stop CPU monitoring and get measurements
+            self.stop_cpu_monitor.set()
+            cpu_monitor_thread.join()
+            
+            # Get all CPU measurements from queue
+            total_cpu_measurements = []
+            while not self.total_cpu_queue.empty():
+                total_cpu_measurements.append(self.total_cpu_queue.get())
+            results['total_cpu_usage'] = total_cpu_measurements
+
+        return (results['results_list'], results['mean_execution_times'], 
+                results['std_execution_times'], results['saved_searches_titles'],
+                results['cpu'], results['std_cpu'], results['read_count'], results['write_count'],
+                results['read_bytes'], results['write_bytes'], results['total_cpu_usage'])
+
     def query_metrics_combiner(self, results, execution_times, cpu_integral, io_metrics):
         mean_execution_time = np.mean(execution_times)
         std_execution_time = np.std(execution_times)
         mean_cpu_integral = np.mean(cpu_integral)
         std_cpu_integral = np.std(cpu_integral)
-        sum_read_chars = sum([io['read_chars'] for io in io_metrics])
-        sum_write_chars = sum([io['write_chars'] for io in io_metrics])
         sum_read_count = sum([io['read_count'] for io in io_metrics])
         sum_write_count = sum([io['write_count'] for io in io_metrics])
         sum_read_bytes = sum([io['read_bytes'] for io in io_metrics])
         sum_write_bytes = sum([io['write_bytes'] for io in io_metrics])
-        return len(results), mean_execution_time, std_execution_time, mean_cpu_integral, std_cpu_integral, sum_read_chars, sum_write_chars, sum_read_count, sum_write_count, sum_read_bytes, sum_write_bytes
-
-    def run_saved_search(self, saved_search, time_range):
-        search_name = saved_search['title']
-        query = saved_search['search']
-        earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
-        latest_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').timestamp()
-        # insert the time range to the query befor the first pipe
-        query = query.split('|')
-        query[0] = f'{query[0]} earliest={earliest_time} latest={latest_time}'
-        query = '|'.join(query)
-        logger.info(f'Running saved search {search_name} with query: {query}')
-        # clear machine cache
-        results, execution_times, cpu_integral, io_metrics = self.query_splunk(query, earliest_time, latest_time)
-        return self.query_metrics_combiner(results, execution_times, cpu_integral, io_metrics)
-            
+        return (len(results), mean_execution_time, std_execution_time, 
+                mean_cpu_integral, std_cpu_integral, sum_read_count, sum_write_count, 
+                sum_read_bytes, sum_write_bytes)       
+           
     def make_splunk_request(self, endpoint, method='get', params=None, data=None, headers=None):  
         url = f"{self.base_url}{endpoint}"  
         try:  
@@ -347,14 +361,15 @@ class SplunkTools(object):
                 if start_date_time_file <= ts_start_time and end_date_time_file >= ts_end_time:
                     self.real_logs_distribution = pd.read_csv(f'{PREFIX_PATH}resources/output_buckets/{file}')
                     self.real_logs_distribution['_time'] = pd.to_datetime(self.real_logs_distribution['_time'], format='%Y-%m-%d %H:%M:%S%z', errors='coerce')
-                    try:
-                        if self.real_logs_distribution['_time'].isnull().sum() > 0:
-                            self.real_logs_distribution = self.real_logs_distribution.dropna(subset=['_time'])
-                        self.real_logs_distribution['_time'] = self.real_logs_distribution['_time'].dt.tz_localize(None)
-                        return
-                    except Exception as e:
-                        logger.info(f'Error: {str(e)}')
-                        logger.info(self.real_logs_distribution.head())
+                    # try:
+                    if self.real_logs_distribution['_time'].isnull().sum() > 0:
+                        self.real_logs_distribution = self.real_logs_distribution.dropna(subset=['_time'])
+                    self.real_logs_distribution['_time'] = self.real_logs_distribution['_time'].dt.tz_localize(None)
+                    return
+                    # except Exception as e:
+                    #     logger.info(f'Error: {str(e)}')
+                    #     logger.info(self.real_logs_distribution.head())
+                    #     break
             self.create_new_distribution_bucket(ts_start_time, ts_end_time)
 
     def create_new_distribution_bucket(self, start_time, end_time):
@@ -383,12 +398,12 @@ class SplunkTools(object):
                 results.append(result)
         self.real_logs_distribution = pd.DataFrame(results, index=None)
         self.real_logs_distribution.to_csv(f'{PREFIX_PATH}resources/output_buckets/{file}')
-        self.real_logs_distribution['_time'] = pd.to_datetime(self.real_logs_distribution['_time'], format='%Y-%m-%d %H:%M:%S%z')
-        try:
-            self.real_logs_distribution['_time'] = self.real_logs_distribution['_time'].dt.tz_localize(None)
-        except Exception as e:
-            logger.info(f'Error: {str(e)}')
-            logger.info(self.real_logs_distribution.head())
+        # self.real_logs_distribution['_time'] = pd.to_datetime(self.real_logs_distribution['_time'], format='%Y-%m-%d %H:%M:%S%z')
+        # try:
+        #     self.real_logs_distribution['_time'] = self.real_logs_distribution['_time'].dt.tz_localize(None)
+        # except Exception as e:
+        #     logger.info(f'Error: {str(e)}')
+        #     logger.info(self.real_logs_distribution.head())
         
                              
     def get_releveant_distribution(self, start_time, end_time):
