@@ -1,5 +1,5 @@
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 import random
 import re
@@ -92,8 +92,8 @@ class LogGenerator:
         # log = random.choice(logs_to_duplicate_dict)
         # return self.replace_fields_in_log(log, logsource, time_range, replacement_dict)
         log = self.logs_to_duplicate_dict[logsource, eventcode, istrigger][0]
-        start_date = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S') 
-        end_date = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S') 
+        start_date = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').replace(tzinfo=timezone.utc) 
+        end_date = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').replace(tzinfo=timezone.utc) 
         time = self.generate_fake_time(start_date, end_date)
         log = re.sub(r"^\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2} [APM]{2}", time.strftime("%m/%d/%Y %I:%M:%S %p"), log, flags=re.MULTILINE)
         

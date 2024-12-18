@@ -47,7 +47,7 @@ class ModularTensorboardCallback(BaseCallback):
         self.phase = phase  # This will determine whether it's "train" or "test"
         print("Experiment kwargs: ", experiment_kwargs)
         self.experiment_kwargs = experiment_kwargs
-        self.episodic_metrics = ["alert", "duration", "std_duration", "cpu", "std_cpu", "read_bytes", "read_chars","read_count", "write_bytes", "write_chars", "write_count", "total_cpu_usage", "median_cpu_usage"]
+        self.episodic_metrics = ["alert", "duration", "std_duration", "cpu", "std_cpu", "read_bytes", "read_count", "write_bytes", "write_count", "median_cpu_usage"]
         self.reward_values = [ "p_values", "t_values", "degrees_of_freedom"] 
         self.started_measurements = False
         self.time_rules_energy_current_len = 0
@@ -66,7 +66,7 @@ class ModularTensorboardCallback(BaseCallback):
         return False
 
     def log_common_metrics(self, env):
-        if self.started_measurements or random.randint(0, 100) == 2:
+        if self.started_measurements or random.randint(0, 10000) == 2:
             # Record common metrics for both training and evaluation phases
             self._safe_log(f"{self.phase}/distribution_val", env.reward_calculator.reward_values_dict.get('distributions', []))
             self._safe_log(f"{self.phase}/distribution_reward", env.reward_calculator.reward_dict.get('distributions', []))
@@ -113,16 +113,17 @@ class ModularTensorboardCallback(BaseCallback):
             self.logger.record(f"{self.phase}/episodic_policy", policy_dict)
 
     def log_no_agent_metrics(self, env, no_agent_last_row):
-        # Log metrics related to no-agent scenario while safely checking list indices
-        if no_agent_last_row is None:
-            return
-        self._safe_log(f"{self.phase}/no_agent_alert_val", no_agent_last_row.get('alert', []))
-        self._safe_log(f"{self.phase}/no_agent_duration_val", no_agent_last_row.get('duration', []))
+        if len(env.reward_calculator.time_rules_energy) > self.time_rules_energy_current_len:
+            # Log metrics related to no-agent scenario while safely checking list indices
+            if no_agent_last_row is None:
+                return
+            self._safe_log(f"{self.phase}/no_agent_alert_val", no_agent_last_row.get('alert', []))
+            self._safe_log(f"{self.phase}/no_agent_duration_val", no_agent_last_row.get('duration', []))
 
-        self.logger.record(f"{self.phase}/no_agent_rules_alerts", {col.split('rule_alert_')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_alert')})
-        self.logger.record(f"{self.phase}/no_agent_rules_duration", {col.split('rule_duration_')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_duration')})
-        self.logger.record(f"{self.phase}/no_agent_rules_std_duration", {col.split('rule_std_duration')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_std_duration')})
-        self.logger.record(f"{self.phase}/logs_amount", env.time_range_logs_amount[-1])
+            self.logger.record(f"{self.phase}/no_agent_rules_alerts", {col.split('rule_alert_')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_alert')})
+            self.logger.record(f"{self.phase}/no_agent_rules_duration", {col.split('rule_duration_')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_duration')})
+            self.logger.record(f"{self.phase}/no_agent_rules_std_duration", {col.split('rule_std_duration')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_std_duration')})
+            self.logger.record(f"{self.phase}/logs_amount", env.time_range_logs_amount[-1])
         
     
 
@@ -160,9 +161,9 @@ class TrainTensorboardCallback(ModularTensorboardCallback):
         #     self.log_no_agent_metrics(env, no_agent_last_row)
         self.log_common_metrics(env)
         if self.locals.get('dones')[0]:#env.done:#
-            # no_agent_last_row = env.reward_calculator.no_agent_last_row
-            no_agent_last_row = None
-            # self.log_no_agent_metrics(env, no_agent_last_row)
+            no_agent_last_row = env.reward_calculator.no_agent_last_row
+            # no_agent_last_row = None
+            self.log_no_agent_metrics(env, no_agent_last_row)
             self.log_detailed_metrics(env, no_agent_last_row)
         self.logger.dump(current_step)
         return True

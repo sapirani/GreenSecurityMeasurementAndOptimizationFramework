@@ -3,6 +3,8 @@ import logging
 import random
 from unittest.mock import patch
 import time
+from datetime import timezone
+
 
 class MockedDatetime(datetime.datetime):
     @classmethod
@@ -73,7 +75,7 @@ class MockedDatetimeManager:
         
     def get_new_datetime(self,initial_datetime_str,delta):
         # Convert the initial datetime string to a datetime object
-        initial_datetime = datetime.datetime.strptime(initial_datetime_str, '%m/%d/%Y:%H:%M:%S')
+        initial_datetime = datetime.datetime.strptime(initial_datetime_str, '%m/%d/%Y:%H:%M:%S').replace(tzinfo=timezone.utc)
         
         # Adjust the datetime by the given delta
         new_datetime = initial_datetime + delta

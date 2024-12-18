@@ -8,7 +8,7 @@ import splunklib.client as client
 import splunklib.results as splunk_results
 import psutil
 import concurrent.futures
-
+from datetime import timezone
 from concurrent.futures import ThreadPoolExecutor
 import threading
 import queue
@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import requests
 from datetime import datetime
-
+from datetime import timezone
 from random import randint
 
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env')
@@ -56,6 +56,7 @@ class SplunkTools(object):
         self.hec_token2 = os.getenv('HEC_TOKEN2')
         self.auth = requests.auth.HTTPBasicAuth(self.splunk_username, self.splunk_password)
         self.real_logs_distribution = pd.DataFrame(data=None, columns=['source', 'EventCode', '_time', 'count'])
+        self.real_logs_distribution['_time'] = pd.to_datetime(self.real_logs_distribution['_time'])
         self.max_workers = 3
         self.total_cpu_queue = queue.Queue()
         self.stop_cpu_monitor = threading.Event()
@@ -173,7 +174,7 @@ class SplunkTools(object):
             run_duration = stats.get('runDuration', 0)
             
             # Calculate CPU integral
-            cpu_auc = np.median(process_cpu_percents) 
+            cpu_auc = np.trapz(np.array(process_cpu_percents)/100, dx=interval)
             cpu_integral.append(cpu_auc)
             io_metrics.append(io_counters_dict)
             
@@ -349,88 +350,178 @@ class SplunkTools(object):
         searches_names = self.active_saved_searches
         with Pool() as pool:
             pool.starmap(update_func, [(search_name['title'], update_arg) for search_name in searches_names])
-            
+    
     def load_real_logs_distribution_bucket(self, start_time, end_time):
+        """
+        Load logs distribution from bucket within specified time range.
+        start_time and end_time should be timezone-aware datetime objects
+        """
         while True:
-            ts_start_time = start_time.timestamp()
-            ts_end_time = end_time.timestamp()
+            # Convert to UTC timestamp
+            ts_start_time = start_time.astimezone(timezone.utc).timestamp()
+            ts_end_time = end_time.astimezone(timezone.utc).timestamp()
+            
             for file in os.listdir(f'{PREFIX_PATH}resources/output_buckets'):
                 start_date_file, start_time_file, end_date_file, end_time_file = file.strip(".csv").split('_')[1:]
-                start_date_time_file = datetime.strptime(f"{start_date_file} {start_time_file}", '%Y-%m-%d %H-%M-%S').timestamp()
-                end_date_time_file = datetime.strptime(f"{end_date_file} {end_time_file}", '%Y-%m-%d %H-%M-%S').timestamp()
+                
+                # Parse file timestamps with UTC timezone
+                start_date_time_file = datetime.strptime(
+                    f"{start_date_file} {start_time_file}", 
+                    '%Y-%m-%d %H-%M-%S'
+                ).replace(tzinfo=timezone.utc).timestamp()
+                
+                end_date_time_file = datetime.strptime(
+                    f"{end_date_file} {end_time_file}", 
+                    '%Y-%m-%d %H-%M-%S'
+                ).replace(tzinfo=timezone.utc).timestamp()
+                
+                
                 if start_date_time_file <= ts_start_time and end_date_time_file >= ts_end_time:
                     self.real_logs_distribution = pd.read_csv(f'{PREFIX_PATH}resources/output_buckets/{file}')
-                    self.real_logs_distribution['_time'] = pd.to_datetime(self.real_logs_distribution['_time'], format='%Y-%m-%d %H:%M:%S%z', errors='coerce')
-                    # try:
+                    print(file)
+                    # Parse timestamps with timezone awareness
+                    self.real_logs_distribution['_time'] = pd.to_datetime(
+                        self.real_logs_distribution['_time'], 
+                        format='%Y-%m-%d %H:%M:%S',
+                        utc=True,
+                        errors='coerce'
+                    )
+                    
                     if self.real_logs_distribution['_time'].isnull().sum() > 0:
                         self.real_logs_distribution = self.real_logs_distribution.dropna(subset=['_time'])
-                    self.real_logs_distribution['_time'] = self.real_logs_distribution['_time'].dt.tz_localize(None)
+                    
+                    # Keep timezone information instead of dropping it
                     return
-                    # except Exception as e:
-                    #     logger.info(f'Error: {str(e)}')
-                    #     logger.info(self.real_logs_distribution.head())
-                    #     break
+                    
             self.create_new_distribution_bucket(ts_start_time, ts_end_time)
 
     def create_new_distribution_bucket(self, start_time, end_time):
-        # round the start and end time to the nearest day
-        start_time = datetime.fromtimestamp(start_time)
-        end_time = datetime.fromtimestamp(end_time)
-        start_time = datetime(start_time.year, start_time.month, start_time.day)
-        end_time = start_time + pd.DateOffset(days=1)
+        """
+        Create new distribution bucket for given time range.
+        start_time and end_time are UTC timestamps
+        """
+        # Convert timestamps to timezone-aware datetime objects
+        start_time = datetime.fromtimestamp(start_time, tz=timezone.utc)
+        end_time = datetime.fromtimestamp(end_time, tz=timezone.utc)
+        
+        # Round to nearest day while preserving timezone
+        start_time = datetime(
+            start_time.year, start_time.month, start_time.day, 
+            tzinfo=timezone.utc
+        )
+        end_time = start_time + pd.DateOffset(days=2)
+        
         timestamp_start_time = start_time.timestamp()
         timestamp_end_time = end_time.timestamp()
-        job = self.service.jobs.create(f'search index=main earliest={timestamp_start_time} latest={timestamp_end_time} |  eval _time=strftime(_time,"%Y-%m-%d %H:%M:%S%z")| stats count by source EventCode _time', earliest_time=timestamp_start_time, latest_time=timestamp_end_time, count=0) 
+        
+        logger.info(f'start_time: {start_time}, end_time: {end_time}')
+        logger.info(f'timestamp_start_time: {timestamp_start_time}, timestamp_end_time: {timestamp_end_time}')
+        logger.info(f'Creating new distribution bucket for time range: {start_time} - {end_time}')
+        
+        # Use RFC3339 format for Splunk query
+        job = self.service.jobs.create(
+            f'search index=main earliest={timestamp_start_time} latest={timestamp_end_time} | '
+            'eval _time=strftime(_time,"%Y-%m-%d %H:%M:00") | '
+            'stats count by source EventCode _time', 
+            earliest_time=timestamp_start_time, 
+            latest_time=timestamp_end_time, 
+            count=0
+        ) 
+        
         while True:
             job.refresh()
             if job.content['isDone'] == '1':
                 break
             time.sleep(2)
-        # Extract the results
+            
         response = job.results(output_mode='json', count=0)
         reader = splunk_results.JSONResultsReader(response)
         results = []
-        start_time = start_time.strftime('%Y-%m-%d_%H-%M-%S')
-        end_time = end_time.strftime('%Y-%m-%d_%H-%M-%S')
-        file = f"bucket_{start_time}_{end_time}.csv"
+        
+        # Format timestamps for filename while preserving UTC
+        start_time_str = start_time.strftime('%Y-%m-%d_%H-%M-%S')
+        end_time_str = end_time.strftime('%Y-%m-%d_%H-%M-%S')
+        file = f"bucket_{start_time_str}_{end_time_str}.csv"
+        
         for result in reader:
             if isinstance(result, dict):
                 results.append(result)
+                
         self.real_logs_distribution = pd.DataFrame(results, index=None)
         self.real_logs_distribution.to_csv(f'{PREFIX_PATH}resources/output_buckets/{file}')
-        # self.real_logs_distribution['_time'] = pd.to_datetime(self.real_logs_distribution['_time'], format='%Y-%m-%d %H:%M:%S%z')
-        # try:
-        #     self.real_logs_distribution['_time'] = self.real_logs_distribution['_time'].dt.tz_localize(None)
-        # except Exception as e:
-        #     logger.info(f'Error: {str(e)}')
-        #     logger.info(self.real_logs_distribution.head())
-        
-                             
+            
     def get_releveant_distribution(self, start_time, end_time):
-        # load real logs distribution from csv file with this structure: source, eventcode, _time, count
-        date_start_time = datetime.strptime(start_time, '%m/%d/%Y:%H:%M:%S')
-        date_end_time = datetime.strptime(end_time, '%m/%d/%Y:%H:%M:%S')
-        relevant_logs = self.real_logs_distribution[(self.real_logs_distribution['_time'] >= date_start_time) & (self.real_logs_distribution['_time'] <= date_end_time)]
+        """
+        Get relevant logs distribution for a given time range.
+        
+        Args:
+            start_time (str): Start time in format 'MM/DD/YYYY:HH:MM:SS'
+            end_time (str): End time in format 'MM/DD/YYYY:HH:MM:SS'
+        """
+        # # Convert string times to timezone-aware datetime objects
+        # date_start_time = datetime.strptime(start_time, '%m/%d/%Y:%H:%M:%S').replace(tzinfo=timezone.utc)
+        # date_end_time = datetime.strptime(end_time, '%m/%d/%Y:%H:%M:%S').replace(tzinfo=timezone.utc)
+        
+        # Convert pandas datetime column to timezone-aware if it isn't already
+        if self.real_logs_distribution['_time'].dt.tz is None:
+            self.real_logs_distribution['_time'] = self.real_logs_distribution['_time'].dt.tz_localize('UTC')
+        
+        # Now compare the timezone-aware datetimes
+        relevant_logs = self.real_logs_distribution[
+            (self.real_logs_distribution['_time'] >= start_time) & 
+            (self.real_logs_distribution['_time'] <= end_time)
+        ]
+        
         if len(relevant_logs) == 0:
             logger.info('No relevant logs found in the loaded distribution. Loading the relevant distribution from disk.')
-            self.load_real_logs_distribution_bucket(date_start_time, date_end_time)
-            relevant_logs = self.real_logs_distribution[(self.real_logs_distribution['_time'] >= date_start_time) & (self.real_logs_distribution['_time'] <= date_end_time)]
-        return relevant_logs            
+            self.load_real_logs_distribution_bucket(start_time, end_time)
+            print(self.real_logs_distribution.head())
+            relevant_logs = self.real_logs_distribution[
+                (self.real_logs_distribution['_time'] >= start_time) & 
+                (self.real_logs_distribution['_time'] <= end_time)
+            ]
+            print(relevant_logs.head())
+            print(start_time, end_time)
+        
+        return relevant_logs       
               
     def get_real_distribution(self, start_time, end_time):
-        # load real logs distribution from csv file with this structure: source, eventcode, _time, count
-        relevant_logs = self.get_releveant_distribution(start_time, end_time)
+        """
+        Get real log distribution for a given time range.
+        
+        Args:
+            start_time (str): Start time in format 'MM/DD/YYYY:HH:MM:SS'
+            end_time (str): End time in format 'MM/DD/YYYY:HH:MM:SS'
+            
+        Returns:
+            dict: Dictionary of log types and their counts
+        """
+        # Convert string times to timezone-aware datetime objects
+        start_dt = datetime.strptime(start_time, '%m/%d/%Y:%H:%M:%S').replace(tzinfo=timezone.utc)
+        end_dt = datetime.strptime(end_time, '%m/%d/%Y:%H:%M:%S').replace(tzinfo=timezone.utc)
+        
+        # Load real logs distribution
+        relevant_logs = self.get_releveant_distribution(start_dt, end_dt)
+        
+        # Group by source and EventCode, summing the counts
         relevant_logs = relevant_logs.groupby(['source', 'EventCode']).agg({'count': 'sum'}).reset_index()
-        res_dict = {f"{row['source'].lower()} {row['EventCode']}": row['count'] for index, row in relevant_logs.iterrows()}
+        
+        # Create dictionary of log types and counts
+        res_dict = {
+            f"{row['source'].lower()} {row['EventCode']}": row['count'] 
+            for index, row in relevant_logs.iterrows()
+        }
         logger.debug(f"current real distribution: {res_dict}")
         
+        # Update the real_logtypes_counter
         for logtype in res_dict:
             if logtype in self.real_logtypes_counter:
                 self.real_logtypes_counter[logtype] += res_dict[logtype]
             else:
                 self.real_logtypes_counter[logtype] = res_dict[logtype]
-        return self.real_logtypes_counter
         
+        return self.real_logtypes_counter
+    
     def get_search_details(self, search,  is_measure_energy=False):
         search_id = search['search_id'].strip('\'')
         rule_name = search['savedsearch_name']
@@ -513,11 +604,12 @@ class SplunkTools(object):
             time_expression = f'earliest="{time_range[0]}" latest="{time_range[1]}"'
         data = {
             "search": f'search index=main sourcetype IN ("xmlwineventlog", "wineventlog") host="dt-splunk" {time_expression} | delete',
-            "exec_mode": "oneshot",
+           
             "output_mode": "json"
         }
         response = requests.post(url, headers=HEADERS, data=data, auth=self.auth, verify=False)
         results = response.text
+        logger.info(time_range)
         logger.info(results)
 
     def save_logs(self, log_source, eventcode, logs):
@@ -556,7 +648,9 @@ class SplunkTools(object):
         return datetime(y, m, d, h, mi, s).timestamp()
     
     def get_logs_amount(self, time_range):
-        relevant_logs = self.get_releveant_distribution(time_range[0], time_range[1])
+        start_dt = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').replace(tzinfo=timezone.utc)
+        end_dt = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').replace(tzinfo=timezone.utc)
+        relevant_logs = self.get_releveant_distribution(start_dt, end_dt)
         return relevant_logs['count'].sum()
   
   

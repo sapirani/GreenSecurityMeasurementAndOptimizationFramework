@@ -120,3 +120,26 @@ class StateStrategy5(StateStrategy):
     def update_state(self):
         real_state, fake_state, diff_state = super().update_state()
         return np.array(real_state + fake_state + [self.remainig_quota])
+
+class StateStrategy6(StateStrategy):
+    def __init__(self, top_logtypes,relevant_logtypes):
+        super().__init__(top_logtypes)
+        self.week_day = 0
+        self.hour = 0
+        self.relevant_logtypes = relevant_logtypes
+        self.episodic_action = np.zeros(2*len(relevant_logtypes)-1)
+    
+    def create_state(self):
+        self.observation_spaces = spaces.Box(low=-np.inf,high=np.inf,shape=(2*len(self.top_logtypes)+2*len(self.relevant_logtypes)-1+2,),dtype=np.float64)
+        return self.observation_spaces
+    
+    def update_time(self, week_day, hour):
+        self.week_day = week_day
+        self.hour = hour
+    
+    def update_episodic_action(self, action):
+        self.episodic_action = action
+        
+    def update_state(self):
+        real_state, fake_state, diff_state = super().update_state()
+        return np.array(real_state + fake_state + self.episodic_action.tolist() + [self.week_day] + [self.hour])

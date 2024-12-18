@@ -1,4 +1,5 @@
 import datetime
+import random
 import time
 import numpy as np
 import pandas as pd
@@ -9,6 +10,8 @@ from env_utils import *
 from datetime_manager import MockedDatetimeManager
 
 import tensorflow as tf
+
+from strategies.state_strategy import StateStrategy6
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment')
 import os
 from dotenv import load_dotenv
@@ -44,7 +47,7 @@ class SplunkEnv(gym.Env):
         self.total_steps = self.search_window*60//self.action_duration
         logger.debug(f"total steps: {self.total_steps} action duration: {self.action_duration} step size: {self.step_size} total additional logs: {self.total_additional_logs}")
         # create the action space - a vector of size max_actions_value with values between 0 and 1
-        self.action_strategy = action_strategy(self.relevant_logtypes, 1, self.step_size, self.action_duration, self.splunk_tools_instance, self.log_generator, self.remaining_quota)
+        self.action_strategy = action_strategy(self.relevant_logtypes, 1, self.step_size, self.action_duration, self.splunk_tools_instance, self.log_generator, self.step_size)
         self.action_space = self.action_strategy.create_action_space()
         self.action_per_episode = []
         self.current_action = None
@@ -53,7 +56,7 @@ class SplunkEnv(gym.Env):
         self.top_logtypes = self.top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
         self.top_logtypes = [(x[0].lower(), str(x[1])) for x in self.top_logtypes]
         self.top_logtypes = set(self.top_logtypes)|set(self.relevant_logtypes)
-        self.state_strategy = state_strategy(self.top_logtypes)
+        self.state_strategy = state_strategy(self.top_logtypes)#, self.relevant_logtypes)
         self.observation_space = self.state_strategy.create_state()
         self.splunk_tools_instance.real_logtypes_counter = {}
         self.real_distribution = np.zeros(len(self.top_logtypes))
@@ -81,7 +84,9 @@ class SplunkEnv(gym.Env):
         self.num_of_searches = num_of_searches
         self.time_range_logs_amount = []
         # run the saved searches for warmup
-        # self.splunk_tools_instance.run_saved_searches(time_range)
+        for i in range(1, 5):
+            logger.info(f"Running saved searches for warmup {i}")
+            # self.splunk_tools_instance.run_saved_searches_parallel(time_range)
         self.all_steps_counter = 0
         self.problematic_time_ranges = {'10/26/2024:00:00:00', '10/27/2024:00:00:00'}
         
@@ -93,8 +98,11 @@ class SplunkEnv(gym.Env):
         if self.done:
             logger.debug(self.done)
             if self.step_violation:
-                reward = self.reward_calculator.get_step_violation_reward(self.time_range, self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action, self.remaining_quota)
+                reward = self.reward_calculator.get_step_violation_reward(self.time_range, self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action, self.remaining_quota, self.step_counter)
+                # reward = self.reward_calculator.get_step_violation_reward(self.time_range, self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action, self.remaining_quota/self.total_additional_logs, self.step_counter)
             else:
+                logger.info(f"Current time: {self.dt_manager.set_fake_current_datetime(self.time_range[-1])}") # dont remove!!
+                self.update_state()
                 violation_reward = self.reward_calculator.check_episodic_agent_violation(self.time_range, self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action, self.remaining_quota)
                 if violation_reward != 0:
                     logger.info(f"violation reward: {violation_reward}")
@@ -103,10 +111,10 @@ class SplunkEnv(gym.Env):
                 else:
                     for time_range, action in self.action_auditor:
                         self.action_strategy.perform_action(action, time_range)
-                    logger.info(f"Waiting for 10 seconds...")
-                    time.sleep(10)
+                    logger.info(f"Waiting till logs are indexed")
+                    time.sleep(5)
                     # time.sleep(30)
-                    reward = self.reward_calculator.get_full_reward(self.time_range, self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action, self.remaining_quota)
+                    reward = self.reward_calculator.get_full_reward(self.time_range, self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action, self.remaining_quota, self.step_counter)
         else:
 
             reward = self.reward_calculator.get_partial_reward(self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action)
@@ -149,10 +157,16 @@ class SplunkEnv(gym.Env):
         return self.state, reward, self.done, {}
     
     def check_step_violation(self):
-        if self.remaining_quota < 0:
+        if self.remaining_quota > 1.5:
             self.action_done = True
             return True
         return False
+
+    # def check_step_violation(self):
+    #     if self.remaining_quota < 0:
+    #         self.action_done = True
+    #         return True
+    #     return False
 
     def set_max_actions_value(self, max_actions_value): 
         self.step_size = max_actions_value
@@ -175,8 +189,19 @@ class SplunkEnv(gym.Env):
         real_logtypes_counter = self.splunk_tools_instance.get_real_distribution(previous_now, now)
         fake_logtypes_counter = self.get_fake_distribution()
         self.state_strategy.update_distributions(real_logtypes_counter, fake_logtypes_counter)
-        self.state_strategy.update_quota(self.remaining_quota)
+        self.state_strategy.update_quota(self.remaining_quota/self.total_additional_logs)
+        if isinstance(self.state_strategy, StateStrategy6):
+            # get week day and hour of now (check if need to convert to datetime object)
+            datetime_now = datetime.datetime.strptime(now, '%m/%d/%Y:%H:%M:%S') 
+            week_day = datetime_now.weekday()
+            hour = datetime_now.hour
+            self.state_strategy.update_time(week_day, hour)
+            self.state_strategy.update_episodic_action(np.array(self.action_strategy.current_episode_accumulated_action)/self.total_additional_logs)
+
         self.state = self.state_strategy.update_state()
+        # log somtimes the state
+        if random.random() < 0.1:
+            logger.info(f"state: {self.state}")
         # logger.info(f"state: {self.state}")
         return self.state
         
@@ -185,7 +210,8 @@ class SplunkEnv(gym.Env):
         # compare distributions
         # if self.reward_calculator.current_distributions_distance > self.reward_calculator.distribution_threshold:
         #     return True
-        if self.step_counter == self.total_steps or self.action_done or self.remaining_quota == 0:
+        # if self.step_counter == self.total_steps or self.action_done or self.remaining_quota == 0:
+        if self.step_counter == self.total_steps or self.action_done:
             logger.info(f"done: {self.step_counter == self.total_steps} {self.action_done} {self.remaining_quota == 0}")
             return True
         else:

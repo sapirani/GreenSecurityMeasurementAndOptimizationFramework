@@ -29,7 +29,7 @@ configure_experiment() {
     local env_version=$6        # Argument 6
     local reward_calculator=$7  # Argument 7
     local experiment_name=$8    # Argument 8
-    local search_window=1440
+    local search_window=720
     # Calculate reward weights
     local alpha=0
     local beta=0.2
@@ -42,7 +42,7 @@ configure_experiment() {
     kwargs=(
         ["model"]=$model_type
         ["policy"]=$policy_type
-        ["span_size"]=300
+        ["span_size"]=1800
         ["search_window"]=$search_window
         ["env_name"]="splunk_train-v${env_version}"
         ["num_of_episodes"]=$num_episodes
@@ -51,7 +51,7 @@ configure_experiment() {
         ["learning_rate"]=$learning_rate
         ["additional_percentage"]=$additional_pct
         ["ent_coef"]=0
-        ["df"]=1
+        ["df"]=0.99
         
         # Reward configuration
         ["alpha"]=$alpha
@@ -60,12 +60,12 @@ configure_experiment() {
         
         # Strategy versions
         ["reward_calculator_version"]=$reward_calculator
-        ["state_strategy_version"]=5
-        ["action_strategy_version"]=6
+        ["state_strategy_version"]=4
+        ["action_strategy_version"]=7
         
         # Performance settings
-        ["rule_frequency"]=$search_window
-        ["logs_per_minute"]=300
+        ["rule_frequency"]=180
+        ["logs_per_minute"]=150
         ["num_of_measurements"]=1
 
         ['experiment_name']=$experiment_name
@@ -114,15 +114,20 @@ run_experiment() {
 # args=$(configure_experiment "a2c" "mlp" 500 0.005 0.5 32 28 "train_20241209_233937")
 # run_experiment "a2c 0.005 lr 0.5 add rules total cpu as reward - test" "test" "$args"
 
-args=$(configure_experiment "a2c" "no_agent" 61 0.005 0 32 29 "train_20241209_233937")
-run_experiment "running no agent manual_policy" "manual_policy" "$args"
+# args=$(configure_experiment "a2c" "no_agent" 61 0.005 0 32 29 "train_20241209_233937")
+# run_experiment "running no agent manual_policy" "manual_policy" "$args"
 
 # Experiment 4: Different Environment with Higher Learning Rate
-args=$(configure_experiment "a2c" "mlp" 2000 0.005 0.5 32 29 "train_20241208_153519")
-run_experiment "a2c 0.005 lr 0.5 add duration as reward" "train" "$args"
-args=$(configure_experiment "a2c" "mlp" 2000 0.005 0.5 32 30 "train_20241208_153519")
-run_experiment "a2c 0.005 lr 0.5 add rules cpu as reward" "train" "$args"
 
+
+args=$(configure_experiment "recurrentppo" "lstm" 3000 0.001 0.5 32 37 "train_20241213_160056")
+run_experiment "" "train" "$args"
+# args=$(configure_experiment "a2c" "mlp" 10 0.005 0.5 32 36 "retrain_20241215_000707")
+# run_experiment "test1" "test" "$args"
+# args=$(configure_experiment "a2c" "mlp" 10 0.005 0.5 32 35 "train_20241212_132453")
+# run_experiment "test2" "test" "$args"
+# args=$(configure_experiment "a2c" "no_agent" 10 0.005 0 32 35 "train_20241209_233937")
+# run_experiment "running no agent manual_policy" "manual_policy" "$args"
 # Template for new experiments:
 #
 # echo "Starting [Experiment Name]..."
