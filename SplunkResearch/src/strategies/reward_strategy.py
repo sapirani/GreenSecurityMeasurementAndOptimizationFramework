@@ -23,7 +23,7 @@ PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. L
 
 
 class RewardStrategy(ABC):
-    def __init__(self,  dt_manager, splunk_tools, num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=None):
+    def __init__(self,  dt_manager, splunk_tools, num_of_searches, measurment_tool=None, alpha=0, beta=0, gamma=0, no_agent_table_path=None):
         self.average_energy = 0
         self.average_alert = 0
         self.average_duration = 0
@@ -83,7 +83,7 @@ class RewardStrategy(ABC):
 
     
     @abstractmethod
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         pass
 
     
@@ -129,9 +129,9 @@ class RewardStrategy(ABC):
             logger.info(f"dist2: {dist2}")
         # return wasserstein_distance(dist2, dist1)
         # return entropy(dist2, dist1)
-        # return jensenshannon(dist2, dist1)#**2
+        return jensenshannon(dist2, dist1)#**2
         # return np.sum(rel_entr(dist2, dist1))
-        return self.kl_divergence(dist2, dist1)
+        # return self.kl_divergence(dist2, dist1)
     
     def run_saved_searches(self, time_range):
         alert_vals, duration_vals, std_duration_vals, saved_searches, mean_cpu_integrals, std_cpu_integrals, read_count, write_count, read_bytes, write_bytes = self.splunk_tools.run_saved_searches(time_range)
@@ -459,7 +459,7 @@ class RewardStrategy6(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
@@ -483,7 +483,7 @@ class RewardStrategy7(RewardStrategy):
     def __init__(self,  dt_manager, splunk_tools, num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=None):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
@@ -506,7 +506,7 @@ class RewardStrategy8(RewardStrategy):
     def __init__(self,  dt_manager, splunk_tools, num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=None):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
@@ -530,7 +530,7 @@ class RewardStrategy9(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
@@ -556,7 +556,7 @@ class RewardStrategy10(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
@@ -591,7 +591,7 @@ class RewardStrategy11(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
@@ -624,7 +624,7 @@ class RewardStrategy12(RewardStrategy11):
     def __init__(self,  dt_manager, splunk_tools, num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=None):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         sum_current_action = sum(current_action)
         if  sum_current_action > 3:
             logger.info(f"Action vaiolation: {sum_current_action}")
@@ -639,7 +639,7 @@ class RewardStrategy12(RewardStrategy11):
             return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
-        partial_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action)
+        partial_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action, step_counter)
         if partial_reward:
             return partial_reward
         return super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
@@ -650,7 +650,7 @@ class RewardStrategy13(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
@@ -685,7 +685,7 @@ class RewardStrategy14(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         distributions_distance = self.get_partial_reward_values(real_distribution, fake_distribution)
         distributions_reward = - distributions_distance
         self.reward_dict['distributions'].append(distributions_reward)
@@ -695,7 +695,7 @@ class RewardStrategy14(RewardStrategy):
         values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
-        partial_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action)
+        partial_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action, step_counter)
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")
@@ -725,7 +725,7 @@ class RewardStrategy15(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         action_variance = np.var(current_action)
         return action_variance
     
@@ -733,7 +733,7 @@ class RewardStrategy15(RewardStrategy):
         values, no_agent_values = super().get_full_reward(time_range, real_distribution, fake_distribution, current_action, remaining_quota)
 
 
-        partial_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action)
+        partial_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action, step_counter)
         ###### Alert Component ######
         self.reward_values_dict['alerts'].append(alert_val)
         logger.info(f"alert value: {alert_val}")
@@ -766,7 +766,7 @@ class RewardStrategy16(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
@@ -804,7 +804,7 @@ class RewardStrategy17(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         distributions_distance = self.get_partial_reward_values(real_distribution, fake_distribution)
         distributions_reward = - distributions_distance
         self.reward_dict['distributions'].append(distributions_reward)
@@ -849,7 +849,7 @@ class RewardStrategy18(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
@@ -889,7 +889,7 @@ class RewardStrategy19(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
@@ -920,7 +920,7 @@ class RewardStrategy20(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
@@ -956,7 +956,7 @@ class RewardStrategy21(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
@@ -986,7 +986,7 @@ class RewardStrategy22(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
@@ -1020,10 +1020,10 @@ class RewardStrategy23(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         return 0
 
-    def check_episodic_agent_violation(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+    def check_episodic_agent_violation(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
         return 0
     
     def get_step_violation_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
@@ -1064,7 +1064,7 @@ class RewardStrategy24(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
         self.p_value_threshold = 0.3
     
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         distributions_distance = self.current_distributions_distance
         # distributions_distance = self.get_partial_reward_values(real_distribution, fake_distribution)
         self.current_distributions_distance = distributions_distance
@@ -1074,8 +1074,8 @@ class RewardStrategy24(RewardStrategy):
             return 0
         return -distributions_distance
 
-    def check_episodic_agent_violation(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
-        distribution_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action)
+    def check_episodic_agent_violation(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
+        distribution_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action, step_counter)
         if self.current_distributions_distance > self.distribution_threshold:
             return distribution_reward
         else:
@@ -1124,7 +1124,7 @@ class RewardStrategy25(RewardStrategy):
         self.p_value_threshold = 0.3
         self.alert_threshold = 0.2
     
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         distributions_distance = self.current_distributions_distance
         # distributions_distance = self.get_partial_reward_values(real_distribution, fake_distribution)
         self.current_distributions_distance = distributions_distance
@@ -1137,8 +1137,8 @@ class RewardStrategy25(RewardStrategy):
         self.reward_dict['distributions'].append(distribution_reward)            
         logger.info(f"current_distributions_distance: {self.current_distributions_distance}")
         
-    def check_episodic_agent_violation(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
-        distribution_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action)
+    def check_episodic_agent_violation(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
+        distribution_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action, step_counter)
         if self.current_distributions_distance > self.distribution_threshold:
             return distribution_reward
         else:
@@ -1198,10 +1198,10 @@ class RewardStrategy26(RewardStrategy):
         super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
 
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         return 0
 
-    def check_episodic_agent_violation(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+    def check_episodic_agent_violation(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
         return 0
     
     def get_step_violation_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
@@ -1242,10 +1242,10 @@ class RewardStrategy27(RewardStrategy):
         self.cpus = []
         self.cpu_avg = 4300
 
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         return 0
 
-    def check_episodic_agent_violation(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
+    def check_episodic_agent_violation(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
         return 0
     
     def get_step_violation_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
@@ -1509,7 +1509,7 @@ class RewardStrategy36(RewardStrategy27):
         self.cpus = []
         self.distribution_threshold = 10
         
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         # distributions_distance = self.current_distributions_distance
         distributions_distance = self.get_partial_reward_values(real_distribution, fake_distribution)
         self.current_distributions_distance = distributions_distance
@@ -1531,8 +1531,8 @@ class RewardStrategy36(RewardStrategy27):
             return 0
         return 1/distributions_distance
 
-    def check_episodic_agent_violation(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
-        distribution_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action)
+    def check_episodic_agent_violation(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
+        distribution_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action, step_counter)
         # if self.current_distributions_distance > self.distribution_threshold:
         #     return -self.current_distributions_distance
         # else:
@@ -1584,7 +1584,7 @@ class RewardStrategy37(RewardStrategy27):
         self.cpus = []
         self.distribution_threshold = 10
         
-    def get_partial_reward(self, real_distribution, fake_distribution, current_action):
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
         # distributions_distance = self.current_distributions_distance
         distributions_distance = self.get_partial_reward_values(real_distribution, fake_distribution)
         self.current_distributions_distance = distributions_distance
@@ -1607,8 +1607,8 @@ class RewardStrategy37(RewardStrategy27):
         # return 1/distributions_distance
         return -distributions_distance
 
-    def check_episodic_agent_violation(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota):
-        distribution_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action)
+    def check_episodic_agent_violation(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
+        distribution_reward = self.get_partial_reward(real_distribution, fake_distribution, current_action, step_counter)
         # if self.current_distributions_distance > self.distribution_threshold:
         #     return -self.current_distributions_distance
         # else:
@@ -1685,3 +1685,229 @@ class RewardStrategy38(RewardStrategy37):
         self.reward_dict['duration'].append(energy_reward)
 
         return energy_reward/self.current_distributions_distance
+
+class RewardStrategy39(RewardStrategy37):
+    
+    def __init__(self,  dt_manager, splunk_tools, num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
+        self.cpus = []
+        self.distribution_threshold = 10
+        
+
+    
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
+        if self.current_distributions_distance == self.epsilon:
+            return 0
+        values =  self.get_duration_reward_values(time_range)
+        clean_env(self.splunk_tools, time_range)
+        before_metrics =  self.get_no_agent_reward(time_range)
+        self.no_agent_last_row = self.no_agent_current_row
+        alert_val, duration_val, std_duration_val, median_cpu_usage = values['alert'], values['cpu'], values['std_cpu'], values['median_cpu_usage']
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, no_agent_median_cpu_usage = before_metrics['alert'], before_metrics['cpu'], before_metrics['std_cpu'], before_metrics['median_cpu_usage']
+        # no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = no_agent_values['alert'], no_agent_values['cpu'], no_agent_values['std_cpu']
+        # logger.info(f"alert value: {alert_val}, no_agent_alert_val: {no_agent_alert_val}")
+        logger.info(f"median_cpu_usage value: {median_cpu_usage}")
+        logger.info(f"no_agent_median_cpu_usage value: {no_agent_median_cpu_usage}")
+        # self.cpus.append(total_cpu_usage)
+        # self.cpu_avg = np.mean(self.cpus)
+        energy_reward = (median_cpu_usage-no_agent_median_cpu_usage)/no_agent_median_cpu_usage
+
+        alert_gap = alert_val - no_agent_alert_val
+        if no_agent_alert_val == 0 and alert_gap > 0:
+            alert_reward = -alert_gap*10
+            self.reward_dict['alerts'].append(alert_reward)
+            return alert_reward
+        if no_agent_alert_val != 0 and alert_gap/no_agent_alert_val > 0.25:
+            alert_reward = -alert_gap*10
+            self.reward_dict['alerts'].append(alert_reward)
+            return alert_reward
+        
+        self.reward_dict['duration'].append(energy_reward)
+        if energy_reward < 0:
+            energy_reward = 0
+        return energy_reward/self.current_distributions_distance
+
+class RewardStrategy40(RewardStrategy37):
+    
+    def __init__(self,  dt_manager, splunk_tools, num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
+        self.cpus = []
+        self.distribution_threshold = 10
+        self.distribution_reward_freq = 4
+        
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
+        # distributions_distance = self.current_distributions_distance
+        if step_counter % self.distribution_reward_freq == 0:
+            distributions_distance = self.get_partial_reward_values(real_distribution, fake_distribution)
+            self.current_distributions_distance = distributions_distance
+            
+            logger.info(f"current_distributions_distance: {self.current_distributions_distance}")
+            
+            return -distributions_distance
+        else:
+            return 0
+    
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
+        if self.current_distributions_distance == self.epsilon:
+            return 0
+        values =  self.get_duration_reward_values(time_range)
+        clean_env(self.splunk_tools, time_range)
+        before_metrics =  self.get_no_agent_reward(time_range)
+        self.no_agent_last_row = self.no_agent_current_row
+        alert_val, duration_val, std_duration_val, median_cpu_usage = values['alert'], values['cpu'], values['std_cpu'], values['median_cpu_usage']
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, no_agent_median_cpu_usage = before_metrics['alert'], before_metrics['cpu'], before_metrics['std_cpu'], before_metrics['median_cpu_usage']
+        # no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = no_agent_values['alert'], no_agent_values['cpu'], no_agent_values['std_cpu']
+        # logger.info(f"alert value: {alert_val}, no_agent_alert_val: {no_agent_alert_val}")
+        logger.info(f"median_cpu_usage value: {median_cpu_usage}")
+        logger.info(f"no_agent_median_cpu_usage value: {no_agent_median_cpu_usage}")
+        # self.cpus.append(total_cpu_usage)
+        # self.cpu_avg = np.mean(self.cpus)
+        energy_reward = (median_cpu_usage-no_agent_median_cpu_usage)/no_agent_median_cpu_usage
+
+        alert_gap = alert_val - no_agent_alert_val
+        alert_reward = alert_gap/(no_agent_alert_val+1)
+
+        
+        self.reward_dict['duration'].append(energy_reward)
+        if energy_reward < 0:
+            energy_reward = 0
+        num_of_distribution_rewards = step_counter//self.distribution_reward_freq
+        return num_of_distribution_rewards*(energy_reward - alert_reward) - self.current_distributions_distance
+
+class RewardStrategy41(RewardStrategy37):
+    
+    def __init__(self,  dt_manager, splunk_tools, num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
+        self.cpus = []
+        self.distribution_threshold = 10
+        self.distribution_reward_freq = 4
+        self.alert_threshold = 0.25
+        
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
+        # distributions_distance = self.current_distributions_distance
+        if step_counter % self.distribution_reward_freq == 0:
+            distributions_distance = self.get_partial_reward_values(real_distribution, fake_distribution)
+            self.current_distributions_distance = distributions_distance
+            
+            logger.info(f"current_distributions_distance: {self.current_distributions_distance}")
+            
+            return -distributions_distance
+        else:
+            return 0
+    
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
+        if self.current_distributions_distance == self.epsilon:
+            return 0
+        values =  self.get_duration_reward_values(time_range)
+        clean_env(self.splunk_tools, time_range)
+        before_metrics =  self.get_no_agent_reward(time_range)
+        self.no_agent_last_row = self.no_agent_current_row
+        alert_val, duration_val, std_duration_val, median_cpu_usage = values['alert'], values['cpu'], values['std_cpu'], values['median_cpu_usage']
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, no_agent_median_cpu_usage = before_metrics['alert'], before_metrics['cpu'], before_metrics['std_cpu'], before_metrics['median_cpu_usage']
+        # no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = no_agent_values['alert'], no_agent_values['cpu'], no_agent_values['std_cpu']
+        # logger.info(f"alert value: {alert_val}, no_agent_alert_val: {no_agent_alert_val}")
+        logger.info(f"median_cpu_usage value: {median_cpu_usage}")
+        logger.info(f"no_agent_median_cpu_usage value: {no_agent_median_cpu_usage}")
+        # self.cpus.append(total_cpu_usage)
+        # self.cpu_avg = np.mean(self.cpus)
+        energy_reward = (median_cpu_usage-no_agent_median_cpu_usage)/no_agent_median_cpu_usage
+
+        alert_gap = alert_val - no_agent_alert_val
+        alert_reward = alert_gap/(no_agent_alert_val+1)
+
+        
+        self.reward_dict['duration'].append(energy_reward)
+        if energy_reward <= 0:
+            energy_reward = 0
+        num_of_distribution_rewards = step_counter//self.distribution_reward_freq
+        if alert_reward > self.alert_threshold:
+            return -((energy_reward*100)**3)
+        else:
+            return (energy_reward*100)**3
+
+class RewardStrategy42(RewardStrategy37):
+    
+    def __init__(self,  dt_manager, splunk_tools, num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
+        self.cpus = []
+        self.distribution_threshold = 10
+        self.distribution_reward_freq = 4
+        self.alert_threshold = 0.25
+        
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
+            # distributions_distance = self.current_distributions_distance
+            return sum(current_action[0]*current_action[1:])
+    
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
+        if self.current_distributions_distance == self.epsilon:
+            return 0
+        values =  self.get_duration_reward_values(time_range)
+        clean_env(self.splunk_tools, time_range)
+        before_metrics =  self.get_no_agent_reward(time_range)
+        self.no_agent_last_row = self.no_agent_current_row
+        alert_val, duration_val, std_duration_val, median_cpu_usage = values['alert'], values['cpu'], values['std_cpu'], values['median_cpu_usage']
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, no_agent_median_cpu_usage = before_metrics['alert'], before_metrics['cpu'], before_metrics['std_cpu'], before_metrics['median_cpu_usage']
+        # no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = no_agent_values['alert'], no_agent_values['cpu'], no_agent_values['std_cpu']
+        # logger.info(f"alert value: {alert_val}, no_agent_alert_val: {no_agent_alert_val}")
+        logger.info(f"median_cpu_usage value: {median_cpu_usage}")
+        logger.info(f"no_agent_median_cpu_usage value: {no_agent_median_cpu_usage}")
+        # self.cpus.append(total_cpu_usage)
+        # self.cpu_avg = np.mean(self.cpus)
+        energy_reward = (median_cpu_usage-no_agent_median_cpu_usage)/no_agent_median_cpu_usage
+        return energy_reward*100
+
+class RewardStrategy43(RewardStrategy37):
+    
+    def __init__(self,  dt_manager, splunk_tools, num_of_searches,  measurment_tool=None, alpha=0, beta=0, gamma=0, no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
+        self.cpus = []
+        self.distribution_threshold = 10
+        self.distribution_reward_freq = 4
+        self.alert_threshold = 1
+        
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
+        # distributions_distance = self.current_distributions_distance
+        if step_counter % self.distribution_reward_freq == 0:
+            distributions_distance = self.get_partial_reward_values(real_distribution, fake_distribution)
+            self.current_distributions_distance = distributions_distance
+            
+            logger.info(f"current_distributions_distance: {self.current_distributions_distance}")
+            
+            return -distributions_distance
+        else:
+            return 0
+    
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
+        if self.current_distributions_distance == self.epsilon:
+            return 0
+        values =  self.get_duration_reward_values(time_range)
+        clean_env(self.splunk_tools, time_range)
+        before_metrics =  self.get_no_agent_reward(time_range)
+        self.no_agent_last_row = self.no_agent_current_row
+        alert_val, duration_val, std_duration_val, median_cpu_usage = values['alert'], values['cpu'], values['std_cpu'], values['median_cpu_usage']
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, no_agent_median_cpu_usage = before_metrics['alert'], before_metrics['cpu'], before_metrics['std_cpu'], before_metrics['median_cpu_usage']
+        # no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = no_agent_values['alert'], no_agent_values['cpu'], no_agent_values['std_cpu']
+        # logger.info(f"alert value: {alert_val}, no_agent_alert_val: {no_agent_alert_val}")
+        logger.info(f"median_cpu_usage value: {median_cpu_usage}")
+        logger.info(f"no_agent_median_cpu_usage value: {no_agent_median_cpu_usage}")
+        # self.cpus.append(total_cpu_usage)
+        # self.cpu_avg = np.mean(self.cpus)
+        energy_reward = (median_cpu_usage-no_agent_median_cpu_usage)/no_agent_median_cpu_usage
+        no_agent_alert_val += self.epsilon
+        alert_gap = alert_val - no_agent_alert_val
+        # if no_agent_alert_val == 0:
+        #     alert_reward = alert_gap/(no_agent_alert_val+1)
+        # else:
+        #     alert_reward = alert_gap/(no_agent_alert_val)
+        alert_reward = alert_gap/(no_agent_alert_val)
+        
+        self.reward_dict['duration'].append(energy_reward)
+        self.reward_dict['alerts'].append(alert_reward)
+        num_of_distribution_rewards = step_counter//self.distribution_reward_freq
+        if alert_reward > self.alert_threshold:
+            return -((alert_reward*100))
+        elif energy_reward <= 0:
+            return 0
+
+        else:
+            return (energy_reward*100)/alert_reward

@@ -44,7 +44,7 @@ configure_experiment() {
         ["policy"]=$policy_type
         ["span_size"]=1800
         ["search_window"]=$search_window
-        ["env_name"]="splunk_train-v${env_version}"
+        ["env_name"]="splunk_eval-v${env_version}"
         ["num_of_episodes"]=$num_episodes
         
         # Learning parameters
@@ -120,8 +120,10 @@ run_experiment() {
 # Experiment 4: Different Environment with Higher Learning Rate
 
 
-args=$(configure_experiment "recurrentppo" "lstm" 3000 0.001 0.5 32 37 "train_20241213_160056")
+args=$(configure_experiment "recurrentppo" "lstm" 2000 0.001 0.5 32 43 "train_20241223_143017")
 run_experiment "" "train" "$args"
+# args=$(configure_experiment "recurrentppo" "lstm" 500 0.001 0.5 32 41 "train_20241220_104215")
+# run_experiment "" "test" "$args"
 # args=$(configure_experiment "a2c" "mlp" 10 0.005 0.5 32 36 "retrain_20241215_000707")
 # run_experiment "test1" "test" "$args"
 # args=$(configure_experiment "a2c" "mlp" 10 0.005 0.5 32 35 "train_20241212_132453")

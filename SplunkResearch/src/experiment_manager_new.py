@@ -270,14 +270,14 @@ class ExperimentManager:
             model_kwargs['ent_coef'] = kwargs['ent_coef']
             model_kwargs['n_steps'] = env.total_steps
             model_kwargs['stats_window_size'] = 5
-            # model_kwargs['policy_kwargs'] = dict(
-            #                     net_arch=dict(
-            #                         pi=[128, 128, 64],    # 3 layers
-            #                         vf=[128, 128, 64]
-            #                     )
-            #                 )
+            model_kwargs['policy_kwargs'] = dict(
+                                net_arch=dict(
+                                    pi=[128, 128, 64],    # 3 layers
+                                    vf=[128, 128, 64]
+                                )
+                            )
             model_kwargs['use_sde'] = True
-            model_kwargs['sde_sample_freq'] = 5
+            model_kwargs['sde_sample_freq'] = 3
         else:
             model_kwargs['policy_kwargs'] = dict(
             net_arch=dict(

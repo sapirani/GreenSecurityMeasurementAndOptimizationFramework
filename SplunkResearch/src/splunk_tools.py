@@ -181,6 +181,7 @@ class SplunkTools(object):
             # Get results
             response = job.results(output_mode='json')
             results = [result for result in splunk_results.JSONResultsReader(response) if isinstance(result, dict)]
+            logger.info(f"Measurement {i+1}/{k} - Query results: {results}")
             execution_times.append(float(run_duration))
 
         return results, execution_times, cpu_integral, io_metrics
@@ -378,7 +379,6 @@ class SplunkTools(object):
                 
                 if start_date_time_file <= ts_start_time and end_date_time_file >= ts_end_time:
                     self.real_logs_distribution = pd.read_csv(f'{PREFIX_PATH}resources/output_buckets/{file}')
-                    print(file)
                     # Parse timestamps with timezone awareness
                     self.real_logs_distribution['_time'] = pd.to_datetime(
                         self.real_logs_distribution['_time'], 
@@ -475,13 +475,13 @@ class SplunkTools(object):
         if len(relevant_logs) == 0:
             logger.info('No relevant logs found in the loaded distribution. Loading the relevant distribution from disk.')
             self.load_real_logs_distribution_bucket(start_time, end_time)
-            print(self.real_logs_distribution.head())
+            # print(self.real_logs_distribution.head())
             relevant_logs = self.real_logs_distribution[
                 (self.real_logs_distribution['_time'] >= start_time) & 
                 (self.real_logs_distribution['_time'] <= end_time)
             ]
-            print(relevant_logs.head())
-            print(start_time, end_time)
+            # print(relevant_logs.head())
+            # print(start_time, end_time)
         
         return relevant_logs       
               

@@ -241,12 +241,12 @@ class ActionStrategy6(ActionStrategy0):
 class ActionStrategy7(ActionStrategy):
     def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota):
         super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota)
-   
+        self.action_quotas =[]
     def create_action_space(self):
         return spaces.Box(low=0, high=self.action_upper_bound, shape=((len(self.relevant_logtypes))*2,), dtype=np.float64)
     
     def preprocess_action(self, action):
-        return np.concatenate((action[0:1], action[1:]/sum(action[1:])))
+        return np.concatenate((action[0:1], action[1:]/sum(action[1:]) if sum(action[1:]) > 0 else action[1:]))
     
     def perform_act(self, time_range, i, istrigger, absoulte_act):
         logtype = self.relevant_logtypes[i]
@@ -261,6 +261,7 @@ class ActionStrategy7(ActionStrategy):
         action = self.preprocess_action(action)
         self.remaining_quota = action[0]
         current_quota = action[0]*self.quota
+        self.action_quotas.append(current_quota)
         action = action[1:]
         for i, logtype in enumerate(self.relevant_logtypes):
             for istrigger in range(2):

@@ -11,7 +11,7 @@ from datetime_manager import MockedDatetimeManager
 
 import tensorflow as tf
 
-from strategies.state_strategy import StateStrategy6
+from strategies.state_strategy import StateStrategy6, StateStrategy7
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment')
 import os
 from dotenv import load_dotenv
@@ -103,7 +103,7 @@ class SplunkEnv(gym.Env):
             else:
                 logger.info(f"Current time: {self.dt_manager.set_fake_current_datetime(self.time_range[-1])}") # dont remove!!
                 self.update_state()
-                violation_reward = self.reward_calculator.check_episodic_agent_violation(self.time_range, self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action, self.remaining_quota)
+                violation_reward = self.reward_calculator.check_episodic_agent_violation(self.time_range, self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action, self.remaining_quota, self.step_counter)
                 if violation_reward != 0:
                     logger.info(f"violation reward: {violation_reward}")
                     reward = violation_reward
@@ -117,7 +117,7 @@ class SplunkEnv(gym.Env):
                     reward = self.reward_calculator.get_full_reward(self.time_range, self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action, self.remaining_quota, self.step_counter)
         else:
 
-            reward = self.reward_calculator.get_partial_reward(self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action)
+            reward = self.reward_calculator.get_partial_reward(self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action, self.step_counter)
             
                 
         self.reward_calculator.reward_dict['total'].append(reward)
@@ -197,6 +197,8 @@ class SplunkEnv(gym.Env):
             hour = datetime_now.hour
             self.state_strategy.update_time(week_day, hour)
             self.state_strategy.update_episodic_action(np.array(self.action_strategy.current_episode_accumulated_action)/self.total_additional_logs)
+        
+            
 
         self.state = self.state_strategy.update_state()
         # log somtimes the state

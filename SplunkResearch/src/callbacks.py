@@ -66,10 +66,11 @@ class ModularTensorboardCallback(BaseCallback):
         return False
 
     def log_common_metrics(self, env):
-        if self.started_measurements or random.randint(0, 10000) == 2:
+        if self.started_measurements or random.randint(0, 100) == 2:
             # Record common metrics for both training and evaluation phases
             self._safe_log(f"{self.phase}/distribution_val", env.reward_calculator.reward_values_dict.get('distributions', []))
             self._safe_log(f"{self.phase}/distribution_reward", env.reward_calculator.reward_dict.get('distributions', []))
+            self._safe_log(f"{self.phase}/quotas", env.action_strategy.action_quotas)
 
     def log_detailed_metrics(self, env, no_agent_last_row):
         # Log detailed metrics while safely checking list indices
@@ -119,6 +120,8 @@ class ModularTensorboardCallback(BaseCallback):
                 return
             self._safe_log(f"{self.phase}/no_agent_alert_val", no_agent_last_row.get('alert', []))
             self._safe_log(f"{self.phase}/no_agent_duration_val", no_agent_last_row.get('duration', []))
+            self._safe_log(f"{self.phase}/no_agent_cpu", no_agent_last_row.get('cpu', []))
+            self._safe_log(f"{self.phase}/no_agent_median_cpu_usage", no_agent_last_row.get('median_cpu_usage', []))
 
             self.logger.record(f"{self.phase}/no_agent_rules_alerts", {col.split('rule_alert_')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_alert')})
             self.logger.record(f"{self.phase}/no_agent_rules_duration", {col.split('rule_duration_')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_duration')})
