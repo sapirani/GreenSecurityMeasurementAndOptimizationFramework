@@ -13,7 +13,8 @@ def run_experiment(mode, **kwargs):
         
         # Initialize the experiment manager
         experiment_manager = ExperimentManager(base_dir=base_dir, log_level=logging.INFO)
-        
+        if 'fake_start_datetime' in kwargs and kwargs['fake_start_datetime'] is not None:
+            kwargs['fake_start_datetime'] = kwargs['fake_start_datetime'].replace('_', ' ')
         # Call the appropriate method based on the mode
         if mode == 'train':
             experiment_manager.train_model(**kwargs)
@@ -55,7 +56,7 @@ if __name__ == "__main__":
     # parser.add_argument('--agent_type', type=str, help="Type of agent for baseline testing.")
     parser.add_argument('--df', default=None, type=float, help="Discount factor.")
     parser.add_argument('--additional_percentage', type=float, help="Additional percentage.")
-    # parser.add_argument('--fake_start_datetime', type=str, help="Fake start datetime for simulations.")
+    parser.add_argument('--fake_start_datetime', default=None,type=str, help="Fake start datetime for simulations.")
     parser.add_argument('--rule_frequency', type=int, default=1, help="Rule frequency, default is 1.")
     parser.add_argument('--span_size', type=int, help="Span size.")
     parser.add_argument('--logs_per_minute', type=int, default=300, help="Logs per minute, default is 300.")

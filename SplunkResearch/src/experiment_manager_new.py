@@ -22,12 +22,15 @@ sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
 import logging
 from stable_baselines3.ppo.policies import MlpPolicy
 from stable_baselines3.ddpg.policies import MlpPolicy as DDPGMlpPolicy
+from stable_baselines3.td3.policies import MlpPolicy as TD3Policy
 from stable_baselines3.common.evaluation import evaluate_policy
 import gym
 import custom_splunk #dont remove!!!
 from sb3_contrib.ppo_recurrent.policies import MlpLstmPolicy
 from sb3_contrib import RecurrentPPO
-from stable_baselines3 import A2C, PPO, DQN, DDPG
+from stable_baselines3 import A2C, PPO, DQN, DDPG, TD3
+from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
+
 urllib3.disable_warnings()
 from stable_baselines3.common.logger import configure
 from env_utils import *
@@ -49,8 +52,8 @@ warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
-model_names = {'a2c': A2C, 'ppo': PPO, 'dqn': DQN, 'recurrentppo': RecurrentPPO, 'ddpg': DDPG}
-policy_names = {'mlp': MlpPolicy, 'lstm': MlpLstmPolicy, "custommlp": CustomActor, "ddpgmlp": DDPGMlpPolicy}
+model_names = {'a2c': A2C, 'ppo': PPO, 'dqn': DQN, 'recurrentppo': RecurrentPPO, 'ddpg': DDPG, 'td3': TD3}
+policy_names = {'mlp': MlpPolicy, 'lstm': MlpLstmPolicy, "custommlp": CustomActor, "ddpgmlp": DDPGMlpPolicy, "td3mlp": TD3Policy}
 
 # Dynamically find all reward calculator classes
 RewardCalc_classes = {}
@@ -120,7 +123,8 @@ class ExperimentManager:
         Path(self.retrain_model_tensorboard_dir).mkdir(parents=True, exist_ok=True)
         Path(self.experiment_master_tables_dir).mkdir(parents=True, exist_ok=True)
         Path(self.no_agent_baseline_experiment_dir).mkdir(parents=True, exist_ok=True)
-        
+        self.mode = None
+        self.current_kwargs = None
         self.train_master, self.eval_master, self.retrain_master , self.no_agent_master = self.load_master_tables()
         
     def load_master_tables(self):
@@ -266,9 +270,9 @@ class ExperimentManager:
         model_kwargs['env'] = env
         model_kwargs['policy'] = policy_names[kwargs['policy']]
         model_kwargs['learning_rate'] = kwargs['learning_rate']
-        if kwargs['model'] != 'ddpg':
+        if kwargs['model'] != 'ddpg' and kwargs['model'] != 'td3':
             model_kwargs['ent_coef'] = kwargs['ent_coef']
-            model_kwargs['n_steps'] = env.total_steps
+            model_kwargs['n_steps'] = 2
             model_kwargs['stats_window_size'] = 5
             model_kwargs['policy_kwargs'] = dict(
                                 net_arch=dict(
@@ -276,8 +280,14 @@ class ExperimentManager:
                                     vf=[128, 128, 64]
                                 )
                             )
-            model_kwargs['use_sde'] = True
-            model_kwargs['sde_sample_freq'] = 3
+            # model_kwargs['use_sde'] = True
+            # model_kwargs['sde_sample_freq'] = 9
+            
+        elif kwargs['model'] == 'td3':
+            model_kwargs['policy_kwargs'] = dict(
+            net_arch=[128, 128, 64]
+            )
+            model_kwargs['action_noise'] = NormalActionNoise(mean=np.zeros(env.action_space.shape), sigma=0.1 * np.ones(env.action_space.shape))
         else:
             model_kwargs['policy_kwargs'] = dict(
             net_arch=dict(
@@ -294,24 +304,32 @@ class ExperimentManager:
         
     def train_model(self, **kwargs):
         """Trains a model."""
+        self.mode = 'train'
         env, model, callback_list = self.prepare_experiment('train', kwargs)
         name = kwargs['name']
+        kwargs['env_name'] = kwargs['env_name'].split('-v')[1]        
+        self.current_kwargs = kwargs
         model.learn(total_timesteps=env.total_steps*kwargs['num_of_episodes'], callback=callback_list, tb_log_name=name)
-        self.post_experiment('train', env, model, kwargs)
+        
+        self.post_experiment(env, model)
         return model
         
     def test_model(self, **kwargs):
         """Evaluates a model."""
+        self.mode = 'eval'
         env, model, callback_list = self.prepare_experiment('eval', kwargs)
+        self.current_kwargs = kwargs
         episode_rewards = self.custom_evaluate_policy(model, env, callback_list, num_episodes=kwargs['num_of_episodes'])
-        self.post_experiment('eval', env, model, kwargs)
+        self.post_experiment(env, model)
         return episode_rewards
     
     def manual_policy_eval(self, **kwargs):
         """Evaluates a model."""
+        self.mode =  'manual_policy_eval'
         env, model, callback_list = self.prepare_experiment('manual_policy_eval', kwargs)
+        self.current_kwargs = kwargs
         episode_rewards = self.custom_evaluate_policy(model, env, callback_list, num_episodes=kwargs['num_of_episodes'])
-        self.post_experiment('manual_policy_eval', env, model, kwargs)
+        self.post_experiment(env, model)
         return episode_rewards
     
     def get_fake_start_datetime(self, kwargs):
@@ -325,19 +343,27 @@ class ExperimentManager:
             
     def retrain_model(self, **kwargs):
         """Retrains a model."""
-        kwargs['fake_start_datetime'] = self.get_fake_start_datetime(kwargs)
+        self.mode = 'retrain'
+        if kwargs['fake_start_datetime'] is None:
+            kwargs['fake_start_datetime'] = self.get_fake_start_datetime(kwargs)
         env, model, callback_list = self.prepare_experiment('retrain', kwargs)
         logger.info(f"Retraining model from datetime: {kwargs['fake_start_datetime']}")
         name = kwargs['name']
+        self.current_kwargs = kwargs
+        
         model.learn(total_timesteps=env.total_steps*kwargs['num_of_episodes'], callback=callback_list, tb_log_name=name)        
         self.retrain_master = self.update_master_tables(self.retrain_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), kwargs)        
-        self.post_experiment('retrain', env, model, kwargs)        
+        self.post_experiment(env, model)        
         return model
 
     def update_master_tables(self, master_table, end_time, kwargs):
         """Updates the master table with the end time and kwargs."""
         kwargs['end_time'] = end_time
-        master_table = pd.concat([master_table, pd.DataFrame(kwargs, index=[0])], ignore_index=True)
+        new_row = pd.DataFrame(kwargs, index=[0])
+        if new_row['name'].values[0] in master_table['name'].values:
+            master_table[master_table['name'] == new_row['name'].values[0]] = new_row
+        else:
+            master_table = pd.concat([master_table, new_row], ignore_index=True)
         return master_table
     
     def prepare_experiment(self, mode, kwargs):
@@ -348,20 +374,19 @@ class ExperimentManager:
         env = self.setup_envionment(**kwargs)
         model = self.get_model(kwargs, name, env, mode)
         kwargs['name'] = name
-        callback_list = CallbackList([TrainTensorboardCallback(experiment_kwargs=kwargs, verbose=3), HparamsCallback(experiment_kwargs=kwargs, verbose=3), SaveModelCallback(save_path=os.path.join(self.models_dir, kwargs['name']))])
+        callback_list = CallbackList([TrainTensorboardCallback(experiment_kwargs=kwargs, verbose=3), HparamsCallback(experiment_kwargs=kwargs, verbose=3), SaveArtifacts(experiment_menager=self)])#SaveModelCallback(save_path=os.path.join(self.models_dir, kwargs['name']))])
         return env, model, callback_list
     
-    def post_experiment(self, mode, env, model, kwargs):
+    def post_experiment(self, env, model):
         """Post experiment actions."""
-        if mode == 'train':
-            kwargs['env_name'] = kwargs['env_name'].split('-v')[1]
-            self.train_master = self.update_master_tables(self.train_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), kwargs)
-            model.save(os.path.join(self.models_dir, kwargs['name']))            
-        elif mode == 'eval' or mode == 'manual_policy_eval':
-            self.eval_master = self.update_master_tables(self.eval_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), kwargs)
-        elif mode == 'retrain':
-            self.retrain_master = self.update_master_tables(self.retrain_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), kwargs)
-            model.save(os.path.join(self.models_dir, kwargs['name']))
+        if self.mode == 'train':
+            self.train_master = self.update_master_tables(self.train_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), self.current_kwargs)
+            model.save(os.path.join(self.models_dir, self.current_kwargs['name']))            
+        elif self.mode == 'eval' or self.mode == 'manual_policy_eval':
+            self.eval_master = self.update_master_tables(self.eval_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), self.current_kwargs)
+        elif self.mode == 'retrain':
+            self.retrain_master = self.update_master_tables(self.retrain_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), self.current_kwargs)
+            model.save(os.path.join(self.models_dir, self.current_kwargs['name']))
             
         self.save_master_tables()
         env.reward_calculator.no_agent_values.to_csv(env.reward_calculator.no_agent_table_path, index=False)

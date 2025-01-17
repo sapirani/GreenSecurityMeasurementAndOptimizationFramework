@@ -21,63 +21,61 @@ echo $password | sudo -S sed -i 's/^max_searches_per_process = .*/max_searches_p
 # =====================================================
 
 configure_experiment() {
-    local model_type=$1         # Argument 1
-    local policy_type=$2        # Argument 2
-    local num_episodes=$3       # Argument 3
-    local learning_rate=$4      # Argument 4
-    local additional_pct=$5     # Argument 5
-    local env_version=$6        # Argument 6
-    local reward_calculator=$7  # Argument 7
-    local experiment_name=$8    # Argument 8
-    local search_window=720
-    # Calculate reward weights
-    local alpha=0
-    local beta=0.2
+    local model_type=$1
+    local policy_type=$2
+    local num_episodes=$3
+    local learning_rate=$4
+    local additional_pct=$5
+    local env_version=$6
+    local reward_calculator=$7
+    local experiment_name=$8
+    local action_strategy_version=$9
+    local search_window=${10}
+    local span_size=${11}
+    local rule_frequency=${12}
+    local state_strategy_version=${13}
+    if [[ ${14} == "test" ]]; then
+        local mode="eval"
+    else 
+        local mode="train"
+    fi
+    
+    local alpha=0.34
+    local beta=0.33
     local gamma=$(awk "BEGIN {print 1 - $alpha - $beta}")
     
-    # Create associative array for parameters
     declare -A kwargs
     
-    # Base configuration
     kwargs=(
         ["model"]=$model_type
         ["policy"]=$policy_type
-        ["span_size"]=1800
+        ["span_size"]=$span_size
         ["search_window"]=$search_window
-        ["env_name"]="splunk_eval-v${env_version}"
+        ["env_name"]="splunk_${mode}-v${env_version}"  # Dynamic environment name
         ["num_of_episodes"]=$num_episodes
-        
-        # Learning parameters
         ["learning_rate"]=$learning_rate
         ["additional_percentage"]=$additional_pct
-        ["ent_coef"]=0
+        ["ent_coef"]=0.01
         ["df"]=0.99
-        
-        # Reward configuration
         ["alpha"]=$alpha
         ["beta"]=$beta
         ["gamma"]=$gamma
-        
-        # Strategy versions
         ["reward_calculator_version"]=$reward_calculator
-        ["state_strategy_version"]=4
-        ["action_strategy_version"]=7
-        
-        # Performance settings
-        ["rule_frequency"]=180
+        ["state_strategy_version"]=$state_strategy_version
+        ["action_strategy_version"]=$action_strategy_version
+        ["rule_frequency"]=$rule_frequency
         ["logs_per_minute"]=150
         ["num_of_measurements"]=1
-
         ['experiment_name']=$experiment_name
+        # ['fake_start_datetime']='2024-09-27_03:00:00'
     )
-    
-    # Convert to args string
     local args=""
     for key in "${!kwargs[@]}"; do
         args+="--$key ${kwargs[$key]} "
     done
     echo "$args"
 }
+
 
 # =====================================================
 # 3. Run Function
@@ -110,6 +108,12 @@ run_experiment() {
 #  5. additional_pct      - e.g., 0.5, 0.1
 #  6. env_version        - e.g., 32, 33
 #  7. reward_calculator  - e.g., 28, 29
+#  8. experiment_name     - e.g., "train_20241209_233937"
+#  9. action_strategy_version - e.g., 7
+# 10. search_window - e.g., 60 (minutes)
+# 11. span_size - e.g., 180 (seconds)
+# 12. rule_frequency - e.g., 60 (minutes)
+# 13. state_strategy_version - e.g., 8
 
 # args=$(configure_experiment "a2c" "mlp" 500 0.005 0.5 32 28 "train_20241209_233937")
 # run_experiment "a2c 0.005 lr 0.5 add rules total cpu as reward - test" "test" "$args"
@@ -119,9 +123,30 @@ run_experiment() {
 
 # Experiment 4: Different Environment with Higher Learning Rate
 
+# args=$(configure_experiment "recurrentppo" "lstm" 1000 0.0005 0.5 32 44 "train_20241223_143017" 8 720 1800 180)
+# run_experiment "" "train" "$args"
 
-args=$(configure_experiment "recurrentppo" "lstm" 2000 0.001 0.5 32 43 "train_20241223_143017")
-run_experiment "" "train" "$args"
+# args=$(configure_experiment "recurrentppo" "lstm" 2000 0.0005 0.5 32 43 "train_20241227_164732" 7 60 180 60)
+# run_experiment "" "train" "$args"
+mode="test"
+# args=$(configure_experiment "recurrentppo" "lstm" 100 0.0005 0.5 32 46 "train_20250104_193751" 7 60 900 60 7 "$mode")
+# run_experiment "Dynamic env test" "$mode" "$args"
+# args=$(configure_experiment "recurrentppo" "lstm" 100 0.005 0.5 32 46 "train_20250104_193751" 7 60 900 60 7 "$mode")
+# run_experiment "Dynamic env test" "$mode" "$args"
+# args=$(configure_experiment "ppo" "mlp" 100 0.0005 0.5 32 49 "train_20250111_195442" 10 60 120 60 4 "$mode")
+# run_experiment "Dynamic env test" "$mode" "$args"
+
+mode="train"
+args=$(configure_experiment "ppo" "mlp" 150 0.0005 0.5 32 49 "train_20250114_142550" 10 60 120 60 10 "$mode")
+run_experiment "Dynamic env test" "$mode" "$args"
+args=$(configure_experiment "ppo" "mlp" 150 0.0005 0.5 32 50 "train_20250114_142550" 10 60 120 60 10 "$mode")
+run_experiment "Dynamic env test" "$mode" "$args"
+args=$(configure_experiment "ppo" "mlp" 150 0.0005 0.5 32 50 "train_20250114_142550" 10 60 120 60 11 "$mode")
+run_experiment "Dynamic env test" "$mode" "$args"
+# args=$(configure_experiment "ppo" "mlp" 36 0.0005 0.5 32 49 "train_20250113_200347" 10 60 120 60 4 "$mode")
+# run_experiment "Dynamic env test" "$mode" "$args"
+# args=$(configure_experiment "recurrentppo" "lstm" 1000 0.0005 0.5 32 44 "train_20241223_143017" 8 60 180 60)
+# run_experiment "" "train" "$args"
 # args=$(configure_experiment "recurrentppo" "lstm" 500 0.001 0.5 32 41 "train_20241220_104215")
 # run_experiment "" "test" "$args"
 # args=$(configure_experiment "a2c" "mlp" 10 0.005 0.5 32 36 "retrain_20241215_000707")

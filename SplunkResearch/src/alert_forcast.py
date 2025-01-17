@@ -10,6 +10,96 @@ import os
 import datetime
 import logging
 from pathlib import Path
+from strategies.reward_strategy import *
+from splunk_tools import SplunkTools
+from datetime_manager import MockedDatetimeManager
+from strategies.state_strategy import StateStrategy4
+from matplotlib import pyplot as plt
+import sys
+sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment')
+
+from SplunkResearch.resources.section_logtypes import section_logtypes
+
+if not ("alerts.pkl" in os.listdir() and "distributions.pkl" in os.listdir() and "time_ranges.pkl" in os.listdir() and "rules_alerts_probs.csv" in os.listdir()):
+    start_time = "04/01/2024:00:00:00"
+    savedsearches = ["Windows Event For Service Disabled",
+                    "Detect New Local Admin account",
+                    "ESCU Network Share Discovery Via Dir Command Rule",
+                    "Known Services Killed by Ransomware",
+                    "Non Chrome Process Accessing Chrome Default Dir",
+                    "Kerberoasting spn request with RC4 encryption",
+                    "Clop Ransomware Known Service Name"]
+    frequency = "1"
+    top_logtypes = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
+    top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
+    top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
+    print("num of rows in top_logtypes: ", len(top_logtypes))
+    splunk = SplunkTools(savedsearches, 1, frequency)
+    datetime_manager = MockedDatetimeManager(start_time)
+    reward_strategy = RewardStrategy43(datetime_manager, splunk, len(savedsearches),no_agent_table_path="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments_____/no_agent_baseline/no_agent_20241228_231350.csv" )
+    state_strategy = StateStrategy4(top_logtypes)
+
+    end_time = "06/01/2024:00:00:00"
+    search_window = "1"
+    section_logtypes = {k:' '.join(x[0]) for k,x in section_logtypes.items()}
+        
+    def gather_data(time_ranges):
+        alerts = [] 
+        distributions = []
+        rules_alerts_probs = []
+        for time_range in time_ranges:
+            data = reward_strategy.get_no_agent_reward(time_range)
+            alert_val = data['alert']
+            relevant_row = reward_strategy.no_agent_values[(reward_strategy.no_agent_values['start_time'] == time_range[0]) & (reward_strategy.no_agent_values['end_time'] == time_range[1])]
+            rules_alerts = {section_logtypes[i]:relevant_row[f'rule_alert_{i}'].values[0] for i in savedsearches}
+            alerts.append(alert_val)
+            distribution = splunk.get_real_distribution(*time_range)
+            rules_logtypes = {section_logtypes[i]:distribution[section_logtypes[i]] for i in savedsearches if section_logtypes[i] in distribution}
+            rules_alerts_prob = {k:rules_alerts[k]/rules_logtypes[k] for k in rules_alerts if k in rules_logtypes}
+            rules_alerts_prob.update({k:0 for k in rules_alerts if k not in rules_logtypes})
+            rules_alerts_probs.append(rules_alerts_prob)
+            fake_distribution = {"no":0 for i in range(len(top_logtypes))}
+            state_strategy.update_distributions(distribution, fake_distribution)
+            real_state = state_strategy.get_abs_states()[0]
+            distributions.append(real_state)
+            if random.random() < 0.1:
+                print(time_range, alert_val, real_state)
+            
+        return alerts, distributions, rules_alerts_probs
+
+    time_ranges = []
+    while datetime.datetime.strptime(start_time, '%m/%d/%Y:%H:%M:%S') < datetime.datetime.strptime(end_time, '%m/%d/%Y:%H:%M:%S'):
+        current_end_time = datetime_manager.add_time(start_time, hours=int(search_window), minutes=0, seconds=0)
+        time_ranges.append((start_time, current_end_time))
+        start_time = datetime_manager.add_time(start_time, hours=int(frequency), minutes=0, seconds=0)
+        # print(start_time)
+        
+    alerts, distributions, rules_alerts_probs = gather_data(time_ranges)
+    rules_alerts_probs_df = pd.DataFrame(rules_alerts_probs)
+    rules_alerts_probs_df.to_csv("rules_alerts_probs.csv")
+
+    # dump time_ranges, alerts, distributions to a file
+    with open("time_ranges.pkl", "wb") as f:
+        pickle.dump(time_ranges, f)
+    with open("alerts.pkl", "wb") as f:
+        pickle.dump(alerts, f)
+    with open("distributions.pkl", "wb") as f:
+        pickle.dump(distributions, f)
+else:
+    with open("time_ranges.pkl", "rb") as f:
+        time_ranges = pickle.load(f)
+    with open("alerts.pkl", "rb") as f:
+        alerts = pickle.load(f)
+    with open("distributions.pkl", "rb") as f:
+        distributions = pickle.load(f)
+    rules_alerts_probs = pd.read_csv("rules_alerts_probs.csv").drop(columns=["Unnamed: 0"])
+    # plot rules_alerts_probs in multy axes
+    fig, axs = plt.subplots(2, 4, figsize=(20, 10))
+    for i, rule in enumerate(rules_alerts_probs.columns):
+        ax = axs[i//4, i%4]
+        ax.plot(rules_alerts_probs[rule])
+        ax.set_title(rule)
+    plt.savefig("rules_alerts_probs.png")
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -21,7 +111,26 @@ class AlertPredictor:
         self.model_dir.mkdir(exist_ok=True)
         self.model = None
         self.scaler = preprocessing.StandardScaler()
+    
+    def prepare_data_for_lstm(self, distributions, alerts, time_ranges, test_size=0.2):
+        """split alerts to sliding windows and prepare data for training"""
+        X = []
+        y = []
+        window_size = 5
+        for i in range(window_size, len(alerts)):
+            X.append(alerts[i-window_size:i])
+            y.append(alerts[i])
+        X = np.array(X)
+        X = X.astype('int')
+        y = np.array(y)
+        y = y.astype('int')
+        # Normalize features
+        # X = preprocessing.normalize(X)
         
+        # Split data
+        return train_test_split(X, y, test_size=test_size, random_state=121)
+               
+      
     def prepare_data(self, distributions, alerts, test_size=0.2):
         """Prepare and split data for training"""
         X = np.array(distributions)
@@ -36,10 +145,10 @@ class AlertPredictor:
     def train_model(self, X_train, y_train):
         """Train model with hyperparameter tuning"""
         param_grid = {
-            'n_estimators': [100, 200, 1000],
-            'max_depth': [10, 20],
-            'min_samples_split': [2, 5],
-            'min_samples_leaf': [1, 2, 4]
+            'n_estimators': [2000],
+            'max_depth': [10],
+            'min_samples_split': [5],
+            'min_samples_leaf': [2]
         }
         
         base_model = RandomForestRegressor(random_state=42)
@@ -54,7 +163,45 @@ class AlertPredictor:
         grid_search.fit(X_train, y_train)
         logger.info(f"Best parameters: {grid_search.best_params_}")
         self.model = grid_search.best_estimator_
+    
+    def train_lstm_model(self, X_train, y_train):
+        """Train LSTM model"""
+        from keras.models import Sequential
+        from keras.layers import LSTM, Dense, Dropout
+        from keras.callbacks import EarlyStopping
         
+        X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
+
+        model = Sequential()
+        model.add(LSTM(50, return_sequences=True, input_shape=(X_train.shape[1], 1)))
+        model.add(LSTM(50, return_sequences=False))
+        model.add(Dense(25))
+        model.add(Dense(1))
+        
+        model.compile(optimizer='adam', loss='mean_squared_error')
+        
+        early_stop = EarlyStopping(monitor='loss', patience=10, verbose=1)   
+        model.fit(X_train, y_train, batch_size=64, epochs=1000, callbacks=[early_stop])
+        
+        self.model = model
+    
+    def evaluate_lstm_model(self, X_test, y_test):
+        """Evaluate LSTM model performance"""
+        y_pred = self.model.predict(X_test)
+        
+        metrics_dict = {
+            'MSE': mean_squared_error(y_test, y_pred),
+            'RMSE': np.sqrt(mean_squared_error(y_test, y_pred)),
+            'MAE': mean_absolute_error(y_test, y_pred),
+            'R2': r2_score(y_test, y_pred)
+        }
+        
+        logger.info("Model Performance Metrics:")
+        for metric, value in metrics_dict.items():
+            logger.info(f"{metric}: {value:.4f}")
+            
+        return metrics_dict, y_pred
+    
     def evaluate_model(self, X_test, y_test):
         """Evaluate model performance"""
         y_pred = self.model.predict(X_test)
@@ -160,12 +307,15 @@ def main():
     
     # Prepare data
     X_train, X_test, y_train, y_test = predictor.prepare_data(distributions, alerts)
+    # X_train, X_test, y_train, y_test = predictor.prepare_data_for_lstm(distributions, alerts, time_ranges)
     
     # Train model
     predictor.train_model(X_train, y_train)
+    # predictor.train_lstm_model(X_train, y_train)
     
     # Evaluate model
     metrics_dict, y_pred = predictor.evaluate_model(X_test, y_test)
+    # metrics_dict, y_pred = predictor.evaluate_lstm_model(X_test, y_test)
     
     # Generate plots
     predictor.plot_predictions(y_test, y_pred, 'predictions_plot.png')

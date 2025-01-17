@@ -9,6 +9,8 @@ import numpy as np
 import urllib3
 import json
 import sys
+
+from strategies.action_strategy import ActionStrategy8
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
 import logging
 from stable_baselines3.ppo.policies import MlpPolicy
@@ -40,6 +42,18 @@ class SaveModelCallback(BaseCallback):
         if self.n_calls % self.save_freq == 0:
             self.model.save(self.save_path)
         return True
+    
+class SaveArtifacts(BaseCallback):
+    def __init__(self, verbose=1, save_freq=500, experiment_menager=None):
+        super(SaveArtifacts, self).__init__(verbose)
+        self.save_freq = save_freq
+        self.experiment_menager = experiment_menager
+
+    def _on_step(self) -> bool:
+        if self.n_calls % self.save_freq == 0:
+            env = self.training_env.envs[0]
+            self.experiment_menager.post_experiment(env, self.model)
+        return True
 
 class ModularTensorboardCallback(BaseCallback):
     def __init__(self, verbose=1, phase="train", experiment_kwargs=None):
@@ -47,7 +61,7 @@ class ModularTensorboardCallback(BaseCallback):
         self.phase = phase  # This will determine whether it's "train" or "test"
         print("Experiment kwargs: ", experiment_kwargs)
         self.experiment_kwargs = experiment_kwargs
-        self.episodic_metrics = ["alert", "duration", "std_duration", "cpu", "std_cpu", "read_bytes", "read_count", "write_bytes", "write_count", "median_cpu_usage"]
+        self.episodic_metrics = ["alert", "duration", "std_duration", "cpu", "std_cpu", "read_bytes", "read_count", "write_bytes", "write_count", "total_cpu_usage"]
         self.reward_values = [ "p_values", "t_values", "degrees_of_freedom"] 
         self.started_measurements = False
         self.time_rules_energy_current_len = 0
@@ -66,11 +80,12 @@ class ModularTensorboardCallback(BaseCallback):
         return False
 
     def log_common_metrics(self, env):
-        if self.started_measurements or random.randint(0, 100) == 2:
+
+        # if self.started_measurements or random.randint(0, 100) == 2:
             # Record common metrics for both training and evaluation phases
-            self._safe_log(f"{self.phase}/distribution_val", env.reward_calculator.reward_values_dict.get('distributions', []))
-            self._safe_log(f"{self.phase}/distribution_reward", env.reward_calculator.reward_dict.get('distributions', []))
-            self._safe_log(f"{self.phase}/quotas", env.action_strategy.action_quotas)
+        self._safe_log(f"{self.phase}/distribution_val", env.reward_calculator.reward_values_dict.get('distributions', []))
+        self._safe_log(f"{self.phase}/distribution_reward", env.reward_calculator.reward_dict.get('distributions', []))
+        self._safe_log(f"{self.phase}/quotas", env.action_strategy.action_quotas)
 
     def log_detailed_metrics(self, env, no_agent_last_row):
         # Log detailed metrics while safely checking list indices
@@ -80,6 +95,7 @@ class ModularTensorboardCallback(BaseCallback):
             print(f"Time rules energy length: {self.time_rules_energy_current_len}")
             self._safe_log(f"{self.phase}/alert_reward", env.reward_calculator.reward_dict.get('alerts', []))
             self._safe_log(f"{self.phase}/duration_reward", env.reward_calculator.reward_dict.get('duration', []))
+            self._safe_log(f"{self.phase}/final_distribution", env.reward_calculator.reward_dict.get('final_distribution', []))
             for metric in self.episodic_metrics:
                 if len(env.reward_calculator.time_rules_energy):
                     success = self._safe_log(f"{self.phase}/{metric}", [env.reward_calculator.time_rules_energy[-1].get(metric, [])])
@@ -103,12 +119,16 @@ class ModularTensorboardCallback(BaseCallback):
                             self.logger.record(f"{self.phase}/rules_{metric}_gap", 
                                     {key.split(f'rule_{metric}_')[1]: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1]
                                         for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith(f'rule_{metric}')})
-                    
+                        
+            # self.logger.record(f"{self.phase}/rules_alert_reward", {rule['title']: env.reward_calculator.current_rules_alert_reward.get(rule['title'], []) for rule in env.splunk_tools_instance.active_saved_searches})                    
             # log episodic policy
             policy_dict = {}
             for i, logtype in enumerate(env.relevant_logtypes):
                 for is_trigger in range(2):
-                    policy_dict[f'{logtype}_{is_trigger}'] = env.action_per_episode[-1][i*2+is_trigger]
+                    if isinstance(env.action_strategy, ActionStrategy8):
+                        policy_dict[f'{logtype}_0'] = env.action_per_episode[-1][i]
+                    else:
+                        policy_dict[f'{logtype}_{is_trigger}'] = env.action_per_episode[-1][i*2+is_trigger]
                     if i == len(env.relevant_logtypes)-1:
                         break 
             self.logger.record(f"{self.phase}/episodic_policy", policy_dict)
@@ -121,7 +141,7 @@ class ModularTensorboardCallback(BaseCallback):
             self._safe_log(f"{self.phase}/no_agent_alert_val", no_agent_last_row.get('alert', []))
             self._safe_log(f"{self.phase}/no_agent_duration_val", no_agent_last_row.get('duration', []))
             self._safe_log(f"{self.phase}/no_agent_cpu", no_agent_last_row.get('cpu', []))
-            self._safe_log(f"{self.phase}/no_agent_median_cpu_usage", no_agent_last_row.get('median_cpu_usage', []))
+            self._safe_log(f"{self.phase}/no_agent_total_cpu_usage", no_agent_last_row.get('total_cpu_usage', []))
 
             self.logger.record(f"{self.phase}/no_agent_rules_alerts", {col.split('rule_alert_')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_alert')})
             self.logger.record(f"{self.phase}/no_agent_rules_duration", {col.split('rule_duration_')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_duration')})

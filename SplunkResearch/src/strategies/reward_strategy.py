@@ -30,7 +30,7 @@ class RewardStrategy(ABC):
         self.epsilon = 0.000000000001
         logger.info(f"epsilon: {self.epsilon}")
         self.action_upper_bound = 1
-        self.reward_dict = {'energy': [], 'alerts': [], 'distributions': [], 'duration': [], 'total': []}
+        self.reward_dict = {'energy': [], 'alerts': [],'final_distribution': [], 'distributions': [], 'duration': [], 'total': []}
         self.reward_values_dict = {'energy': [], 'alerts': [], 'distributions': [], 'duration': [], "num_of_rules":[], "p_values":[], "t_values":[], "degrees_of_freedom":[], "cpu":[]}
         self.dt_manager = dt_manager
         self.splunk_tools = splunk_tools
@@ -42,7 +42,7 @@ class RewardStrategy(ABC):
         self.alert_threshold = 0
         self.measurment_tool = measurment_tool
         self.alpha = alpha
-        self.betta = beta
+        self.beta = beta
         self.gamma = gamma
         self.no_agent_table_path = no_agent_table_path
         try: 
@@ -57,8 +57,11 @@ class RewardStrategy(ABC):
     def get_no_agent_reward(self, time_range):
         relevant_row = self.no_agent_values[(self.no_agent_values['start_time'] == time_range[0]) & (self.no_agent_values['end_time'] == time_range[1])]
         if not relevant_row.empty:
-            combined_rules_metrics = self.rules_metrics_combiner(alert=relevant_row['alert'].values[0], duration=relevant_row['duration'].values[0], std_duration=relevant_row['std_duration'].values[0], cpu=relevant_row['cpu'].values[0], std_cpu=relevant_row['std_cpu'].values[0], read_count=relevant_row['read_count'].values[0], write_count=relevant_row['write_count'].values[0], read_bytes=relevant_row['read_bytes'].values[0], write_bytes=relevant_row['write_bytes'].values[0], median_cpu_usage=relevant_row['median_cpu_usage'].values[0])
+            combined_rules_metrics = self.rules_metrics_combiner(alert=relevant_row['alert'].values[0], duration=relevant_row['duration'].values[0], std_duration=relevant_row['std_duration'].values[0], cpu=relevant_row['cpu'].values[0], std_cpu=relevant_row['std_cpu'].values[0], read_count=relevant_row['read_count'].values[0], write_count=relevant_row['write_count'].values[0], read_bytes=relevant_row['read_bytes'].values[0], write_bytes=relevant_row['write_bytes'].values[0], total_cpu_usage=relevant_row['total_cpu_usage'].values[0])
         else:
+            logger.info('Cleaning the environment')
+            clean_env(self.splunk_tools, time_range)
+            
             logger.info('Measure no agent reward values')
             new_line, combined_rules_metrics = self.get_rules_metrics(time_range)
             self.no_agent_values = pd.concat([self.no_agent_values, pd.DataFrame(
@@ -148,11 +151,13 @@ class RewardStrategy(ABC):
                 
     def rules_metrics_combiner(self, **rules_metrics):
         result = {}
+        
         for rule_metric in rules_metrics:
             # if rule_metric == 'total_cpu_usage':
             #     result[rule_metric] = np.mean(rules_metrics[rule_metric])
             # else:
             result[rule_metric] = np.sum(rules_metrics[rule_metric])
+        print(result)
         return result
         
     def get_rules_metrics(self, time_range):
@@ -199,8 +204,8 @@ class RewardStrategy1(RewardStrategy):
         distributions_reward = self.get_partial_reward(real_distribution, fake_distribution)
         
         ###### Total Reward ######
-        # total_reward = self.alpha * alert_reward + self.betta * distributions_reward + self.gamma * duration_reward
-        total_reward = self.betta * distributions_reward + self.gamma * duration_reward
+        # total_reward = self.alpha * alert_reward + self.beta * distributions_reward + self.gamma * duration_reward
+        total_reward = self.beta * distributions_reward + self.gamma * duration_reward
         
         if (no_agent_alert_val == 0) & (alert_gap > 3):
             total_reward = -(total_reward * alert_gap)
@@ -257,8 +262,8 @@ class RewardStrategy2(RewardStrategy):
         distributions_reward = self.get_partial_reward(real_distribution, fake_distribution)
         
         ###### Total Reward ######
-        # total_reward = self.alpha * alert_reward + self.betta * distributions_reward + self.gamma * duration_reward
-        total_reward = self.betta * distributions_reward + self.gamma * duration_reward
+        # total_reward = self.alpha * alert_reward + self.beta * distributions_reward + self.gamma * duration_reward
+        total_reward = self.beta * distributions_reward + self.gamma * duration_reward
         
         if (no_agent_alert_val == 0) & (alert_gap > 3):
             total_reward = -(total_reward * alert_gap)
@@ -313,8 +318,8 @@ class RewardStrategy3(RewardStrategy):
         distributions_reward = self.get_partial_reward(real_distribution, fake_distribution)
         
         ###### Total Reward ######
-        # total_reward = self.alpha * alert_reward + self.betta * distributions_reward + self.gamma * duration_reward
-        total_reward = self.betta * distributions_reward + self.gamma * duration_reward
+        # total_reward = self.alpha * alert_reward + self.beta * distributions_reward + self.gamma * duration_reward
+        total_reward = self.beta * distributions_reward + self.gamma * duration_reward
         
         if (no_agent_alert_val == 0) & (alert_gap > 3):
             total_reward = distributions_reward * alert_gap
@@ -369,8 +374,8 @@ class RewardStrategy4(RewardStrategy):
         distributions_reward = self.get_partial_reward(real_distribution, fake_distribution)
         
         ###### Total Reward ######
-        # total_reward = self.alpha * alert_reward + self.betta * distributions_reward + self.gamma * duration_reward
-        total_reward = self.betta * distributions_reward + self.gamma * duration_reward
+        # total_reward = self.alpha * alert_reward + self.beta * distributions_reward + self.gamma * duration_reward
+        total_reward = self.beta * distributions_reward + self.gamma * duration_reward
         num_of_steps = len(self.reward_values_dict['distributions'])/len(self.reward_values_dict['alerts'])
         logger.info(f"num of steps: {num_of_steps}")
         logger.info(f"alert gap: {alert_gap}")
@@ -425,8 +430,8 @@ class RewardStrategy5(RewardStrategy):
         distributions_reward = self.get_partial_reward(real_distribution, fake_distribution)
         
         ###### Total Reward ######
-        # total_reward = self.alpha * alert_reward + self.betta * distributions_reward + self.gamma * duration_reward
-        total_reward = self.betta * distributions_reward + self.gamma * duration_reward
+        # total_reward = self.alpha * alert_reward + self.beta * distributions_reward + self.gamma * duration_reward
+        total_reward = self.beta * distributions_reward + self.gamma * duration_reward
         num_of_steps = len(self.reward_values_dict['distributions'])/len(self.reward_values_dict['alerts'])
         logger.info(f"num of steps: {num_of_steps}")
         logger.info(f"alert gap: {alert_gap}")
@@ -1627,10 +1632,7 @@ class RewardStrategy37(RewardStrategy27):
     def rules_metrics_combiner(self, **rules_metrics):
         result = {}
         for rule_metric in rules_metrics:
-            if rule_metric == 'total_cpu_usage':
-                result['median_cpu_usage'] = np.trapz(np.array(rules_metrics[rule_metric])/100, dx=.1)
-            else:
-                result[rule_metric] = np.sum(rules_metrics[rule_metric])
+            result[rule_metric] = np.sum(rules_metrics[rule_metric])
         return result
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
@@ -1748,8 +1750,7 @@ class RewardStrategy40(RewardStrategy37):
             return 0
     
     def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
-        if self.current_distributions_distance == self.epsilon:
-            return 0
+
         values =  self.get_duration_reward_values(time_range)
         clean_env(self.splunk_tools, time_range)
         before_metrics =  self.get_no_agent_reward(time_range)
@@ -1911,3 +1912,405 @@ class RewardStrategy43(RewardStrategy37):
 
         else:
             return (energy_reward*100)/alert_reward
+        
+class RewardStrategy44(RewardStrategy37):
+    
+    def __init__(self,  dt_manager, splunk_tools, num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
+        self.cpus = []
+        self.distribution_threshold = 10
+        self.distribution_reward_freq = 2
+        
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
+        # distributions_distance = self.current_distributions_distance
+        if step_counter % self.distribution_reward_freq == 0:
+            distributions_distance = self.get_partial_reward_values(real_distribution, fake_distribution)
+            self.current_distributions_distance = distributions_distance
+            
+            logger.info(f"current_distributions_distance: {self.current_distributions_distance}")
+            
+            return -distributions_distance
+        else:
+            return 0
+    
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
+
+        values =  self.get_duration_reward_values(time_range)
+        clean_env(self.splunk_tools, time_range)
+        before_metrics =  self.get_no_agent_reward(time_range)
+        self.no_agent_last_row = self.no_agent_current_row
+        alert_val, duration_val, std_duration_val, median_cpu_usage = values['alert'], values['cpu'], values['std_cpu'], values['median_cpu_usage']
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, no_agent_median_cpu_usage = before_metrics['alert'], before_metrics['cpu'], before_metrics['std_cpu'], before_metrics['median_cpu_usage']
+        # no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = no_agent_values['alert'], no_agent_values['cpu'], no_agent_values['std_cpu']
+        # logger.info(f"alert value: {alert_val}, no_agent_alert_val: {no_agent_alert_val}")
+        logger.info(f"median_cpu_usage value: {median_cpu_usage}")
+        logger.info(f"no_agent_median_cpu_usage value: {no_agent_median_cpu_usage}")
+        # self.cpus.append(total_cpu_usage)
+        # self.cpu_avg = np.mean(self.cpus)
+        energy_reward = (median_cpu_usage-no_agent_median_cpu_usage)/no_agent_median_cpu_usage
+
+        
+        self.reward_dict['duration'].append(energy_reward)
+        if energy_reward < 0:
+            energy_reward = 0
+        num_of_distribution_rewards = step_counter//self.distribution_reward_freq
+        return 100*energy_reward - self.current_distributions_distance
+    
+class RewardStrategy45(RewardStrategy37):
+    
+    def __init__(self,  dt_manager, splunk_tools, num_of_searches,  measurment_tool=None, alpha=0, beta=0, gamma=0, no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
+        self.cpus = []
+        self.distribution_threshold = 10
+        self.distribution_reward_freq = 4
+        self.alert_threshold = 0.5
+        self.rule_alert_rate = {'Windows Event For Service Disabled':2, 'Detect New Local Admin account':0, 'ESCU Network Share Discovery Via Dir Command Rule':0, 'Known Services Killed by Ransomware':2, 'Non Chrome Process Accessing Chrome Default Dir':0, 'Kerberoasting spn request with RC4 encryption':0, 'Clop Ransomware Known Service Name':0}
+        self.current_rules_alert_reward = {}
+        
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
+        # distributions_distance = self.current_distributions_distance
+        if step_counter % self.distribution_reward_freq == 0:
+            distributions_distance = self.get_partial_reward_values(real_distribution, fake_distribution)
+            self.current_distributions_distance = distributions_distance
+            
+            logger.info(f"current_distributions_distance: {self.current_distributions_distance}")
+            
+            return -distributions_distance
+        else:
+            return 0
+    
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
+        if self.current_distributions_distance == self.epsilon:
+            return 0
+        values =  self.get_duration_reward_values(time_range)
+        clean_env(self.splunk_tools, time_range)
+        before_metrics =  self.get_no_agent_reward(time_range)
+        self.no_agent_last_row = self.no_agent_current_row
+        alert_val, duration_val, std_duration_val, median_cpu_usage = values['alert'], values['cpu'], values['std_cpu'], values['median_cpu_usage']
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, no_agent_median_cpu_usage = before_metrics['alert'], before_metrics['cpu'], before_metrics['std_cpu'], before_metrics['median_cpu_usage']
+        # no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = no_agent_values['alert'], no_agent_values['cpu'], no_agent_values['std_cpu']
+        # logger.info(f"alert value: {alert_val}, no_agent_alert_val: {no_agent_alert_val}")
+        logger.info(f"median_cpu_usage value: {median_cpu_usage}")
+        logger.info(f"no_agent_median_cpu_usage value: {no_agent_median_cpu_usage}")
+        # self.cpus.append(total_cpu_usage)
+        # self.cpu_avg = np.mean(self.cpus)
+        energy_reward = (median_cpu_usage-no_agent_median_cpu_usage)/no_agent_median_cpu_usage
+        rules_alerts_list = [f"rule_alert_{rule['title']}" for rule in self.splunk_tools.active_saved_searches]
+        rules_no_agent_alert_val = list(self.no_agent_current_row[rules_alerts_list].to_dict(orient='index').values())[0]
+        rules_alert_val = {rule:self.time_rules_energy[-1][rule] for rule in rules_alerts_list}
+        no_agent_alert_val += self.epsilon
+        rules_alert_reward = {}
+        for rule in rules_no_agent_alert_val:
+            alert_gap = rules_alert_val[rule] - rules_no_agent_alert_val[rule]
+            rules_alert_reward[rule] = alert_gap/(rules_no_agent_alert_val[rule]+self.epsilon)
+        alert_reward = np.mean(list(rules_alert_reward.values())) 
+        self.current_rules_alert_reward = rules_alert_reward
+        self.reward_dict['duration'].append(energy_reward)
+        self.reward_dict['alerts'].append(alert_reward)
+        num_of_distribution_rewards = step_counter//self.distribution_reward_freq
+        if alert_reward > self.alert_threshold:
+            return -((alert_reward*10))
+        elif energy_reward <= 0:
+            return 0
+
+        else:
+            return (energy_reward*10)
+    
+class RewardStrategy46(RewardStrategy37):
+    
+    def __init__(self,  dt_manager, splunk_tools, num_of_searches,  measurment_tool=None, alpha=0, beta=0, gamma=0, no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
+        self.cpus = []
+        self.distribution_threshold = 10
+        self.distribution_reward_freq = 2
+        self.alert_threshold = 0.5
+        self.rule_alert_rate = {'Windows Event For Service Disabled':2, 'Detect New Local Admin account':0, 'ESCU Network Share Discovery Via Dir Command Rule':0, 'Known Services Killed by Ransomware':2, 'Non Chrome Process Accessing Chrome Default Dir':0, 'Kerberoasting spn request with RC4 encryption':0, 'Clop Ransomware Known Service Name':0}
+        self.current_rules_alert_reward = {}
+        
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
+        # distributions_distance = self.current_distributions_distance
+        if step_counter % self.distribution_reward_freq == 0:
+            distributions_distance = self.get_partial_reward_values(real_distribution, fake_distribution)
+            self.current_distributions_distance = distributions_distance
+            
+            logger.info(f"current_distributions_distance: {self.current_distributions_distance}")
+            
+            return -distributions_distance
+        else:
+            return 0
+    
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
+        if self.current_distributions_distance == self.epsilon:
+            return -1000
+        values =  self.get_duration_reward_values(time_range)
+        clean_env(self.splunk_tools, time_range)
+        before_metrics =  self.get_no_agent_reward(time_range)
+        self.no_agent_last_row = self.no_agent_current_row
+        alert_val, duration_val, std_duration_val, median_cpu_usage = values['alert'], values['cpu'], values['std_cpu'], values['median_cpu_usage']
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, no_agent_median_cpu_usage = before_metrics['alert'], before_metrics['cpu'], before_metrics['std_cpu'], before_metrics['median_cpu_usage']
+        # no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = no_agent_values['alert'], no_agent_values['cpu'], no_agent_values['std_cpu']
+        # logger.info(f"alert value: {alert_val}, no_agent_alert_val: {no_agent_alert_val}")
+        logger.info(f"median_cpu_usage value: {median_cpu_usage}")
+        logger.info(f"no_agent_median_cpu_usage value: {no_agent_median_cpu_usage}")
+        # self.cpus.append(total_cpu_usage)
+        # self.cpu_avg = np.mean(self.cpus)
+        energy_reward = (median_cpu_usage-no_agent_median_cpu_usage)/no_agent_median_cpu_usage
+        rules_alerts_list = [f"rule_alert_{rule['title']}" for rule in self.splunk_tools.active_saved_searches]
+        rules_no_agent_alert_val = list(self.no_agent_current_row[rules_alerts_list].to_dict(orient='index').values())[0]
+        rules_alert_val = {rule:self.time_rules_energy[-1][rule] for rule in rules_alerts_list}
+        no_agent_alert_val += self.epsilon
+        rules_alert_reward = {}
+        for rule in rules_no_agent_alert_val:
+            alert_gap = rules_alert_val[rule] - rules_no_agent_alert_val[rule]
+            rules_alert_reward[rule] = alert_gap/(rules_no_agent_alert_val[rule]+self.epsilon)
+        alert_reward = np.mean(list(rules_alert_reward.values())) 
+        self.current_rules_alert_reward = rules_alert_reward
+        self.reward_dict['duration'].append(energy_reward)
+        self.reward_dict['alerts'].append(alert_reward)
+        num_of_distribution_rewards = step_counter//self.distribution_reward_freq
+        if alert_reward > self.alert_threshold:
+            return -((alert_reward*100))
+        elif energy_reward <= 0:
+            return 0
+
+        else:
+            return (energy_reward*100)
+    
+class RewardStrategy47(RewardStrategy37):
+    
+    def __init__(self,  dt_manager, splunk_tools, num_of_searches,  measurment_tool=None, alpha=0, beta=0, gamma=0, no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
+        self.cpus = []
+        self.distribution_threshold = 10
+        self.distribution_reward_freq = 1
+        self.alert_threshold = 0.5
+        self.rule_alert_rate = {'rule_alert_Windows Event For Service Disabled':2, 'rule_alert_Detect New Local Admin account':0, 'rule_alert_ESCU Network Share Discovery Via Dir Command Rule':0, 'rule_alert_Known Services Killed by Ransomware':2, 'rule_alert_Non Chrome Process Accessing Chrome Default Dir':0, 'rule_alert_Kerberoasting spn request with RC4 encryption':0, 'rule_alert_Clop Ransomware Known Service Name':0}
+        self.current_rules_alert_reward = {}
+        self.epsilon = 0.001
+        
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
+        # distributions_distance = self.current_distributions_distance
+        if step_counter % self.distribution_reward_freq == 0:
+            distributions_distance = self.get_partial_reward_values(real_distribution, fake_distribution)
+            self.current_distributions_distance = distributions_distance
+            
+            logger.info(f"current_distributions_distance: {self.current_distributions_distance}")
+            
+            return -distributions_distance*10
+        else:
+            return 0
+    
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
+        if self.current_distributions_distance == self.epsilon:
+            return -1000
+        values =  self.get_duration_reward_values(time_range)
+        before_metrics =  self.get_no_agent_reward(time_range)
+        self.no_agent_last_row = self.no_agent_current_row
+        alert_val, duration_val, std_duration_val, median_cpu_usage = values['alert'], values['cpu'], values['std_cpu'], values['median_cpu_usage']
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, no_agent_median_cpu_usage = before_metrics['alert'], before_metrics['cpu'], before_metrics['std_cpu'], before_metrics['median_cpu_usage']
+        # no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = no_agent_values['alert'], no_agent_values['cpu'], no_agent_values['std_cpu']
+        # logger.info(f"alert value: {alert_val}, no_agent_alert_val: {no_agent_alert_val}")
+        logger.info(f"median_cpu_usage value: {median_cpu_usage}")
+        logger.info(f"no_agent_median_cpu_usage value: {no_agent_median_cpu_usage}")
+        # self.cpus.append(total_cpu_usage)
+        # self.cpu_avg = np.mean(self.cpus)
+        energy_reward = (median_cpu_usage-no_agent_median_cpu_usage)/no_agent_median_cpu_usage
+        rules_alerts_list = [f"rule_alert_{rule['title']}" for rule in self.splunk_tools.active_saved_searches]
+        rules_no_agent_alert_val = list(self.no_agent_current_row[rules_alerts_list].to_dict(orient='index').values())[0]
+        rules_alert_val = {rule:self.time_rules_energy[-1][rule] for rule in rules_alerts_list}
+        no_agent_alert_val += self.epsilon
+        rules_alert_reward = {}
+        for rule in rules_no_agent_alert_val:
+            alert_gap = rules_alert_val[rule] - self.rule_alert_rate[rule]
+            rules_alert_reward[rule] = alert_gap/(self.rule_alert_rate[rule]+self.epsilon)
+        alert_reward = np.mean(list(rules_alert_reward.values())) 
+        self.current_rules_alert_reward = rules_alert_reward
+        self.reward_dict['duration'].append(energy_reward)
+        self.reward_dict['alerts'].append(alert_reward)
+        num_of_distribution_rewards = step_counter//self.distribution_reward_freq
+        if alert_reward > self.alert_threshold:
+            return -((alert_reward))
+        elif energy_reward <= 0:
+            return 0
+
+        else:
+            return (energy_reward*100)
+    
+class RewardStrategy48(RewardStrategy37):
+    
+    def __init__(self,  dt_manager, splunk_tools, num_of_searches,  measurment_tool=None, alpha=0, beta=0, gamma=0, no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
+        self.cpus = []
+        self.distribution_threshold = 10
+        self.distribution_reward_freq = 1
+        self.alert_threshold = 0.5
+        self.rule_alert_rate = {'rule_alert_Windows Event For Service Disabled':2, 'rule_alert_Detect New Local Admin account':0, 'rule_alert_ESCU Network Share Discovery Via Dir Command Rule':0, 'rule_alert_Known Services Killed by Ransomware':2, 'rule_alert_Non Chrome Process Accessing Chrome Default Dir':0, 'rule_alert_Kerberoasting spn request with RC4 encryption':0, 'rule_alert_Clop Ransomware Known Service Name':0}
+        self.current_rules_alert_reward = {}
+        self.epsilon = 0.001
+        
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
+        # distributions_distance = self.current_distributions_distance
+        if step_counter % self.distribution_reward_freq == 0:
+            distributions_distance = self.get_partial_reward_values(real_distribution, fake_distribution)
+            self.current_distributions_distance = distributions_distance
+            
+            logger.info(f"current_distributions_distance: {self.current_distributions_distance}")
+            
+            return -distributions_distance*10
+        else:
+            return 0
+    
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
+        if self.current_distributions_distance == self.epsilon:
+            return -1000
+        values =  self.get_duration_reward_values(time_range)
+        before_metrics =  self.get_no_agent_reward(time_range)
+        self.no_agent_last_row = self.no_agent_current_row
+        alert_val, duration_val, std_duration_val, median_cpu_usage = values['alert'], values['cpu'], values['std_cpu'], values['median_cpu_usage']
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, no_agent_median_cpu_usage = before_metrics['alert'], before_metrics['cpu'], before_metrics['std_cpu'], before_metrics['median_cpu_usage']
+        # no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = no_agent_values['alert'], no_agent_values['cpu'], no_agent_values['std_cpu']
+        # logger.info(f"alert value: {alert_val}, no_agent_alert_val: {no_agent_alert_val}")
+        logger.info(f"median_cpu_usage value: {median_cpu_usage}")
+        logger.info(f"no_agent_median_cpu_usage value: {no_agent_median_cpu_usage}")
+        # self.cpus.append(total_cpu_usage)
+        # self.cpu_avg = np.mean(self.cpus)
+        energy_reward = (median_cpu_usage-no_agent_median_cpu_usage)/no_agent_median_cpu_usage
+        rules_alerts_list = [f"rule_alert_{rule['title']}" for rule in self.splunk_tools.active_saved_searches]
+        rules_no_agent_alert_val = list(self.no_agent_current_row[rules_alerts_list].to_dict(orient='index').values())[0]
+        rules_alert_val = {rule:self.time_rules_energy[-1][rule] for rule in rules_alerts_list}
+        no_agent_alert_val += self.epsilon
+        rules_alert_reward = {}
+        for rule in rules_no_agent_alert_val:
+            alert_gap = rules_alert_val[rule] - self.rule_alert_rate[rule]
+            rules_alert_reward[rule] = (alert_gap+self.epsilon)/(self.rule_alert_rate[rule]+self.epsilon)
+        alert_reward = np.mean(list(rules_alert_reward.values())) 
+        self.current_rules_alert_reward = rules_alert_reward
+        self.reward_dict['duration'].append(energy_reward)
+        self.reward_dict['alerts'].append(alert_reward)
+        num_of_distribution_rewards = step_counter//self.distribution_reward_freq
+        if alert_reward > self.alert_threshold:
+            return -((alert_reward))
+        elif energy_reward <= 0:
+            return 0
+
+        else:
+            return (energy_reward*100)/alert_reward 
+    
+class RewardStrategy49(RewardStrategy37):
+    
+    def __init__(self,  dt_manager, splunk_tools, num_of_searches,  measurment_tool=None, alpha=0, beta=0, gamma=0, no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
+        self.cpus = []
+        self.distribution_threshold = 10
+        self.distribution_reward_freq = 1
+        self.alert_threshold = 0.5
+        self.rule_alert_rate = {'rule_alert_Windows Event For Service Disabled':2, 'rule_alert_Detect New Local Admin account':0, 'rule_alert_ESCU Network Share Discovery Via Dir Command Rule':0, 'rule_alert_Known Services Killed by Ransomware':2, 'rule_alert_Non Chrome Process Accessing Chrome Default Dir':0, 'rule_alert_Kerberoasting spn request with RC4 encryption':0, 'rule_alert_Clop Ransomware Known Service Name':0}
+        self.current_rules_alert_reward = {}
+        self.epsilon = 0.000001
+        
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
+        # distributions_distance = self.current_distributions_distance
+        if step_counter % self.distribution_reward_freq == 0:
+            distributions_distance = self.get_partial_reward_values(real_distribution, fake_distribution)
+            self.current_distributions_distance = distributions_distance
+            
+            logger.info(f"current_distributions_distance: {self.current_distributions_distance}")
+            
+            return -distributions_distance*10
+        else:
+            return 0
+    
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
+        if self.current_distributions_distance == self.epsilon:
+            return -1000
+        values =  self.get_duration_reward_values(time_range)
+        before_metrics =  self.get_no_agent_reward(time_range)
+        self.no_agent_last_row = self.no_agent_current_row
+        alert_val, duration_val, std_duration_val, total_cpu_usage = values['alert'], values['cpu'], values['std_cpu'], values['total_cpu_usage']
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, no_agent_median_cpu_usage = before_metrics['alert'], before_metrics['cpu'], before_metrics['std_cpu'], before_metrics['total_cpu_usage']
+        # no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val = no_agent_values['alert'], no_agent_values['cpu'], no_agent_values['std_cpu']
+        # logger.info(f"alert value: {alert_val}, no_agent_alert_val: {no_agent_alert_val}")
+        logger.info(f"total_cpu_usage value: {total_cpu_usage}")
+        logger.info(f"no_agent_median_cpu_usage value: {no_agent_median_cpu_usage}")
+        # self.cpus.append(total_cpu_usage)
+        # self.cpu_avg = np.mean(self.cpus)
+        energy_reward = (total_cpu_usage-no_agent_median_cpu_usage)/no_agent_median_cpu_usage
+        rules_alerts_list = [f"rule_alert_{rule['title']}" for rule in self.splunk_tools.active_saved_searches]
+        rules_no_agent_alert_val = list(self.no_agent_current_row[rules_alerts_list].to_dict(orient='index').values())[0]
+        rules_alert_val = {rule:self.time_rules_energy[-1][rule] for rule in rules_alerts_list}
+        no_agent_alert_val += self.epsilon
+        rules_alert_reward = {}
+        for rule in rules_no_agent_alert_val:
+            alert_gap = rules_alert_val[rule] - self.rule_alert_rate[rule]
+            rules_alert_reward[rule] = (alert_gap+self.epsilon)/(self.rule_alert_rate[rule]+self.epsilon)
+        alert_reward = np.mean(list(rules_alert_reward.values())) 
+        self.current_rules_alert_reward = rules_alert_reward
+        self.reward_dict['duration'].append(energy_reward)
+        self.reward_dict['alerts'].append(alert_reward)
+        num_of_distribution_rewards = step_counter//self.distribution_reward_freq
+        if energy_reward <= 0:
+            return 0
+
+        else:
+            return (energy_reward*100)/(alert_reward) 
+    
+class RewardStrategy50(RewardStrategy37):
+    
+    def __init__(self,  dt_manager, splunk_tools, num_of_searches,  measurment_tool=None, alpha=0, beta=0, gamma=0, no_agent_table_path=None):
+        super().__init__( dt_manager, splunk_tools,  num_of_searches, measurment_tool, alpha, beta, gamma, no_agent_table_path=no_agent_table_path)
+        self.cpus = []
+        self.distribution_threshold = 10
+        self.distribution_reward_freq = 3
+        self.alert_threshold = 0.5
+        self.rule_alert_rate = {'rule_alert_Windows Event For Service Disabled':2, 'rule_alert_Detect New Local Admin account':0, 'rule_alert_ESCU Network Share Discovery Via Dir Command Rule':0, 'rule_alert_Known Services Killed by Ransomware':2, 'rule_alert_Non Chrome Process Accessing Chrome Default Dir':0, 'rule_alert_Kerberoasting spn request with RC4 encryption':0, 'rule_alert_Clop Ransomware Known Service Name':0}
+        self.current_rules_alert_reward = {}
+        self.epsilon = 0.000001
+        
+    def get_partial_reward(self, real_distribution, fake_distribution, current_action, step_counter):
+        # distributions_distance = self.current_distributions_distance
+        if step_counter % self.distribution_reward_freq == 0:
+            distributions_distance = self.get_partial_reward_values(real_distribution, fake_distribution)
+            self.current_distributions_distance = distributions_distance
+            
+            logger.info(f"current_distributions_distance: {self.current_distributions_distance}")
+            
+            return -distributions_distance
+        else:
+            return 0
+    
+    def get_full_reward(self, time_range, real_distribution, fake_distribution, current_action, remaining_quota, step_counter):
+        if self.current_distributions_distance == self.epsilon:
+            return -1000
+        values =  self.get_duration_reward_values(time_range)
+        before_metrics =  self.get_no_agent_reward(time_range)
+        self.no_agent_last_row = self.no_agent_current_row
+        alert_val, duration_val, std_duration_val, total_cpu_usage = values['alert'], values['cpu'], values['std_cpu'], values['total_cpu_usage']
+        no_agent_alert_val, no_agent_duration_val, no_agent_std_duration_val, no_agent_median_cpu_usage = before_metrics['alert'], before_metrics['cpu'], before_metrics['std_cpu'], before_metrics['total_cpu_usage']
+        
+
+        logger.info(f"total_cpu_usage value: {total_cpu_usage}")
+        logger.info(f"no_agent_median_cpu_usage value: {no_agent_median_cpu_usage}")
+
+        energy_reward = (total_cpu_usage-no_agent_median_cpu_usage)/no_agent_median_cpu_usage
+        energy_reward = max(energy_reward, 0)
+        rules_alerts_list = [f"rule_alert_{rule['title']}" for rule in self.splunk_tools.active_saved_searches]
+        rules_no_agent_alert_val = list(self.no_agent_current_row[rules_alerts_list].to_dict(orient='index').values())[0]
+        rules_alert_val = {rule:self.time_rules_energy[-1][rule] for rule in rules_alerts_list}
+        no_agent_alert_val += self.epsilon
+        rules_alert_reward = {}
+        for rule in rules_no_agent_alert_val:
+            alert_gap = rules_alert_val[rule] - self.rule_alert_rate[rule]
+            rules_alert_reward[rule] = (alert_gap+self.epsilon)/(self.rule_alert_rate[rule]+self.epsilon)
+        alert_reward = np.mean(list(rules_alert_reward.values())) 
+        self.current_rules_alert_reward = rules_alert_reward
+        
+        logger.info(f"final real state: {real_distribution}")
+        logger.info(f"final fake state: {fake_distribution}")
+        final_distribution_val = self.get_partial_reward_values(real_distribution, fake_distribution)
+        
+        self.reward_dict['duration'].append(energy_reward)
+        self.reward_dict['alerts'].append(alert_reward)
+        self.reward_dict['final_distribution'].append(final_distribution_val)
+        
+        num_of_distribution_rewards = step_counter//self.distribution_reward_freq
+        return num_of_distribution_rewards*(self.alpha*energy_reward - self.beta*alert_reward - self.gamma*final_distribution_val)

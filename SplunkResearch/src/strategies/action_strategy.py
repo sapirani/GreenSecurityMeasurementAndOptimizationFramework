@@ -53,7 +53,9 @@ class ActionStrategy(ABC):
         self.current_episode_accumulated_action = np.zeros(((len(self.relevant_logtypes)-1)*2+1,))
         self.remaining_quota = self.quota
         self.should_delete = False
-        
+    
+    def reset_step(self):
+        pass   
         
 class ActionStrategy0(ActionStrategy):
     def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota):
@@ -279,6 +281,100 @@ class ActionStrategy7(ActionStrategy):
         action = action[1:]
         logger.info(f"performing action {action} with quota {current_quota}")
         logger.debug(f"Sum of action: {sum(action)}")
+        if current_quota > 0:
+            for i, logtype in enumerate(self.relevant_logtypes):
+                for istrigger in range(2):
+                    act = action[i*2+istrigger]
+                    absoulte_act = int(act*current_quota)
+                    if act:
+                        self.perform_act(time_range, i, istrigger, absoulte_act)
+                        time.sleep(.1)
+                    if i == len(self.relevant_logtypes)-1:
+                        return 0
+ 
+class ActionStrategy8(ActionStrategy7): # goes with reward_strategy 44
+    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota):
+        super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota)
+        self.action_quotas =[]
+        self.action_shape = (len(self.relevant_logtypes)+1,)
+        self.current_episode_accumulated_action = np.zeros(self.action_shape)
+        
+    def create_action_space(self):
+        return spaces.Box(low=0, high=self.action_upper_bound, shape=self.action_shape, dtype=np.float64)
+    
+    def record_action(self, action):
+        action = self.preprocess_action(action)
+        self.remaining_quota = action[0]
+        current_quota = action[0]*self.quota
+        self.action_quotas.append(current_quota)
+        action = action[1:]
+        for i, logtype in enumerate(self.relevant_logtypes):
+            act = action[i]
+            absoulte_act = int(act*current_quota)
+            # self.remaining_quota -= absoulte_act
+            self.current_episode_accumulated_action[i] += absoulte_act
+            if i == len(self.relevant_logtypes)-1:
+                return   
+    
+    def perform_action(self, action, time_range):
+        action = self.preprocess_action(action)
+        self.remaining_quota = action[0]
+        current_quota = action[0]*self.quota
+        action = action[1:]
+        logger.info(f"performing action {action} with quota {current_quota}")
+        logger.debug(f"Sum of action: {sum(action)}")
+        for i, logtype in enumerate(self.relevant_logtypes):
+            istrigger = 0   
+            act = action[i]
+            absoulte_act = int(act*current_quota)
+            if act:
+                self.perform_act(time_range, i, istrigger, absoulte_act)
+                time.sleep(.1)
+            if i == len(self.relevant_logtypes)-1:
+                return 0
+
+    
+    def reset(self):
+        self.current_episode_accumulated_action = np.zeros(self.action_shape)
+        self.remaining_quota = self.quota
+        self.should_delete = False
+ 
+class ActionStrategy9(ActionStrategy):
+    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota):
+        super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota)
+        self.action_quotas =[]
+        self.action_shape = (len(self.relevant_logtypes)*2-1)
+        self.current_episode_accumulated_action = np.zeros(self.action_shape)
+        
+    def preprocess_action(self, action):
+        return action
+    
+    def create_action_space(self):
+        return spaces.MultiBinary(self.action_shape)
+    
+    def record_action(self, action):
+        action = self.preprocess_action(action)
+        self.remaining_quota = 1
+        current_quota = self.remaining_quota*self.quota
+        self.action_quotas.append(current_quota)
+        for i, logtype in enumerate(self.relevant_logtypes):
+            for istrigger in range(2):
+                act = action[i*2+istrigger]
+                absoulte_act = int(act*current_quota)
+                # self.remaining_quota -= absoulte_act
+                self.current_episode_accumulated_action[i*2+istrigger] += absoulte_act
+                if i == len(self.relevant_logtypes)-1:
+                    return   
+    
+    def perform_action(self, action, time_range):
+        action = self.preprocess_action(action)
+        self.remaining_quota = 1
+        if sum(action) > 0:
+            current_quota = self.remaining_quota*self.quota/len(action)
+        else:
+            current_quota = 0
+        logger.info(f"performing action {action} with quota {current_quota}")
+        logger.debug(f"Sum of action: {sum(action)}")
         for i, logtype in enumerate(self.relevant_logtypes):
             for istrigger in range(2):
                 act = action[i*2+istrigger]
@@ -288,6 +384,66 @@ class ActionStrategy7(ActionStrategy):
                     time.sleep(.1)
                 if i == len(self.relevant_logtypes)-1:
                     return 0
- 
-        
 
+    
+    def reset(self):
+        self.current_episode_accumulated_action = np.zeros(self.action_shape)
+        self.remaining_quota = self.quota
+        self.should_delete = False
+ 
+class ActionStrategy10(ActionStrategy):
+    def __init__(self, relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota):
+        super().__init__(relevant_logtypes, action_upper_bound, step_size, action_duration, splunk_tools_instance, log_generator,remaining_quota)
+        self.action_quotas =[]
+        self.action_shape = (len(self.relevant_logtypes)*2-1)
+        self.current_episode_accumulated_action = np.zeros(self.action_shape)
+        self.current_step_action = np.zeros(self.action_shape)
+        
+    def preprocess_action(self, action):
+        if action[1] == len(self.relevant_logtypes)-1:
+            action[2] = 0
+        return action
+    
+    def create_action_space(self):
+        return spaces.MultiDiscrete([100, len(self.relevant_logtypes), 2, 5])
+    
+    def record_action(self, action):
+        action = self.preprocess_action(action)
+        self.remaining_quota = action[0]/100
+        current_quota = int(self.remaining_quota*self.quota)
+        self.action_quotas.append(current_quota)
+        i = action[1]
+        istrigger = action[2]
+        absoulte_act = current_quota
+        # self.remaining_quota -= absoulte_act
+        self.current_episode_accumulated_action[i*2+istrigger] += absoulte_act
+        self.current_step_action[i*2+istrigger] = absoulte_act
+
+    def perform_action(self, action, time_range):
+        action = self.preprocess_action(action)
+        self.remaining_quota = action[0]/100
+        current_quota = int(self.remaining_quota*self.quota)
+        i = action[1]
+        istrigger = action[2]
+        diversity = action[3]
+        absoulte_act = current_quota
+        if absoulte_act:
+            self.perform_act(time_range, i, istrigger, absoulte_act, diversity)
+            time.sleep(.1)
+
+    def perform_act(self, time_range, i, istrigger, absoulte_act, diversity):
+        logtype = self.relevant_logtypes[i]
+        logsource = logtype[0].lower()
+        eventcode = logtype[1]
+        fake_logs = self.log_generator.generate_logs(logsource, eventcode, istrigger,time_range, absoulte_act, diversity)
+        self.splunk_tools_instance.write_logs_to_monitor(fake_logs, logsource)
+        logger.info(f"inserted {len(fake_logs)} logs of type {logsource} {eventcode} {istrigger} with diversity {diversity}")
+        self.should_delete = True
+    
+    def reset(self):
+        self.current_episode_accumulated_action = np.zeros(self.action_shape)
+        self.remaining_quota = self.quota
+        self.should_delete = False
+        
+    def reset_step(self):
+        self.current_step_action = np.zeros(self.action_shape)

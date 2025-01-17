@@ -58,7 +58,9 @@ class SplunkTools(object):
         self.real_logs_distribution = pd.DataFrame(data=None, columns=['source', 'EventCode', '_time', 'count'])
         self.real_logs_distribution['_time'] = pd.to_datetime(self.real_logs_distribution['_time'])
         self.max_workers = 3
+        self.total_interval_queue = queue.Queue()
         self.total_cpu_queue = queue.Queue()
+        self.total_cpu = 0
         self.stop_cpu_monitor = threading.Event()
         while True:
             try:
@@ -85,13 +87,19 @@ class SplunkTools(object):
     
     def monitor_total_cpu(self, interval=0.1):
         """Monitor total CPU usage of the machine"""
-        cpu_measurements = []
+        # cpu_measurements = []
+        # intervals = [] 
+        total_cpu_time_start = psutil.cpu_times().user + psutil.cpu_times().system 
         while not self.stop_cpu_monitor.is_set():
-            cpu_percent = psutil.cpu_percent(interval=interval)
-            cpu_measurements.append(cpu_percent)
-            self.total_cpu_queue.put(cpu_percent)
-            time.sleep(interval/2)
-        return cpu_measurements
+            # start_time = time.time()
+            # cpu_percent = psutil.cpu_percent(interval=interval)
+            # end_time = time.time()  
+            # self.total_cpu_queue.put(cpu_percent)
+            # self.total_interval_queue.put(end_time - start_time)
+            cpu_time = psutil.cpu_times().user + psutil.cpu_times().system
+            time.sleep(interval)
+        self.total_cpu = cpu_time - total_cpu_time_start
+
     
     def query_splunk(self, query, earliest_time, latest_time):
         query = f" search {query}"
@@ -101,7 +109,8 @@ class SplunkTools(object):
         cpu_integral = []
         io_metrics = []
         interval = 0.1
-
+        intervals = []
+        
         for i in range(k):
             logger.info(f'Measurement {i+1}/{k} - Running query: {query}')
             job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
@@ -115,15 +124,17 @@ class SplunkTools(object):
                 pid = stats.get('pid', None)
                 if pid is not None or stats['isDone'] == '1':
                     break
-                time.sleep(0.1)
+                time.sleep(0.01)
 
             if pid is not None:
                 try:
                     process = psutil.Process(int(pid))
                     process_start_time = time.time()
-                    
+                    # previous_time = process_start_time
+                    process_start_cpu_time = process.cpu_times().user + process.cpu_times().system
                     while True:
                         try:
+                            process_end_cpu_time = process.cpu_times().user + process.cpu_times().system
                             if not process.is_running():
                                 logger.debug(f"Process {pid} has finished running")
                                 break
@@ -132,8 +143,12 @@ class SplunkTools(object):
                             if job.content['isDone'] == '1':
                                 logger.debug(f"Job is marked as done")
                                 break
-                            cpu_percent = process.cpu_percent(interval=interval)
-                            process_cpu_percents.append(cpu_percent)
+                            # cpu_percent = process.cpu_percent(interval=interval)
+                            # concurrent_time = time.time()
+                            # intervals.append(concurrent_time - previous_time)
+                            # previous_time = concurrent_time
+                            # process_cpu_percents.append(cpu_percent)
+                            
                             with process.oneshot():
                                 io_counters = process.io_counters()
                                 
@@ -141,11 +156,13 @@ class SplunkTools(object):
                                 for key in io_counters_dict:
                                     io_counters_dict[key] += getattr(io_counters, key)
                                 
-                            time.sleep(interval/2)
+                            time.sleep(interval)
                             
                         except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
                             # If the process disappeared but the job isn't done, it might have spawned a new process
+                            job.refresh()
                             if job.content['isDone'] == '0':
+                                logger.debug(e)
                                 logger.debug(f"Process {pid} disappeared but job isn't done. Waiting for job completion.")
                                 time.sleep(interval)
                                 continue
@@ -168,14 +185,14 @@ class SplunkTools(object):
                         job.refresh()
                     except Exception as e:
                         logger.error(f"Error refreshing job status: {e}")
-
+            process_cpu_time = process_end_cpu_time - process_start_cpu_time
             job.refresh()
             stats = job.content
             run_duration = stats.get('runDuration', 0)
             
             # Calculate CPU integral
-            cpu_auc = np.trapz(np.array(process_cpu_percents)/100, dx=interval)
-            cpu_integral.append(cpu_auc)
+            # cpu_auc = np.trapz(np.array(process_cpu_percents)/100, intervals)
+            cpu_integral.append(process_cpu_time)
             io_metrics.append(io_counters_dict)
             
             # Get results
@@ -218,20 +235,21 @@ class SplunkTools(object):
 
         try:
             with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-                future_to_search = {
-                    executor.submit(self.run_saved_search_parallel, search, time_range): search['title']
-                    for search in saved_searches
-                }
-
-                for future in concurrent.futures.as_completed(future_to_search):
-                    search_title = future_to_search[future]
+                # Change this part: submit all tasks and keep futures in order
+                futures = []
+                for search in saved_searches:
+                    future = executor.submit(self.run_saved_search_parallel, search, time_range)
+                    futures.append((future, search['title']))
+                
+                # Process results in order
+                for future, search_title in futures:
                     try:
                         (results_len, mean_exec_time, std_exec_time, 
-                         mean_cpu_integral, std_cpu_integrals, 
-                          sum_read_count, sum_write_count, 
-                         sum_read_bytes, sum_write_bytes) = future.result()
+                        mean_cpu_integral, std_cpu_integrals, 
+                        sum_read_count, sum_write_count, 
+                        sum_read_bytes, sum_write_bytes) = future.result()
 
-                        # Store results
+                        # Store results (unchanged)
                         results['mean_execution_times'].append(mean_exec_time)
                         results['std_execution_times'].append(std_exec_time)
                         results['results_list'].append(results_len)
@@ -247,21 +265,15 @@ class SplunkTools(object):
                         logger.error(f"Search {search_title} generated an exception: {e}")
 
         finally:
-            # Stop CPU monitoring and get measurements
+            # Stop CPU monitoring and get measurements (unchanged)
             self.stop_cpu_monitor.set()
             cpu_monitor_thread.join()
-            
-            # Get all CPU measurements from queue
-            total_cpu_measurements = []
-            while not self.total_cpu_queue.empty():
-                total_cpu_measurements.append(self.total_cpu_queue.get())
-            results['total_cpu_usage'] = total_cpu_measurements
+            results['total_cpu_usage'] = [self.total_cpu]
 
         return (results['results_list'], results['mean_execution_times'], 
                 results['std_execution_times'], results['saved_searches_titles'],
                 results['cpu'], results['std_cpu'], results['read_count'], results['write_count'],
                 results['read_bytes'], results['write_bytes'], results['total_cpu_usage'])
-
     def query_metrics_combiner(self, results, execution_times, cpu_integral, io_metrics):
         mean_execution_time = np.mean(execution_times)
         std_execution_time = np.std(execution_times)
@@ -409,7 +421,7 @@ class SplunkTools(object):
             start_time.year, start_time.month, start_time.day, 
             tzinfo=timezone.utc
         )
-        end_time = start_time + pd.DateOffset(days=2)
+        end_time = start_time + pd.DateOffset(days=1)
         
         timestamp_start_time = start_time.timestamp()
         timestamp_end_time = end_time.timestamp()
@@ -420,11 +432,12 @@ class SplunkTools(object):
         
         # Use RFC3339 format for Splunk query
         job = self.service.jobs.create(
-            f'search index=main earliest={timestamp_start_time} latest={timestamp_end_time} | '
+            f'search index=main | '
             'eval _time=strftime(_time,"%Y-%m-%d %H:%M:00") | '
             'stats count by source EventCode _time', 
-            earliest_time=timestamp_start_time, 
-            latest_time=timestamp_end_time, 
+            earliest_time=start_time.strftime('%Y-%m-%d %H:%M:%S'), 
+            latest_time=end_time.strftime('%Y-%m-%d %H:%M:%S'),
+            time_format='%Y-%m-%d %H:%M:%S',
             count=0
         ) 
         
@@ -508,19 +521,19 @@ class SplunkTools(object):
         
         # Create dictionary of log types and counts
         res_dict = {
-            f"{row['source'].lower()} {row['EventCode']}": row['count'] 
+            (row['source'].lower(), str(row['EventCode'])): row['count'] 
             for index, row in relevant_logs.iterrows()
         }
         logger.debug(f"current real distribution: {res_dict}")
         
-        # Update the real_logtypes_counter
-        for logtype in res_dict:
-            if logtype in self.real_logtypes_counter:
-                self.real_logtypes_counter[logtype] += res_dict[logtype]
-            else:
-                self.real_logtypes_counter[logtype] = res_dict[logtype]
+        # # Update the real_logtypes_counter
+        # for logtype in res_dict:
+        #     if logtype in self.real_logtypes_counter:
+        #         self.real_logtypes_counter[logtype] += res_dict[logtype]
+        #     else:
+        #         self.real_logtypes_counter[logtype] = res_dict[logtype]
         
-        return self.real_logtypes_counter
+        return res_dict
     
     def get_search_details(self, search,  is_measure_energy=False):
         search_id = search['search_id'].strip('\'')
