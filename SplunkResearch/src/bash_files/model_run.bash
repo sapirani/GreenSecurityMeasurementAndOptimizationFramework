@@ -40,8 +40,10 @@ configure_experiment() {
         local mode="train"
     fi
     
-    local alpha=0.34
-    local beta=0.33
+    local alpha=${15}
+    local beta=${16}
+    local fake_start_datetime=${17}
+    local n_steps=${18}
     local gamma=$(awk "BEGIN {print 1 - $alpha - $beta}")
     
     declare -A kwargs
@@ -56,7 +58,7 @@ configure_experiment() {
         ["learning_rate"]=$learning_rate
         ["additional_percentage"]=$additional_pct
         ["ent_coef"]=0.01
-        ["df"]=0.99
+        ["df"]=1
         ["alpha"]=$alpha
         ["beta"]=$beta
         ["gamma"]=$gamma
@@ -67,7 +69,8 @@ configure_experiment() {
         ["logs_per_minute"]=150
         ["num_of_measurements"]=1
         ['experiment_name']=$experiment_name
-        # ['fake_start_datetime']='2024-09-27_03:00:00'
+        ['fake_start_datetime']=$fake_start_datetime
+        ['n_steps']=$n_steps
     )
     local args=""
     for key in "${!kwargs[@]}"; do
@@ -114,35 +117,33 @@ run_experiment() {
 # 11. span_size - e.g., 180 (seconds)
 # 12. rule_frequency - e.g., 60 (minutes)
 # 13. state_strategy_version - e.g., 8
+# 14. mode - e.g., "train", "test"
+# 15. alpha - e.g., 0.5
+# 16. beta - e.g., 0.5  
+# 17. fake_start_datetime - e.g., "2024-06-15_13:00:00"
+# 18. n_steps - e.g., 144
 
-# args=$(configure_experiment "a2c" "mlp" 500 0.005 0.5 32 28 "train_20241209_233937")
-# run_experiment "a2c 0.005 lr 0.5 add rules total cpu as reward - test" "test" "$args"
 
-# args=$(configure_experiment "a2c" "no_agent" 61 0.005 0 32 29 "train_20241209_233937")
-# run_experiment "running no agent manual_policy" "manual_policy" "$args"
+# mode="test"
 
-# Experiment 4: Different Environment with Higher Learning Rate
-
-# args=$(configure_experiment "recurrentppo" "lstm" 1000 0.0005 0.5 32 44 "train_20241223_143017" 8 720 1800 180)
-# run_experiment "" "train" "$args"
-
-# args=$(configure_experiment "recurrentppo" "lstm" 2000 0.0005 0.5 32 43 "train_20241227_164732" 7 60 180 60)
-# run_experiment "" "train" "$args"
-mode="test"
-# args=$(configure_experiment "recurrentppo" "lstm" 100 0.0005 0.5 32 46 "train_20250104_193751" 7 60 900 60 7 "$mode")
-# run_experiment "Dynamic env test" "$mode" "$args"
-# args=$(configure_experiment "recurrentppo" "lstm" 100 0.005 0.5 32 46 "train_20250104_193751" 7 60 900 60 7 "$mode")
-# run_experiment "Dynamic env test" "$mode" "$args"
-# args=$(configure_experiment "ppo" "mlp" 100 0.0005 0.5 32 49 "train_20250111_195442" 10 60 120 60 4 "$mode")
+# args=$(configure_experiment  "recurrentppo" "lstm" 60 0.0001 1 32 57 "train_20250131_000213" 10 1440 600 1440 4 "$mode", 0.7 0.15 "2024-03-01_13:00:00")
 # run_experiment "Dynamic env test" "$mode" "$args"
 
 mode="train"
-args=$(configure_experiment "ppo" "mlp" 150 0.0005 0.5 32 49 "train_20250114_142550" 10 60 120 60 10 "$mode")
+
+args=$(configure_experiment  "sac" "sacmlp" 4000 0.0001 0.5 32 57 "train_20250131_000213" 14 1440 3600 120 12 "$mode", 0.4 0.3 '2024-06-15_13:00:00' 12)
 run_experiment "Dynamic env test" "$mode" "$args"
-args=$(configure_experiment "ppo" "mlp" 150 0.0005 0.5 32 50 "train_20250114_142550" 10 60 120 60 10 "$mode")
-run_experiment "Dynamic env test" "$mode" "$args"
-args=$(configure_experiment "ppo" "mlp" 150 0.0005 0.5 32 50 "train_20250114_142550" 10 60 120 60 11 "$mode")
-run_experiment "Dynamic env test" "$mode" "$args"
+
+# args=$(configure_experiment  "recurrentppo" "lstm" 60 0.0001 1 32 57 "train_20250129_220331" 10 1440 600 1440 4 "$mode", 0.8 0.15)
+# run_experiment "Dynamic env test" "$mode" "$args"
+# mode="random_policy"
+# args=$(configure_experiment  "recurrentppo" "lstm" 60 0.0001 1 32 57 "train_20250129_220331" 10 1440 600 1440 4 "$mode", 0.8 0.15)
+# run_experiment "Dynamic env test" "$mode" "$args"
+
+# mode="manual_policy"
+# args=$(configure_experiment  "recurrentppo" "no_agent" 60 0.0001 1 32 57 "train_20250129_220331" 10 1440 600 1440 4 "$mode", 0.8 0.15)
+# run_experiment "Dynamic env test" "$mode" "$args"
+
 # args=$(configure_experiment "ppo" "mlp" 36 0.0005 0.5 32 49 "train_20250113_200347" 10 60 120 60 4 "$mode")
 # run_experiment "Dynamic env test" "$mode" "$args"
 # args=$(configure_experiment "recurrentppo" "lstm" 1000 0.0005 0.5 32 44 "train_20241223_143017" 8 60 180 60)

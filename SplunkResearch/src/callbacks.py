@@ -129,8 +129,8 @@ class ModularTensorboardCallback(BaseCallback):
                         policy_dict[f'{logtype}_0'] = env.action_per_episode[-1][i]
                     else:
                         policy_dict[f'{logtype}_{is_trigger}'] = env.action_per_episode[-1][i*2+is_trigger]
-                    if i == len(env.relevant_logtypes)-1:
-                        break 
+                    # if i == len(env.relevant_logtypes)-1:
+                    #     break 
             self.logger.record(f"{self.phase}/episodic_policy", policy_dict)
 
     def log_no_agent_metrics(self, env, no_agent_last_row):

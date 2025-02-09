@@ -373,7 +373,7 @@ register(id=env_id,
 #######################################
 #######################################
 
-fake_start_datetime = "11/01/2024:00:00:00"
+fake_start_datetime = "02/01/2024:00:00:00"
 env_id = "splunk_eval-v32"
 register(id=env_id,
         entry_point='custom_splunk.envs:SplunkEnv', 

@@ -6,6 +6,8 @@ import re
 from xml.etree import ElementTree as ET
 from faker import Faker
 import sys
+from concurrent.futures import ThreadPoolExecutor
+
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
 
 class LogGenerator:
@@ -192,6 +194,8 @@ class LogGenerator:
             logs.extend(remaining)
             
         return logs
+    
+
     
 # if __name__=='__main__':
 #     log_generator = LogGenerator()

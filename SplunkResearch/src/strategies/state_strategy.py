@@ -13,8 +13,12 @@ class StateStrategy(ABC):
 
         self.top_logtypes = top_logtypes
         self.real_logtype_distribution = {logtype: 0 for logtype in top_logtypes}
+        self.real_logtype_distribution['other'] = 0
         self.fake_logtype_distribution = {logtype: 0 for logtype in top_logtypes}
+        self.fake_logtype_distribution['other'] = 0
+
         self.step_real_logtype_distribution = {logtype: 0 for logtype in top_logtypes}
+        
         self.step_fake_logtype_distribution = {logtype: 0 for logtype in top_logtypes}
         self.real_state = None
         self.fake_state = None
@@ -27,6 +31,7 @@ class StateStrategy(ABC):
         self.step_abs_real = None
         self.step_abs_fake = None
         self.remainig_quota = 0
+        self.log_number = 0
     
     @abstractmethod
     def create_state(self):
@@ -82,18 +87,24 @@ class StateStrategy(ABC):
             
             real_state.append(self.real_logtype_distribution[logtype])
             fake_state.append(self.fake_logtype_distribution[logtype])
+        real_state.append(self.real_logtype_distribution['other'])
+        fake_state.append(self.fake_logtype_distribution['other'])
         return real_state,fake_state, step_real_state, step_fake_state
         # return np.array(real_state),np.array(fake_state)
     
     def update_distributions(self, real_distribution_dict, fake_logtypes_counter):
         self.step_real_logtype_distribution = real_distribution_dict
         self.step_fake_logtype_distribution = fake_logtypes_counter
-        for logtype in real_distribution_dict:
-            if logtype in self.top_logtypes:
+        for i, logtype in enumerate(self.top_logtypes):
+            if logtype in real_distribution_dict:
                 self.real_logtype_distribution[logtype] += real_distribution_dict[logtype]
                 self.fake_logtype_distribution[logtype] += real_distribution_dict[logtype]
+                
             if logtype in fake_logtypes_counter:
                 self.fake_logtype_distribution[logtype] += fake_logtypes_counter[logtype]
+        other = sum([real_distribution_dict[logtype] for logtype in real_distribution_dict if logtype not in self.top_logtypes])
+        self.real_logtype_distribution['other'] += other
+        self.fake_logtype_distribution['other'] += other 
     
     def update_quota(self, quota):
         self.remainig_quota = quota
@@ -103,7 +114,11 @@ class StateStrategy(ABC):
         self.fake_state = None
         self.diff_state = None
         self.real_logtype_distribution = {logtype: 0 for logtype in self.top_logtypes}
+        self.real_logtype_distribution['other'] = 0
+
         self.fake_logtype_distribution = {logtype: 0 for logtype in self.top_logtypes}
+        self.fake_logtype_distribution['other'] = 0
+
         self.step_real_logtype_distribution = {logtype: 0 for logtype in self.top_logtypes}
         self.step_fake_logtype_distribution = {logtype: 0 for logtype in self.top_logtypes}
         self.remainig_quota = 0
@@ -157,7 +172,7 @@ class StateStrategy4(StateStrategy):
     
     def update_state(self):
         real_state, fake_state, diff_state = super().update_state()
-        return np.array(real_state + fake_state)
+        return np.array(real_state.tolist() + fake_state.tolist())
 
 class StateStrategy5(StateStrategy):
     def __init__(self, top_logtypes):
@@ -281,7 +296,7 @@ class StateStrategy11(StateStrategy):
         self.log_number = 0
     
     def create_state(self):
-        self.observation_spaces = spaces.Box(low=0,high=1,shape=(len(self.top_logtypes)*2,),dtype=np.float64)
+        self.observation_spaces = spaces.Box(low=0,high=1,shape=(len(self.top_logtypes)*2+1,),dtype=np.float64)
         return self.observation_spaces
     
     def update_log_number(self, log_number):
@@ -289,4 +304,17 @@ class StateStrategy11(StateStrategy):
     
     def update_state(self):
         real_state, fake_state, diff_state = super().update_state()
-        return np.array(real_state + fake_state + [self.log_number])
+        return np.array(real_state.tolist() + fake_state.tolist() + [self.log_number])
+
+class StateStrategy12(StateStrategy):
+    def __init__(self, top_logtypes):
+        super().__init__(top_logtypes)
+    
+    def create_state(self):
+        self.observation_spaces = spaces.Box(low=0,high=1,shape=(len(self.top_logtypes)*2 + 2,),dtype=np.float64)
+        return self.observation_spaces
+    
+    def update_state(self):
+        real_state, fake_state, diff_state = super().update_state()
+        return np.array(real_state.tolist() + fake_state.tolist())
+    

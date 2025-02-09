@@ -42,7 +42,7 @@ from stable_baselines3.common.policies import BasePolicy
 class ManualPolicy(BasePolicy):
     def __init__(self, action_dict, observation_space, action_space):
         super().__init__(observation_space, action_space)
-        self.action = np.zeros(action_space.shape[0])
+        self.action = np.zeros(action_space.shape[0], dtype=np.int32)
         for key, value in action_dict.items():
             self.action[key] = value
 
@@ -52,7 +52,19 @@ class ManualPolicy(BasePolicy):
     def forward(self, obs):
         # This method is required by BasePolicy but not used in manual policies
         return self._predict(obs), None
+    
+class RandomPolicy(BasePolicy):
+    def __init__(self, observation_space, action_space):
+        super().__init__(observation_space, action_space)
+        self.action_space = action_space
 
+    def _predict(self, observation, deterministic=False):
+        return self.action_space.sample()
+
+    def forward(self, obs):
+        # This method is required by BasePolicy but not used in manual policies
+        return self._predict(obs), None
+    
 class TrainingEnv:
     def __init__(self, envs):
         self.envs = envs

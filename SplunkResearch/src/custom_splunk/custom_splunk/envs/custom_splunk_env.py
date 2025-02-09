@@ -12,7 +12,7 @@ from datetime_manager import MockedDatetimeManager
 import tensorflow as tf
 from strategies.action_strategy import ActionStrategy7, ActionStrategy8
 
-from strategies.state_strategy import StateStrategy10, StateStrategy6, StateStrategy7, StateStrategy8
+from strategies.state_strategy import StateStrategy10, StateStrategy11, StateStrategy6, StateStrategy7, StateStrategy8
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment')
 import os
 from dotenv import load_dotenv
@@ -25,6 +25,7 @@ import gym
 from gym import spaces
 import logging
 logger = logging.getLogger(__name__)
+import concurrent.futures
 
 PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/VMware, Inc. Linux 3.10.0-1160.92.1.el7.x86_64/Splunk Enterprise SIEM/Power Saver Plan/One Scan/'
 INFINITY = 100000
@@ -32,8 +33,9 @@ CPU_TDP = 200
 class SplunkEnv(gym.Env):
     def __init__(self, fake_start_datetime, rule_frequency, search_window, savedsearches, state_strategy, action_strategy, span_size=1, total_additional_logs=None, logs_per_minute = 300, additional_percentage = 0.1, env_id=None, num_of_measurements=1, num_of_episodes=1000):
         self.env_id = env_id
+        self.logs_per_minute = logs_per_minute
         relevant_logtypes = sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]})) #[(x[0], str(x[1])) for x in state_span]
-        relevant_logtypes.append(('wineventlog:security', '4624'))
+        # relevant_logtypes.append(('wineventlog:security', '4624'))
         self.relevant_logtypes = relevant_logtypes
         logger.info(f"relevant logtypes: {self.relevant_logtypes}")
         num_of_searches = len(savedsearches)
@@ -53,7 +55,9 @@ class SplunkEnv(gym.Env):
         self.current_action = None
         self.step_violation = False
         self.top_logtypes = pd.read_csv("resources/top_logtypes.csv")
-        self.top_logtypes = self.top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:20]
+        # include only system and security logs
+        self.top_logtypes = self.top_logtypes[self.top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
+        self.top_logtypes = self.top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
         self.top_logtypes = [(x[0].lower(), str(x[1])) for x in self.top_logtypes]
         self.top_logtypes = set(self.top_logtypes)|set(self.relevant_logtypes)
         if state_strategy == StateStrategy6:
@@ -91,19 +95,19 @@ class SplunkEnv(gym.Env):
         self.num_of_searches = num_of_searches
         self.time_range_logs_amount = []
         # run the saved searches for warmup
-        for i in range(1, 4):
+        for i in range(1, 3):
             logger.info(f"Running saved searches for warmup {i}")
             self.splunk_tools_instance.run_saved_searches_parallel(time_range)
         self.all_steps_counter = 0
         self.problematic_time_ranges = {'10/26/2024:00:00:00', '10/27/2024:00:00:00'}
 
     def calculate_quota(self, episode_logs_number, additional_percentage):
-        self.total_additional_logs = additional_percentage*episode_logs_number  
+        self.total_additional_logs = additional_percentage*self.search_window*self.logs_per_minute
+        # self.total_additional_logs = additional_percentage*episode_logs_number  
         self.step_size = int((self.total_additional_logs//self.search_window)*self.action_duration//60)
         self.remaining_quota = self.step_size
         self.action_strategy.quota = self.remaining_quota
-        
-        
+
     def set_reward_calculator(self, reward_calculator):
         self.reward_calculator = reward_calculator
 
@@ -123,18 +127,32 @@ class SplunkEnv(gym.Env):
                     reward = violation_reward
                     self.action_done = True
                 else:
-                    for time_range, action in self.action_auditor:
-                        self.action_strategy.perform_action(action, time_range)
-                    log_amount = max(self.time_range_logs_amount[-1], 1)
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                        # Submit all actions to the thread pool
+                        future_to_action = {
+                            executor.submit(self.action_strategy.perform_action, action, time_range): (time_range, action) for time_range, action in self.action_auditor
+                        }
+                        for future in concurrent.futures.as_completed(future_to_action):
+                            time_range, action = future_to_action[future]
+                            try:
+                                data = future.result()
+                            except Exception as exc:
+                                logger.error(f"Action {action} generated an exception: {exc}")
+                            else:
+                                logger.info(f"Action {action} was performed successfully")
                     
-                    time_to_wait = int(np.log(log_amount)*1.1)
+                    log_amount = sum([action[1][0] for action in self.action_auditor]) * self.remaining_quota
+                    log_amount = max(log_amount, 1)
+                    
+                    time_to_wait = int(np.log(log_amount))
                     logger.info(f"Waiting {time_to_wait} secondes till logs are indexed")
                     time.sleep(time_to_wait)
                     # time.sleep(30)
                     reward = self.reward_calculator.get_full_reward(self.time_range, self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action, self.remaining_quota, self.step_counter)
         else:
 
-            reward = self.reward_calculator.get_partial_reward(self.state_strategy.step_real_state, self.state_strategy.step_fake_state, self.current_action, self.step_counter)
+            # reward = self.reward_calculator.get_partial_reward(self.state_strategy.step_real_state, self.state_strategy.step_fake_state, self.current_action, self.step_counter)
+            reward = self.reward_calculator.get_partial_reward(self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action, self.step_counter)
             
                 
         self.reward_calculator.reward_dict['total'].append(reward)
@@ -293,16 +311,22 @@ class SplunkEnv(gym.Env):
         logger.info(f"Time range logs amount: {self.time_range_logs_amount[-1]}")
         # self.remaining_quota = self.total_additional_logs
         self.done = False
+        
         if isinstance(self.state_strategy, StateStrategy6) or isinstance(self.state_strategy, StateStrategy7):
             datetime_now = datetime.datetime.strptime(new_start_time, '%m/%d/%Y:%H:%M:%S') 
             week_day = datetime_now.weekday()
             hour = datetime_now.hour
             self.state_strategy.update_time(week_day, hour)
-        if isinstance(self.state_strategy, StateStrategy10):
+        if isinstance(self.state_strategy, StateStrategy10) or isinstance(self.state_strategy, StateStrategy11):
              self.state_strategy.update_log_number(log_amount)
              self.quota = log_amount
         self.state = self.state_strategy.reset()
-        
+        if random.random() < 0.1:
+            empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:security.txt")
+            empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:system.txt")
+        if self.search_window > self.rule_frequency:
+            logger.info('Cleaning the environment')
+            clean_env(self.splunk_tools_instance, self.time_range)
         return self.state 
     
     def get_new_start_time(self):
@@ -324,7 +348,12 @@ class SplunkEnv(gym.Env):
     def render(self, mode='human'):
         logger.info(f"Current state: {self.state}")
 
-        
+    
+    def seed(self, seed=None):
+        if seed is not None:
+            np.random.seed(seed)
+            random.seed(seed)
+        return [seed]  
 
         
 # if __name__=="__main__":

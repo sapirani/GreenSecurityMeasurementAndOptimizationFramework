@@ -22,13 +22,14 @@ sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
 import logging
 from stable_baselines3.ppo.policies import MlpPolicy
 from stable_baselines3.ddpg.policies import MlpPolicy as DDPGMlpPolicy
-from stable_baselines3.td3.policies import MlpPolicy as TD3Policy
+from stable_baselines3.td3.policies import MlpPolicy as TD3Policy   
+from stable_baselines3.sac.policies import MlpPolicy as SACPolicy
 from stable_baselines3.common.evaluation import evaluate_policy
 import gym
 import custom_splunk #dont remove!!!
 from sb3_contrib.ppo_recurrent.policies import MlpLstmPolicy
 from sb3_contrib import RecurrentPPO
-from stable_baselines3 import A2C, PPO, DQN, DDPG, TD3
+from stable_baselines3 import A2C, PPO, DQN, DDPG, TD3, SAC
 from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
 
 urllib3.disable_warnings()
@@ -46,14 +47,17 @@ from datetime_manager import MockedDatetimeManager
 from splunk_tools import SplunkTools
 from stable_baselines3.common.distributions  import DirichletDistribution
 from policy import *
+from stable_baselines3.common.vec_env import VecNormalize, DummyVecEnv
+from stable_baselines3.common.env_util import make_vec_env
+
 # disable sb3 warning
 import warnings
 warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
-model_names = {'a2c': A2C, 'ppo': PPO, 'dqn': DQN, 'recurrentppo': RecurrentPPO, 'ddpg': DDPG, 'td3': TD3}
-policy_names = {'mlp': MlpPolicy, 'lstm': MlpLstmPolicy, "custommlp": CustomActor, "ddpgmlp": DDPGMlpPolicy, "td3mlp": TD3Policy}
+model_names = {'a2c': A2C, 'ppo': PPO, 'dqn': DQN, 'recurrentppo': RecurrentPPO, 'ddpg': DDPG, 'td3': TD3, 'sac': SAC}
+policy_names = {'mlp': MlpPolicy, 'lstm': MlpLstmPolicy, "custommlp": CustomActor, "ddpgmlp": DDPGMlpPolicy, "td3mlp": TD3Policy, "sacmlp": SACPolicy}
 
 # Dynamically find all reward calculator classes
 RewardCalc_classes = {}
@@ -89,7 +93,26 @@ manual_policy_dict = {
     '4624_0': {14:1},
     'equal_1': {1:1/7, 3:1/7, 5:1/7, 7:1/7, 9:1/7, 11:1/7, 13:1/7},
     'equal_0': {0:1/7, 2:1/7, 4:1/7, 6:1/7, 8:1/7, 10:1/7, 12:1/7, 14:1/7},
-    'no_agent': {}
+    'no_agent': {},
+}
+manual_policy_dict_1 = {
+    '4663_0': {0:100, 1:0, 2:0, 3:0},
+    '4663_1': {0:100, 1:0, 2:1, 3:5},
+    '4732_0': {0:100, 1:1, 2:0, 3:0},
+    '4732_1': {0:100, 1:1, 2:1, 3:5},
+    '4769_0': {0:100, 1:2, 2:0, 3:0},
+    '4769_1': {0:100, 1:2, 2:1, 3:5},
+    '5140_0': {0:100, 1:3, 2:0, 3:0},
+    '5140_1': {0:100, 1:3, 2:1, 3:5},
+    '7036_0': {0:100, 1:4, 2:0, 3:0},
+    '7036_1': {0:100, 1:4, 2:1, 3:5},
+    '7040_0': {0:100, 1:5, 2:0, 3:0},
+    '7040_1': {0:100, 1:5, 2:1, 3:5},
+    '7045_0': {0:100, 1:6, 2:0, 3:0},
+    '7045_1': {0:100, 1:6, 2:1, 3:5},
+    '4624_0': {0:100, 1:7, 2:0, 3:0},
+
+    'no_agent': {0:0, 1:0, 2:0, 3:0}
 }
         
 class ExperimentManager:
@@ -126,6 +149,7 @@ class ExperimentManager:
         self.mode = None
         self.current_kwargs = None
         self.train_master, self.eval_master, self.retrain_master , self.no_agent_master = self.load_master_tables()
+        self.total_steps = 0
         
     def load_master_tables(self):
         """Loads train_master, eval_master, and no_agent_master tables, if exists."""
@@ -175,7 +199,7 @@ class ExperimentManager:
         """Sets up logging to write to the specified log file."""
         if mode == 'train':
             log_file = os.path.join(self.train_logs_dir, f"{name}.log")
-        elif mode == 'eval' or mode == 'manual_policy_eval':
+        elif 'eval' in mode:
             log_file = os.path.join(self.eval_logs_dir, f"{name}.log")
         elif mode == 'retrain':
             log_file = os.path.join(self.retrain_model_logs_dir, f"{name}.log")
@@ -200,8 +224,21 @@ class ExperimentManager:
         env_kwargs['state_strategy'] = StateStrategy_classes[kwargs['state_strategy_version']]
         env_kwargs['action_strategy'] = ActionStrategy_classes[kwargs['action_strategy_version']]
         env = gym.make(**env_kwargs)
+        self.total_steps = env.total_steps
+        # env = DummyVecEnv([lambda: env])
+        env = make_vec_env(lambda: env, n_envs=1)
+        env = VecNormalize(
+            env,
+            norm_obs=True,  # normalize observations
+            norm_reward=True,  # normalize rewards
+            clip_obs=10.,
+            clip_reward=10.,
+            gamma=kwargs['df'],
+            epsilon=1e-8
+        )
         reward_calculator = self.setup_reward_calc(kwargs)
-        env.set_reward_calculator(reward_calculator)
+        # env.set_reward_calculator(reward_calculator)
+        env.env_method('set_reward_calculator', reward_calculator)
         
         return env
 
@@ -270,9 +307,10 @@ class ExperimentManager:
         model_kwargs['env'] = env
         model_kwargs['policy'] = policy_names[kwargs['policy']]
         model_kwargs['learning_rate'] = kwargs['learning_rate']
-        if kwargs['model'] != 'ddpg' and kwargs['model'] != 'td3':
+        
+        if kwargs['model'] != 'ddpg' and kwargs['model'] != 'td3' and kwargs['model'] != 'sac' and kwargs['model'] != 'dqn':
             model_kwargs['ent_coef'] = kwargs['ent_coef']
-            model_kwargs['n_steps'] = 2
+            model_kwargs['n_steps'] = kwargs['n_steps']
             model_kwargs['stats_window_size'] = 5
             model_kwargs['policy_kwargs'] = dict(
                                 net_arch=dict(
@@ -283,11 +321,14 @@ class ExperimentManager:
             # model_kwargs['use_sde'] = True
             # model_kwargs['sde_sample_freq'] = 9
             
-        elif kwargs['model'] == 'td3':
-            model_kwargs['policy_kwargs'] = dict(
-            net_arch=[128, 128, 64]
-            )
-            model_kwargs['action_noise'] = NormalActionNoise(mean=np.zeros(env.action_space.shape), sigma=0.1 * np.ones(env.action_space.shape))
+        elif kwargs['model'] == 'td3' or kwargs['model'] == 'sac' or kwargs['model'] == 'ddpg':
+            # model_kwargs['policy_kwargs'] = dict(
+            # net_arch=[128, 128, 64]
+            # )
+            # model_kwargs['action_noise'] = NormalActionNoise(mean=np.zeros(env.action_space.shape), sigma=0.1 * np.ones(env.action_space.shape))
+            model_kwargs['train_freq'] = kwargs['n_steps']
+            model_kwargs['use_sde'] = True
+            model_kwargs['sde_sample_freq'] = 10
         else:
             model_kwargs['policy_kwargs'] = dict(
             net_arch=dict(
@@ -309,7 +350,10 @@ class ExperimentManager:
         name = kwargs['name']
         kwargs['env_name'] = kwargs['env_name'].split('-v')[1]        
         self.current_kwargs = kwargs
-        model.learn(total_timesteps=env.total_steps*kwargs['num_of_episodes'], callback=callback_list, tb_log_name=name)
+        total_steps = env.get_attr('total_steps')[0]
+        print(total_steps)
+
+        model.learn(total_timesteps=self.total_steps*kwargs['num_of_episodes'], callback=callback_list, tb_log_name=name)
         
         self.post_experiment(env, model)
         return model
@@ -327,6 +371,15 @@ class ExperimentManager:
         """Evaluates a model."""
         self.mode =  'manual_policy_eval'
         env, model, callback_list = self.prepare_experiment('manual_policy_eval', kwargs)
+        self.current_kwargs = kwargs
+        episode_rewards = self.custom_evaluate_policy(model, env, callback_list, num_episodes=kwargs['num_of_episodes'])
+        self.post_experiment(env, model)
+        return episode_rewards
+    
+    def random_policy_eval(self, **kwargs):
+        """Evaluates a model."""
+        self.mode =  'random_policy_eval'
+        env, model, callback_list = self.prepare_experiment('random_policy_eval', kwargs)
         self.current_kwargs = kwargs
         episode_rewards = self.custom_evaluate_policy(model, env, callback_list, num_episodes=kwargs['num_of_episodes'])
         self.post_experiment(env, model)
@@ -350,8 +403,8 @@ class ExperimentManager:
         logger.info(f"Retraining model from datetime: {kwargs['fake_start_datetime']}")
         name = kwargs['name']
         self.current_kwargs = kwargs
-        
-        model.learn(total_timesteps=env.total_steps*kwargs['num_of_episodes'], callback=callback_list, tb_log_name=name)        
+        total_steps = env.get_attr('total_steps')
+        model.learn(total_timesteps=total_steps*kwargs['num_of_episodes'], callback=callback_list, tb_log_name=name)        
         self.retrain_master = self.update_master_tables(self.retrain_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), kwargs)        
         self.post_experiment(env, model)        
         return model
@@ -379,17 +432,22 @@ class ExperimentManager:
     
     def post_experiment(self, env, model):
         """Post experiment actions."""
+        try:
+            time_range = env.get_attr('time_range')
+        except:
+            time_range = env.time_range
+        
         if self.mode == 'train':
-            self.train_master = self.update_master_tables(self.train_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), self.current_kwargs)
+            self.train_master = self.update_master_tables(self.train_master, datetime.datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S'), self.current_kwargs)
             model.save(os.path.join(self.models_dir, self.current_kwargs['name']))            
         elif self.mode == 'eval' or self.mode == 'manual_policy_eval':
-            self.eval_master = self.update_master_tables(self.eval_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), self.current_kwargs)
+            self.eval_master = self.update_master_tables(self.eval_master, datetime.datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S'), self.current_kwargs)
         elif self.mode == 'retrain':
-            self.retrain_master = self.update_master_tables(self.retrain_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), self.current_kwargs)
+            self.retrain_master = self.update_master_tables(self.retrain_master, datetime.datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S'), self.current_kwargs)
             model.save(os.path.join(self.models_dir, self.current_kwargs['name']))
             
         self.save_master_tables()
-        env.reward_calculator.no_agent_values.to_csv(env.reward_calculator.no_agent_table_path, index=False)
+        # env.reward_calculator.no_agent_values.to_csv(env.reward_calculator.no_agent_table_path, index=False)
     
     def get_model(self, kwargs, name, env, mode):
         if mode == 'train':
@@ -398,7 +456,11 @@ class ExperimentManager:
             model_name = self.get_train_experiment_name(kwargs)
             model = self.load_model(kwargs, name, env, model_name, mode)
         elif mode == "manual_policy_eval":
-            model = ManualPolicyModel(ManualPolicy(manual_policy_dict[kwargs['policy']],env.observation_space, env.action_space), [env])
+            model = ManualPolicyModel(ManualPolicy(manual_policy_dict_1[kwargs['policy']],env.observation_space, env.action_space), [env])
+            tb_logger = configure(os.path.join(self.eval_tensorboard_dir, name), ["stdout", "tensorboard"])
+            model.logger = tb_logger
+        elif mode == "random_policy_eval":
+            model = ManualPolicyModel(RandomPolicy(env.observation_space, env.action_space), [env])
             tb_logger = configure(os.path.join(self.eval_tensorboard_dir, name), ["stdout", "tensorboard"])
             model.logger = tb_logger
         # model.policy.action_dist = NormalizedDiagGaussianDistribution(int(np.prod(env.action_space.shape))) # DirichletDistribution(env.action_space.shape[0])

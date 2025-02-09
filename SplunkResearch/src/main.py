@@ -24,6 +24,8 @@ def run_experiment(mode, **kwargs):
             experiment_manager.test_model(**kwargs)
         elif mode == 'manual_policy':
             experiment_manager.manual_policy_eval(**kwargs)    
+        elif mode == 'random_policy':
+            experiment_manager.random_policy_eval(**kwargs)    
         else:
             raise ValueError(f"Unsupported mode: {mode}")
     
@@ -38,7 +40,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run experiment with specified mode and parameters.")
 
     # Add required positional arguments
-    parser.add_argument('mode', type=str, choices=['train', 'retrain', 'test', 'manual_policy'], help="Mode of operation: 'train', 'retrain', or 'test'.")
+    parser.add_argument('mode', type=str, choices=['train', 'retrain', 'test', 'manual_policy','random_policy'], help="Mode of operation: 'train', 'retrain', or 'test'.")
     parser.add_argument('--env_name', type=str, help="Environment name.")
     parser.add_argument('--num_of_episodes', type=int, help="Number of episodes.")
 
@@ -63,6 +65,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_of_measurements', type=int, default=1, help="Number of measurements, default is 1.")
     parser.add_argument('--search_window', type=int, default=1, help="Search window, default is 1.")
     parser.add_argument('--experiment_name', type=str, help="Experiment name.")
+    parser.add_argument('--n_steps', type=int, help="Number of steps between each update.")
 
     # Parse the arguments
     args = parser.parse_args()
