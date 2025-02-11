@@ -325,10 +325,10 @@ class ExperimentManager:
             # model_kwargs['policy_kwargs'] = dict(
             # net_arch=[128, 128, 64]
             # )
-            # model_kwargs['action_noise'] = NormalActionNoise(mean=np.zeros(env.action_space.shape), sigma=0.1 * np.ones(env.action_space.shape))
+            model_kwargs['action_noise'] = NormalActionNoise(mean=np.zeros(env.action_space.shape), sigma=0.1 * np.ones(env.action_space.shape))
             model_kwargs['train_freq'] = kwargs['n_steps']
-            model_kwargs['use_sde'] = True
-            model_kwargs['sde_sample_freq'] = 10
+            # model_kwargs['use_sde'] = True
+            # model_kwargs['sde_sample_freq'] = 10
         else:
             model_kwargs['policy_kwargs'] = dict(
             net_arch=dict(

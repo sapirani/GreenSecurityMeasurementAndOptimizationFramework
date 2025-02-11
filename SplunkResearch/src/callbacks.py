@@ -44,7 +44,7 @@ class SaveModelCallback(BaseCallback):
         return True
     
 class SaveArtifacts(BaseCallback):
-    def __init__(self, verbose=1, save_freq=500, experiment_menager=None):
+    def __init__(self, verbose=1, save_freq=200, experiment_menager=None):
         super(SaveArtifacts, self).__init__(verbose)
         self.save_freq = save_freq
         self.experiment_menager = experiment_menager
@@ -53,6 +53,10 @@ class SaveArtifacts(BaseCallback):
         if self.n_calls % self.save_freq == 0:
             env = self.training_env.envs[0]
             self.experiment_menager.post_experiment(env, self.model)
+            # create pandas from list
+            fake_states = pd.DataFrame(env.fake_states_list)
+            # save the fake states
+            fake_states.to_csv(f"{env.fake_states_path}.csv", index=False)
         return True
 
 class ModularTensorboardCallback(BaseCallback):

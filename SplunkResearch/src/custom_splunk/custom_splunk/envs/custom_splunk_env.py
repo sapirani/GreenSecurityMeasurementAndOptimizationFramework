@@ -99,7 +99,9 @@ class SplunkEnv(gym.Env):
             logger.info(f"Running saved searches for warmup {i}")
             self.splunk_tools_instance.run_saved_searches_parallel(time_range)
         self.all_steps_counter = 0
-        self.problematic_time_ranges = {'10/26/2024:00:00:00', '10/27/2024:00:00:00'}
+        self.fake_states_list = []
+        self.fake_states_path = r"resources/fake_states.csv"
+
 
     def calculate_quota(self, episode_logs_number, additional_percentage):
         self.total_additional_logs = additional_percentage*self.search_window*self.logs_per_minute
@@ -149,6 +151,7 @@ class SplunkEnv(gym.Env):
                     time.sleep(time_to_wait)
                     # time.sleep(30)
                     reward = self.reward_calculator.get_full_reward(self.time_range, self.state_strategy.real_state, self.state_strategy.fake_state, self.current_action, self.remaining_quota, self.step_counter)
+                    self.fake_states_list.append(self.state_strategy.abs_fake)
         else:
 
             # reward = self.reward_calculator.get_partial_reward(self.state_strategy.step_real_state, self.state_strategy.step_fake_state, self.current_action, self.step_counter)
@@ -332,8 +335,8 @@ class SplunkEnv(gym.Env):
     def get_new_start_time(self):
         if self.action_done:
             return self.time_range[0]
-        elif self.time_range[1] in self.problematic_time_ranges:
-            return self.dt_manager.add_time(self.time_range[0], minutes=2*self.rule_frequency)
+        # elif self.time_range[1] in self.problematic_time_ranges:
+        #     return self.dt_manager.add_time(self.time_range[0], minutes=2*self.rule_frequency)
         else:
             return self.dt_manager.add_time(self.time_range[0], minutes=self.rule_frequency)
 

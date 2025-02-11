@@ -39,6 +39,7 @@ def process_chunk(chunk_data, top_logtypes):
     # Initialize Y dictionary for all rules
     for rule in process_splunk.active_saved_searches:
         chunk_Y[f"rule_cpu_{rule['title']}"] = []
+        chunk_Y[f"rule_alert_{rule['title']}"] = []
 
     # Process each row in the chunk
     for _, row in chunk_data.iterrows():
@@ -50,6 +51,8 @@ def process_chunk(chunk_data, top_logtypes):
         for rule in process_splunk.active_saved_searches:
             cpu = row[f"rule_cpu_{rule['title']}"]
             chunk_Y[f"rule_cpu_{rule['title']}"].append(cpu)
+            alert = row[f"rule_alert_{rule['title']}"]
+            chunk_Y[f"rule_alert_{rule['title']}"].append(alert)
         
         # Get log distribution
         log_distribution = process_splunk.get_real_distribution(start_time, end_time)
@@ -73,85 +76,114 @@ def main():
     ]
 
     # Read and process data
-    no_agent_data_path = r'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments_____/no_agent_baseline/no_agent_20250131_000047.csv'
-    no_agent_csv = pd.read_csv(no_agent_data_path)
-
-    # Process top log types
-    top_logtypes = pd.read_csv(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
-    top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
-    top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:100]
-    top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
-    top_logtypes = set(top_logtypes) | set(relevant_logtypes)
-
-    # # Initialize multiprocessing pool with worker initialization
-    # num_cores = cpu_count()
-    # pool = Pool(processes=num_cores, initializer=init_worker)
-
-    # # Split data into chunks
-    # chunk_size = max(1, len(no_agent_csv) // num_cores)
-    # chunks = [no_agent_csv[i:i + chunk_size] for i in range(0, len(no_agent_csv), chunk_size)]
-
-    # # Process chunks in parallel
-    # process_chunk_partial = partial(process_chunk, top_logtypes=top_logtypes)
-    # results = pool.map(process_chunk_partial, chunks)
-
-    # # Close the pool
-    # pool.close()
-    # pool.join()
-
-    # # Combine results from all chunks
-    # X = []
-    # Y = {}
+    global_path = r'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments_____/no_agent_baseline/'
+    no_agent_data_paths = [rf'{global_path}/no_agent_20250210_140356.csv']#[rf'{global_path}/no_agent_20250129_114533.csv', rf'{global_path}/no_agent_20250131_000047.csv']
     
-    # # Initialize Y dictionary
-    # first_chunk_Y = results[0][1]
-    # for key in first_chunk_Y:
-    #     Y[key] = []
+    for no_agent_data_path in no_agent_data_paths:
+        # determine a dir to save the results
+        results_dir = no_agent_data_path.split("/")[-1].split(".")[0]+"_cpu_regressor_results"
+        # create a dir
+        import os
+        os.makedirs(results_dir, exist_ok=True)
+        # Load data
+        no_agent_csv = pd.read_csv(no_agent_data_path)
 
-    # # Combine all chunks
-    # for chunk_X, chunk_Y in tqdm(results):
-    #     X.extend(chunk_X)
-    #     for key in chunk_Y:
-    #         Y[key].extend(chunk_Y[key])
-    # # dump X and Y
-    # pd.DataFrame(X).to_csv("X.csv")
-    # pd.DataFrame(Y).to_csv("Y.csv")
-    
-    # Load X and Y
-    X = pd.read_csv("X.csv").drop(columns=["Unnamed: 0"])
-    Y = pd.read_csv("Y.csv")
-    # normalize X
-    X = (X - X.mean()) / X.std()
-    list_top_logtypes = list(top_logtypes)
-    for rule in rules:
-        print("---------------")
-        
-        X_train, X_test, y_train, y_test = train_test_split(X, Y[f"rule_cpu_{rule}"], test_size=0.2, random_state=42)
-        regr = MLPRegressor(hidden_layer_sizes=(100, 100), max_iter=2000)
-        regr.fit(X_train, y_train)
-        y_pred = regr.predict(X_test)
-        print(f"Rule: {rule}")
-        print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred)}")
-        
-        # Get top 10 feature importance form mlp regressor
-        # sample
-        sample = X_train.sample(20)
-        explainer = shap.KernelExplainer(regr.predict, sample)
-        shap_values = explainer.shap_values(sample)
-        plot = shap.summary_plot(shap_values, sample, feature_names=list_top_logtypes, plot_type='bar')
-        
-        plt.savefig(f"shap_bar_{rule}.png")
-        #plot results
-        # plt.scatter(y_test, y_pred)
-        # plt.xlabel("True CPU")
-        # plt.ylabel("Predicted CPU")
-        # plt.title(f"True vs Predicted CPU for Rule: {rule}")
-        # # add line
-        # plt.plot([0, 5], [0, 5], color='red')
-        # plt.savefig(f"true_vs_pred_{rule}.png")
+        # Process top log types
+        top_logtypes = pd.read_csv(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
+        top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
+        top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:100]
+        top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
+        top_logtypes = set(top_logtypes) | set(relevant_logtypes)
 
-        plt.close()
-        print("---------------")
+        # Initialize multiprocessing pool with worker initialization
+        num_cores = cpu_count()
+        pool = Pool(processes=num_cores, initializer=init_worker)
+
+        # Split data into chunks
+        chunk_size = max(1, len(no_agent_csv) // num_cores)
+        chunks = [no_agent_csv[i:i + chunk_size] for i in range(0, len(no_agent_csv), chunk_size)]
+
+        # Process chunks in parallel
+        process_chunk_partial = partial(process_chunk, top_logtypes=top_logtypes)
+        results = pool.map(process_chunk_partial, chunks)
+
+        # Close the pool
+        pool.close()
+        pool.join()
+
+        # Combine results from all chunks
+        X = []
+        Y = {}
+        
+        # Initialize Y dictionary
+        first_chunk_Y = results[0][1]
+        for key in first_chunk_Y:
+            Y[key] = []
+
+        # Combine all chunks
+        for chunk_X, chunk_Y in tqdm(results):
+            X.extend(chunk_X)
+            for key in chunk_Y:
+                Y[key].extend(chunk_Y[key])
+        # dump X and Y
+        pd.DataFrame(X).to_csv(f"{results_dir}/X.csv")
+        pd.DataFrame(Y).to_csv(f"{results_dir}/Y.csv")
+        
+        # Load X and Y
+        X = pd.read_csv(f"{results_dir}/X.csv").drop(columns=["Unnamed: 0"])
+        Y = pd.read_csv(f"{results_dir}/Y.csv")
+        # Plot y over time
+        for rule in rules:
+            plt.plot(Y[f"rule_cpu_{rule}"])
+            plt.title(f"CPU over time for Rule: {rule}")
+            plt.savefig(f"{results_dir}/cpu_over_time_{rule}.png")
+            plt.close()
+        # normalize X
+        X = (X - X.mean()) / X.std()
+        X_alerts = Y[[f"rule_alert_{rule}" for rule in rules]]
+        Y = Y[[f"rule_cpu_{rule}" for rule in rules]]
+        X_alerts = X_alerts + 0.0001
+        X_alerts = (X_alerts - X_alerts.mean()) / X_alerts.std()
+        with_alerts = [0, 1]
+
+        list_top_logtypes = list(top_logtypes)
+        for with_alert in with_alerts:
+            for rule in rules:
+                print("---------------")
+                if with_alert:
+                    X['101'] = X_alerts[f"rule_alert_{rule}"]
+
+                X_train, X_test, y_train, y_test = train_test_split(X, Y[f"rule_cpu_{rule}"], test_size=0.2, random_state=42)
+                regr = MLPRegressor(hidden_layer_sizes=(100, 100), max_iter=3000)
+                regr.fit(X_train, y_train)
+                y_pred = regr.predict(X_test)
+                print(f"Rule: {rule}")
+                print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred)}")
+                print(f"R2 Score: {regr.score(X_test, y_test)}")
+                
+                # # Get top 10 feature importance form mlp regressor
+                # # sample
+                # sample = X_train.sample(20)
+                # explainer = shap.KernelExplainer(regr.predict, sample)
+                # shap_values = explainer.shap_values(sample)
+                # plot = shap.summary_plot(shap_values, sample, feature_names=list_top_logtypes, plot_type='bar')
+                
+                # plt.savefig(f"shap_bar_{rule}.png")
+                # plot results
+                plt.scatter(y_test, y_pred)
+                plt.xlabel("True CPU")
+                plt.ylabel("Predicted CPU")
+                plt.title(f"True vs Predicted CPU for Rule: {rule}")
+                # add line
+                plt.plot([0, 10], [0, 10], color='red')
+                # add mean squared error
+                plt.text(0, 9, f"MSE: {mean_squared_error(y_test, y_pred)}")
+                # add r2 score
+                plt.text(0, 8, f"R2 Score: {regr.score(X_test, y_test)}")
+                plt.savefig(f"{results_dir}/true_vs_pred_{rule}_with alert = {with_alert}.png")
+
+                plt.close()
+                print("---------------")
     
 if __name__ == "__main__":
     main()

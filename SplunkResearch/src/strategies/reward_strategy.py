@@ -2740,7 +2740,8 @@ class RewardStrategy57(RewardStrategy37):
         logger.info(f"total_cpu_usage value: {total_cpu_usage}")
         logger.info(f"no_agent_median_cpu_usage value: {no_agent_median_cpu_usage}")
 
-        energy_reward = (total_cpu_usage-no_agent_median_cpu_usage)/no_agent_median_cpu_usage
+        energy_reward = (duration_val-no_agent_duration_val)/no_agent_duration_val
+        # energy_reward = (total_cpu_usage-no_agent_median_cpu_usage)/no_agent_median_cpu_usage
         energy_reward = max(energy_reward, 0)/2
         
         rules_alerts_list = [f"rule_alert_{rule['title']}" for rule in self.splunk_tools.active_saved_searches]
