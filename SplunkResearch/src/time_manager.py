@@ -49,9 +49,9 @@ class TimeManager:
         
     def _validate_configuration(self):
         """Validate time configuration"""
-        if self.window_size % self.step_size != 0:
+        if self.window_size*60 % self.step_size != 0:
             raise ValueError("Window size must be divisible by step size")
-        if self.window_size % self.rule_frequency != 0:
+        if self.window_size*60 % self.rule_frequency != 0:
             raise ValueError("Window size must be divisible by rule frequency")
             
     def _create_initial_window(self, start_datetime: str) -> TimeWindow:

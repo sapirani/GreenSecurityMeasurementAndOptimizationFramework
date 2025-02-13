@@ -139,7 +139,8 @@ class ExperimentManager:
             env = DistributionRewardWrapper(
                 env,
                 gamma=config.gamma_dist,
-                epsilon=1e-8
+                epsilon=1e-8,
+                distribution_freq=1
             )
         
         if config.use_energy_reward:
@@ -207,6 +208,7 @@ class ExperimentManager:
             'learning_rate': config.learning_rate,
             'gamma': config.gamma,
             'tensorboard_log': str(self.dirs['tensorboard']),
+            'stats_window_size': 5,
             'verbose': 1
         }
         
@@ -377,7 +379,7 @@ if __name__ == "__main__":
     env_config = SplunkConfig(
         # fake_start_datetime="02/12/2025:00:00:00",
         rule_frequency=60,
-        search_window=120,
+        search_window=3,
         # savedsearches=["rule1", "rule2"],
         logs_per_minute=300,
         additional_percentage=0.1,

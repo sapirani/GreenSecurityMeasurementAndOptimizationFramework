@@ -137,8 +137,8 @@ class SplunkEnv(gym.Env):
         self.remaining_quota = self.action_strategy.remaining_quota
         
         # Update state
-        self._update_state()
-        
+        # self._update_state()
+        obs = None
         # Check termination
         # self.step_violation = self._check_step_violation()
         self.done = self.step_violation or self._check_termination()
@@ -155,7 +155,7 @@ class SplunkEnv(gym.Env):
         if self.done:
             self._execute_pending_actions()
         
-        return self.state, reward, self.done, truncated, info
+        return obs, reward, self.done, truncated, info
     
 
     
@@ -178,25 +178,25 @@ class SplunkEnv(gym.Env):
                     logger.info(f"Action {action} completed successfully")
                 except Exception as exc:
                     logger.error(f"Action {action} failed: {exc}")
-                    
-    def _update_state(self) -> None:
-        """Update environment state"""
-        #TODO: Implement state update
-        # Get time range for current step
-        # now = self._get_current_time()
-        # previous = self._subtract_time(now, self.action_strategy.action_duration)
+    
+  
+           
+    # def _update_state(self) -> None:
+    #     """Update environment state"""
+    #     #TODO: Implement state update
+    #     # Get time ranges   
+    #     current_window = self.time_manager.current_window.to_tuple()
         
-        # # Get distributions
-        # real_dist = self.splunk_tools.get_real_distribution(previous, now)
-        # fake_dist = self.action_strategy.get_current_distribution()
+    #     # Get distributions
+    #     real_dist = self.splunk_tools.get_real_distribution(*current_window)
+    #     fake_dist = self.action_strategy.get_current_distribution()
         
-        # # Update state strategy
-        # self.state_strategy.update_distributions(real_dist, fake_dist)
-        # self.state_strategy.update_quota(self.remaining_quota / self.total_additional_logs)
+    #     # Update state strategy
+    #     self.state_strategy.update_distributions(real_dist, fake_dist)
+    #     self.state_strategy.update_quota(self.remaining_quota / self.total_additional_logs)
         
-        # # Update state
-        # self.state = self.state_strategy.update_state()
-        pass
+    #     # Update state
+    #     self.state = self.state_strategy.update_state()
 
     def _check_termination(self) -> bool:
         """Check if episode should terminate"""

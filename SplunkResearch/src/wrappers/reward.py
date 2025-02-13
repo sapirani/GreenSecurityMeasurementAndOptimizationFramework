@@ -16,28 +16,32 @@ import logging
 logger = logging.getLogger(__name__)
 from time_manager import TimeWindow
 
+
+
+
 class DistributionRewardWrapper(RewardWrapper):
     """Wrapper for distribution similarity rewards"""
-    def __init__(self, env: gym.Env, gamma: float = 0.2, epsilon: float = 1e-8):
+    def __init__(self, env: gym.Env, gamma: float = 0.2, epsilon: float = 1e-8, distribution_freq: int = 1):
         super().__init__(env)
         self.gamma = gamma
         self.epsilon = epsilon
+        self.distribution_reward_freq = distribution_freq
         
-    def reward(self, reward: float) -> float:
-        """Modify reward based on distribution similarity"""
-        info = self.get_step_info()  # Get current step info
+
+    def step(self, action):
+        obs, reward, terminated, truncated, info = self.env.step(action)
         
-        real_dist = info.get('real_distribution')
-        fake_dist = info.get('fake_distribution')
-        
-        if real_dist is None or fake_dist is None:
-            return reward
+        step_counter = info.get('step_counter', 0)
+        if step_counter % self.distribution_reward_freq == 0:
+            dist_reward = self._calculate_distribution_reward(
+                info.get('real_distribution'),
+                info.get('fake_distribution')
+            )
+            info['distribution_reward'] = dist_reward
+            reward += self.gamma * dist_reward
             
-        dist_reward = self._calculate_distribution_reward(real_dist, fake_dist)
-        info['distribution_reward'] = dist_reward
-        
-        return reward + self.gamma * dist_reward
-        
+        return obs, reward, terminated, truncated, info
+    
     def _calculate_distribution_reward(self, real_dist, fake_dist):
         # Add epsilon and normalize
         real_dist = (real_dist + self.epsilon) / np.sum(real_dist + self.epsilon)
@@ -104,11 +108,10 @@ class BaseRuleExecutionWrapper(RewardWrapper):
         # periodly dunp no_agent table
         if random.random() < 0.3:
             self.baseline_df.to_csv(self.baseline_path, index=False)
-        return combined_rules_metrics
+        return relevant_row, combined_rules_metrics
     
     def get_duration_reward_values(self, time_range):
-        new_line, combined_rules_metrics = self.get_rules_metrics(time_range)
-        return combined_rules_metrics
+        return self.get_rules_metrics(time_range)
     
     def rules_metrics_combiner(self, **rules_metrics):
         result = {}
@@ -133,19 +136,23 @@ class BaseRuleExecutionWrapper(RewardWrapper):
         new_line = self.post_process_metrics(time_range, saved_searches, combined_rules_metrics, rules_metrics)
         return new_line, combined_rules_metrics
     
-    def reward(self, reward: float) -> float:
-        info = self.env.get_step_info()
-        
+    def step(self, action):
+        """Override step to properly handle info updates"""
+        obs, reward, terminated, truncated, info = self.env.step(action)
         if info.get('done', False):
             # Execute rules and get metrics
-            current_metrics = self.get_duration_reward_values(info['current_window'])
-            baseline_metrics = self.get_no_agent_reward(info['current_window'])
+            raw_metrics, combined_metrics = self.get_duration_reward_values(info['current_window'])
+            raw_baseline_metrics, combined_baseline_metrics = self.get_no_agent_reward(info['current_window'])
             
             # Store in info for other wrappers to use
-            info['current_metrics'] = current_metrics
-            info['baseline_metrics'] = baseline_metrics
+            info['combined_metrics'] = combined_metrics
+            info['combined_baseline_metrics'] = combined_baseline_metrics
+            info['raw_metrics'] = raw_metrics
+            info['raw_baseline_metrics'] = raw_baseline_metrics
             
-        return reward
+        return obs, reward, terminated, truncated, info
+    
+
     
 class EnergyRewardWrapper(RewardWrapper):
     """Wrapper for energy consumption rewards"""
@@ -153,21 +160,19 @@ class EnergyRewardWrapper(RewardWrapper):
         super().__init__(env)
         self.alpha = alpha
         
-    def reward(self, reward: float) -> float:
-        info = self.get_step_info()
+    def step(self, action):
+        """Override step to properly handle info updates"""
+        obs, reward, terminated, truncated, info = self.env.step(action)
         
-        if not info.get('done', False):
-            return reward
-            
-        current_cpu = info.get('current_cpu', 0)
-        baseline_cpu = info.get('baseline_cpu', 0)
-        
-        if baseline_cpu > 0:
-            energy_reward = max(0, (current_cpu - baseline_cpu) / baseline_cpu) / 2
+        if info.get('done', False):
+            current = info['combined_metrics']['cpu']
+            baseline = info['combined_baseline_metrics']['cpu']
+            energy_reward = (current - baseline) / baseline
+            energy_reward = max(energy_reward, 0) / 2
             info['energy_reward'] = energy_reward
-            return reward + self.alpha * energy_reward
+            reward += self.alpha * energy_reward
             
-        return reward
+        return obs, reward, terminated, truncated, info
 
 class AlertRewardWrapper(RewardWrapper):
     """Wrapper for alert rate rewards"""
@@ -175,27 +180,23 @@ class AlertRewardWrapper(RewardWrapper):
         super().__init__(env)
         self.beta = beta
         self.epsilon = epsilon
+        self.expected_alerts = {'rule_alert_Windows Event For Service Disabled':3, 'rule_alert_Detect New Local Admin account':0, 'rule_alert_ESCU Network Share Discovery Via Dir Command Rule':0, 'rule_alert_Known Services Killed by Ransomware':3, 'rule_alert_Non Chrome Process Accessing Chrome Default Dir':0, 'rule_alert_Kerberoasting spn request with RC4 encryption':0, 'rule_alert_Clop Ransomware Known Service Name':0}
         
-    def reward(self, reward: float) -> float:
-        info = self.get_step_info()
+    def step(self, action):
+        obs, reward, terminated, truncated, info = self.env.step(action)
         
-        if not info.get('done', False):
-            return reward
+        if info.get('done', False):
+            # Calculate alert reward
+            current_alerts = {rule:info['raw_metrics'][rule] for rule in self.expected_alerts}
+            alert_reward = self._calculate_alert_reward(current_alerts)
+            info['alert_reward'] = alert_reward
+            reward += self.beta * alert_reward
             
-        current_alerts = info.get('alert_counts', {})
-        expected_alerts = info.get('expected_alerts', {})
+        return obs, reward, terminated, truncated, info
         
-        if not current_alerts or not expected_alerts:
-            return reward
-            
-        alert_reward = self._calculate_alert_reward(current_alerts, expected_alerts)
-        info['alert_reward'] = alert_reward
-        
-        return reward + self.beta * alert_reward
-        
-    def _calculate_alert_reward(self, current_alerts: Dict, expected_alerts: Dict) -> float:
+    def _calculate_alert_reward(self, current_alerts: Dict) -> float:
         rewards = []
-        for rule, expected in expected_alerts.items():
+        for rule, expected in self.expected_alerts.items():
             current = current_alerts.get(rule, 0)
             gap = current - expected
             reward = (gap + self.epsilon) / (expected + self.epsilon)
@@ -223,6 +224,14 @@ class QuotaViolationWrapper(RewardWrapper):
             
         return reward
 
+
+
+
+
+
+
+
+
 # Example usage:
 if __name__ == "__main__":
     # Create your base environment
@@ -241,3 +250,5 @@ if __name__ == "__main__":
         obs, reward, done, info = env.step(action)
         if done:
             break
+        
+        

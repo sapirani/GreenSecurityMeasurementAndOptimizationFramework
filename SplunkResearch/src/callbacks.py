@@ -1,9 +1,10 @@
+import datetime
 from stable_baselines3.common.callbacks import BaseCallback
 import pandas as pd
 import numpy as np
 import logging
 from stable_baselines3.common.logger import HParam
-
+from env_utils import *
 logger = logging.getLogger(__name__)
 
 class TensorboardCallback(BaseCallback):
@@ -58,8 +59,8 @@ class TensorboardCallback(BaseCallback):
     def _log_episode_metrics(self, info):
         """Log metrics at episode end"""
         # Log rules execution metrics
-        current_metrics = info.get('current_metrics', {})
-        baseline_metrics = info.get('baseline_metrics', {})
+        current_metrics = info.get('combined_metrics', {})
+        baseline_metrics = info.get('combined_baseline_metrics', {})
         
         if current_metrics and baseline_metrics:
             # Log basic metrics
@@ -71,6 +72,8 @@ class TensorboardCallback(BaseCallback):
                     self._log_metrics(f'baseline_{metric}', baseline_val)
                     self._log_metrics(f'{metric}_gap', current_val - baseline_val)
 
+            raw_metrics = info.get('raw_metrics', {})
+            raw_baseline_metrics = info.get('raw_baseline_metrics', {})
             # Log rule-specific metrics
             rules_dict = {}
             for rule in info.get('active_rules', []):
@@ -78,7 +81,7 @@ class TensorboardCallback(BaseCallback):
                 for metric in self.episodic_metrics:
                     key = f'rule_{metric}_{rule_name}'
                     if key in current_metrics:
-                        rules_dict[key] = current_metrics[key]
+                        rules_dict[key] = raw_metrics[key]
             if rules_dict:
                 self._log_metrics('rules_metrics', rules_dict, exclude_from_csv=True)
 
@@ -86,6 +89,14 @@ class TensorboardCallback(BaseCallback):
             # rules_alert_reward = info.get('rules_alert_reward', {})
             # if rules_alert_reward:
             #     self._log_metrics('rules_alert_rewards', rules_alert_reward, exclude_from_csv=True)
+    
+    def _on_training_end(self) -> None:
+        env = self.training_env.envs[0]
+        start_time_datetime = datetime.datetime.strptime(env.fake_start_datetime, '%m/%d/%Y:%H:%M:%S')#datetime.datetime.strptime(kwargs['fake_start_datetime'], '%m/%d/%Y:%H:%M:%S')
+        end_time_datetime = datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S')
+        clean_env(env.splunk_tools_instance, (start_time_datetime.timestamp(), end_time_datetime.timestamp()))
+    
+
 
 class HParamsCallback(BaseCallback):
     def __init__(self, verbose=1, experiment_kwargs=None, phase="train"):
