@@ -43,11 +43,11 @@ class LogGenerator:
 
     def generate_log(self, logsource, eventcode, istrigger, time_range, variation_id=None):
 
-        log = self.logs_to_duplicate_dict[logsource, eventcode, istrigger][0]
+        log = self.logs_to_duplicate_dict[f"{logsource.lower()}_{eventcode}_{istrigger}"][0]
         
         # Generate time
-        start_date = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').replace(tzinfo=timezone.utc) 
-        end_date = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').replace(tzinfo=timezone.utc) 
+        start_date = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S')
+        end_date = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S')
         time = self.generate_fake_time(start_date, end_date)
         
         # Replace time

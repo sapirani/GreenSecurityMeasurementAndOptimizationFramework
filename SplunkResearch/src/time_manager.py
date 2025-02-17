@@ -66,8 +66,9 @@ class TimeManager:
     def step(self) -> TimeWindow:
         """Move forward one step"""
         # Create action window for current step
-        start_dt = datetime.datetime.strptime(self.current_window.start, '%m/%d/%Y:%H:%M:%S')
-        step_end = start_dt + datetime.timedelta(minutes=self.step_size)
+
+        start_dt = datetime.datetime.strptime(self.get_current_time(), '%m/%d/%Y:%H:%M:%S')
+        step_end = start_dt + datetime.timedelta(seconds=self.step_size)
         
         self.action_window = TimeWindow(
             start=start_dt.strftime('%m/%d/%Y:%H:%M:%S'),
@@ -93,13 +94,14 @@ class TimeManager:
         )
         
         logger.info(f"Advanced window to {self.current_window.start} - {self.current_window.end}")
+        self.action_window = None
         return self.current_window
         
     def get_current_time(self) -> str:
         """Get current time (end of action window or current window)"""
         if self.action_window:
             return self.action_window.end
-        return self.current_window.end
+        return self.current_window.start
         
     def get_previous_time(self, seconds: int) -> str:
         """Get time n seconds before current time"""

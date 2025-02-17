@@ -10,6 +10,8 @@ class StateWrapper(ObservationWrapper):
     
     def __init__(self, env, top_logtypes):
         super().__init__(env)
+        top_logtypes = set(top_logtypes)|set(self.relevant_logtypes)
+        
         self.top_logtypes = top_logtypes
         
         # Initialize distributions
@@ -17,6 +19,9 @@ class StateWrapper(ObservationWrapper):
         self.real_distribution['other'] = 0
         self.fake_distribution = {logtype: 0 for logtype in top_logtypes}
         self.fake_distribution['other'] = 0
+        
+        self.real_state = np.array([])
+        self.fake_state = np.array([])
         
         # Define observation space for normalized distributions
         self.observation_space = spaces.Box(
@@ -26,8 +31,25 @@ class StateWrapper(ObservationWrapper):
             dtype=np.float64
         )
 
+    def get_step_info(self):
+        """Get current step info"""
+        return {
+            'real_distribution': self.real_state,
+            'fake_distribution': self.fake_state,
+
+        }
+
+    def step(self, action):
+        obs, reward, done, truncated, info = super().step(action)
+        info.update(self.get_step_info())
+        return obs, reward, done, truncated, info
+
     def observation(self, obs):
         """Convert current distributions to normalized state"""
+
+        self.update_real_distribution(self.time_manager.action_window.to_tuple())
+        
+        self.update_fake_distribution(self.episode_logs)
         real_state = self._get_state_vector(self.real_distribution)
         fake_state = self._get_state_vector(self.fake_distribution)
         
@@ -58,29 +80,29 @@ class StateWrapper(ObservationWrapper):
     def update_real_distribution(self, time_range):
         """Update real distribution from Splunk"""
         real_counts = self.env.splunk_tools.get_real_distribution(*time_range)
-        
-        # Reset and update distribution
-        self.real_distribution = {logtype: 0 for logtype in self.top_logtypes}
-        self.real_distribution['other'] = 0
+
         
         for logtype, count in real_counts.items():
             if logtype in self.top_logtypes:
                 self.real_distribution[logtype] += count
+                
             else:
                 self.real_distribution['other'] += count
 
     def update_fake_distribution(self, injected_logs):
         """Update fake distribution with injected logs"""
         # Add injected logs to existing real distribution
+        self.fake_distribution = self.real_distribution.copy()
         for logtype, count in injected_logs.items():
             if logtype in self.top_logtypes:
-                self.fake_distribution[logtype] = self.real_distribution[logtype] + count
+                self.fake_distribution[logtype] += count
             else:
-                self.fake_distribution['other'] = self.real_distribution['other'] + count
+                self.fake_distribution['other'] += count
 
-    def reset(self, **kwargs):
-        """Reset distributions"""
-        obs = self.env.reset(**kwargs)
+    def reset(self, *, seed=None, options=None):
+        """Reset the wrapper state"""
+        # Reset underlying environment first
+        obs, info = self.env.reset(seed=seed, options=options)
         
         # Reset distributions
         self.real_distribution = {logtype: 0 for logtype in self.top_logtypes}
@@ -88,10 +110,11 @@ class StateWrapper(ObservationWrapper):
         self.fake_distribution = {logtype: 0 for logtype in self.top_logtypes}
         self.fake_distribution['other'] = 0
         
-        # Update real distribution for initial state
-        self.update_real_distribution(self.env.time_range)
-        
-        return self.observation(obs)
+        self.real_state = np.array([])
+        self.fake_state = np.array([])
+       
+        new_obs = np.zeros(self.observation_space.shape)
+        return new_obs, info
 
 # Example usage:
 if __name__ == "__main__":

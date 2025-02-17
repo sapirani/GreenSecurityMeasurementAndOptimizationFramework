@@ -650,7 +650,7 @@ class SplunkTools(object):
     def load_logs_to_duplicate_dict(self, logtypes):
         dir_name = 'logs_resource'
         # load the logs to duplicate from disk
-        logs_to_duplicate_dict = {(logtype[0].lower(), logtype[1], istrigger): [] for istrigger,_ in enumerate(['notrigger', 'trigger']) for logtype in logtypes}
+        logs_to_duplicate_dict = {f"{logtype[0].lower()}_{logtype[1]}_{istrigger}": [] for istrigger,_ in enumerate(['notrigger', 'trigger']) for logtype in logtypes}
         for logtype in logtypes:
             source = logtype[0].lower()
             eventcode = logtype[1]
@@ -664,7 +664,7 @@ class SplunkTools(object):
                     # results = self.split_logs(source, text)   
                     for log in results:
                          if log != '':
-                             logs_to_duplicate_dict[(source, eventcode, istrigger)].append(log)
+                             logs_to_duplicate_dict[f"{logtype[0].lower()}_{logtype[1]}_{istrigger}"].append(log)
         return logs_to_duplicate_dict   
      
                 

@@ -30,6 +30,8 @@ import logging
 logger = logging.getLogger(__name__)
 import concurrent.futures
 from wrappers.reward import *
+from wrappers.state import *
+from wrappers.action import *
 
 
 from dataclasses import dataclass
@@ -62,9 +64,7 @@ class SplunkConfig:
     # Monitoring
     num_of_measurements: int = 1
     num_of_episodes: int = 1000
-    
-    state_strategy: Any = "StateStrategy12"
-    action_strategy: Any = "ActionStrategy14"
+
     env_id: str = "splunk_train-v32"
 
 class SplunkEnv(gym.Env):
@@ -73,9 +73,7 @@ class SplunkEnv(gym.Env):
     def __init__(self,
                  savedsearches: List[str],
                  fake_start_datetime: str,
-                 config: SplunkConfig,
-                 state_strategy: Any,
-                 action_strategy: Any):
+                 config: SplunkConfig):
         """Initialize environment."""
         super().__init__()
                 # Initialize time manager
@@ -85,28 +83,31 @@ class SplunkEnv(gym.Env):
             step_size=config.action_duration,
             rule_frequency=config.rule_frequency
         )
+        # Define basic action space that will be overridden by wrapper
+        self.action_space = spaces.Box(
+            low=0,
+            high=1,
+            shape=(1,),  # Just a placeholder
+            dtype=np.float32
+        )
+        
+        # Define basic observation space that will be overridden by wrapper
+        self.observation_space = spaces.Box(
+            low=0,
+            high=1,
+            shape=(1,),  # Just a placeholder
+            dtype=np.float32
+        )
 
         # Store configuration
         self.config = config
         self.relevant_logtypes = sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]}))
+        self.savedsearches = savedsearches
         # Initialize tools and strategies
         self.splunk_tools  = SplunkTools(savedsearches, config.num_of_measurements, config.rule_frequency)
         self.log_generator = LogGenerator(self.relevant_logtypes, self.splunk_tools)
 
-
-        self.top_logtypes = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
-        # include only system and security logs
-        self.top_logtypes = self.top_logtypes[self.top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
-        self.top_logtypes = self.top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
-        self.top_logtypes = [(x[0].lower(), str(x[1])) for x in self.top_logtypes]
-        self.top_logtypes = set(self.top_logtypes)|set(self.relevant_logtypes)
-
-        self.state_strategy = state_strategy(self.top_logtypes)
-        self.action_strategy = action_strategy(self.relevant_logtypes, 1, 0, self.config.action_duration, self.splunk_tools, self.log_generator, 0)
-        
-        # Set up action and observation spaces
-        self.action_space = self.action_strategy.create_action_space()
-        self.observation_space = self.state_strategy.create_state()
+        self.episode_logs = {}
         
         # Calculate episode parameters
         self.total_steps = self.config.search_window * 60 // self.config.action_duration
@@ -118,24 +119,24 @@ class SplunkEnv(gym.Env):
         self.step_violation = False
         self.done = False
         # Initialize time management
-        # self._setup_time_range(fake_start_datetime if fake_start_datetime else config.fake_start_datetime)
-        
+        clean_env(self.splunk_tools, (datetime.datetime.strptime(fake_start_datetime, '%m/%d/%Y:%H:%M:%S').timestamp(), datetime.datetime.now().timestamp()))
         # Warm up environment
         self._warmup()
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
         """Execute environment step."""
+
+        
         self.step_counter += 1
         self.all_steps_counter += 1
-        
+        logger.info(f"Step {self.step_counter}")
+        logger.info(f"Action: {action}")
+        logger.info(f"Action window: {self.time_manager.action_window.to_tuple()}")
         # Get time window for current step
-        action_window = self.time_manager.step()
         
         # Process action
-        self.action_auditor.append((action_window.to_tuple(), action))
-        self.action_strategy.record_action(action)
-        self.remaining_quota = self.action_strategy.remaining_quota
-        
+        # self.action_auditor.append((action_window.to_tuple(), action))
+
         # Update state
         # self._update_state()
         obs = None
@@ -151,61 +152,16 @@ class SplunkEnv(gym.Env):
         info = self.get_step_info()
 
         
-        # Clean up if done
-        if self.done:
-            self._execute_pending_actions()
-        
         return obs, reward, self.done, truncated, info
     
 
-    
-    def _execute_pending_actions(self) -> None:
-        """Execute all pending actions in parallel"""
-        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            futures = {
-                executor.submit(
-                    self.action_strategy.perform_action, 
-                    action, 
-                    time_range
-                ): (time_range, action) 
-                for time_range, action in self.action_auditor
-            }
-            
-            for future in concurrent.futures.as_completed(futures):
-                time_range, action = futures[future]
-                try:
-                    future.result()
-                    logger.info(f"Action {action} completed successfully")
-                except Exception as exc:
-                    logger.error(f"Action {action} failed: {exc}")
-    
-  
-           
-    # def _update_state(self) -> None:
-    #     """Update environment state"""
-    #     #TODO: Implement state update
-    #     # Get time ranges   
-    #     current_window = self.time_manager.current_window.to_tuple()
-        
-    #     # Get distributions
-    #     real_dist = self.splunk_tools.get_real_distribution(*current_window)
-    #     fake_dist = self.action_strategy.get_current_distribution()
-        
-    #     # Update state strategy
-    #     self.state_strategy.update_distributions(real_dist, fake_dist)
-    #     self.state_strategy.update_quota(self.remaining_quota / self.total_additional_logs)
-        
-    #     # Update state
-    #     self.state = self.state_strategy.update_state()
 
+ 
     def _check_termination(self) -> bool:
         """Check if episode should terminate"""
         if self.step_counter >= self.total_steps:
             return True
-            
-        if self.remaining_quota >= 1.5:
-            return True
-            
+
         return False
 
 
@@ -230,41 +186,29 @@ class SplunkEnv(gym.Env):
         # Advance time window based on previous episode
         self.time_manager.advance_window(violation=self.step_violation)
         
-        # Reset strategies
-        self.action_strategy.reset()
-        self.state = self.state_strategy.reset()
+
         
         # Update time range
         # self._update_time_range()
         
         # Calculate quotas
-        self._calculate_quota()
         
         # Get initial info
         info = self.get_step_info()
         
-        return self.state, info
+        return np.zeros(self.observation_space.shape), info
 
-    def _calculate_quota(self) -> None:
-        """Calculate injection quotas"""
-        self.total_additional_logs = (self.config.additional_percentage * 
-                                    self.config.search_window * 
-                                    self.config.logs_per_minute)
-        
-        self.step_size = int((self.total_additional_logs // self.config.search_window) * 
-                            self.config.action_duration // 60)
-        self.remaining_quota = self.step_size
-        self.action_strategy.quota = self.remaining_quota
+
 
     def get_step_info(self) -> Dict[str, Any]:
         """Get information about current step"""
         return {
             'step': self.step_counter,
             'all_steps_counter': self.all_steps_counter,
-            'remaining_quota': self.remaining_quota,
-            'total_additional_logs': self.total_additional_logs,
-            'real_distribution': self.state_strategy.real_state,
-            'fake_distribution': self.state_strategy.fake_state,
+            # 'remaining_quota': self.remaining_quota,
+            # 'total_additional_logs': self.total_additional_logs,
+            # 'real_distribution': self.real_state,
+            # 'fake_distribution': self.fake_state,
             'total_steps': self.total_steps,
             'done': self.done, 
             **self.time_manager.get_time_info()
@@ -316,9 +260,14 @@ if __name__ == "__main__":
             })
     # Create base environment
     env = gym.make(id="splunk_train-v32", config=config,
-                    state_strategy=StateStrategy12,
-                    action_strategy=ActionStrategy14)
-    
+)    
+    top_logtypes = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
+    # include only system and security logs
+    top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
+    top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
+    top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
+    env = StateWrapper(env, top_logtypes)
+    env = Action(env)
     # Add reward wrappers
     env = DistributionRewardWrapper(env, gamma=0.2)
     env = BaseRuleExecutionWrapper(env)
@@ -326,6 +275,7 @@ if __name__ == "__main__":
     env = AlertRewardWrapper(env, beta=0.3)
     # env = QuotaViolationWrapper(env)
     
+
     # Run environment
     obs, info = env.reset()
     for _ in range(config.num_of_episodes):

@@ -7,10 +7,8 @@ logger = logging.getLogger(__name__)
 class Action(ActionWrapper):
     """Wrapper for managing log injection actions"""
     
-    def __init__(self, env, relevant_logtypes, quota_per_step):
+    def __init__(self, env):
         super().__init__(env)
-        self.relevant_logtypes = relevant_logtypes
-        self.quota = quota_per_step
         
         # Create action space:
         # First value is quota percentage (0-1)
@@ -20,82 +18,111 @@ class Action(ActionWrapper):
         self.action_space = spaces.Box(
             low=0,
             high=1,
-            shape=(1 + len(relevant_logtypes)*3,),
+            shape=(1 + len(self.relevant_logtypes)*3,),
             dtype=np.float32
         )
         
         # Track injected logs
         self.current_logs = {}
-        self.episode_logs = {}
-        self.remaining_quota = quota_per_step
-
+        # self.episode_logs = {}
+        self.remaining_quota = 0
+        
+    def _calculate_quota(self) -> None:
+        """Calculate injection quotas"""
+        self.total_additional_logs = (self.config.additional_percentage * 
+                                    self.config.search_window * 
+                                    self.config.logs_per_minute)
+        
+        self.step_size = int((self.total_additional_logs // self.config.search_window) * 
+                            self.config.action_duration // 60)
+        self.remaining_quota = self.step_size
+        
     def action(self, action):
         """Convert raw action to log injection dictionary"""
         # Split action into quota and distribution
         quota_pct = action[0]
         distribution = action[1:1+len(self.relevant_logtypes)]
-        trigger_levels = action[1+len(self.relevant_logtypes):2*len(self.relevant_logtypes)]
-        diversity_levels = action[2*len(self.relevant_logtypes):]
+        trigger_levels = action[1+len(self.relevant_logtypes):2*len(self.relevant_logtypes)+1]
+        diversity_levels = action[2*len(self.relevant_logtypes)+1:]
         
         # Normalize distribution
         distribution = distribution / (np.sum(distribution) + 1e-8)
         
         # Calculate number of logs to inject
-        num_logs = int(quota_pct * self.quota)
-        self.remaining_quota = self.quota - num_logs
+        num_logs = int(quota_pct * self.remaining_quota)
+        # self.remaining_quota = self.quota - num_logs
         
         # Distribute logs among types
         logs_to_inject = {}
         for i, logtype in enumerate(self.relevant_logtypes):
             for is_trigger in [False, True]:
                 log_count = int(distribution[i] * num_logs * (is_trigger * trigger_levels[i] + (1-is_trigger) * (1 - trigger_levels[i]))) 
+                key = f"{logtype[0]}_{logtype[1]}_{int(is_trigger)}"
                 if log_count > 0:
-                    logs_to_inject[f"{logtype[0]}:{logtype[1]}:{int(is_trigger)}"] = {
+                    logs_to_inject[key] = {
                         'count': log_count,
-                        'diversity': diversity_levels[i]
+                        'diversity': round(diversity_levels[i])
                     }
                     
                     # Track logs
-                    self.current_logs[f"{logtype[0]}:{logtype[1]}:{int(is_trigger)}"] = log_count
+                    self.current_logs[key] = log_count
 
-                    if f"{logtype[0]}:{logtype[1]}:{int(is_trigger)}" not in self.episode_logs:
-                        self.episode_logs[f"{logtype[0]}:{logtype[1]}:{int(is_trigger)}"] = 0
-                    self.episode_logs[f"{logtype[0]}:{logtype[1]}:{int(is_trigger)}"] += log_count
+                    if key not in self.episode_logs:
+                        self.episode_logs[key] = 0
+                    self.episode_logs[key] += log_count
         
         return logs_to_inject
     
     def inject_logs(self, logs_to_inject):
         """Inject logs into environment"""
         for logtype, log_info in logs_to_inject.items():
-            logsource, eventcode, is_trigger = logtype.split(':')
+            logsource, eventcode, is_trigger = logtype.split('_')
             count, diversity = log_info['count'], log_info['diversity']
-            time_range = self.env.time_manager.action_window
+            time_range = self.env.time_manager.action_window.to_tuple()
             
             fake_logs = self.env.log_generator.generate_logs(
                 logsource, eventcode, is_trigger,
                 time_range, count, diversity
                 )
-            self.env.splunk_tools_instance.write_logs_to_monitor(fake_logs, logsource)
+            self.splunk_tools.write_logs_to_monitor(fake_logs, logsource)
             logger.info(
                 f"inserted {len(fake_logs)} logs of type {logsource} "
                 f"{eventcode} {is_trigger} with diversity {diversity}"
             )
         
+    def step(self, action):
+        """Inject logs and step environment"""
+        action_window = self.time_manager.step()
+        logger.info(f"Raw action: {action}")
+        
+        logs_to_inject = self.action(action)
+        self.inject_logs(logs_to_inject)
+        
+        obs, reward, terminated, truncated, info = self.env.step(logs_to_inject)
 
+        
+        
+        info.update(self.get_injection_info())
+        
+        return obs, reward, terminated, truncated, info
+    
     def get_injection_info(self):
         """Get information about current injections"""
         return {
             'current_logs': self.current_logs,
             'episode_logs': self.episode_logs,
             'remaining_quota': self.remaining_quota,
-            'quota_used_pct': (self.quota - self.remaining_quota) / self.quota
+            # 'quota_used_pct': (self.quota - self.remaining_quota) / self.quota
         }
 
     def reset(self, **kwargs):
         """Reset tracking on environment reset"""
         self.current_logs = {}
         self.episode_logs = {}
-        self.remaining_quota = self.quota
+        self._calculate_quota()
+
+        # self.remaining_quota = self.quota
+        
         return super().reset(**kwargs)
 
 # Usage example:

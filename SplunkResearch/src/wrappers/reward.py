@@ -27,11 +27,10 @@ class DistributionRewardWrapper(RewardWrapper):
         self.epsilon = epsilon
         self.distribution_reward_freq = distribution_freq
         
-
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)
         
-        step_counter = info.get('step_counter', 0)
+        step_counter = info.get('step', 0)
         if step_counter % self.distribution_reward_freq == 0:
             dist_reward = self._calculate_distribution_reward(
                 info.get('real_distribution'),
@@ -73,7 +72,8 @@ class BaseRuleExecutionWrapper(RewardWrapper):
         """Get path for baseline data based on environment config"""
         env_id = self.env.config.env_id
         search_window = self.env.config.search_window
-        return self.baseline_dir / f"baseline_{env_id}_{search_window}.csv"
+        num_of_measurements = self.env.config.num_of_measurements
+        return self.baseline_dir / f"baseline_{env_id}_{search_window}_{num_of_measurements}.csv"
         
     def _load_baseline_table(self) -> pd.DataFrame:
         """Load existing baseline table or create new one"""
@@ -136,10 +136,13 @@ class BaseRuleExecutionWrapper(RewardWrapper):
         new_line = self.post_process_metrics(time_range, saved_searches, combined_rules_metrics, rules_metrics)
         return new_line, combined_rules_metrics
     
+    def reward(self, reward: float) -> float:
+        return reward
+        
     def step(self, action):
         """Override step to properly handle info updates"""
-        obs, reward, terminated, truncated, info = self.env.step(action)
-        if info.get('done', False):
+        obs, reward, terminated, truncated, info = super().step(action)
+        if info.get('done', True):
             # Execute rules and get metrics
             raw_metrics, combined_metrics = self.get_duration_reward_values(info['current_window'])
             raw_baseline_metrics, combined_baseline_metrics = self.get_no_agent_reward(info['current_window'])
@@ -148,7 +151,8 @@ class BaseRuleExecutionWrapper(RewardWrapper):
             info['combined_metrics'] = combined_metrics
             info['combined_baseline_metrics'] = combined_baseline_metrics
             info['raw_metrics'] = raw_metrics
-            info['raw_baseline_metrics'] = raw_baseline_metrics
+            info['raw_baseline_metrics'] = raw_baseline_metrics.to_dict(orient='records')[0]
+
             
         return obs, reward, terminated, truncated, info
     
@@ -164,7 +168,7 @@ class EnergyRewardWrapper(RewardWrapper):
         """Override step to properly handle info updates"""
         obs, reward, terminated, truncated, info = self.env.step(action)
         
-        if info.get('done', False):
+        if info.get('done', True):
             current = info['combined_metrics']['cpu']
             baseline = info['combined_baseline_metrics']['cpu']
             energy_reward = (current - baseline) / baseline
@@ -185,7 +189,7 @@ class AlertRewardWrapper(RewardWrapper):
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)
         
-        if info.get('done', False):
+        if info.get('done', True):
             # Calculate alert reward
             current_alerts = {rule:info['raw_metrics'][rule] for rule in self.expected_alerts}
             alert_reward = self._calculate_alert_reward(current_alerts)
@@ -193,7 +197,10 @@ class AlertRewardWrapper(RewardWrapper):
             reward += self.beta * alert_reward
             
         return obs, reward, terminated, truncated, info
-        
+    
+
+    
+    
     def _calculate_alert_reward(self, current_alerts: Dict) -> float:
         rewards = []
         for rule, expected in self.expected_alerts.items():

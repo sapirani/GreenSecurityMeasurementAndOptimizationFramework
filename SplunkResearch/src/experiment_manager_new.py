@@ -15,9 +15,10 @@ import json
 from stable_baselines3.common.callbacks import BaseCallback, CallbackList
 from stable_baselines3 import A2C, PPO, DQN, DDPG, TD3, SAC
 from stable_baselines3.ppo.policies import MlpPolicy
-from strategies.action_strategy import ActionStrategy
-from strategies.state_strategy import StateStrategy
+
 from wrappers.reward import *
+from wrappers.state import *
+from wrappers.action import *
 from callbacks import *
 logger = logging.getLogger(__name__)
 
@@ -61,19 +62,19 @@ class ExperimentManager:
         self._setup_directories()
         self.experiments_db = self._load_experiments_db()
                 # Load available strategies
-        self.state_strategies = {
-            name: cls for name, cls in inspect.getmembers(
-                sys.modules['strategies.state_strategy'],
-                lambda x: inspect.isclass(x) and issubclass(x, StateStrategy) and x != StateStrategy
-            )
-        }
+        # self.state_strategies = {
+        #     name: cls for name, cls in inspect.getmembers(
+        #         sys.modules['strategies.state_strategy'],
+        #         lambda x: inspect.isclass(x) and issubclass(x, StateStrategy) and x != StateStrategy
+        #     )
+        # }
         
-        self.action_strategies = {
-            name: cls for name, cls in inspect.getmembers(
-                sys.modules['strategies.action_strategy'],
-                lambda x: inspect.isclass(x) and issubclass(x, ActionStrategy) and x != ActionStrategy
-            )
-        }
+        # self.action_strategies = {
+        #     name: cls for name, cls in inspect.getmembers(
+        #         sys.modules['strategies.action_strategy'],
+        #         lambda x: inspect.isclass(x) and issubclass(x, ActionStrategy) and x != ActionStrategy
+        #     )
+        # }
         
     def _setup_directories(self):
         """Create necessary directories"""
@@ -130,18 +131,20 @@ class ExperimentManager:
         env = make(
             id=config.env_config.env_id,
             config=config.env_config,
-            state_strategy=self.state_strategies[config.env_config.state_strategy],
-            action_strategy=self.action_strategies[config.env_config.action_strategy]
+            # state_strategy=self.state_strategies[config.env_config.state_strategy],
+            # action_strategy=self.action_strategies[config.env_config.action_strategy]
         )
+        top_logtypes = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
+        # include only system and security logs
+        top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
+        top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
+        top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
+        env = Action(env)
+        
+        env = StateWrapper(env, top_logtypes)
         
         # Add reward wrappers
-        if config.use_distribution_reward:
-            env = DistributionRewardWrapper(
-                env,
-                gamma=config.gamma_dist,
-                epsilon=1e-8,
-                distribution_freq=1
-            )
+
         
         if config.use_energy_reward:
             env = BaseRuleExecutionWrapper(env, baseline_dir=self.dirs['baseline'])
@@ -156,9 +159,15 @@ class ExperimentManager:
                 beta=config.beta_alert,
                 epsilon=1e-3
             )
-        
-        if config.use_quota_violation:
-            env = QuotaViolationWrapper(env)
+        if config.use_distribution_reward:
+            env = DistributionRewardWrapper(
+                env,
+                gamma=config.gamma_dist,
+                epsilon=1e-8,
+                distribution_freq=1
+            )
+        # if config.use_quota_violation:
+        #     env = QuotaViolationWrapper(env)
         
         # Vectorize and normalize
         # env = DummyVecEnv([lambda: env])
@@ -230,10 +239,10 @@ class ExperimentManager:
         """Setup logging for experiment"""
         logging.basicConfig(
             level=logging.INFO,
-            format="%(asctime)s [%(levelname)s] %(message)s",
+            format="%(asctime)s [%(levelname)s] %(name)s %(message)s",
             handlers=[
                 logging.FileHandler(self.dirs['logs'] / f"{experiment_name}.log"),
-                logging.StreamHandler()
+                # logging.StreamHandler()
             ]
         )
     
@@ -379,15 +388,13 @@ if __name__ == "__main__":
     env_config = SplunkConfig(
         # fake_start_datetime="02/12/2025:00:00:00",
         rule_frequency=60,
-        search_window=3,
+        search_window=1440,
         # savedsearches=["rule1", "rule2"],
-        logs_per_minute=300,
-        additional_percentage=0.1,
-        action_duration=60,
-        num_of_measurements=1,
-        num_of_episodes=1000,
-        state_strategy="StateStrategy12",
-        action_strategy="ActionStrategy14",
+        logs_per_minute=150,
+        additional_percentage=.5,
+        action_duration=3600,
+        num_of_measurements=3,
+        num_of_episodes=2000,
         env_id="splunk_train-v32"        
     )
     
@@ -395,9 +402,9 @@ if __name__ == "__main__":
         env_config=env_config,
         model_type="ppo",
         policy_type="mlp",
-        learning_rate=3e-4,
+        learning_rate=1e-4,
         num_episodes=1000,
-        experiment_name="test_experiment"
+        # experiment_name="test_experiment"
     )
     
     # Create manager and run experiment
