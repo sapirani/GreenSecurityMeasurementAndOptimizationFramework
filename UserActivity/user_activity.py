@@ -46,13 +46,16 @@ class Scheduler:
 
 
 def main():
+    number_of_iterations = 5
+
     if len(sys.argv) != 2:
         raise Exception("Expecting exactly one argument - scan path")
 
     # Yonatan's code
-    user_activity = Scheduler(ACTIVITIES.activities_flow, sys.argv[1])
-    user_activity.run_tasks()
-    user_activity.save_tasks_times()
+    for _ in range(number_of_iterations):
+        user_activity = Scheduler(ACTIVITIES.activities_flow(), sys.argv[1])
+        user_activity.run_tasks()
+        user_activity.save_tasks_times()
 
 
 if __name__ == "__main__":

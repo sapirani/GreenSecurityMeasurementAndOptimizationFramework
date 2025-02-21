@@ -24,8 +24,8 @@ def get_all_df_by_id(processes_df, processes_ids):
 
 
 class SummaryVersionInterface:
-    def prepare_summary_csv(self, processes_df, cpu_df, memory_df, disk_io_each_moment_df, battery_df,
-                            processes_names, finished_scanning_time, processes_ids):
+    def prepare_summary_csv(self, processes_df, cpu_df, memory_df, disk_io_each_moment_df, network_io_each_moment_df,
+                            battery_df, processes_names, finished_scanning_time, processes_ids):
         return None
 
     def colors_func(self, df):
@@ -52,8 +52,8 @@ class SummaryVersionInterface:
 
 
 class DuduSummary(SummaryVersionInterface):
-    def prepare_summary_csv(self, processes_df, cpu_df, memory_df, disk_io_each_moment_df, battery_df,
-                            processes_names, finished_scanning_time, processes_ids):
+    def prepare_summary_csv(self, processes_df, cpu_df, memory_df, disk_io_each_moment_df, network_io_each_moment_df,
+                            battery_df, processes_names, finished_scanning_time, processes_ids):
         total_finishing_time = finished_scanning_time[-1]
 
         num_of_processes = len(processes_ids) + 1
@@ -61,6 +61,7 @@ class DuduSummary(SummaryVersionInterface):
         sub_cpu_df = slice_df(cpu_df, 5).astype(float)
         sub_memory_df = slice_df(memory_df, 5).astype(float)
         sub_disk_df = slice_df(disk_io_each_moment_df, 0).astype(float)
+        # sub_network_df = slice_df(network_io_each_moment_df, 0).astype(float)
 
         all_processes_df = get_all_df_by_id(processes_df, processes_ids)
         sub_all_processes_df = [slice_df(df, 5) for df in all_processes_df]
@@ -143,8 +144,8 @@ class DuduSummary(SummaryVersionInterface):
 
 
 class OtherSummary(SummaryVersionInterface):
-    def prepare_summary_csv(self, processes_df, cpu_df, memory_df, disk_io_each_moment_df, battery_df,
-                            processes_names, finished_scanning_time, processes_ids):
+    def prepare_summary_csv(self, processes_df, cpu_df, memory_df, disk_io_each_moment_df, network_io_each_moment_df,
+                            battery_df, processes_names, finished_scanning_time, processes_ids):
         total_finishing_time = finished_scanning_time[-1]
 
         num_of_processes = len(processes_ids) + 1

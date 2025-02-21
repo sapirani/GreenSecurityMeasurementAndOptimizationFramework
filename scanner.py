@@ -11,8 +11,9 @@ from pathlib import Path
 import screen_brightness_control as sbc
 from general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
 
-base_dir, GRAPHS_DIR, STDOUT_FILES_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, DISK_IO_EACH_MOMENT, \
-BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, SUMMARY_CSV = result_paths()
+base_dir, GRAPHS_DIR, STDOUT_FILES_DIR, STDERR_FILES_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, \
+DISK_IO_EACH_MOMENT, NETWORK_IO_EACH_MOMENT, BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, \
+SUMMARY_CSV = result_paths()
 
 program.set_results_dir(base_dir)
 
@@ -32,6 +33,8 @@ processes_df = pd.DataFrame(columns=processes_columns_list)
 memory_df = pd.DataFrame(columns=memory_columns_list)
 
 disk_io_each_moment_df = pd.DataFrame(columns=disk_io_columns_list)
+
+network_io_each_moment_df = pd.DataFrame(columns=network_io_columns_list)
 
 battery_df = pd.DataFrame(columns=battery_columns_list)
 
@@ -82,6 +85,23 @@ def save_current_disk_io(previous_disk_io):
     ]
 
     return disk_io_stat
+
+
+def save_current_network_io(previous_network_io):
+    network_io_stat = psutil.net_io_counters()
+
+    dataframe_append(
+        network_io_each_moment_df,
+        [
+            scanner_imp.calc_time_interval(starting_time),
+            network_io_stat.packets_sent - previous_network_io.packets_sent,
+            network_io_stat.packets_recv - previous_network_io.packets_recv,
+            f'{(network_io_stat.bytes_sent - previous_network_io.bytes_sent) / KB:.3f}',
+            f'{(network_io_stat.bytes_recv - previous_network_io.bytes_recv) / KB:.3f}',
+        ]
+    )
+
+    return network_io_stat
 
 
 def save_current_processes_statistics(prev_data_per_process):
@@ -212,6 +232,7 @@ def continuously_measure():
     # init prev_disk_io by first disk io measurements (before scan)
     # TODO: lock thread until process starts
     prev_disk_io = psutil.disk_io_counters()
+    prev_network_io = psutil.net_io_counters()
     prev_data_per_process = {}
 
     # TODO: think if total tables should be printed only once
@@ -224,6 +245,7 @@ def continuously_measure():
         save_current_total_cpu()
         save_current_total_memory()
         prev_disk_io = save_current_disk_io(prev_disk_io)
+        save_current_network_io(prev_network_io)
 
 
 def save_general_disk(f):
@@ -350,6 +372,7 @@ def save_general_information_after_scanning():
 def prepare_summary_csv():
     """Prepare the summary csv file"""
     summary_df = summary_version_imp.prepare_summary_csv(processes_df, cpu_df, memory_df, disk_io_each_moment_df,
+                                                         network_io_each_moment_df,
                                                          battery_df, processes_names, finished_scanning_time,
                                                          processes_ids)
 
@@ -368,6 +391,7 @@ def ignore_last_results():
     global processes_df
     global memory_df
     global disk_io_each_moment_df
+    global network_io_each_moment_df
     global cpu_df
     global battery_df
 
@@ -379,6 +403,8 @@ def ignore_last_results():
     processes_df = processes_df.iloc[:-processes_num_last_measurement, :]
     memory_df = memory_df.iloc[:-1, :]
     disk_io_each_moment_df = disk_io_each_moment_df.iloc[:-1, :]
+    network_io_each_moment_df = network_io_each_moment_df.iloc[:-1, :]
+
     if not battery_df.empty:
         battery_df = battery_df.iloc[:-1, :]
     cpu_df = cpu_df.iloc[:-1, :]
@@ -394,6 +420,8 @@ def save_results_to_files():
     processes_df.to_csv(PROCESSES_CSV, index=False)
     memory_df.to_csv(TOTAL_MEMORY_EACH_MOMENT_CSV, index=False)
     disk_io_each_moment_df.to_csv(DISK_IO_EACH_MOMENT, index=False)
+    network_io_each_moment_df.to_csv(NETWORK_IO_EACH_MOMENT, index=False)
+
     if not battery_df.empty:
         battery_df.to_csv(BATTERY_STATUS_CSV, index=False)
     cpu_df.to_csv(TOTAL_CPU_CSV, index=False)
@@ -424,12 +452,15 @@ def start_process(program_to_scan):
     program_to_scan.set_processes_ids(processes_ids)
 
     # create file for stdout text
-    with open(f"{os.path.join(STDOUT_FILES_DIR, program_to_scan.get_program_name() + ' Stdout.txt')}", "a") as f:
-        shell_process, pid = OSFuncsInterface.popen(program_to_scan.get_command(), program_to_scan.find_child_id,
-                                                    program_to_scan.should_use_powershell(), running_os.is_posix(),
-                                                    program_to_scan.should_find_child_id(), f)
+    with open(f"{os.path.join(STDERR_FILES_DIR, f'{program_to_scan.get_program_name()} Stderr.txt')}", "a") as f_stderr:
+        with open(f"{os.path.join(STDOUT_FILES_DIR, f'{program_to_scan.get_program_name()} Stdout.txt')}",
+                  "a") as f_stdout:
+            shell_process, pid = OSFuncsInterface.popen(program_to_scan.get_command(), program_to_scan.find_child_id,
+                                                        program_to_scan.should_use_powershell(), running_os.is_posix(),
+                                                        program_to_scan.should_find_child_id(), f_stdout, f_stderr)
 
-        f.write(f"Process ID: {pid}\n\n")
+            f_stdout.write(f"Process ID: {pid}\n\n")
+            f_stderr.write(f"Process ID: {pid}\n\n")
 
     # save the process names and pids in global arrays
     if pid is not None:
@@ -438,7 +469,6 @@ def start_process(program_to_scan):
         iteration_num = len(finished_scanning_time) + 1
         processes_names.append(original_program_name if iteration_num == 1 else
                                f"{original_program_name} - iteration {iteration_num}")
-
 
     return shell_process, pid
 
@@ -455,7 +485,7 @@ def start_background_processes():
     scanner_imp.scan_sleep(5)
 
     for (background_process, child_process_id), background_program in zip(background_processes, background_programs):
-        if background_process.poll() is not None:   # if process has not terminated
+        if background_process.poll() is not None:  # if process has not terminated
             err = background_process.stderr.read().decode()
             if err:
                 terminate_due_to_exception(background_processes, background_program.get_program_name(), err)
@@ -521,7 +551,8 @@ def kill_background_processes(background_processes):
             kill_process(child_process_id, powershell_process)
 
         else:
-            wait_to_process_thread = Thread(target=wait_and_write_running_time_to_file, args=(child_process_id, powershell_process))
+            wait_to_process_thread = Thread(target=wait_and_write_running_time_to_file,
+                                            args=(child_process_id, powershell_process))
             wait_to_process_thread.start()
             waiting_threads.append(wait_to_process_thread)
 
@@ -596,10 +627,11 @@ def scan_and_measure():
         if result and max_timeout_reached is False:
             print(result)
             print(main_process)
-            errs = main_process.stderr.read().decode()
-            after_scanning_operations(should_save_results=False)
-            #raise Exception("An error occurred while scanning: %s", errs)
-            warnings.warn(f"An error occurred while scanning: {errs}", RuntimeWarning)
+            # errs = main_process.stderr.read().decode()
+            # after_scanning_operations(should_save_results=False)
+            # raise Exception("An error occurred while scanning: %s", errs)
+            # warnings.warn(f"An error occurred while scanning: {errs}", RuntimeWarning)
+            warnings.warn(f"errors encountered while scanning, see stderr directory", RuntimeWarning)
 
     # wait for measurement
     measurements_thread.join()
@@ -652,6 +684,8 @@ def before_scanning_operations():
     Path(GRAPHS_DIR).mkdir(parents=True, exist_ok=True)  # create empty results dirs
 
     Path(STDOUT_FILES_DIR).mkdir(parents=True, exist_ok=True)  # create empty results dirs
+
+    Path(STDERR_FILES_DIR).mkdir(parents=True, exist_ok=True)  # create empty results dirs
 
     save_general_information_before_scanning()
 

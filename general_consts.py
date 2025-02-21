@@ -98,6 +98,7 @@ class IDSType:
 class AntivirusType:
     DEFENDER = "Defender"
     ClamAV = "ClamAV"
+    SOPHOS = "Sophos"
 
 
 # ======= Tables Column Names =======
@@ -128,6 +129,14 @@ class DiskIOColumns:
     WRITE_BYTES = "WRITE(KB)"
     READ_TIME = "READ(ms)"
     WRITE_TIME = "WRITE(ms)"
+
+
+class NetworkIOColumns:
+    TIME = "Time(sec)"
+    PACKETS_SENT = "Packets Sent(#)"
+    PACKETS_RECEIVED = "Packets Received(#)"
+    KB_SENT = "Sent(KB)"
+    KB_RECEIVED = "Received(KB)"
 
 
 class ProcessesColumns:

@@ -7,9 +7,8 @@ import pyautogui
 from abc import abstractmethod
 import pywinauto.keyboard as keyboard
 
+
 class AbstractTask:
-    def __init__():
-        pass
 
     @abstractmethod
     def run_task(self):
@@ -35,12 +34,13 @@ class Word(AbstractTask):
         paragraph = doc.Paragraphs[0]
         paragraph.Range.Text = "This is a test document created using Python and pywin32."
         
-        for i in range(20):
-            time.sleep(10)
+        for i in range(100):
+            time.sleep(3)
             paragraph = doc.Paragraphs(doc.Paragraphs.Count).Range
             paragraph.InsertParagraphAfter()
             paragraph.InsertAfter('This is a new paragraph.')
-            time.sleep(10)
+
+        time.sleep(5)
         
         doc.SaveAs(os.path.expanduser("~/word_test{}.docx".format(random.randint(1, 1000))))
         print('word saved')

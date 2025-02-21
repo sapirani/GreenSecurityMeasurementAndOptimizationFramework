@@ -51,7 +51,9 @@ def program_to_scan_factory(program_type):
     if program_type == ProgramToScan.ANTIVIRUS and antivirus_type == AntivirusType.DEFENDER:
         return DefenderProgram(scan_type, custom_scan_path)
     if program_type == ProgramToScan.ANTIVIRUS and antivirus_type == AntivirusType.ClamAV:
-        return ClamAVProgram(scan_type, custom_scan_path)
+        return ClamAVProgram(scan_type, custom_scan_path, recursive, should_optimize, should_mitigate_timestomping)
+    if program_type == ProgramToScan.ANTIVIRUS and antivirus_type == AntivirusType.SOPHOS:
+        return SophosAVProgram(scan_type, custom_scan_path)
     if program_type == ProgramToScan.IDS and ids_type == IDSType.SURICATA:
         return SuricataProgram(interface_name, pcap_list_dirs, log_path)
     if program_type == ProgramToScan.IDS and ids_type == IDSType.SNORT:
@@ -128,10 +130,12 @@ def result_paths(is_scanner=True):
     measurements_dir = os.path.join(base_dir, f"{MEASUREMENT_NAME_DIR} {calc_measurement_number(is_scanner)}")
     graphs_dir = os.path.join(measurements_dir, "graphs")
     stdout_files_dir = os.path.join(measurements_dir, "stdouts")
+    stderr_files_dir = os.path.join(measurements_dir, "stderrs")
 
     processes_csv = os.path.join(measurements_dir, 'processes_data.csv')
     total_memory_each_moment_csv = os.path.join(measurements_dir, 'total_memory_each_moment.csv')
     disk_io_each_moment = os.path.join(measurements_dir, 'disk_io_each_moment.csv')
+    network_io_each_moment = os.path.join(measurements_dir, 'network_io_each_moment.csv')
     battery_status_csv = os.path.join(measurements_dir, 'battery_status.csv')
     general_information_file = os.path.join(measurements_dir, 'general_information.txt')
     total_cpu_csv = os.path.join(measurements_dir, 'total_cpu.csv')
@@ -141,8 +145,9 @@ def result_paths(is_scanner=True):
     for background_program in background_programs:
         background_program.set_results_dir(measurements_dir)
 
-    return measurements_dir, graphs_dir, stdout_files_dir, processes_csv, total_memory_each_moment_csv, disk_io_each_moment,\
-        battery_status_csv, general_information_file, total_cpu_csv, summary_csv
+    return measurements_dir, graphs_dir, stdout_files_dir, stderr_files_dir, processes_csv, total_memory_each_moment_csv, \
+        disk_io_each_moment, network_io_each_moment, battery_status_csv, general_information_file, total_cpu_csv, \
+        summary_csv
 
 
 # ======= Custom Scan Query (do not change) =======
@@ -174,6 +179,9 @@ cpu_columns_list = [CPUColumns.TIME, CPUColumns.USED_PERCENT] + cores_names_list
 disk_io_columns_list = [DiskIOColumns.TIME, DiskIOColumns.READ_COUNT, DiskIOColumns.WRITE_COUNT,
                         DiskIOColumns.READ_BYTES, DiskIOColumns.WRITE_BYTES, DiskIOColumns.READ_TIME,
                         DiskIOColumns.WRITE_TIME]
+
+network_io_columns_list = [NetworkIOColumns.TIME, NetworkIOColumns.PACKETS_SENT, NetworkIOColumns.PACKETS_RECEIVED,
+                           NetworkIOColumns.KB_SENT, NetworkIOColumns.KB_RECEIVED]
 
 processes_columns_list = [
     ProcessesColumns.TIME, ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME, ProcessesColumns.CPU_CONSUMPTION,

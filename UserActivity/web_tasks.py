@@ -6,6 +6,29 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from abc import ABCMeta, abstractmethod
 from PIL import Image
+from webdriver_manager.chrome import ChromeDriverManager
+
+
+
+google_url = 'https://www.google.com/'
+cnn_url = 'https://us.cnn.com/'
+whatsapp_url = 'https://web.whatsapp.com/'
+photos_url = 'https://photos.google.com/'
+javascr_url = 'https://observablehq.com/@d3/gallery'
+video = 'neural+network+explained+statquest'
+username = 'sdvsdfv'
+password = 'sdfvsdfv'
+github_key = 'github sign in'
+stack_overflow = 'python selenium code example stack overflow'
+nn_key = 'neural network architecture diagram'
+
+
+def create_driver():
+    driver = webdriver.Chrome(ChromeDriverManager().install())
+    driver.get(url=google_url)
+    # self.url = driver.open_driver('https://www.google.com/')
+    return driver
+
 
 
 class AbstractTask:
@@ -188,17 +211,18 @@ class YouTubeVideo(AbstractTask):
         links = self.driver.find_elements(By.CLASS_NAME, "style-scope ytd-video-renderer")
         if links:
             links[0].click()
-            time.sleep(1134)
+            time.sleep(500)
 
 class ScreenShot(AbstractTask):
     """_summary_: take a screenshot of the page
     """
     def __init__(self, driver):
         super(ScreenShot, self).__init__(driver)
+        self.counter = 1
 
     def run_task(self):
-        self.driver.save_screenshot('ss.png')
-        screenshot = Image.open('ss.png')
+        self.driver.save_screenshot(f'ss{self.counter}.png')
+        screenshot = Image.open(f'ss{self.counter}.png')
         # download the screenshot
-        screenshot.save('ss.png')
+        screenshot.save(f'ss{self.counter}.png')
         time.sleep(5)

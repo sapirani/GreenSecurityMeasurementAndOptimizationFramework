@@ -65,9 +65,10 @@ class OSFuncsInterface:
         pass
 
     @staticmethod
-    def popen(command, find_child_id_func, should_use_powershell, is_posix, should_find_child_id=False, f=subprocess.PIPE):
+    def popen(command, find_child_id_func, should_use_powershell, is_posix, should_find_child_id=False, f_stdout=subprocess.PIPE, f_stderr=subprocess.PIPE):
+        print(command)
         def process_obj_and_pid(command_lst):
-            p = subprocess.Popen(command_lst, stdout=f, stderr=subprocess.PIPE)
+            p = subprocess.Popen(command_lst, stdout=f_stdout, stderr=f_stderr)
             pid = p.pid
 
             if should_use_powershell or should_find_child_id:
