@@ -245,7 +245,7 @@ def continuously_measure():
         save_current_total_cpu()
         save_current_total_memory()
         prev_disk_io = save_current_disk_io(prev_disk_io)
-        save_current_network_io(prev_network_io)
+        prev_network_io = save_current_network_io(prev_network_io)
 
 
 def save_general_disk(f):

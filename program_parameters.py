@@ -24,7 +24,7 @@ custom_scan_path = r'"C:\Users\sagib\OneDrive\Desktop\sample files\original samp
 #custom_scan_path = fr'"C:\Users\Administrator\Desktop\GreenSecurity-FirstExperiment"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
 
-RUNNING_TIME = None # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
+RUNNING_TIME = 2 * MINUTE # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
 MINIMUM_DELTA_CAPACITY = 200     # in mWh
 
