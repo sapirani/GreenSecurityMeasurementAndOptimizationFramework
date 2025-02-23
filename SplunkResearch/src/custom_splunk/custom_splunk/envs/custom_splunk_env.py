@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import random
 import time
@@ -104,7 +105,7 @@ class SplunkEnv(gym.Env):
         self.relevant_logtypes = sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]}))
         self.savedsearches = savedsearches
         # Initialize tools and strategies
-        self.splunk_tools  = SplunkTools(savedsearches, config.num_of_measurements, config.rule_frequency)
+        self.splunk_tools  = SplunkTools(savedsearches, config.rule_frequency)
         self.log_generator = LogGenerator(self.relevant_logtypes, self.splunk_tools)
 
         self.episode_logs = {}
@@ -118,40 +119,22 @@ class SplunkEnv(gym.Env):
         self.action_auditor = []
         self.step_violation = False
         self.done = False
-        # Initialize time management
         clean_env(self.splunk_tools, (datetime.datetime.strptime(fake_start_datetime, '%m/%d/%Y:%H:%M:%S').timestamp(), datetime.datetime.now().timestamp()))
-        # Warm up environment
         self._warmup()
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
         """Execute environment step."""
-
-        
         self.step_counter += 1
         self.all_steps_counter += 1
+        logger.info(f"Total steps: {self.all_steps_counter}")
         logger.info(f"Step {self.step_counter}")
         logger.info(f"Action: {action}")
         logger.info(f"Action window: {self.time_manager.action_window.to_tuple()}")
-        # Get time window for current step
-        
-        # Process action
-        # self.action_auditor.append((action_window.to_tuple(), action))
-
-        # Update state
-        # self._update_state()
         obs = None
-        # Check termination
-        # self.step_violation = self._check_step_violation()
         self.done = self.step_violation or self._check_termination()
         truncated = False
-        
-        # Calculate base reward (wrappers will modify this)
         reward = 0
-        
-        # Get info including time information
         info = self.get_step_info()
-
-        
         return obs, reward, self.done, truncated, info
     
 
@@ -165,6 +148,8 @@ class SplunkEnv(gym.Env):
         return False
 
 
+
+    
     def reset(self, *, seed=None, options=None):
         """Reset environment state.
         
@@ -183,17 +168,8 @@ class SplunkEnv(gym.Env):
         # Reset counters and tracking
         self.step_counter = 0
         self.action_auditor = []
-        # Advance time window based on previous episode
-        self.time_manager.advance_window(violation=self.step_violation)
-        
 
-        
-        # Update time range
-        # self._update_time_range()
-        
-        # Calculate quotas
-        
-        # Get initial info
+
         info = self.get_step_info()
         
         return np.zeros(self.observation_space.shape), info
@@ -226,7 +202,8 @@ class SplunkEnv(gym.Env):
         """Warm up the environment"""
         for _ in range(1):
             logger.info("Running saved searches for warmup")
-            self.splunk_tools.run_saved_searches_parallel(self.time_manager.current_window.to_tuple())
+            time_range = self.time_manager.current_window.to_tuple()
+            asyncio.run(self.splunk_tools.run_saved_searches(time_range, self.config.num_of_measurements))
 
 # Example usage:
 if __name__ == "__main__":

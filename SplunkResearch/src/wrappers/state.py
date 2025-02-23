@@ -22,12 +22,13 @@ class StateWrapper(ObservationWrapper):
         
         self.real_state = np.array([])
         self.fake_state = np.array([])
+        self.total_current_logs = 0
         
         # Define observation space for normalized distributions
         self.observation_space = spaces.Box(
             low=0,
             high=1,
-            shape=(len(self.top_logtypes)*2 + 2,),  # +2 for 'other' category
+            shape=((len(self.top_logtypes)*2 + 2)//2,),  # +2 for 'other' category
             dtype=np.float64
         )
 
@@ -36,6 +37,7 @@ class StateWrapper(ObservationWrapper):
         return {
             'real_distribution': self.real_state,
             'fake_distribution': self.fake_state,
+            'total_current_logs': self.total_current_logs,
 
         }
 
@@ -61,8 +63,9 @@ class StateWrapper(ObservationWrapper):
         self.real_state = real_state
         self.fake_state = fake_state
         
-        # Combine states
-        return np.concatenate([real_state, fake_state])
+        state = real_state #np.concatenate([real_state, fake_state])
+        logger.info(f"State: {state}")
+        return state
 
     def _get_state_vector(self, distribution):
         """Convert distribution dict to vector"""
@@ -80,7 +83,7 @@ class StateWrapper(ObservationWrapper):
     def update_real_distribution(self, time_range):
         """Update real distribution from Splunk"""
         real_counts = self.env.splunk_tools.get_real_distribution(*time_range)
-
+        self.total_current_logs = sum(real_counts.values())
         
         for logtype, count in real_counts.items():
             if logtype in self.top_logtypes:

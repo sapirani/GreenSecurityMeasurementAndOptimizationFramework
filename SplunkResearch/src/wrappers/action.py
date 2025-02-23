@@ -24,8 +24,10 @@ class Action(ActionWrapper):
         
         # Track injected logs
         self.current_logs = {}
-        # self.episode_logs = {}
+        self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.relevant_logtypes for istrigger in [0, 1]}
         self.remaining_quota = 0
+        self.inserted_logs = 0
+        self.diversity_factor = 10
         
     def _calculate_quota(self) -> None:
         """Calculate injection quotas"""
@@ -43,13 +45,14 @@ class Action(ActionWrapper):
         quota_pct = action[0]
         distribution = action[1:1+len(self.relevant_logtypes)]
         trigger_levels = action[1+len(self.relevant_logtypes):2*len(self.relevant_logtypes)+1]
-        diversity_levels = action[2*len(self.relevant_logtypes)+1:]
+        diversity_levels = action[2*len(self.relevant_logtypes)+1:] * self.diversity_factor
         
         # Normalize distribution
         distribution = distribution / (np.sum(distribution) + 1e-8)
         
         # Calculate number of logs to inject
         num_logs = int(quota_pct * self.remaining_quota)
+        self.inserted_logs = num_logs
         # self.remaining_quota = self.quota - num_logs
         
         # Distribute logs among types
@@ -67,18 +70,18 @@ class Action(ActionWrapper):
                     # Track logs
                     self.current_logs[key] = log_count
 
-                    if key not in self.episode_logs:
-                        self.episode_logs[key] = 0
+
                     self.episode_logs[key] += log_count
         
         return logs_to_inject
     
     def inject_logs(self, logs_to_inject):
         """Inject logs into environment"""
+        time_range = self.env.time_manager.action_window.to_tuple()
+        logger.info(f"Action time range: {time_range}")
         for logtype, log_info in logs_to_inject.items():
             logsource, eventcode, is_trigger = logtype.split('_')
             count, diversity = log_info['count'], log_info['diversity']
-            time_range = self.env.time_manager.action_window.to_tuple()
             
             fake_logs = self.env.log_generator.generate_logs(
                 logsource, eventcode, is_trigger,
@@ -92,7 +95,6 @@ class Action(ActionWrapper):
         
     def step(self, action):
         """Inject logs and step environment"""
-        action_window = self.time_manager.step()
         logger.info(f"Raw action: {action}")
         
         logs_to_inject = self.action(action)
@@ -112,13 +114,14 @@ class Action(ActionWrapper):
             'current_logs': self.current_logs,
             'episode_logs': self.episode_logs,
             'remaining_quota': self.remaining_quota,
+            'inserted_logs': self.inserted_logs,
             # 'quota_used_pct': (self.quota - self.remaining_quota) / self.quota
         }
 
     def reset(self, **kwargs):
         """Reset tracking on environment reset"""
         self.current_logs = {}
-        self.episode_logs = {}
+        self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.relevant_logtypes for istrigger in [0, 1]}
         self._calculate_quota()
 
         # self.remaining_quota = self.quota

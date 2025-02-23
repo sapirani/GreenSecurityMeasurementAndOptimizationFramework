@@ -1,6 +1,8 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import inspect
 from typing import Dict, Any, Optional, List
+from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
+import custom_splunk #dont remove!!!
 from custom_splunk.envs.custom_splunk_env import SplunkConfig
 import gymnasium as gym
 from gymnasium import register, spaces, make
@@ -20,6 +22,7 @@ from wrappers.reward import *
 from wrappers.state import *
 from wrappers.action import *
 from callbacks import *
+from time_manager import TimeWrapper
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -33,8 +36,8 @@ class ExperimentConfig:
     policy_type: str = "mlp"
     learning_rate: float = 3e-4
     n_steps: int = 2048
-    batch_size: int = 64
-    n_epochs: int = 10
+    # batch_size: int = 64
+    # n_epochs: int = 10
     gamma: float = 0.99
     ent_coef: float = 0.0
     num_episodes: int = 1000
@@ -61,21 +64,8 @@ class ExperimentManager:
         self.base_dir = Path(base_dir)
         self._setup_directories()
         self.experiments_db = self._load_experiments_db()
-                # Load available strategies
-        # self.state_strategies = {
-        #     name: cls for name, cls in inspect.getmembers(
-        #         sys.modules['strategies.state_strategy'],
-        #         lambda x: inspect.isclass(x) and issubclass(x, StateStrategy) and x != StateStrategy
-        #     )
-        # }
-        
-        # self.action_strategies = {
-        #     name: cls for name, cls in inspect.getmembers(
-        #         sys.modules['strategies.action_strategy'],
-        #         lambda x: inspect.isclass(x) and issubclass(x, ActionStrategy) and x != ActionStrategy
-        #     )
-        # }
-        
+        self.eval_env = None
+
     def _setup_directories(self):
         """Create necessary directories"""
         dirs = {
@@ -111,23 +101,7 @@ class ExperimentManager:
 
     def create_environment(self, config: ExperimentConfig) -> gym.Env:
         """Create and configure environment with reward wrappers"""
-        # Create base environment using gym.make with env_id
-        savedsearches = ["Windows Event For Service Disabled",
-                    "Detect New Local Admin account",
-                    "ESCU Network Share Discovery Via Dir Command Rule",
-                    "Known Services Killed by Ransomware",
-                    "Non Chrome Process Accessing Chrome Default Dir",
-                    "Kerberoasting spn request with RC4 encryption",
-                    "Clop Ransomware Known Service Name"]
-        fake_start_datetime = "02/01/2024:00:00:00"
-        env_id = "splunk_train-v32"
-        register(id=env_id,
-                entry_point='custom_splunk.envs:SplunkEnv', 
-                kwargs={
-                        'savedsearches':savedsearches,
-                        'fake_start_datetime':fake_start_datetime,
 
-                })
         env = make(
             id=config.env_config.env_id,
             config=config.env_config,
@@ -144,7 +118,13 @@ class ExperimentManager:
         env = StateWrapper(env, top_logtypes)
         
         # Add reward wrappers
-
+        if config.use_distribution_reward:
+            env = DistributionRewardWrapper(
+                env,
+                gamma=config.gamma_dist,
+                epsilon=1e-8,
+                distribution_freq=1
+            )
         
         if config.use_energy_reward:
             env = BaseRuleExecutionWrapper(env, baseline_dir=self.dirs['baseline'])
@@ -159,13 +139,8 @@ class ExperimentManager:
                 beta=config.beta_alert,
                 epsilon=1e-3
             )
-        if config.use_distribution_reward:
-            env = DistributionRewardWrapper(
-                env,
-                gamma=config.gamma_dist,
-                epsilon=1e-8,
-                distribution_freq=1
-            )
+
+        env = TimeWrapper(env)
         # if config.use_quota_violation:
         #     env = QuotaViolationWrapper(env)
         
@@ -197,6 +172,8 @@ class ExperimentManager:
             return A2C
         elif model_type == "dqn":
             return DQN
+        elif model_type == "sac":
+            return SAC
         else:
             raise ValueError(f"Unknown model type: {model_type}")
     
@@ -213,7 +190,7 @@ class ExperimentManager:
         
         model_kwargs = {
             'env': env,
-            'policy': self._get_policy_class(config.policy_type),
+            'policy': config.policy_type,
             'learning_rate': config.learning_rate,
             'gamma': config.gamma,
             'tensorboard_log': str(self.dirs['tensorboard']),
@@ -224,9 +201,11 @@ class ExperimentManager:
         if config.model_type in ['ppo', 'a2c']:
             model_kwargs.update({
                 'n_steps': config.n_steps,
-                'batch_size': config.batch_size,
-                'n_epochs': config.n_epochs,
-                'ent_coef': config.ent_coef
+                # 'batch_size': config.batch_size,
+                # 'n_epochs': config.n_epochs,
+                'ent_coef': config.ent_coef,
+                'sde_sample_freq': 50,
+                'use_sde': True
             })
             
         return model_cls(**model_kwargs)
@@ -263,7 +242,10 @@ class ExperimentManager:
             # Create environment and model
             env = self.create_environment(config)
             model = self.create_model(config, env)
-            
+            # create eval env
+            eval_config = replace(config, mode="eval")
+            eval_config.env_config.env_id = "splunk_eval-v32"
+            self.eval_env = self.create_environment(eval_config)
             # Setup callbacks
             config.experiment_name = experiment_name
             callbacks = self._setup_callbacks(config)
@@ -380,19 +362,44 @@ class ExperimentManager:
     
     def _setup_callbacks(self, config: ExperimentConfig):
         """Setup training/evaluation callbacks"""
-        return create_callbacks(self, config.__dict__)
+    
+        
+        return [
+            TensorboardCallback(
+                phase=config.mode,
+                experiment_kwargs=config
+            ),
+            # HParamsCallback(
+            #     experiment_kwargs=config,
+            #     phase=config.get('phase', 'train')
+            # ),
+            CheckpointCallback(save_freq=1000, save_path=self.dirs['models'], name_prefix=config.experiment_name),
+            CustomEvalCallback(
+                eval_env=self.eval_env,
+                n_eval_episodes=4,
+                eval_freq=240,
+                best_model_save_path=self.dirs['models'],
+                log_path=self.dirs['logs'],
+                eval_log_dir=str(self.dirs['tensorboard']/f"eval_{config.experiment_name}"),
+                deterministic=True,
+                render=False,
+                callback_on_new_best=None,
+                verbose=1
+            )
+            
+        ]
     
 # Example usage:
 if __name__ == "__main__":
     # Create experiment config
     env_config = SplunkConfig(
         # fake_start_datetime="02/12/2025:00:00:00",
-        rule_frequency=60,
-        search_window=1440,
+        rule_frequency=180,
+        search_window=2880,
         # savedsearches=["rule1", "rule2"],
         logs_per_minute=150,
         additional_percentage=.5,
-        action_duration=3600,
+        action_duration=7200,
         num_of_measurements=3,
         num_of_episodes=2000,
         env_id="splunk_train-v32"        
@@ -401,9 +408,11 @@ if __name__ == "__main__":
     experiment_config = ExperimentConfig(
         env_config=env_config,
         model_type="ppo",
-        policy_type="mlp",
+        policy_type="MlpPolicy",
         learning_rate=1e-4,
-        num_episodes=1000,
+        num_episodes=2000,
+        n_steps=96,
+        ent_coef=0.005
         # experiment_name="test_experiment"
     )
     

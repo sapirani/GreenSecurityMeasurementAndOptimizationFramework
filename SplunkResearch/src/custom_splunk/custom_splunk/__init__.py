@@ -1,4 +1,4 @@
-from gym.envs.registration import register
+from gymnasium.envs.registration import register
 import sys
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
 from src.splunk_tools import SplunkTools
@@ -361,26 +361,24 @@ savedsearches = ["Windows Event For Service Disabled",
                  "Non Chrome Process Accessing Chrome Default Dir",
                  "Kerberoasting spn request with RC4 encryption",
                  "Clop Ransomware Known Service Name"]
-fake_start_datetime = "04/01/2024:00:00:00"
+fake_start_datetime = "01/01/2024:00:00:00"
 env_id = "splunk_train-v32"
 register(id=env_id,
         entry_point='custom_splunk.envs:SplunkEnv', 
         kwargs={
                 'savedsearches':savedsearches,
                 'fake_start_datetime':fake_start_datetime,
-                'env_id':env_id
         })
 #######################################
 #######################################
 
-fake_start_datetime = "02/01/2024:00:00:00"
+fake_start_datetime = "01/01/2025:00:00:00"
 env_id = "splunk_eval-v32"
 register(id=env_id,
         entry_point='custom_splunk.envs:SplunkEnv', 
         kwargs={
                 'savedsearches':savedsearches,
                 'fake_start_datetime':fake_start_datetime,
-                'env_id':env_id
         })
 
 #######################################

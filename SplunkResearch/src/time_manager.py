@@ -119,3 +119,23 @@ class TimeManager:
             'week_day': current_dt.weekday(),
             'hour': current_dt.hour
         }
+
+# wrapper for time menaging
+from gymnasium.core import Wrapper
+class TimeWrapper(Wrapper):
+    # def __init__(self, env, start_datetime, window_size, step_size, rule_frequency):
+    #     super().__init__(env)
+    #     self.time_manager = TimeManager(start_datetime, window_size, step_size, rule_frequency)
+        
+    def step(self, action):
+        action_window = self.time_manager.step()
+
+        return self.env.step(action)
+    
+
+    def reset(self, *, seed=None, options=None):
+
+        # Advance time window based on previous episode
+        self.time_manager.advance_window(violation=self.step_violation)
+        return self.env.reset(seed=seed, options=options)
+        
