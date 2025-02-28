@@ -60,6 +60,7 @@ class ProgramToScan(Enum):
     CPUConsumer = 9
     MemoryConsumer = 10
     IOWriteConsumer = 11
+    PythonServer = 12
 
 
 class ScanMode(Enum):
@@ -152,9 +153,13 @@ class ProcessesColumns:
     READ_BYTES = "READ_IO(KB)"
     WRITE_BYTES = "WRITE_IO(KB)"
     PAGE_FAULTS = "PAGE_FAULTS"
+    BYTES_SENT = "NETWORK_DATA_SENT(KB)"
+    PACKETS_SENT = "PACKETS_SENT(#)"
+    BYTES_RECEIVED = "NETWORK_BYTES_RECEIVED(KB)"
+    PACKETS_RECEIVED = "PACKETS_RECEIVED(#)"
 
 
-class TableNames():
+class TableNames:
     CPU = "total_cpu"
     DISK = "disk_io_each_moment"
     MEMORY = "total_memory_each_moment"

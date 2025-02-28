@@ -32,7 +32,7 @@ class SummaryVersionInterface:
         return None
 
     @staticmethod
-    def add_general_info(summary_df, num_of_processes, battery_df, sub_disk_df, sub_network_df):
+    def add_general_info(summary_df, num_of_processes, battery_df, sub_disk_df, sub_network_df, sub_all_processes_df):
         # TODO: merge cells to one
 
         none_list = ["X" for _ in range(num_of_processes - 1)]
@@ -43,27 +43,35 @@ class SummaryVersionInterface:
         summary_df.loc[len(summary_df.index)] = ["Disk IO Write Time (ms - sum)", *none_list, total_disk_write_time]
 
         # Network IO Sent Bytes
+        all_process_network_size_sent_kb = [pd.to_numeric(df[ProcessesColumns.BYTES_SENT]).sum()
+                                            for df in sub_all_processes_df]
         total_network_size_sent = sub_network_df[NetworkIOColumns.KB_SENT].sum()
         summary_df.loc[len(summary_df.index)] = ["Network Size Sent (KB - sum)",
-                                                 *none_list,
+                                                 *all_process_network_size_sent_kb,
                                                  total_network_size_sent]
 
         # Network IO Sent Packets
+        all_process_network_packets_sent = [pd.to_numeric(df[ProcessesColumns.PACKETS_SENT]).sum()
+                                            for df in sub_all_processes_df]
         total_network_packets_sent = sub_network_df[NetworkIOColumns.PACKETS_SENT].sum()
         summary_df.loc[len(summary_df.index)] = ["Network Packets Sent (# - sum)",
-                                                 *none_list,
+                                                 *all_process_network_packets_sent,
                                                  total_network_packets_sent]
 
-        # Network IO Write Bytes
+        # Network IO Received Bytes
+        all_process_network_size_received_kb = [pd.to_numeric(df[ProcessesColumns.BYTES_RECEIVED]).sum()
+                                                for df in sub_all_processes_df]
         total_network_size_received = sub_network_df[NetworkIOColumns.KB_RECEIVED].sum()
         summary_df.loc[len(summary_df.index)] = ["Network Size Received (KB - sum)",
-                                                 *none_list,
+                                                 *all_process_network_size_received_kb,
                                                  total_network_size_received]
 
-        # Network IO Write Count
+        # Network IO Received Packets
+        all_process_network_packets_received = [pd.to_numeric(df[ProcessesColumns.PACKETS_RECEIVED]).sum()
+                                                for df in sub_all_processes_df]
         total_network_packets_received = sub_network_df[NetworkIOColumns.PACKETS_RECEIVED].sum()
         summary_df.loc[len(summary_df.index)] = ["Network Packets Received (# - sum)",
-                                                 *none_list,
+                                                 *all_process_network_packets_received,
                                                  total_network_packets_received]
 
         battery_drop = calc_delta_capacity(battery_df)
@@ -157,7 +165,8 @@ class DuduSummary(SummaryVersionInterface):
         summary_df.loc[len(summary_df.index)] = ["IO Write Count System (total - process) (# - sum)",
                                                  *write_count_total_without_process, system_write_count]
 
-        return SummaryVersionInterface.add_general_info(summary_df, num_of_processes, battery_df, sub_disk_df, sub_network_df)
+        return SummaryVersionInterface.add_general_info(summary_df, num_of_processes, battery_df, sub_disk_df,
+                                                        sub_network_df, sub_all_processes_df)
 
     def colors_func(self, df):
         return ['background-color: #FFFFFF'] + \
@@ -223,7 +232,8 @@ class OtherSummary(SummaryVersionInterface):
         total_write_count = sub_disk_df[DiskIOColumns.WRITE_COUNT].sum()
         summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count (# - sum)", *all_process_write_count, total_write_count]
 
-        return SummaryVersionInterface.add_general_info(summary_df, num_of_processes, battery_df, sub_disk_df, sub_network_df)
+        return SummaryVersionInterface.add_general_info(summary_df, num_of_processes, battery_df, sub_disk_df,
+                                                        sub_network_df, sub_all_processes_df)
 
     def colors_func(self, df):
         return ['background-color: #FFFFFF'] + \

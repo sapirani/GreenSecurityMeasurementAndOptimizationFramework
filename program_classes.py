@@ -275,6 +275,14 @@ class IOWriteConsumer(ProgramInterface):
         return f"python {os.path.join('FilesCreators', 'file_generator.py')} {self.directory_path}"
 
 
+class PythonServer(ProgramInterface):
+    def get_program_name(self):
+        return "Python Server"
+
+    def get_command(self) -> str:
+        return f"python -m http.server"
+
+
 class IDSProgram(ProgramInterface):
     def __init__(self, interface_name, pcap_list_dirs, log_dir, configuration_file_path=None,
                  installation_dir="C:\Program Files"):

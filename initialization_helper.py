@@ -76,6 +76,8 @@ def program_to_scan_factory(program_type):
         return MemoryConsumer(memory_chunk_size, consumption_speed, RUNNING_TIME)
     if program_type == ProgramToScan.IOWriteConsumer:
         return IOWriteConsumer(custom_scan_path)
+    if program_type == ProgramToScan.PythonServer:
+        return PythonServer()
 
     raise Exception("choose program to scan from ProgramToScan enum")
 
@@ -187,5 +189,7 @@ processes_columns_list = [
     ProcessesColumns.TIME, ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME, ProcessesColumns.CPU_CONSUMPTION,
     ProcessesColumns.NUMBER_OF_THREADS, ProcessesColumns.USED_MEMORY, ProcessesColumns.MEMORY_PERCENT,
     ProcessesColumns.READ_COUNT, ProcessesColumns.WRITE_COUNT, ProcessesColumns.READ_BYTES, ProcessesColumns.WRITE_BYTES,
-    ProcessesColumns.PAGE_FAULTS
+    ProcessesColumns.PAGE_FAULTS,
+    ProcessesColumns.BYTES_SENT, ProcessesColumns.PACKETS_SENT,
+    ProcessesColumns.BYTES_RECEIVED, ProcessesColumns.PACKETS_RECEIVED
 ]

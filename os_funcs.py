@@ -3,8 +3,13 @@ import platform
 import subprocess
 from abc import ABC, abstractmethod
 from time import sleep
+from typing import List
+
 import psutil
 import shlex
+
+from scapy.interfaces import get_if_list
+
 from general_consts import (GB, MINUTE, NEVER_GO_TO_SLEEP_MODE,
                             NEVER_TURN_SCREEN_OFF, NO_BUTTON, YES_BUTTON,
                             PowerPlan, disk_types, pc_types,
@@ -50,6 +55,10 @@ class OSFuncsInterface:
         pass
 
     def message_box(self, title, text, style):
+        pass
+
+    @abstractmethod
+    def get_interfaces(self) -> List[str]:
         pass
 
     @abstractmethod
@@ -322,6 +331,10 @@ class WindowsOS(OSFuncsInterface):
     def is_posix(self):
         return False
 
+    def get_interfaces(self) -> List[str]:
+        return [rf'\Device\NPF_{interface_name}' if interface_name[0] == "{" else interface_name
+                for interface_name in get_if_list()]
+
 
 class LinuxOS(OSFuncsInterface):
     @staticmethod
@@ -453,3 +466,6 @@ class LinuxOS(OSFuncsInterface):
 
     def is_posix(self):
         return True
+
+    def get_interfaces(self) -> List[str]:
+        return get_if_list()

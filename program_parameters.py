@@ -1,7 +1,7 @@
 from general_consts import *
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.ANTIVIRUS
+main_program_to_scan = ProgramToScan.PythonServer
 background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = True
@@ -11,15 +11,15 @@ scanner_version = ScannerVersion.FULL
 
 power_plan = PowerPlan.BALANCED
 scan_option = ScanMode.ONE_SCAN
-scan_type = ScanType.CUSTOM_SCAN  # relevant only for one scan or continuous scan
+scan_type = ScanType.QUICK_SCAN  # relevant only for one scan or continuous scan
 
 antivirus_type = AntivirusType.DEFENDER
 
 file_type = "pdf"
 directory_type = "Duplicated Files"
-#custom_scan_path = r'""'
+custom_scan_path = r'""'
 #custom_scan_path = r'"C:\Users\sagib\Downloads"'
-custom_scan_path = r'"C:\Users\sagib\OneDrive\Desktop\sample files\original samples"'
+# custom_scan_path = r'"C:\Users\sagib\OneDrive\Desktop\sample files\original samples"'
 #custom_scan_path = r'"C:\Users\Administrator\Downloads"'
 #custom_scan_path = fr'"C:\Users\Administrator\Desktop\GreenSecurity-FirstExperiment"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty

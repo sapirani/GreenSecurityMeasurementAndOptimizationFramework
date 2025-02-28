@@ -10,6 +10,7 @@ from datetime import date
 from pathlib import Path
 import screen_brightness_control as sbc
 from general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
+from process_connections import ProcessNetworkMonitor
 
 base_dir, GRAPHS_DIR, STDOUT_FILES_DIR, STDERR_FILES_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, \
 DISK_IO_EACH_MOMENT, NETWORK_IO_EACH_MOMENT, BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, \
@@ -104,7 +105,7 @@ def save_current_network_io(previous_network_io):
     return network_io_stat
 
 
-def save_current_processes_statistics(prev_data_per_process):
+def save_current_processes_statistics(prev_data_per_process, process_network_monitor):
     """
     This function gets all processes running in the system and order them by thier cpu usage
     :param prev_data_per_process: previous read of all processes from io_counters.
@@ -129,10 +130,10 @@ def save_current_processes_statistics(prev_data_per_process):
 
     proc = sorted(proc, key=lambda x: x[1], reverse=True)
 
-    return add_to_processes_dataframe(time_of_sample, proc, prev_data_per_process)
+    return add_to_processes_dataframe(time_of_sample, proc, prev_data_per_process, process_network_monitor)
 
 
-def add_to_processes_dataframe(time_of_sample, top_list, prev_data_per_process):
+def add_to_processes_dataframe(time_of_sample, top_list, prev_data_per_process, process_network_monitor):
     """
     This function saves the relevant data from the process in dataframe (will be saved later as csv files)
     :param time_of_sample: time since starting the program
@@ -148,6 +149,8 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_data_per_process):
         try:
             # oneshot to improve info retrieve efficiency
             with p.oneshot():
+                process_traffic = process_network_monitor.get_network_stats(p)
+
                 io_stat = p.io_counters()
                 page_faults = running_os.get_page_faults(p)
 
@@ -169,7 +172,11 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_data_per_process):
                     io_stat.write_count - prev_io.write_count,
                     f'{(io_stat.read_bytes - prev_io.read_bytes) / KB:.3f}',
                     f'{(io_stat.write_bytes - prev_io.write_bytes) / KB:.3f}',
-                    page_faults - prev_data_per_process[(p.pid, p.name())][1]
+                    page_faults - prev_data_per_process[(p.pid, p.name())][1],
+                    process_traffic.bytes_sent / KB,
+                    process_traffic.packets_sent,
+                    process_traffic.bytes_received / KB,
+                    process_traffic.packets_received
                 ]
 
                 prev_data_per_process[(p.pid, p.name())] = io_stat, page_faults  # after finishing loop
@@ -235,17 +242,21 @@ def continuously_measure():
     prev_network_io = psutil.net_io_counters()
     prev_data_per_process = {}
 
+    process_network_monitor = ProcessNetworkMonitor(running_os.get_interfaces())
+
     # TODO: think if total tables should be printed only once
     while should_scan():
         # Create a delay
         scanner_imp.scan_sleep(0.5)
 
         scanner_imp.save_battery_stat(battery_df, scanner_imp.calc_time_interval(starting_time))
-        prev_data_per_process = save_current_processes_statistics(prev_data_per_process)
+        prev_data_per_process = save_current_processes_statistics(prev_data_per_process, process_network_monitor)
         save_current_total_cpu()
         save_current_total_memory()
         prev_disk_io = save_current_disk_io(prev_disk_io)
         prev_network_io = save_current_network_io(prev_network_io)
+
+    process_network_monitor.stop()
 
 
 def save_general_disk(f):
