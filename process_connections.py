@@ -3,6 +3,8 @@ from collections import defaultdict
 from threading import Thread, Lock
 import psutil
 from scapy.all import ifaces, packet
+from scapy.arch import get_if_addr
+from scapy.interfaces import get_working_ifaces
 from scapy.sendrecv import sniff
 
 
@@ -34,6 +36,7 @@ class ProcessNetworkMonitor:
 
         self.local_port_to_pid = {}
         self.device_mac_addresses = {iface.mac for iface in ifaces.values()}
+        self.all_ips = {get_if_addr(iface) for iface in get_working_ifaces()}
 
         self._stop_sniffing = False
 
@@ -45,7 +48,7 @@ class ProcessNetworkMonitor:
               store=False, stop_filter=lambda _: self._stop_sniffing)
 
     def _is_outgoing_packet(self, captured_packet):
-        return captured_packet.src in self.device_mac_addresses
+        return captured_packet.src in self.device_mac_addresses or captured_packet.src in self.all_ips
 
     def _identify_local_port(self, source_port, destination_port, captured_packet):
         return source_port if self._is_outgoing_packet(captured_packet) else destination_port

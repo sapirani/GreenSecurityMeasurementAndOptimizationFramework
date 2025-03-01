@@ -242,7 +242,9 @@ def continuously_measure():
     prev_network_io = psutil.net_io_counters()
     prev_data_per_process = {}
 
-    process_network_monitor = ProcessNetworkMonitor(running_os.get_interfaces())
+    # NOTE: CHANGE THIS IF YOU WANT TO MONITOR SPECIFIC INTERFACES
+    interfaces_for_packets_capturing = get_working_ifaces()
+    process_network_monitor = ProcessNetworkMonitor(interfaces_for_packets_capturing)
 
     # TODO: think if total tables should be printed only once
     while should_scan():
