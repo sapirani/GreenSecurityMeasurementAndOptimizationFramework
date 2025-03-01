@@ -25,8 +25,6 @@ class ProcessNetworkMonitor:
 
     Note: this class monitors packets captured in any interface
     """
-    # TODO: TRY SENDING TO THE PYTHON SERVER FROM ANOTHER DEVICE AND SEE IF IT WORKS
-
     # TODO: IMPLEMENT SOMEWHERE THE ABILITY TO SKIP NETWORK MONITORING IF IT'S NOT NEEDED SINCE IT IS EXHAUSTIVE
     def __init__(self, interfaces):
         self._interfaces = interfaces
@@ -53,6 +51,24 @@ class ProcessNetworkMonitor:
     def _identify_local_port(self, source_port, destination_port, captured_packet):
         return source_port if self._is_outgoing_packet(captured_packet) else destination_port
 
+    def _update_pid2traffic_stats(self, captured_packet: packet, packet_pid):
+        if self._is_outgoing_packet(captured_packet):
+            # source MAC address is ours - this packet is being sent
+            with self.pid2traffic_lock:
+                self.pid2traffic[packet_pid].bytes_sent += len(captured_packet)
+                self.pid2traffic[packet_pid].packets_sent += 1
+
+        else:
+            # destination MAC address is ours - this packet is being received
+            with self.pid2traffic_lock:
+                self.pid2traffic[packet_pid].bytes_received += len(captured_packet)
+                self.pid2traffic[packet_pid].packets_received += 1
+
+    def _update_all_local_port_to_pid(self):
+        for c in psutil.net_connections():
+            if c.laddr:
+                self.local_port_to_pid[c.laddr.port] = c.pid
+
     def _process_packet(self, captured_packet: packet):
         try:
             source_port, destination_port = captured_packet.sport, captured_packet.dport
@@ -63,17 +79,12 @@ class ProcessNetworkMonitor:
             local_port = self._identify_local_port(source_port, destination_port, captured_packet)
             packet_pid = self.local_port_to_pid.get(local_port)
             if packet_pid:
-                if self._is_outgoing_packet(captured_packet):
-                    # source MAC address is ours - this packet is being sent
-                    with self.pid2traffic_lock:
-                        self.pid2traffic[packet_pid].bytes_sent += len(captured_packet)
-                        self.pid2traffic[packet_pid].packets_sent += 1
-
-                else:
-                    # destination MAC address is ours - this packet is being received
-                    with self.pid2traffic_lock:
-                        self.pid2traffic[packet_pid].bytes_received += len(captured_packet)
-                        self.pid2traffic[packet_pid].packets_received += 1
+                self._update_pid2traffic_stats(captured_packet, packet_pid)
+            else:
+                self._update_all_local_port_to_pid()
+                packet_pid = self.local_port_to_pid.get(local_port)
+                if packet_pid:    # otherwise, ignore the packet
+                    self._update_pid2traffic_stats(captured_packet, packet_pid)
 
     def _update_process_connections(self, pid, process_connections):
         for connection in process_connections:
