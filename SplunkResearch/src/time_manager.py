@@ -33,17 +33,17 @@ class TimeManager:
         """
         Args:
             start_datetime: Initial datetime in format '%m/%d/%Y:%H:%M:%S'
-            window_size: Size of search window in minutes
+            window_size: Size of search window in seconds
             step_size: Size of each step in minutes
             rule_frequency: Frequency of rule evaluation in minutes
         """
         self.window_size = window_size
         self.step_size = step_size
         self.rule_frequency = rule_frequency
-        
+        self.first_start_datetime = start_datetime
         # Initialize time windows
-        self.current_window = self._create_initial_window(start_datetime)
-        self.action_window = None
+        self.current_window = self._create_episode_window(start_datetime)
+        self.action_window = self._create_action_window(start_datetime)
         
         self._validate_configuration()
         
@@ -54,7 +54,7 @@ class TimeManager:
         if self.window_size*60 % self.rule_frequency != 0:
             raise ValueError("Window size must be divisible by rule frequency")
             
-    def _create_initial_window(self, start_datetime: str) -> TimeWindow:
+    def _create_episode_window(self, start_datetime: str) -> TimeWindow:
         """Create initial time window"""
         start_dt = datetime.datetime.strptime(start_datetime, '%m/%d/%Y:%H:%M:%S')
         end_dt = start_dt + datetime.timedelta(minutes=self.window_size)
@@ -63,18 +63,20 @@ class TimeManager:
             end=end_dt.strftime('%m/%d/%Y:%H:%M:%S')
         )
         
+    def _create_action_window(self, start_datetime: str) -> TimeWindow:
+        """Create initial action window"""
+        start_dt = datetime.datetime.strptime(start_datetime, '%m/%d/%Y:%H:%M:%S')
+        end_dt = start_dt + datetime.timedelta(seconds=self.step_size)
+        return TimeWindow(
+            start=start_dt.strftime('%m/%d/%Y:%H:%M:%S'),
+            end=end_dt.strftime('%m/%d/%Y:%H:%M:%S')
+        )
+    
     def step(self) -> TimeWindow:
         """Move forward one step"""
         # Create action window for current step
 
-        start_dt = datetime.datetime.strptime(self.get_current_time(), '%m/%d/%Y:%H:%M:%S')
-        step_end = start_dt + datetime.timedelta(seconds=self.step_size)
-        
-        self.action_window = TimeWindow(
-            start=start_dt.strftime('%m/%d/%Y:%H:%M:%S'),
-            end=step_end.strftime('%m/%d/%Y:%H:%M:%S')
-        )
-        
+        self.action_window = self._create_action_window(self.get_current_time())        
         return self.action_window
         
     def advance_window(self, violation: bool = False) -> TimeWindow:
@@ -86,15 +88,9 @@ class TimeManager:
         # Move window forward by rule frequency
         start_dt = datetime.datetime.strptime(self.current_window.start, '%m/%d/%Y:%H:%M:%S')
         start_dt += datetime.timedelta(minutes=self.rule_frequency)
-        end_dt = start_dt + datetime.timedelta(minutes=self.window_size)
-        
-        self.current_window = TimeWindow(
-            start=start_dt.strftime('%m/%d/%Y:%H:%M:%S'),
-            end=end_dt.strftime('%m/%d/%Y:%H:%M:%S')
-        )
-        
+        self.current_window = self._create_episode_window(start_dt.strftime('%m/%d/%Y:%H:%M:%S'))
         logger.info(f"Advanced window to {self.current_window.start} - {self.current_window.end}")
-        self.action_window = None
+        self.action_window = self._create_action_window(start_dt.strftime('%m/%d/%Y:%H:%M:%S'))
         return self.current_window
         
     def get_current_time(self) -> str:
@@ -128,9 +124,11 @@ class TimeWrapper(Wrapper):
     #     self.time_manager = TimeManager(start_datetime, window_size, step_size, rule_frequency)
         
     def step(self, action):
+        obs, reward, done, truncated, info = super().step(action)
         action_window = self.time_manager.step()
-
-        return self.env.step(action)
+        info['action_window'] = action_window
+        return obs, reward, done, truncated, info
+        # return self.env.step(action)
     
 
     def reset(self, *, seed=None, options=None):

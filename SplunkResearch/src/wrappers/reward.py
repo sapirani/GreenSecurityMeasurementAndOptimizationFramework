@@ -22,7 +22,7 @@ from time_manager import TimeWindow
 
 class DistributionRewardWrapper(RewardWrapper):
     """Wrapper for distribution similarity rewards"""
-    def __init__(self, env: gym.Env, gamma: float = 0.2, epsilon: float = 1e-8, distribution_freq: int = 1):
+    def __init__(self, env: gym.Env, gamma: float = 0.2, epsilon: float = 1e-8, distribution_freq: int = 3):
         super().__init__(env)
         self.gamma = gamma
         self.epsilon = epsilon
@@ -30,21 +30,27 @@ class DistributionRewardWrapper(RewardWrapper):
         
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)
-        
+        # self.update_fake_distribution(self.episode_logs)
+
         step_counter = info.get('step', 0)
         if step_counter % self.distribution_reward_freq == 0:
-            dist_reward = self._calculate_distribution_reward(
-                info.get('real_distribution'),
-                info.get('fake_distribution')
+            dist_value = self._calculate_distribution_value(
+                self.real_state,
+                self.fake_state
             )
-            info['distribution_value'] = 0 - dist_reward
-            dist_reward /= 0.6
+            info['distribution_value'] = dist_value
+            dist_reward = self._calculate_distribution_reward(dist_value)
+            # dist_reward /= 0.6 # NOrmalize the reward
             info['distribution_reward'] = dist_reward
-            reward += self.gamma * dist_reward
+            reward += dist_reward
+            # reward += self.gamma * dist_reward
         logger.info(f"Distribution Reward: {reward}")  
         return obs, reward, terminated, truncated, info
     
-    def _calculate_distribution_reward(self, real_dist, fake_dist):
+    def _calculate_distribution_reward(self, distribution_value: float) -> float:
+        return 0.1 * np.log(distribution_value+self.epsilon) - distribution_value**2
+    
+    def _calculate_distribution_value(self, real_dist, fake_dist):
         # Add epsilon and normalize
         real_dist = (real_dist + self.epsilon) / np.sum(real_dist + self.epsilon)
         fake_dist = (fake_dist + self.epsilon) / np.sum(fake_dist + self.epsilon)
@@ -53,8 +59,8 @@ class DistributionRewardWrapper(RewardWrapper):
         m = (real_dist + fake_dist) / 2
         jsd = (self._kl_divergence(real_dist, m) + 
                self._kl_divergence(fake_dist, m)) / 2
-               
-        return -jsd
+        return jsd
+        # return -jsd
         
     def _kl_divergence(self, p, q):
         return np.sum(p * np.log(p / q))
@@ -196,14 +202,16 @@ class EnergyRewardWrapper(RewardWrapper):
         obs, reward, terminated, truncated, info = self.env.step(action)
         step = info.get('step', 0)
         if info.get('done', True) and info.get('distribution_reward') == 0:
-            reward = -step
+            reward += 0
+            # reward = -step
         elif info.get('done', True):
             current = info['combined_metrics']['cpu']
             baseline = info['combined_baseline_metrics']['cpu']
             energy_reward = (current - baseline) / baseline
-            energy_reward = max(energy_reward, 0)
+            energy_reward = np.clip(energy_reward, 0, 1) # Normalize to [0, 1]
             info['energy_reward'] = energy_reward
-            reward += (step%self.env.distribution_reward_freq) * self.alpha * energy_reward
+            reward +=  energy_reward
+            # reward += (step/self.env.distribution_reward_freq) * self.alpha * energy_reward
             
         return obs, reward, terminated, truncated, info
 
@@ -213,20 +221,21 @@ class AlertRewardWrapper(RewardWrapper):
         super().__init__(env)
         self.beta = beta
         self.epsilon = epsilon
-        self.expected_alerts = {'Windows Event For Service Disabled':3, 'Detect New Local Admin account':0, 'ESCU Network Share Discovery Via Dir Command Rule':0, 'Known Services Killed by Ransomware':3, 'Non Chrome Process Accessing Chrome Default Dir':0, 'Kerberoasting spn request with RC4 encryption':0, 'Clop Ransomware Known Service Name':0}
+        self.expected_alerts = {'Windows Event For Service Disabled':3, 'Detect New Local Admin account':0, 'ESCU Network Share Discovery Via Dir Command Rule':0, 'Known Services Killed by Ransomware':1, 'Non Chrome Process Accessing Chrome Default Dir':0, 'Kerberoasting spn request with RC4 encryption':0, 'Clop Ransomware Known Service Name':0}
         
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)
         step = info.get('step', 0)
         if info.get('done', True) and info.get('distribution_reward') == 0:
-            reward = -step
+            # reward = -step
+            reward += 0
         elif info.get('done', True):
             # Calculate alert reward
             current_alerts = {rule:info['raw_metrics'][rule]['alert'] for rule in self.expected_alerts}
             alert_reward = self._calculate_alert_reward(current_alerts)
             info['alert_reward'] = alert_reward
-            reward += (step%self.distribution_reward_freq) * self.beta * alert_reward
-            
+            # reward += (step/self.distribution_reward_freq) * self.beta * alert_reward
+            reward /= (alert_reward + self.epsilon)
         return obs, reward, terminated, truncated, info
     
 
@@ -236,14 +245,15 @@ class AlertRewardWrapper(RewardWrapper):
         rewards = []
         for rule, expected in self.expected_alerts.items():
             current = current_alerts.get(rule, 0)
-            gap = current - expected
-            reward = (gap + self.epsilon) / (expected + self.epsilon)
+            gap = max(0, current - expected)
+            reward = (gap) / (expected + self.epsilon)
             rewards.append(reward)
             
         if not rewards:
             return 0
             
-        return -np.mean(rewards) / (self.env.diversity_factor/self.epsilon)
+        return np.mean(rewards) #/ ((self.env.diversity_factor+1)/self.epsilon)
+        # return -np.mean(rewards) #/ ((self.env.diversity_factor+1)/self.epsilon)
 
 # class QuotaViolationWrapper(RewardWrapper):
 #     """Wrapper for quota violation penalties"""

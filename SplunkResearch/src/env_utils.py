@@ -1,3 +1,4 @@
+import datetime
 import logging
 import subprocess
 import json
@@ -52,7 +53,14 @@ def clean_env(splunk_tools_instance, time_range=None):
         return time_range
     # date = time_range[1].split(':')[0]
     # time_range = (f'{date}:00:00:00', f'{date}:23:59:59')
-    splunk_tools_instance.delete_fake_logs(time_range)
+    # add small mergine to the time range
+    start_time = datetime.datetime.strptime(time_range[0], "%m/%d/%Y:%H:%M:%S")
+    end_time = datetime.datetime.strptime(time_range[1], "%m/%d/%Y:%H:%M:%S")
+    start_time = start_time - datetime.timedelta(minutes=5)
+    end_time = end_time + datetime.timedelta(minutes=5)
+    time_range = (start_time.strftime("%m/%d/%Y:%H:%M:%S"), end_time.strftime("%m/%d/%Y:%H:%M:%S"))
     empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:security.txt")
     empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:system.txt")
+    splunk_tools_instance.delete_fake_logs(time_range)
+
     return time_range

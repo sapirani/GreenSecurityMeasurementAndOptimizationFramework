@@ -124,14 +124,14 @@ class SplunkTools(object):
 
     async def execute_query(self, search_name: str, query: str, earliest_time: float, latest_time: float) -> QueryMetrics:
         query = f" search {query}"
-        loop = asyncio.get_event_loop()
+        # loop = asyncio.get_event_loop()
 
         job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
         io_counters_dict = { "read_count": 0,  "write_count": 0, "read_bytes": 0, "write_bytes": 0}
         
         # Wait for job to get PID
         while True:
-            await loop.run_in_executor(None, job.refresh)  # Make job.refresh() non-blocking
+            job.refresh()  # Make job.refresh()() non-blocking
             stats = job.content
             pid = stats.get('pid', None)
             if pid is not None:
@@ -158,13 +158,13 @@ class SplunkTools(object):
                         # Get CPU times non-blockingly
                         process_end_cpu_time =  process.cpu_times().user
                         # Check if process is running in a non-blocking way
-                        is_running = await loop.run_in_executor(None, process.is_running)
+                        is_running = process.is_running
                         if not is_running:
                             logger.debug(f"Process {pid} has finished running")
                             break
                             
                         # Refresh job status non-blockingly
-                        await loop.run_in_executor(None, job.refresh)
+                        job.refresh()
                         if job.content['isDone'] == '1':
                             logger.debug(f"Job is marked as done")
                             break
@@ -189,10 +189,10 @@ class SplunkTools(object):
                         
                     except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
                         # If the process disappeared but the job isn't done, it might have spawned a new process
-                        await loop.run_in_executor(None, job.refresh)
+                        job.refresh()
                         if job.content['isDone'] == '0':
-                            logger.debug(e)
-                            logger.debug(f"Process {pid} disappeared but job isn't done. Waiting for job completion.")
+                            logger.error(e)
+                            logger.error(f"Process {pid} disappeared but job isn't done. Waiting for job completion.")
                             await asyncio.sleep(0.1)
                             continue
                         else:
@@ -211,7 +211,7 @@ class SplunkTools(object):
             finally:
                 # Ensure we get the final job status
                 try:
-                    await loop.run_in_executor(None, job.refresh)
+                    job.refresh()
                 except Exception as e:
                     logger.error(f"Error refreshing job status: {e}")
         
@@ -219,7 +219,7 @@ class SplunkTools(object):
         process_cpu_time = process_end_cpu_time - process_start_cpu_time
         
         # Get final job status
-        await loop.run_in_executor(None, job.refresh)
+        job.refresh()
         stats = job.content
         run_duration = float(stats.get('runDuration', 0))
         
@@ -479,7 +479,7 @@ class SplunkTools(object):
         ) 
         
         while True:
-            job.refresh()
+            job.refresh()()
             if job.content['isDone'] == '1':
                 break
             time.sleep(2)

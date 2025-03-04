@@ -17,7 +17,7 @@ import json
 from stable_baselines3.common.callbacks import BaseCallback, CallbackList
 from stable_baselines3 import A2C, PPO, DQN, DDPG, TD3, SAC
 from stable_baselines3.ppo.policies import MlpPolicy
-
+from sb3_contrib import RecurrentPPO
 from wrappers.reward import *
 from wrappers.state import *
 from wrappers.action import *
@@ -113,18 +113,14 @@ class ExperimentManager:
         top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
         top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
         top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
-        env = Action(env)
         
+        env = SingleAction2(env)
+        # env = Action(env)
+        # env = Action2(env)
+
         env = StateWrapper(env, top_logtypes)
         
-        # Add reward wrappers
-        if config.use_distribution_reward:
-            env = DistributionRewardWrapper(
-                env,
-                gamma=config.gamma_dist,
-                epsilon=1e-8,
-                distribution_freq=1
-            )
+
         
         if config.use_energy_reward:
             env = BaseRuleExecutionWrapper(env, baseline_dir=self.dirs['baseline'])
@@ -139,8 +135,19 @@ class ExperimentManager:
                 beta=config.beta_alert,
                 epsilon=1e-3
             )
-
+        
+        # Add reward wrappers
+        if config.use_distribution_reward:
+            env = DistributionRewardWrapper(
+                env,
+                gamma=config.gamma_dist,
+                epsilon=1e-8,
+                distribution_freq=1
+            )
         env = TimeWrapper(env)
+        
+        
+        
         # if config.use_quota_violation:
         #     env = QuotaViolationWrapper(env)
         
@@ -174,6 +181,8 @@ class ExperimentManager:
             return DQN
         elif model_type == "sac":
             return SAC
+        elif model_type == "recurrent_ppo":
+            return RecurrentPPO
         else:
             raise ValueError(f"Unknown model type: {model_type}")
     
@@ -198,13 +207,13 @@ class ExperimentManager:
             'verbose': 1
         }
         
-        if config.model_type in ['ppo', 'a2c']:
+        if config.model_type in ['recurrent_ppo', 'ppo', 'a2c']:
             model_kwargs.update({
                 'n_steps': config.n_steps,
                 # 'batch_size': config.batch_size,
                 # 'n_epochs': config.n_epochs,
                 'ent_coef': config.ent_coef,
-                'sde_sample_freq': 50,
+                'sde_sample_freq': 1200,
                 'use_sde': True
             })
             
@@ -246,6 +255,11 @@ class ExperimentManager:
             eval_config = replace(config, mode="eval")
             eval_config.env_config.env_id = "splunk_eval-v32"
             self.eval_env = self.create_environment(eval_config)
+
+            if config.experiment_name is None:
+                #clean and warm up the env
+                clean_env(env.splunk_tools, (env.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
+                env.warmup()
             # Setup callbacks
             config.experiment_name = experiment_name
             callbacks = self._setup_callbacks(config)
@@ -365,25 +379,23 @@ class ExperimentManager:
     
         
         return [
-            TensorboardCallback(
-                phase=config.mode,
-                experiment_kwargs=config
-            ),
+            CustomTensorboardCallback(),
             # HParamsCallback(
             #     experiment_kwargs=config,
             #     phase=config.get('phase', 'train')
             # ),
             CheckpointCallback(save_freq=1000, save_path=self.dirs['models'], name_prefix=config.experiment_name),
-            CustomEvalCallback(
+            
+            CustomEvalCallback3(
                 eval_env=self.eval_env,
-                n_eval_episodes=4,
+
+                n_eval_episodes=3,
                 eval_freq=240,
                 best_model_save_path=self.dirs['models'],
                 log_path=self.dirs['logs'],
-                eval_log_dir=str(self.dirs['tensorboard']/f"eval_{config.experiment_name}"),
+                # eval_log_dir=str(self.dirs['tensorboard']/f"eval_{config.experiment_name}"),
                 deterministic=True,
                 render=False,
-                callback_on_new_best=None,
                 verbose=1
             )
             
@@ -394,25 +406,26 @@ if __name__ == "__main__":
     # Create experiment config
     env_config = SplunkConfig(
         # fake_start_datetime="02/12/2025:00:00:00",
-        rule_frequency=180,
+        rule_frequency=60,
         search_window=2880,
         # savedsearches=["rule1", "rule2"],
         logs_per_minute=150,
         additional_percentage=.5,
         action_duration=7200,
-        num_of_measurements=3,
+        num_of_measurements=1,
         num_of_episodes=2000,
         env_id="splunk_train-v32"        
     )
     
     experiment_config = ExperimentConfig(
         env_config=env_config,
-        model_type="ppo",
-        policy_type="MlpPolicy",
+        model_type="recurrent_ppo",
+        policy_type="MlpLstmPolicy",
         learning_rate=1e-4,
         num_episodes=2000,
-        n_steps=96,
-        ent_coef=0.005
+        n_steps=8,
+        ent_coef=0.01,
+        gamma=1,
         # experiment_name="test_experiment"
     )
     

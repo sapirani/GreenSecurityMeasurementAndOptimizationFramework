@@ -119,8 +119,7 @@ class SplunkEnv(gym.Env):
         self.action_auditor = []
         self.step_violation = False
         self.done = False
-        clean_env(self.splunk_tools, (datetime.datetime.strptime(fake_start_datetime, '%m/%d/%Y:%H:%M:%S').timestamp(), datetime.datetime.now().timestamp()))
-        self._warmup()
+
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
         """Execute environment step."""
@@ -198,7 +197,7 @@ class SplunkEnv(gym.Env):
 
 
 
-    def _warmup(self) -> None:
+    def warmup(self) -> None:
         """Warm up the environment"""
         for _ in range(1):
             logger.info("Running saved searches for warmup")
