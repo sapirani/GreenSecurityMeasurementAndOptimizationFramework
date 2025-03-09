@@ -46,7 +46,7 @@ class ProcessNetworkMonitor:
         Sniff packets until receiving some trigger to stop (self._stop_sniffing:).
         Note: if we are not receiving any packet, without the timeout flag we will bw stuck here forever.
         (since the stop_filter is examined upon receiving a packet)
-        Hence, we force timeout to ensure that the self._stop_sniffing is still False.
+        Hence, we force timeout to ensure that self._stop_sniffing is still False.
         """
         while not self._stop_sniffing:
             sniff(prn=self._process_packet, iface=self._interfaces,
