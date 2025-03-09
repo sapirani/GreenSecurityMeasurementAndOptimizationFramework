@@ -7,7 +7,7 @@ background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Pe
 kill_background_process_when_main_finished = True
 summary_version = SummaryVersion.OTHER
 
-scanner_version = ScannerVersion.FULL
+scanner_version = ScannerVersion.WITHOUT_BATTERY
 
 power_plan = PowerPlan.BALANCED
 scan_option = ScanMode.ONE_SCAN
@@ -24,7 +24,7 @@ custom_scan_path = r'""'
 #custom_scan_path = fr'"C:\Users\Administrator\Desktop\GreenSecurity-FirstExperiment"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
 
-RUNNING_TIME = 2 * MINUTE # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
+RUNNING_TIME = 10 * SECOND # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
 MINIMUM_DELTA_CAPACITY = 200     # in mWh
 
@@ -38,6 +38,8 @@ screen_brightness_level = 75    # A number between 0 and 100
 # return to default settings (can be costumed)
 DEFAULT_SCREEN_TURNS_OFF_TIME = 4
 DEFAULT_TIME_BEFORE_SLEEP_MODE = 4
+
+is_inside_container = True
 
 # ==== ClamAV configurations
 recursive = True

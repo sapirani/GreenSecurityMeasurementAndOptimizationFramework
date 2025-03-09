@@ -62,7 +62,7 @@ class OSFuncsInterface:
         pass
 
     @abstractmethod
-    def get_computer_info(self):
+    def get_computer_info(self, is_inside_container: bool):
         pass
 
     @abstractmethod
@@ -169,11 +169,15 @@ class WindowsOS(OSFuncsInterface):
         #return subprocess.Popen(["powershell", "-Command", command],
         #                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 """
-    def get_computer_info(self):
+    def get_computer_info(self, is_inside_container: bool):
         wmi_system = self.c.Win32_ComputerSystem()[0]
 
-        return f"{wmi_system.Manufacturer} {wmi_system.SystemFamily} {wmi_system.Model} " \
-                        f"{platform.system()} {platform.release()}"
+        if is_inside_container:
+            return "results"
+
+        hardware_info = f"{wmi_system.Manufacturer} {wmi_system.SystemFamily} {wmi_system.Model}"
+
+        return f"{hardware_info} {platform.system()} {platform.release()}"
 
     def is_tamper_protection_enabled(self):
         """_summary_: tamper protection should be disabled for the program to work properly
@@ -334,14 +338,17 @@ class LinuxOS(OSFuncsInterface):
         res_lst = res.stdout.decode("utf-8").strip().split("\n")
         return list(map(lambda res_line: res_line[res_line.rfind(":") + 2:].strip(), res_lst))
 
-    def get_computer_info(self):
-        res = subprocess.run("dmidecode | grep -A3 '^System Information' | grep Manufacturer",
-                             capture_output=True, shell=True)
+    def get_computer_info(self, is_inside_container: bool):
+        if is_inside_container:
+            return "results"
 
-        if res.returncode != 0:
-            raise Exception(f'An error occurred while changing screen settings', res.stderr)
+        hardware_info_res = subprocess.run("dmidecode | grep -A3 '^System Information' | grep Manufacturer",
+                                           capture_output=True, shell=True)
 
-        manufacturer, = LinuxOS.get_value_of_terminal_res(res)
+        if hardware_info_res.returncode != 0:
+            raise Exception(f'An error occurred while getting computer info', hardware_info_res.stderr)
+
+        manufacturer, = LinuxOS.get_value_of_terminal_res(hardware_info_res)
 
         return f"{manufacturer} {platform.system()} {platform.release()}"
 

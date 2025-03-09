@@ -1,0 +1,11 @@
+.idea
+__pycache__
+Duplicates
+"Generated Files"
+GUI
+LENOVO*
+SapirModel
+tests
+
+# should be mounted
+program_parameters.py

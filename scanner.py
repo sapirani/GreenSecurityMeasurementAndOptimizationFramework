@@ -683,14 +683,16 @@ def before_scanning_operations():
         print("Exiting program")
         return
 
-    running_os.change_power_plan(chosen_power_plan_name, running_os.get_chosen_power_plan_identifier())
+    if not is_inside_container:
+        running_os.change_power_plan(chosen_power_plan_name, running_os.get_chosen_power_plan_identifier())
 
     if disable_real_time_protection_during_measurement:
         running_os.change_real_time_protection()
 
-    running_os.change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
+    if not is_inside_container:
+        running_os.change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
 
-    sbc.set_brightness(screen_brightness_level)
+        sbc.set_brightness(screen_brightness_level)
 
     psutil.cpu_percent()  # first call is meaningless
 
@@ -707,10 +709,11 @@ def after_scanning_operations(should_save_results=True):
     if should_save_results:
         save_results_to_files()
 
-    running_os.change_power_plan(running_os.get_default_power_plan_name(),
-                                 running_os.get_default_power_plan_identifier())  # return to default power plan
+    if not is_inside_container:
+        running_os.change_power_plan(running_os.get_default_power_plan_name(),
+                                     running_os.get_default_power_plan_identifier())  # return to default power plan
 
-    running_os.change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
+        running_os.change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
 
     if disable_real_time_protection_during_measurement:
         running_os.change_real_time_protection(should_disable=False)
