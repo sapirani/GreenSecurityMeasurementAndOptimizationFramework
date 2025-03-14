@@ -15,6 +15,6 @@ RUN green_security_venv/bin/pip install -r requirements/requirements_linux.txt
 
 COPY . .
 
-VOLUME ["/green_security_measurements/results", "/green_security_measurements/program_parameters.py"]
+VOLUME ["/green_security_measurements"]
 
 #ENTRYPOINT ["green_security_venv/bin/python", "scanner.py"]

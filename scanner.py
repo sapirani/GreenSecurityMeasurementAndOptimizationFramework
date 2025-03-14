@@ -1,4 +1,5 @@
 import shutil
+import signal
 import warnings
 
 from statistics import mean
@@ -42,6 +43,12 @@ battery_df = pd.DataFrame(columns=battery_columns_list)
 cpu_df = pd.DataFrame(columns=cpu_columns_list)
 
 finished_scanning_time = []
+
+
+def handle_sigint(signum, frame):
+    global done_scanning
+    print("Got signal, writing results and terminating")
+    done_scanning = True
 
 
 def save_current_total_memory():
@@ -214,11 +221,11 @@ def should_scan():
         return False
 
     if main_program_to_scan == ProgramToScan.NO_SCAN:
-        return not scan_time_passed()
+        return not scan_time_passed() and not done_scanning
     elif scan_option == ScanMode.ONE_SCAN:
         return not done_scanning
     elif scan_option == ScanMode.CONTINUOUS_SCAN:
-        return not (scan_time_passed() and is_delta_capacity_achieved())
+        return not (scan_time_passed() and is_delta_capacity_achieved()) and not done_scanning
         # return not scan_time_passed() and not is_delta_capacity_achieved()
 
 
@@ -724,6 +731,8 @@ def after_scanning_operations(should_save_results=True):
 
 def main():
     print("======== Process Monitor ========")
+
+    signal.signal(signal.SIGINT, handle_sigint)
 
     before_scanning_operations()
 
