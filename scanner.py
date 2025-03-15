@@ -24,6 +24,7 @@ done_scanning = False
 starting_time = 0
 main_process_id = None
 max_timeout_reached = False
+main_process = None
 
 # include main programs and background
 processes_ids = []
@@ -48,6 +49,8 @@ finished_scanning_time = []
 def handle_sigint(signum, frame):
     global done_scanning
     print("Got signal, writing results and terminating")
+    if main_process:
+        program.kill_process(main_process, running_os.is_posix()) # killing the main process
     done_scanning = True
 
 
@@ -437,6 +440,8 @@ def save_results_to_files():
     save_general_information_after_scanning()
     ignore_last_results()
 
+    print(f"Results are save to {base_dir}")
+
     processes_df.to_csv(PROCESSES_CSV, index=False)
     memory_df.to_csv(TOTAL_MEMORY_EACH_MOMENT_CSV, index=False)
     disk_io_each_moment_df.to_csv(DISK_IO_EACH_MOMENT, index=False)
@@ -619,6 +624,7 @@ def scan_and_measure():
     consumption of the whole system and per each process. Simultaneously, it starts the main program and
     background programs defined by the user (so the thread will measure them also)
     """
+    global main_process
     global done_scanning
     global starting_time
     global main_process_id
@@ -632,6 +638,7 @@ def scan_and_measure():
         main_process, main_process_id = start_process(program)
         timeout_timer = start_timeout(main_process, running_os.is_posix())
         background_processes = start_background_processes()
+        print("Waiting for the main process to terminate")
         result = main_process.wait()
 
         cancel_timeout_timer(timeout_timer)
