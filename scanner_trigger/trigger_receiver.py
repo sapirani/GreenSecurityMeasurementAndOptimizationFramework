@@ -1,3 +1,4 @@
+import argparse
 import os
 import socket
 import subprocess
@@ -13,8 +14,8 @@ SCANNER_TERMINATION_WAITING_SECONDS = 30
 scanner_path = r"scanner.py"
 python_path = r"python3"
 
-HOST = "0.0.0.0"
-PORT = 65432
+DEFAULT_HOST = "0.0.0.0"
+DEFAULT_PORT = 65432
 
 scanner_process: Optional[subprocess.Popen] = None
 
@@ -53,11 +54,11 @@ def stop_measurement() -> None:
     scanner_process = None
 
 
-def main():
+def main(host: str, port: int) -> None:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((HOST, PORT))
+        s.bind((host, port))
         s.listen()
-        logging.info(f"Listening on {HOST}:{PORT}")
+        logging.info(f"Listening on {host}:{port}")
 
         while True:
             conn, addr = s.accept()
@@ -79,4 +80,21 @@ def main():
 
 if __name__ == '__main__':
     logging_configuration.setup_logging()
-    main()
+
+    parser = argparse.ArgumentParser(
+        description="This script receives a trigger to start and stop the scanner"
+    )
+
+    parser.add_argument("-H", "--host",
+                        type=str,
+                        default=DEFAULT_HOST,
+                        help="ip address to listen on")
+
+    parser.add_argument("-P", "--port",
+                        type=int,
+                        default=DEFAULT_PORT,
+                        help="port to listen on")
+
+    args = parser.parse_args()
+
+    main(args.host, args.port)
