@@ -34,6 +34,7 @@ def main(trigger_message: str, receivers_addresses: List[Tuple[str, int]]) -> No
 
 if __name__ == '__main__':
     logging_configuration.setup_logging()
+    logging.info("Stating trigger sender")
 
     parser = argparse.ArgumentParser(
         description="""This script sends a trigger to the scanner trigger receivers. 

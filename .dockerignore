@@ -4,8 +4,7 @@ Duplicates
 "Generated Files"
 GUI
 LENOVO*
+results
 SapirModel
 tests
 
-# should be mounted
-program_parameters.py

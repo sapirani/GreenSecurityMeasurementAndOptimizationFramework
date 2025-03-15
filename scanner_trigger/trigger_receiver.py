@@ -11,8 +11,8 @@ from scanner_trigger import logging_configuration
 
 SCANNER_TERMINATION_WAITING_SECONDS = 30
 
-scanner_path = r"scanner.py"
-python_path = r"python3"
+DEFAULT_SCANNER_PATH = r"scanner.py"
+DEFAULT_PYTHON_PATH = r"python3"
 
 DEFAULT_HOST = "0.0.0.0"
 DEFAULT_PORT = 65432
@@ -20,7 +20,7 @@ DEFAULT_PORT = 65432
 scanner_process: Optional[subprocess.Popen] = None
 
 
-def start_measurement() -> None:
+def start_measurement(python_path: str, scanner_path: str) -> None:
     global scanner_process
     if scanner_process:
         logging.warning("Got a request to start scanner but scanner is already running, ignoring")
@@ -54,7 +54,7 @@ def stop_measurement() -> None:
     scanner_process = None
 
 
-def main(host: str, port: int) -> None:
+def main(host: str, port: int, python_path: str, scanner_path: str) -> None:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((host, port))
         s.listen()
@@ -68,7 +68,7 @@ def main(host: str, port: int) -> None:
                 logging.debug(f"Received a message: {message}")
 
                 if message == b"start_measurement":
-                    start_measurement()
+                    start_measurement(python_path, scanner_path)
 
                 elif message == b"stop_measurement":
                     stop_measurement()
@@ -80,6 +80,7 @@ def main(host: str, port: int) -> None:
 
 if __name__ == '__main__':
     logging_configuration.setup_logging()
+    logging.info("Stating trigger receiver")
 
     parser = argparse.ArgumentParser(
         description="This script receives a trigger to start and stop the scanner"
@@ -95,6 +96,16 @@ if __name__ == '__main__':
                         default=DEFAULT_PORT,
                         help="port to listen on")
 
+    parser.add_argument("--python_path",
+                        type=str,
+                        default=DEFAULT_PYTHON_PATH,
+                        help="python path for running the scanner")
+
+    parser.add_argument("--scanner_path",
+                        type=str,
+                        default=DEFAULT_SCANNER_PATH,
+                        help="path to the scanner")
+
     args = parser.parse_args()
 
-    main(args.host, args.port)
+    main(args.host, args.port, args.python_path, args.scanner_path)
