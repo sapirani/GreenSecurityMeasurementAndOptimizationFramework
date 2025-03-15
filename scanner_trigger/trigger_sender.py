@@ -19,7 +19,13 @@ def parse_addresses(value: str) -> List[Tuple[str, int]]:
     return result
 
 
+def decorate_addresses(addresses: List[Tuple[str, int]]) -> str:
+    return "\n".join([f"Host: {host}, Port: {port}" for host, port in addresses])
+
+
 def main(trigger_message: str, receivers_addresses: List[Tuple[str, int]]) -> None:
+    logging.info("Sending trigger to the following addresses:\n" + decorate_addresses(receivers_addresses))
+
     for receiver_address in receivers_addresses:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(CONNECT_TIMEOUT)
