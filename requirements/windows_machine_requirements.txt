@@ -1,0 +1,6 @@
+-r container_requirements.txt
+
+# ===== Windows Only =====
+pywin32==303
+WMI==1.5.1
+screen-brightness-control==0.16.2

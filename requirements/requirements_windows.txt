@@ -1,5 +1,0 @@
--r base_requirements.txt
-
-# ===== Windows Only =====
-pywin32==303
-WMI==1.5.1

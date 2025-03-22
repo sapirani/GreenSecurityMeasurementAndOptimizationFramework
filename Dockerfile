@@ -11,7 +11,7 @@ WORKDIR /green_security_measurements
 RUN python -m venv green_security_venv
 
 COPY requirements requirements
-RUN green_security_venv/bin/pip install -r requirements/requirements_linux.txt
+RUN green_security_venv/bin/pip install -r requirements/container_requirements.txt
 
 COPY . .
 

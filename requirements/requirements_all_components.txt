@@ -1,3 +1,4 @@
+-r container_requirements.txt
 python-dateutil==2.8.2
 document==1.0
 docx==0.2.4
@@ -12,7 +13,6 @@ prettytable==3.3.0
 psutil==7.0.0.
 python-docx==0.8.11
 python-pptx==0.6.21
-screen-brightness-control==0.16.2
 selenium==4.8.0
 tqdm==4.64.0
 tk==0.1.0
