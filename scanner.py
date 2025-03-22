@@ -9,7 +9,6 @@ import pandas as pd
 from initialization_helper import *
 from datetime import date
 from pathlib import Path
-import screen_brightness_control as sbc
 from general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
 from process_connections import ProcessNetworkMonitor
 
@@ -705,7 +704,7 @@ def before_scanning_operations():
 
     if not is_inside_container:
         running_os.change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
-
+        import screen_brightness_control as sbc
         sbc.set_brightness(screen_brightness_level)
 
     psutil.cpu_percent()  # first call is meaningless
