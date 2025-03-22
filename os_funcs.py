@@ -179,7 +179,7 @@ class WindowsOS(OSFuncsInterface):
         wmi_system = self.c.Win32_ComputerSystem()[0]
 
         if is_inside_container:
-            return "results"
+            return f"results_{self.get_hostname()}"
 
         hardware_info = f"{wmi_system.Manufacturer} {wmi_system.SystemFamily} {wmi_system.Model}"
 
