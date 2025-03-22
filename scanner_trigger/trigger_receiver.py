@@ -22,7 +22,7 @@ scanner_process: Optional[subprocess.Popen] = None
 
 def start_measurement(python_path: str, scanner_path: str) -> None:
     global scanner_process
-    if scanner_process:
+    if scanner_process and scanner_process.poll() is None:
         logging.warning("Got a request to start scanner but scanner is already running, ignoring")
         return
     
