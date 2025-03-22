@@ -70,6 +70,11 @@ class OSFuncsInterface:
         pass
 
     @staticmethod
+    def get_hostname():
+        import socket
+        return socket.gethostname()
+
+    @staticmethod
     def popen(command, find_child_id_func, should_use_powershell, is_posix, should_find_child_id=False, f_stdout=subprocess.PIPE, f_stderr=subprocess.PIPE):
         print(command)
         def process_obj_and_pid(command_lst):
@@ -169,6 +174,7 @@ class WindowsOS(OSFuncsInterface):
         #return subprocess.Popen(["powershell", "-Command", command],
         #                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 """
+
     def get_computer_info(self, is_inside_container: bool):
         wmi_system = self.c.Win32_ComputerSystem()[0]
 
@@ -340,7 +346,7 @@ class LinuxOS(OSFuncsInterface):
 
     def get_computer_info(self, is_inside_container: bool):
         if is_inside_container:
-            return "results"
+            return f"results_{self.get_hostname()}"
 
         hardware_info_res = subprocess.run("dmidecode | grep -A3 '^System Information' | grep Manufacturer",
                                            capture_output=True, shell=True)
