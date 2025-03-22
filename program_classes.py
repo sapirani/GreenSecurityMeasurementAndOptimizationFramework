@@ -285,7 +285,7 @@ class PythonServer(ProgramInterface):
 
 class IDSProgram(ProgramInterface):
     def __init__(self, interface_name, pcap_list_dirs, log_dir, configuration_file_path=None,
-                 installation_dir="C:\Program Files"):
+                 installation_dir=r"C:\Program Files"):
         super().__init__()
         self.interface_name = interface_name
         self.pcap_list_dirs = pcap_list_dirs
@@ -365,10 +365,10 @@ class SplunkProgram(ProgramInterface):
 
             stdout = result.stdout.decode('utf-8')
             if is_posix:
-                run_match = re.search(f'(PID:\s*(\d+))', stdout)
+                run_match = re.search(fr'(PID:\s*(\d+))', stdout)
                 print(run_match)
             else:
-                run_match = re.search(f'(pid\s*(\d+))', stdout)
+                run_match = re.search(fr'(pid\s*(\d+))', stdout)
 
             # stop_match_linux = re.search(f'splunkd is not running.', stdout)
             # stop_match_windows = re.search(f'Splunkd: Stopped', stdout)
