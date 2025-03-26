@@ -114,28 +114,15 @@ class ExperimentManager:
         top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
         top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
         
-        env = SingleAction2(env)
+        # env = SingleAction2(env)
         # env = Action(env)
-        # env = Action2(env)
+        env = Action3(env)
+        env = TimeWrapper(env)
 
         env = StateWrapper(env, top_logtypes)
         
 
-        
-        if config.use_energy_reward:
-            env = BaseRuleExecutionWrapper(env, baseline_dir=self.dirs['baseline'])
-            env = EnergyRewardWrapper(
-                env,
-                alpha=config.alpha_energy
-            )
-        
-        if config.use_alert_reward:
-            env = AlertRewardWrapper(
-                env,
-                beta=config.beta_alert,
-                epsilon=1e-3
-            )
-        
+                
         # Add reward wrappers
         if config.use_distribution_reward:
             env = DistributionRewardWrapper(
@@ -144,24 +131,29 @@ class ExperimentManager:
                 epsilon=1e-8,
                 distribution_freq=1
             )
-        env = TimeWrapper(env)
+        if config.use_energy_reward:
+            env = BaseRuleExecutionWrapper(env, baseline_dir=self.dirs['baseline'])
+            env = EnergyRewardWrapper(
+                env,
+                alpha=config.alpha_energy
+            )
         
-        
-        
-        # if config.use_quota_violation:
-        #     env = QuotaViolationWrapper(env)
-        
-        # Vectorize and normalize
-        # env = DummyVecEnv([lambda: env])
-        # env = VecNormalize(
-        #     env,
-        #     norm_obs=True,
-        #     norm_reward=True,
-        #     clip_obs=10.,
-        #     clip_reward=10.,
-        #     gamma=config.gamma
-        # )
-        
+        if config.use_alert_reward:
+            # env = AlertRewardWrapper(
+            #     env,
+            #     beta=config.beta_alert,
+            #     epsilon=1e-3
+            # )
+            env = AlertRewardWrapper1(
+                env,
+                beta=config.beta_alert,
+                epsilon=1e-3
+            )
+        # env = ClipRewardWrapper(env,
+        #                         low=0,
+        #                         high=1)
+
+
         return env
 
 
@@ -213,7 +205,7 @@ class ExperimentManager:
                 # 'batch_size': config.batch_size,
                 # 'n_epochs': config.n_epochs,
                 'ent_coef': config.ent_coef,
-                'sde_sample_freq': 1200,
+                'sde_sample_freq': 230,
                 'use_sde': True
             })
             
@@ -326,6 +318,34 @@ class ExperimentManager:
             "episode_rewards": episode_rewards
         }
 
+    def _load_existing_model(self, config: ExperimentConfig, env: gym.Env):
+        """Load model from path"""
+        model_cls = self._get_model_class(config.model_type)
+        model = model_cls.load(config.model_path, env=env)
+        
+        
+        return model
+    
+    def _run_retraining(self, model, env, config, callbacks):
+        """Run retraining experiment"""
+        total_timesteps = env.total_steps * config.num_episodes
+              
+        # model = self.load_model(config.model_path, env)
+
+         
+        model.learn(
+            total_timesteps=total_timesteps,
+            callback=callbacks,
+            tb_log_name=config.experiment_name
+        )
+        model_path = self.dirs['models'] / f"{config.experiment_name}.zip"
+        model.save(str(model_path))
+        
+        return {
+            "model_path": str(model_path),
+            "total_timesteps": total_timesteps
+        }
+    
     def _record_experiment_start(self, experiment_id: str, name: str, 
                                config: ExperimentConfig):
         """Record experiment start in database"""
@@ -390,7 +410,7 @@ class ExperimentManager:
                 eval_env=self.eval_env,
 
                 n_eval_episodes=3,
-                eval_freq=240,
+                eval_freq=460,
                 best_model_save_path=self.dirs['models'],
                 log_path=self.dirs['logs'],
                 # eval_log_dir=str(self.dirs['tensorboard']/f"eval_{config.experiment_name}"),
@@ -404,8 +424,10 @@ class ExperimentManager:
 # Example usage:
 if __name__ == "__main__":
     # Create experiment config
+    retrain_fake_start_datetime = "04/01/2024:00:00:00"
+    
     env_config = SplunkConfig(
-        # fake_start_datetime="02/12/2025:00:00:00",
+        fake_start_datetime=retrain_fake_start_datetime,
         rule_frequency=60,
         search_window=2880,
         # savedsearches=["rule1", "rule2"],
@@ -413,21 +435,26 @@ if __name__ == "__main__":
         additional_percentage=.5,
         action_duration=7200,
         num_of_measurements=1,
-        num_of_episodes=2000,
         env_id="splunk_train-v32"        
     )
-    
     experiment_config = ExperimentConfig(
         env_config=env_config,
         model_type="recurrent_ppo",
         policy_type="MlpLstmPolicy",
         learning_rate=1e-4,
-        num_episodes=2000,
-        n_steps=8,
+        num_episodes=6000,
+        n_steps=23,
         ent_coef=0.01,
         gamma=1,
-        # experiment_name="test_experiment"
+        experiment_name="test_experiment"
     )
+    
+    #retrain model
+    experiment_config.mode = "retrain"
+    
+    model_path = "/home/shouei/GreenSecurity-FirstExperiment/experiments/models/train_20250320100253_42000_steps.zip"
+    experiment_config.model_path = model_path
+    
     
     # Create manager and run experiment
     manager = ExperimentManager(base_dir="experiments")

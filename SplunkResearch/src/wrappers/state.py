@@ -26,12 +26,13 @@ class StateWrapper(ObservationWrapper):
         self.total_episode_logs = 0
         self._normalize_factor = 500000
         self.real_relevant_distribution = {"_".join(logtype): 0 for logtype in self.relevant_logtypes}
+        self.fake_relevant_distribution = {"_".join(logtype): 0 for logtype in self.relevant_logtypes}
         self.relevant_logtypes_indices = {logtype: i for i, logtype in enumerate(self.top_logtypes) if logtype in self.relevant_logtypes}
         # Define observation space for normalized distributions
         self.observation_space = spaces.Box(
             low=0,
             high=1,
-            shape=(len(self.top_logtypes)*2 + 4,),  # +1 for 'other' category
+            shape=(len(self.top_logtypes)*2 + 2 +1,),  # +1 for 'other' category
             dtype=np.float64
         )
 
@@ -42,6 +43,7 @@ class StateWrapper(ObservationWrapper):
             # 'fake_distribution': self.fake_state,
             'total_current_logs': self.total_current_logs,
             'real_relevant_distribution': self.real_relevant_distribution,
+            'fake_relevant_distribution': self.fake_relevant_distribution,
             'total_episode_logs': self.total_episode_logs,
         }
 
@@ -71,12 +73,14 @@ class StateWrapper(ObservationWrapper):
         self.real_relevant_distribution = {"_".join(logtype): self.real_state[self.relevant_logtypes_indices[logtype]] for logtype in self.relevant_logtypes}
         fake_state = self._get_state_vector(self.fake_distribution)
         self.fake_state = self._normalize(fake_state)
+        self.fake_relevant_distribution = {"_".join(logtype): self.fake_state[self.relevant_logtypes_indices[logtype]] for logtype in self.relevant_logtypes}
         # Create the final state vector
         state = np.append(self.real_state, self.fake_state)
-        state = np.append(state, min(1, self.total_episode_logs/self._normalize_factor))
-        fake_total_logs = self.total_episode_logs + sum(self.episode_logs.values())
-        state = np.append(state, min(1, fake_total_logs/self._normalize_factor))
-                
+        # state = np.append(state, min(1, self.total_episode_logs/self._normalize_factor))
+        # fake_total_logs = self.total_episode_logs + sum(self.episode_logs.values())
+        # state = np.append(state, min(1, fake_total_logs/self._normalize_factor))
+        # append to state the step index
+        state = np.append(state, self.env.step_counter/self.env.total_steps)
         logger.info(f"State: {state}")
         return state
 
@@ -123,17 +127,16 @@ class StateWrapper(ObservationWrapper):
         """Reset the wrapper state"""
         # Reset underlying environment first
         obs, info = self.env.reset(seed=seed, options=options)
-        
-        # Reset distributions
+        self.total_episode_logs = 0
         self.real_distribution = {logtype: 0 for logtype in self.top_logtypes}
         self.real_distribution['other'] = 0
         self.fake_distribution = {logtype: 0 for logtype in self.top_logtypes}
         self.fake_distribution['other'] = 0
-        
-        self.real_state = np.array([])
-        self.fake_state = np.array([])
-        self.total_episode_logs = 0
-        new_obs = np.zeros(self.observation_space.shape)
+
+
+        self.real_relevant_distribution = {"_".join(logtype): 0 for logtype in self.relevant_logtypes}
+        new_obs = self.observation(obs)
+
         return new_obs, info
 
 # Example usage:

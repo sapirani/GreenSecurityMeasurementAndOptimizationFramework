@@ -103,11 +103,13 @@ class Action(ActionWrapper):
     def step(self, action):
         """Inject logs and step environment"""
         logger.info(f"Raw action: {action}")
+        obs, reward, terminated, truncated, info = self.env.step(action)
         self._calculate_quota()
         logs_to_inject = self.action(action)
+        logger.info(f"Action: {logs_to_inject}")
+        logger.info(f"Action window: {self.time_manager.action_window.to_tuple()}")
         self.inject_logs(logs_to_inject)
         
-        obs, reward, terminated, truncated, info = self.env.step(logs_to_inject)
 
         
         
@@ -271,6 +273,56 @@ class Action2(Action):
 
                 self.episode_logs[key] += log_count
                 self.diversity_episode_logs[key] = max(round(diversity_levels[i]), self.diversity_episode_logs[key])
+        
+        return logs_to_inject
+
+class Action3(Action):
+    
+    def __init__(self, env):
+        super().__init__(
+            env
+        )
+        self.action_space = spaces.Box(
+            low=0,
+            high=1,
+            shape=(1 + len(self.relevant_logtypes)*2,),
+            dtype=np.float32
+        )
+    
+    def action(self, action):
+        """Convert raw action to log injection dictionary"""
+        # Split action into quota and distribution
+        quota_pct = action[0]
+        distribution = action[1:1+len(self.relevant_logtypes)]
+        trigger_levels = action[1+len(self.relevant_logtypes):2*len(self.relevant_logtypes)+1]* self.diversity_factor
+
+        # Normalize distribution
+        distribution = distribution / (np.sum(distribution) + 1e-8)
+        
+        # Calculate number of logs to inject
+        num_logs = int(quota_pct * self.remaining_quota)
+        self.inserted_logs = num_logs
+        # self.remaining_quota = self.quota - num_logs
+        
+        # Distribute logs among types
+        logs_to_inject = {}
+        for i, logtype in enumerate(self.relevant_logtypes):
+            trigger_level_i = round(trigger_levels[i])
+            is_trigger = min(trigger_level_i, 1)
+            log_count = int(distribution[i] * num_logs)
+            key = f"{logtype[0]}_{logtype[1]}_{int(is_trigger)}"
+            if log_count > 0:
+                logs_to_inject[key] = {
+                    'count': log_count,
+                    'diversity': trigger_level_i
+                }
+                
+                # Track logs
+                self.current_logs[key] = log_count
+
+
+                self.episode_logs[key] += log_count
+                self.diversity_episode_logs[key] = max(trigger_level_i, self.diversity_episode_logs[key])
         
         return logs_to_inject
 # Usage example:

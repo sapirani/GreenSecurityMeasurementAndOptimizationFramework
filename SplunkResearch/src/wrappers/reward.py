@@ -20,51 +20,7 @@ from time_manager import TimeWindow
 
 
 
-class DistributionRewardWrapper(RewardWrapper):
-    """Wrapper for distribution similarity rewards"""
-    def __init__(self, env: gym.Env, gamma: float = 0.2, epsilon: float = 1e-8, distribution_freq: int = 3):
-        super().__init__(env)
-        self.gamma = gamma
-        self.epsilon = epsilon
-        self.distribution_reward_freq = distribution_freq
-        
-    def step(self, action):
-        obs, reward, terminated, truncated, info = self.env.step(action)
-        # self.update_fake_distribution(self.episode_logs)
 
-        step_counter = info.get('step', 0)
-        if step_counter % self.distribution_reward_freq == 0:
-            dist_value = self._calculate_distribution_value(
-                self.real_state,
-                self.fake_state
-            )
-            info['distribution_value'] = dist_value
-            dist_reward = self._calculate_distribution_reward(dist_value)
-            # dist_reward /= 0.6 # NOrmalize the reward
-            info['distribution_reward'] = dist_reward
-            reward += dist_reward
-            # reward += self.gamma * dist_reward
-        logger.info(f"Distribution Reward: {reward}")  
-        return obs, reward, terminated, truncated, info
-    
-    def _calculate_distribution_reward(self, distribution_value: float) -> float:
-        return 0.1 * np.log(distribution_value+self.epsilon) - distribution_value**2
-    
-    def _calculate_distribution_value(self, real_dist, fake_dist):
-        # Add epsilon and normalize
-        real_dist = (real_dist + self.epsilon) / np.sum(real_dist + self.epsilon)
-        fake_dist = (fake_dist + self.epsilon) / np.sum(fake_dist + self.epsilon)
-        
-        # Calculate JSD
-        m = (real_dist + fake_dist) / 2
-        jsd = (self._kl_divergence(real_dist, m) + 
-               self._kl_divergence(fake_dist, m)) / 2
-        return jsd
-        # return -jsd
-        
-    def _kl_divergence(self, p, q):
-        return np.sum(p * np.log(p / q))
-    
 class BaseRuleExecutionWrapper(RewardWrapper):
     """Base wrapper that handles rule execution and baseline management"""
     
@@ -171,8 +127,11 @@ class BaseRuleExecutionWrapper(RewardWrapper):
     def step(self, action):
         """Override step to properly handle info updates"""
         obs, reward, terminated, truncated, info = super().step(action)
+        if info.get('done', True) and info.get('distribution_reward') == 0:
+            reward = 0
+
         # wait for the events to be indexed
-        if info.get('done', True) and info.get('distribution_reward') != 0:
+        if info.get('done', True):
             inserted_logs = info.get('inserted_logs', 0)
             asyncio.run(asyncio.sleep(2 + np.log(inserted_logs + 1)))
             
@@ -202,16 +161,16 @@ class EnergyRewardWrapper(RewardWrapper):
         obs, reward, terminated, truncated, info = self.env.step(action)
         step = info.get('step', 0)
         if info.get('done', True) and info.get('distribution_reward') == 0:
-            reward += 0
-            # reward = -step
-        elif info.get('done', True):
+            reward = 0
+
+        if info.get('done', True):
             current = info['combined_metrics']['cpu']
             baseline = info['combined_baseline_metrics']['cpu']
             energy_reward = (current - baseline) / baseline
             energy_reward = np.clip(energy_reward, 0, 1) # Normalize to [0, 1]
             info['energy_reward'] = energy_reward
-            reward +=  energy_reward
-            # reward += (step/self.env.distribution_reward_freq) * self.alpha * energy_reward
+            # reward +=  energy_reward
+            reward += self.alpha * energy_reward
             
         return obs, reward, terminated, truncated, info
 
@@ -226,21 +185,36 @@ class AlertRewardWrapper(RewardWrapper):
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)
         step = info.get('step', 0)
+        
         if info.get('done', True) and info.get('distribution_reward') == 0:
-            # reward = -step
-            reward += 0
-        elif info.get('done', True):
+            reward = 0
+
+        if info.get('done', True):
             # Calculate alert reward
             current_alerts = {rule:info['raw_metrics'][rule]['alert'] for rule in self.expected_alerts}
+            baseline_alerts = {rule:info['raw_baseline_metrics'][rule]['alert'] for rule in self.expected_alerts}
+            diversity_episode_logs = info['diversity_episode_logs']
             alert_reward = self._calculate_alert_reward(current_alerts)
+            self._sanity_check(current_alerts, baseline_alerts, diversity_episode_logs)
             info['alert_reward'] = alert_reward
-            # reward += (step/self.distribution_reward_freq) * self.beta * alert_reward
-            reward /= (alert_reward + self.epsilon)
+            reward += self.beta * alert_reward
+
+            # reward /= (alert_reward + self.epsilon)
         return obs, reward, terminated, truncated, info
     
+    def _sanity_check(self, current_alerts: Dict, baseline_alerts:Dict, diversity_episodes_logs: Dict):
+        for rule, expected in self.expected_alerts.items():
+            current = current_alerts.get(rule, 0)
+            baseline = baseline_alerts.get(rule, 0)
+            relevant_log = self.section_logtypes.get(rule, None)
+            relevant_log = "_".join(relevant_log[0])
+            relevant_log = "_".join((relevant_log, "1"))
+            diversity = diversity_episodes_logs.get(relevant_log, 0)
+            gap = current - baseline
+            if gap - diversity < 0:
+                logger.error(f"Gap is less than diversity: {rule}, current: {current}, baseline: {baseline}, diversity: {diversity}")
 
-    
-    
+                    
     def _calculate_alert_reward(self, current_alerts: Dict) -> float:
         rewards = []
         for rule, expected in self.expected_alerts.items():
@@ -248,13 +222,93 @@ class AlertRewardWrapper(RewardWrapper):
             gap = max(0, current - expected)
             reward = (gap) / (expected + self.epsilon)
             rewards.append(reward)
-            
+
         if not rewards:
             return 0
             
-        return np.mean(rewards) #/ ((self.env.diversity_factor+1)/self.epsilon)
+        return -np.mean(rewards) / ((self.env.diversity_factor+1)/self.epsilon)
         # return -np.mean(rewards) #/ ((self.env.diversity_factor+1)/self.epsilon)
 
+class AlertRewardWrapper1(AlertRewardWrapper):
+    def __init__(self, env: gym.Env, beta: float = 0.3, epsilon: float = 1e-3):
+        super().__init__(env, beta, epsilon)
+        self.k = 1
+    def _calculate_alert_reward(self, current_alerts: Dict) -> float:
+        rewards = []
+        for rule, expected in self.expected_alerts.items():
+            current = current_alerts.get(rule, 0)
+            gap = max(0, current - expected)
+            reward = (gap) / (expected + self.epsilon)
+            rewards.append(reward)
+
+        if not rewards:
+            return 0
+        for i in range(len(rewards)):
+                rewards[i] = min(rewards[i], self.k) 
+        return np.sum(5*(np.log(self.k + self.epsilon - reward) - np.log(self.k)) for reward in rewards)
+        # return -np.mean(rewards) #/ ((self.env.diversity_factor+1)/self.epsilon)
+        
+class DistributionRewardWrapper(RewardWrapper):
+    """Wrapper for distribution similarity rewards"""
+    def __init__(self, env: gym.Env, gamma: float = 0.2, epsilon: float = 1e-8, distribution_freq: int = 3):
+        super().__init__(env)
+        self.gamma = gamma
+        self.epsilon = epsilon
+        self.distribution_reward_freq = distribution_freq
+        
+    def step(self, action):
+        obs, reward, terminated, truncated, info = self.env.step(action)
+        # self.update_fake_distribution(self.episode_logs)
+
+        step_counter = info.get('step', 0)
+        if info.get('done', True):
+            dist_value = self._calculate_distribution_value(
+                self.real_state,
+                self.fake_state
+            )
+            info['distribution_value'] = dist_value
+            dist_reward = self._calculate_distribution_reward(dist_value)
+            # dist_reward /= 0.6 # NOrmalize the reward
+            info['distribution_reward'] = dist_reward
+            # reward += dist_reward
+            if dist_reward == 0:
+                reward = 0
+            else:
+                reward += self.gamma * dist_reward
+        # since this is the last wrapper, we can consider it as final reward
+        logger.info(f"Reward: {reward}")  
+        return obs, reward, terminated, truncated, info
+    
+    def _calculate_distribution_reward(self, distribution_value: float) -> float:
+        # return 0.1 * np.log(distribution_value+self.epsilon) - distribution_value**2
+        return -distribution_value
+    
+    def _calculate_distribution_value(self, real_dist, fake_dist):
+        # Add epsilon and normalize
+        real_dist = (real_dist + self.epsilon) / np.sum(real_dist + self.epsilon)
+        fake_dist = (fake_dist + self.epsilon) / np.sum(fake_dist + self.epsilon)
+        
+        # Calculate JSD
+        m = (real_dist + fake_dist) / 2
+        jsd = (self._kl_divergence(real_dist, m) + 
+               self._kl_divergence(fake_dist, m)) / 2
+        return jsd
+        # return -jsd
+        
+    def _kl_divergence(self, p, q):
+        return np.sum(p * np.log(p / q))
+
+
+class ClipRewardWrapper(RewardWrapper):
+    """Clip reward values to a given range"""
+    def __init__(self, env: gym.Env, low: float = -1.0, high: float = 1.0):
+        super().__init__(env)
+        self.low = low
+        self.high = high
+    
+    def reward(self, reward: float) -> float:
+        return np.clip(reward, self.low, self.high)
+   
 # class QuotaViolationWrapper(RewardWrapper):
 #     """Wrapper for quota violation penalties"""
 #     def __init__(self, env: gym.Env, penalty: float = 1.0):

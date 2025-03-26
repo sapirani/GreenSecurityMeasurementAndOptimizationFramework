@@ -102,7 +102,7 @@ class SplunkTools(object):
                 break
             except Exception as e:
                 logger.error(f'Failed to connect to Splunk: {str(e)}')
-                time.sleep(5)
+                time.sleep(120)#TODO: change to 5
         self._initialized = True
 
     
@@ -200,8 +200,9 @@ class SplunkTools(object):
                             break
                         
                     # Add timeout protection
-                    if time.time() - process_start_time > 300:  # 5 minute timeout
-                        logger.warning(f"Process monitoring timed out after 5 minutes for pid {pid}")
+                    if time.time() - process_start_time > 600:  # 5 minute timeout
+                        logger.warning(f"Process monitoring timed out after 10 minutes for pid {pid}")
+                        job.cancel()
                         break
                         
             except psutil.NoSuchProcess:
@@ -241,7 +242,7 @@ class SplunkTools(object):
             io_metrics=io_counters_dict
         )
         
-        return metric
+        return metric, results
 
 
     async def run_saved_search(self, saved_search: Dict[str, str], time_range: Tuple[str, str]) -> QueryMetrics:
@@ -286,7 +287,7 @@ class SplunkTools(object):
             results = await asyncio.gather(*all_tasks)
             
             # Filter out any failed measurements
-            valid_results = [r for r in results if isinstance(r, QueryMetrics)]
+            valid_results = [m for m, r in results if isinstance(m, QueryMetrics)]
             for result in valid_results:
                 result.start_time = time_range[0]
                 result.end_time = time_range[1]
@@ -571,6 +572,7 @@ class SplunkTools(object):
         #         self.real_logtypes_counter[logtype] = res_dict[logtype]
         
         return res_dict
+        return res_dict
     
     def get_search_details(self, search,  is_measure_energy=False):
         search_id = search['search_id'].strip('\'')
@@ -647,19 +649,26 @@ class SplunkTools(object):
         return results
     
     def delete_fake_logs(self, time_range=None):
-        url = f"{self.base_url}/services/search/jobs/export"
+        # Use RFC3339 format for Splunk query
         if time_range is None:
-            time_expression = 'earliest=0'
-        else:
-            time_expression = f'earliest="{time_range[0]}" latest="{time_range[1]}"'
-        data = {
-            "search": f'search index=main sourcetype IN ("xmlwineventlog", "wineventlog") host="dt-splunk" {time_expression} | delete',
-           
-            "output_mode": "json"
-        }
-        response = requests.post(url, headers=HEADERS, data=data, auth=self.auth, verify=False)
-        results = response.text
-        logger.info(time_range)
+            time_range = ("0", datetime.now())
+        start_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+        end_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+        job = self.service.jobs.create(
+            f'search index=main host="dt-splunk" | delete', 
+            earliest_time=start_time, 
+            latest_time=end_time,
+            time_format='%Y-%m-%d %H:%M:%S',
+            count=0
+        )
+        while True:
+            job.refresh()
+            if job.content['isDone'] == '1':
+                break
+            time.sleep(2)
+        
+        # Get the results properly
+        results = job.results(output_mode='json')
         logger.info(results)
 
     def save_logs(self, log_source, eventcode, logs):

@@ -79,7 +79,7 @@ class SplunkEnv(gym.Env):
         super().__init__()
                 # Initialize time manager
         self.time_manager = TimeManager(
-            start_datetime=fake_start_datetime if fake_start_datetime else config.fake_start_datetime,
+            start_datetime=config.fake_start_datetime if config.fake_start_datetime else fake_start_datetime,
             window_size=config.search_window,
             step_size=config.action_duration,
             rule_frequency=config.rule_frequency
@@ -102,6 +102,7 @@ class SplunkEnv(gym.Env):
 
         # Store configuration
         self.config = config
+        self.section_logtypes = section_logtypes
         self.relevant_logtypes = sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]}))
         self.savedsearches = savedsearches
         # Initialize tools and strategies
@@ -127,8 +128,7 @@ class SplunkEnv(gym.Env):
         self.all_steps_counter += 1
         logger.info(f"Total steps: {self.all_steps_counter}")
         logger.info(f"Step {self.step_counter}")
-        logger.info(f"Action: {action}")
-        logger.info(f"Action window: {self.time_manager.action_window.to_tuple()}")
+
         obs = None
         self.done = self.step_violation or self._check_termination()
         truncated = False
@@ -165,7 +165,7 @@ class SplunkEnv(gym.Env):
             super().reset(seed=seed)
         
         # Reset counters and tracking
-        self.step_counter = 0
+        self.step_counter = 1
         self.action_auditor = []
 
 

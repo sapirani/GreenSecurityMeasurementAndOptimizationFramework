@@ -109,6 +109,9 @@ class MetricsLoggerCallback:
         
         if 'real_relevant_distribution' in info:
             self._log_metrics('real_relevant_distribution', info['real_relevant_distribution'], exclude_from_csv=True)
+        
+        if 'fake_relevant_distribution' in info:
+            self._log_metrics('fake_relevant_distribution', info['fake_relevant_distribution'], exclude_from_csv=True)
 
 
 class CustomTensorboardCallback(BaseCallback, MetricsLoggerCallback):
