@@ -16,17 +16,22 @@ DEFAULT_PYTHON_PATH = r"python3"
 
 DEFAULT_HOST = "0.0.0.0"
 DEFAULT_PORT = 65432
+DEFAULT_NICE = 0
 
 scanner_process: Optional[subprocess.Popen] = None
 
 
-def start_measurement(python_path: str, scanner_path: str) -> None:
+def start_measurement(python_path: str, scanner_path: str, nice: int) -> None:
     global scanner_process
     if scanner_process and scanner_process.poll() is None:
         logging.warning("Got a request to start scanner but scanner is already running, ignoring")
         return
-    
-    scanner_process = subprocess.Popen([python_path, scanner_path])
+
+    popen_args = [python_path, scanner_path]
+    if nice != DEFAULT_NICE:
+        popen_args = ["nice", "-n", str(nice)] + popen_args
+
+    scanner_process = subprocess.Popen(popen_args)
 
 
 def stop_measurement() -> None:
@@ -54,7 +59,7 @@ def stop_measurement() -> None:
     scanner_process = None
 
 
-def main(host: str, port: int, python_path: str, scanner_path: str) -> None:
+def main(host: str, port: int, python_path: str, scanner_path: str, nice: int) -> None:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((host, port))
         s.listen()
@@ -68,7 +73,7 @@ def main(host: str, port: int, python_path: str, scanner_path: str) -> None:
                 logging.debug(f"Received a message: {message}")
 
                 if message == b"start_measurement":
-                    start_measurement(python_path, scanner_path)
+                    start_measurement(python_path, scanner_path, nice)
 
                 elif message == b"stop_measurement":
                     stop_measurement()
@@ -106,6 +111,11 @@ if __name__ == '__main__':
                         default=DEFAULT_SCANNER_PATH,
                         help="path to the scanner")
 
+    parser.add_argument("-n", "--nice",
+                        type=int,
+                        default=DEFAULT_NICE,
+                        help="Scanner's priority. Relevant for linux only")
+
     args = parser.parse_args()
 
-    main(args.host, args.port, args.python_path, args.scanner_path)
+    main(args.host, args.port, args.python_path, args.scanner_path, args.nice)
