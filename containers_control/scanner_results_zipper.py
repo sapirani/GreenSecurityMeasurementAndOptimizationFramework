@@ -8,8 +8,6 @@ NUM_OF_CONTAINERS = 5
 PROJECT_NUMBER = "e39ba8b9-65fb-4ecd-aaca-be2e4d72c868"
 FIRST_DOCKER_PATH = fr"/opt/gns3/projects/{PROJECT_NUMBER}/project-files/docker"
 SECOND_DOCKER_PATH = r"/var/lib/docker/volumes"
-DATA_DIR_IN_VOLUME = r"/_data"
-VOLUME_OPTIONAL_PATHS = [FIRST_DOCKER_PATH, SECOND_DOCKER_PATH]
 
 VOLUME_MAIN_DIRECTORY = "green_security_measurements"
 SCANNER_DIRECTORY = "Scanner"
@@ -21,30 +19,26 @@ AVAILABLE_DATANODES = [f"datanode{idx + 1}-1" for idx in range(NUM_OF_CONTAINERS
 ALL_NODES = MAIN_CONTAINERS + AVAILABLE_DATANODES
 
 
-def run_command_in_dir(command: str, cwd: str) -> List[str]:
-    result = subprocess.run(command, shell=True, capture_output=True, text=True, cwd=cwd)
+def run_command_in_dir(command: str) -> List[str]:
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
     output = result.stdout.strip().split("\n")
     if result.returncode != 0 or not output:
-        raise RuntimeError(f"Failed to run command in {cwd}: {result.stderr}")
+        raise RuntimeError(f"Failed to run command: {result.stderr}")
     return output
 
 
-def find_recent_volume_dirs(base_path: str, count: int) -> List[str]:
+def find_recent_volume_dirs(count: int) -> List[str]:
     command = (
-        f'ls -lat | awk \'$9 != "" {{print $9}}\' '
-        f'| grep -v "^\\.$" | grep -v "^\\.\\.$" | grep -v "^metadata\\.db$" '
-        f'| head -n {count}'
+        f'docker ps -a -q | head -n {count} | xargs docker inspect --format '
+        f'\'{{range.Mounts}}{{if and (eq .Type "volume") (eq .Destination /{VOLUME_MAIN_DIRECTORY})}}{{.Source}}{{"\n"}}{{end}}{{end}}\''
     )
-    volume_dirs = run_command_in_dir(command, cwd=base_path)
-    return [os.path.join(base_path, vol) for vol in volume_dirs]
+    volume_dirs = run_command_in_dir(command)
+    return volume_dirs
 
 
 def find_results_dirs(volume_dirs: List[str]) -> List[str]:
     results_dirs = []
     for vol_dir in volume_dirs:
-        if vol_dir.startswith(SECOND_DOCKER_PATH):
-            vol_dir = vol_dir + DATA_DIR_IN_VOLUME
-
         search_path = os.path.join(vol_dir, VOLUME_MAIN_DIRECTORY, SCANNER_DIRECTORY)
         for root, dirs, _ in os.walk(search_path):
             for d in dirs:
@@ -89,41 +83,20 @@ def zip_directories(directories: List[str], output_path: str) -> None:
 
 
 def main():
-    final_results_dirs = []
+    volume_dirs = find_recent_volume_dirs(NUM_OF_CONTAINERS)
+    results_dirs = find_results_dirs(volume_dirs)
 
-    for path in VOLUME_OPTIONAL_PATHS:
-        try:
-            volume_dirs = find_recent_volume_dirs(path, NUM_OF_CONTAINERS)
-            results_dirs = find_results_dirs(volume_dirs)
+    if len(results_dirs) != NUM_OF_CONTAINERS:
+        print("Could not find the required number of result directories across all paths.")
 
-            print(f"Found {len(results_dirs)} results in {path}")
-
-            if len(results_dirs) == NUM_OF_CONTAINERS:
-                final_results_dirs = results_dirs
-                print(f"Found all results in one path. Using these only.")
-                break
-            else:
-                final_results_dirs.extend(results_dirs)
-                container_map = extract_results_map(final_results_dirs)
-                if len(container_map) >= NUM_OF_CONTAINERS:
-                    print(f"Aggregated enough unique containers across paths.")
-                    # Take exactly NUM_OF_CONTAINERS unique container result paths
-                    final_results_dirs = list(container_map.values())[:NUM_OF_CONTAINERS]
-                    break
-        except Exception as e:
-            print(f"Error accessing path {path}: {e}")
-
-    if len(final_results_dirs) != NUM_OF_CONTAINERS:
-        raise RuntimeError("Could not find the required number of result directories across all paths.")
-
-    found_containers = extract_container_names(final_results_dirs)
+    found_containers = extract_container_names(results_dirs)
     expected_containers = ALL_NODES[:NUM_OF_CONTAINERS]
     missing = [c for c in expected_containers if c not in found_containers]
     if missing:
         print(f"Missing results for containers: {missing}")
 
-    print(f"Zipping results from: {final_results_dirs}")
-    zip_directories(final_results_dirs, OUTPUT_ZIP_NAME)
+    print(f"Zipping results from: {results_dirs}")
+    zip_directories(results_dirs, OUTPUT_ZIP_NAME)
 
 
 if __name__ == "__main__":
