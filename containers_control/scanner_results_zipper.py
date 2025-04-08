@@ -57,19 +57,6 @@ def extract_container_names(results_paths: List[str]) -> List[str]:
     ]
 
 
-def extract_results_map(results_paths: List[str]) -> Dict[str, str]:
-    """
-    Returns a mapping from container name to the first path found for its result directory.
-    """
-    container_to_path = {}
-    for path in results_paths:
-        basename = os.path.basename(path)
-        if basename.startswith(RESULTS_DIR_PREFIX):
-            container = basename[len(RESULTS_DIR_PREFIX):]
-            if container not in container_to_path:
-                container_to_path[container] = path
-    return container_to_path
-
 
 def zip_directories(directories: List[str], output_path: str) -> None:
     with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
