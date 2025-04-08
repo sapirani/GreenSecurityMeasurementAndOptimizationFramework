@@ -9,10 +9,12 @@ PROJECT_NUMBER = "e39ba8b9-65fb-4ecd-aaca-be2e4d72c868"
 FIRST_DOCKER_PATH = fr"/opt/gns3/projects/{PROJECT_NUMBER}/project-files/docker"
 SECOND_DOCKER_PATH = r"/var/lib/docker/volumes"
 
-VOLUME_MAIN_DIRECTORY = "green_security_measurements"
+VOLUME_MAIN_DIRECTORY = r"/green_security_measurements"
 SCANNER_DIRECTORY = "Scanner"
 RESULTS_DIR_PREFIX = "results_"
 OUTPUT_ZIP_NAME = "./all_results.zip"
+
+COMMAND_FORMAT = f"""'{{{{range.Mounts}}}}{{{{if and (eq .Type "volume") (eq .Destination "{VOLUME_MAIN_DIRECTORY}")}}}}{{{{.Source}}}}{{{{"\\n"}}}}{{{{end}}}}{{{{end}}}}'"""
 
 MAIN_CONTAINERS = ["resourcemanager-1", "namenode-1", "historyserver-1"]
 AVAILABLE_DATANODES = [f"datanode{idx + 1}-1" for idx in range(NUM_OF_CONTAINERS - len(MAIN_CONTAINERS))]
@@ -28,10 +30,7 @@ def run_command_in_dir(command: str) -> List[str]:
 
 
 def find_recent_volume_dirs(count: int) -> List[str]:
-    command = (
-        f'docker ps -a -q | head -n {count} | xargs docker inspect --format '
-        f'\'{{range.Mounts}}{{if and (eq .Type "volume") (eq .Destination /{VOLUME_MAIN_DIRECTORY})}}{{.Source}}{{"\n"}}{{end}}{{end}}\''
-    )
+    command = f"""docker ps -a -q | head -n {count} | xargs docker inspect --format {COMMAND_FORMAT}"""
     volume_dirs = run_command_in_dir(command)
     return volume_dirs
 
@@ -39,7 +38,7 @@ def find_recent_volume_dirs(count: int) -> List[str]:
 def find_results_dirs(volume_dirs: List[str]) -> List[str]:
     results_dirs = []
     for vol_dir in volume_dirs:
-        search_path = os.path.join(vol_dir, VOLUME_MAIN_DIRECTORY, SCANNER_DIRECTORY)
+        search_path = os.path.join(vol_dir, SCANNER_DIRECTORY)
         for root, dirs, _ in os.walk(search_path):
             for d in dirs:
                 if d.startswith(RESULTS_DIR_PREFIX):
