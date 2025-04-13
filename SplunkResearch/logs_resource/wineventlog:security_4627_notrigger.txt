@@ -1,0 +1,42 @@
+03/27/2025 09:27:25 AM
+LogName=Security
+EventCode=4627
+EventType=0
+ComputerName=LB-111-11.auth.ad.bgu.ac.il
+SourceName=Microsoft Windows security auditing.
+Type=Information
+RecordNumber=2277313
+Keywords=Audit Success
+TaskCategory=Group Membership
+OpCode=Info
+Message=Group membership information.
+
+Subject:
+	Security ID:		S-1-5-18
+	Account Name:		LB-111-11$
+	Account Domain:		BGU-USERS
+	Logon ID:		0x3E7
+
+Logon Type:			5
+
+New Logon:
+	Security ID:		S-1-5-18
+	Account Name:		SYSTEM
+	Account Domain:		NT AUTHORITY
+	Logon ID:		0x3E7
+
+Event in sequence:		1 of 1
+
+Group Membership:			
+		BUILTIN\Administrators
+		Everyone
+		NT AUTHORITY\Authenticated Users
+		Mandatory Label\System Mandatory Level
+
+The subject fields indicate the account on the local system which requested the logon. This is most commonly a service such as the Server service, or a local process such as Winlogon.exe or Services.exe.
+
+The logon type field indicates the kind of logon that occurred. The most common types are 2 (interactive) and 3 (network).
+
+The New Logon fields indicate the account for whom the new logon was created, i.e. the account that was logged on.
+
+This event is generated when the Audit Group Membership subcategory is configured.  The Logon ID field can be used to correlate this event with the corresponding user logon event as well as to any other security audit events generated during this logon session.

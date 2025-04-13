@@ -1,0 +1,20 @@
+03/27/2025 07:00:47 AM
+LogName=System
+EventCode=1
+EventType=4
+ComputerName=LB-003-3.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-19
+SidType=0
+SourceName=Microsoft-Windows-Power-Troubleshooter
+Type=Information
+RecordNumber=87375
+Keywords=None
+TaskCategory=None
+OpCode=Info
+Message=The system has returned from a low power state.
+
+Sleep Time: ‎2025‎-‎03‎-‎26T18:00:46.274595800Z
+Wake Time: ‎2025‎-‎03‎-‎27T05:00:45.859254700Z
+
+Wake Source: Device -Intel(R) USB 3.20 eXtensible Host Controller - 1.20 (Microsoft)

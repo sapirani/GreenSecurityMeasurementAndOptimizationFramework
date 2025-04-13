@@ -47,6 +47,8 @@ class ExperimentConfig:
     use_energy_reward: bool = True
     use_alert_reward: bool = True
     use_quota_violation: bool = True
+    use_random_agent: bool = False
+    
     
     # Reward parameters
     gamma_dist: float = 0.2
@@ -102,25 +104,27 @@ class ExperimentManager:
     def create_environment(self, config: ExperimentConfig) -> gym.Env:
         """Create and configure environment with reward wrappers"""
 
-        env = make(
-            id=config.env_config.env_id,
-            config=config.env_config,
-            # state_strategy=self.state_strategies[config.env_config.state_strategy],
-            # action_strategy=self.action_strategies[config.env_config.action_strategy]
-        )
         top_logtypes = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
         # include only system and security logs
         top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
-        top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
+        top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:10]
         top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
         
+        env = make(
+            id=config.env_config.env_id,
+            config=config.env_config,
+            top_logtypes=top_logtypes
+        )
         # env = SingleAction2(env)
         # env = Action(env)
-        env = Action3(env)
-        env = TimeWrapper(env)
-
-        env = StateWrapper(env, top_logtypes)
+        env = Action7(env)
         
+        if config.use_random_agent:
+            env = RandomAction(env)
+
+
+
+
 
                 
         # Add reward wrappers
@@ -133,10 +137,12 @@ class ExperimentManager:
             )
         if config.use_energy_reward:
             env = BaseRuleExecutionWrapper(env, baseline_dir=self.dirs['baseline'])
+            
             env = EnergyRewardWrapper(
                 env,
                 alpha=config.alpha_energy
             )
+            
         
         if config.use_alert_reward:
             # env = AlertRewardWrapper(
@@ -152,7 +158,9 @@ class ExperimentManager:
         # env = ClipRewardWrapper(env,
         #                         low=0,
         #                         high=1)
-
+        env = TimeWrapper(env)
+        
+        env = StateWrapper2(env)
 
         return env
 
@@ -205,7 +213,7 @@ class ExperimentManager:
                 # 'batch_size': config.batch_size,
                 # 'n_epochs': config.n_epochs,
                 'ent_coef': config.ent_coef,
-                'sde_sample_freq': 230,
+                'sde_sample_freq': 12,
                 'use_sde': True
             })
             
@@ -248,8 +256,8 @@ class ExperimentManager:
             eval_config.env_config.env_id = "splunk_eval-v32"
             self.eval_env = self.create_environment(eval_config)
 
-            if config.experiment_name is None:
-                #clean and warm up the env
+            if config.experiment_name != "test_experiment" :
+                # clean and warm up the env
                 clean_env(env.splunk_tools, (env.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
                 env.warmup()
             # Setup callbacks
@@ -325,7 +333,8 @@ class ExperimentManager:
         
         
         return model
-    
+        
+        
     def _run_retraining(self, model, env, config, callbacks):
         """Run retraining experiment"""
         total_timesteps = env.total_steps * config.num_episodes
@@ -420,11 +429,12 @@ class ExperimentManager:
             )
             
         ]
+
     
 # Example usage:
 if __name__ == "__main__":
     # Create experiment config
-    retrain_fake_start_datetime = "04/01/2024:00:00:00"
+    retrain_fake_start_datetime = "05/01/2024:00:00:00"
     
     env_config = SplunkConfig(
         fake_start_datetime=retrain_fake_start_datetime,
@@ -441,16 +451,19 @@ if __name__ == "__main__":
         env_config=env_config,
         model_type="recurrent_ppo",
         policy_type="MlpLstmPolicy",
-        learning_rate=1e-4,
+        learning_rate=1e-3,
         num_episodes=6000,
-        n_steps=23,
+        n_steps=48,
         ent_coef=0.01,
         gamma=1,
-        experiment_name="test_experiment"
+        # experiment_name="test_experiment",
+        use_alert_reward=False,
+        use_energy_reward=True,
+        use_random_agent=False,
     )
     
     #retrain model
-    experiment_config.mode = "retrain"
+    experiment_config.mode = "train"
     
     model_path = "/home/shouei/GreenSecurity-FirstExperiment/experiments/models/train_20250320100253_42000_steps.zip"
     experiment_config.model_path = model_path

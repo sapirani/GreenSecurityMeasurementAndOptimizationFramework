@@ -1,0 +1,12 @@
+03/26/2025 10:08:42 PM
+LogName=System
+EventCode=107
+EventType=4
+ComputerName=LB-101-18.auth.ad.bgu.ac.il
+SourceName=Microsoft-Windows-Kernel-Power
+Type=Information
+RecordNumber=42285
+Keywords=None
+TaskCategory=102
+OpCode=Info
+Message=The system has resumed from sleep.

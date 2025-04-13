@@ -1,0 +1,15 @@
+03/27/2025 12:31:41 AM
+LogName=System
+EventCode=187
+EventType=4
+ComputerName=LB-101-12.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-18
+SidType=0
+SourceName=Microsoft-Windows-Kernel-Power
+Type=Information
+RecordNumber=66209
+Keywords=None
+TaskCategory=243
+OpCode=Info
+Message=User-mode process attempted to change the system state by calling SetSuspendState or SetSystemPowerState APIs.

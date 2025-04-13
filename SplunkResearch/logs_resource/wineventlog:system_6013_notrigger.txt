@@ -1,0 +1,12 @@
+03/27/2025 12:01:25 AM
+LogName=System
+EventCode=6013
+EventType=4
+ComputerName=LB-101-12.auth.ad.bgu.ac.il
+SourceName=EventLog
+Type=Information
+RecordNumber=66102
+Keywords=Classic
+TaskCategory=None
+OpCode=None
+Message=The system uptime is 6 seconds.

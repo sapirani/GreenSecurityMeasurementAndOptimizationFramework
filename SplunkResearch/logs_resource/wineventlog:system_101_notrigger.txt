@@ -1,0 +1,15 @@
+03/27/2025 09:28:05 AM
+LogName=System
+EventCode=101
+EventType=3
+ComputerName=LB-003-26.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-18
+SidType=0
+SourceName=Application Management Group Policy
+Type=Warning
+RecordNumber=101673
+Keywords=Classic
+TaskCategory=None
+OpCode=Info
+Message=The assignment of application Trellix Agent from policy EPOAgent-5.7.9 failed.  The error was : %%1274

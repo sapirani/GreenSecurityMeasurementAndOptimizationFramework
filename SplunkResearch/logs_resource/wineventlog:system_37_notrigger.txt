@@ -1,0 +1,15 @@
+03/27/2025 07:18:12 AM
+LogName=System
+EventCode=37
+EventType=4
+ComputerName=LB-105-21.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-19
+SidType=0
+SourceName=Microsoft-Windows-Time-Service
+Type=Information
+RecordNumber=72671
+Keywords=None
+TaskCategory=None
+OpCode=Info
+Message=The time provider NtpClient is currently receiving valid time data from auth161.auth.ad.bgu.ac.il (ntp.d|0.0.0.0:123->132.72.140.114:123).

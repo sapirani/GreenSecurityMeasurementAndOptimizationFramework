@@ -1,0 +1,25 @@
+03/27/2025 08:18:54 AM
+LogName=Security
+EventCode=4697
+EventType=0
+ComputerName=LB-003-3.auth.ad.bgu.ac.il
+SourceName=Microsoft Windows security auditing.
+Type=Information
+RecordNumber=3549409
+Keywords=Audit Success
+TaskCategory=Security System Extension
+OpCode=Info
+Message=A service was installed in the system.
+
+Subject:
+	Security ID:		NT AUTHORITY\SYSTEM
+	Account Name:		LB-003-3$
+	Account Domain:		BGU-USERS
+	Logon ID:		0x3E7
+
+Service Information:
+	Service Name: 		GoogleUpdaterService136.0.7079.0
+	Service File Name:	"C:\Program Files (x86)\Google\GoogleUpdater\136.0.7079.0\updater.exe" --system --windows-service --service=update
+	Service Type: 		0x10
+	Service Start Type:	2
+	Service Account: 		LocalSystem

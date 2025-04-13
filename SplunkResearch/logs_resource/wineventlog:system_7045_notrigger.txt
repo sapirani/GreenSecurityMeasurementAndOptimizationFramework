@@ -1,21 +1,21 @@
-03/16/2021 08:59:08 AM
+03/27/2025 08:18:54 AM
 LogName=System
-SourceName=Microsoft-Windows-Service Control Manager
 EventCode=7045
 EventType=4
-Type=Information
-ComputerName=win-dc-983.attackrange.local
+ComputerName=LB-003-3.auth.ad.bgu.ac.il
 User=NOT_TRANSLATED
-Sid=S-1-5-21-3730028101-1805993102-2296611634-500
+Sid=S-1-5-18
 SidType=0
+SourceName=Microsoft-Windows-Service Control Manager
+Type=Information
+RecordNumber=87719
+Keywords=Classic
 TaskCategory=None
 OpCode=The operation completed successfully.
-RecordNumber=89768
-Keywords=Classic
 Message=A service was installed in the system.
 
-Service Name:  SecurityCenterDT
-Service File Name:  c:\Users\Public\clop.exe
+Service Name:  Google Updater Service (GoogleUpdaterService136.0.7079.0)
+Service File Name:  "C:\Program Files (x86)\Google\GoogleUpdater\136.0.7079.0\updater.exe" --system --windows-service --service=update
 Service Type:  user mode service
 Service Start Type:  auto start
 Service Account:  LocalSystem

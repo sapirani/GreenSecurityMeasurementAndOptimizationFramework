@@ -1,0 +1,15 @@
+03/27/2025 09:28:05 AM
+LogName=System
+EventCode=1112
+EventType=3
+ComputerName=LB-003-26.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-18
+SidType=0
+SourceName=Microsoft-Windows-GroupPolicy
+Type=Warning
+RecordNumber=101676
+Keywords=None
+TaskCategory=None
+OpCode=Start
+Message=The Group Policy Client Side Extension Software Installation was unable to apply one or more settings because the changes must be processed before system startup or user logon. The system will wait for Group Policy processing to finish completely before the next startup or logon for this user, and this may result in slow startup and boot performance.

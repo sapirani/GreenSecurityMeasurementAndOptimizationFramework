@@ -1,0 +1,21 @@
+03/27/2025 09:28:51 AM
+LogName=Security
+EventCode=5379
+EventType=0
+ComputerName=cyb301-5.auth.ad.bgu.ac.il
+SourceName=Microsoft Windows security auditing.
+Type=Information
+RecordNumber=14253874
+Keywords=Audit Success
+TaskCategory=User Account Management
+OpCode=Info
+Message=Credential Manager credentials were read.
+
+Subject:
+	Security ID:		BGU-USERS\landauof
+	Account Name:		landauof
+	Account Domain:		BGU-USERS
+	Logon ID:		0x1A17398
+	Read Operation:		Read Credential
+
+This event occurs when a user performs a read operation on stored credentials in Credential Manager.

@@ -1,4 +1,4 @@
-01/03/2024 08:47:26 AM
+03/26/2025 10:08:47 PM
 LogName=Security
 SourceName=Microsoft Windows security auditing.
 EventCode=4769
@@ -9,6 +9,7 @@ TaskCategory=Kerberos Service Ticket Operations
 OpCode=Info
 RecordNumber=1846465068
 Keywords=Audit Success
+is_fake=1
 Message=A Kerberos service ticket was requested.
 
 Account Information:
@@ -35,4 +36,5 @@ This event is generated every time access is requested to a resource such as a c
 This event can be correlated with Windows logon events by comparing the Logon GUID fields in each event.  The logon event occurs on the machine that was accessed, which is often a different machine than the domain controller which issued the service ticket.
 
 Ticket options, encryption types, and failure codes are defined in RFC 4120.  	
-[EOF]
+
+

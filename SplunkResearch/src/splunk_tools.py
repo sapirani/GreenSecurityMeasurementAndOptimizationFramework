@@ -423,11 +423,12 @@ class SplunkTools(object):
                     df = df.dropna(subset=['_time'])
                     
                     # Filter data for current time slice
-                    mask = (df['_time'] >= current_ts)
-                    if current_ts + (end_date_time_file - start_date_time_file) > ts_end_time:
-                        mask &= (df['_time'] <= ts_end_time)
+                    # mask = (df['_time'] >= current_ts)
+                    # if current_ts + (end_date_time_file - start_date_time_file) > ts_end_time:
+                        # mask &= (df['_time'] <= ts_end_time)
                     
-                    all_data.append(df[mask])
+                    all_data.append(df)
+                    # all_data.append(df[mask])
                     current_ts = end_date_time_file
                     bucket_found = True
                     break
@@ -529,10 +530,11 @@ class SplunkTools(object):
         relevant_logs['_time'].max() < end_time:
             logger.info('Loading missing distribution data from disk.')
             self.load_real_logs_distribution_bucket(start_time, end_time)
-            relevant_logs = self.real_logs_distribution[
+            relevant_logs = pd.concat((relevant_logs, self.real_logs_distribution[
                 (self.real_logs_distribution['_time'] >= pd.Timestamp(start_time, unit='s')) & 
                 (self.real_logs_distribution['_time'] <= pd.Timestamp(end_time, unit='s'))
-            ]
+            ]))
+        relevant_logs.loc[:, 'count'] = relevant_logs['count'].astype(int)
         
         return relevant_logs       
               
@@ -556,7 +558,6 @@ class SplunkTools(object):
         
         # Group by source and EventCode, summing the counts
         relevant_logs = relevant_logs.groupby(['source', 'EventCode']).agg({'count': 'sum'}).reset_index()
-        
         # Create dictionary of log types and counts
         res_dict = {
             (row['source'].lower(), str(row['EventCode'])): row['count'] 
@@ -572,7 +573,7 @@ class SplunkTools(object):
         #         self.real_logtypes_counter[logtype] = res_dict[logtype]
         
         return res_dict
-        return res_dict
+
     
     def get_search_details(self, search,  is_measure_energy=False):
         search_id = search['search_id'].strip('\'')

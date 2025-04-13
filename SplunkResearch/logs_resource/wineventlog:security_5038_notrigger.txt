@@ -1,0 +1,14 @@
+03/26/2025 10:08:45 PM
+LogName=Security
+EventCode=5038
+EventType=0
+ComputerName=CYB301-ATAM-2.auth.ad.bgu.ac.il
+SourceName=Microsoft Windows security auditing.
+Type=Information
+RecordNumber=18596543
+Keywords=Audit Failure
+TaskCategory=System Integrity
+OpCode=Info
+Message=Code integrity determined that the image hash of a file is not valid.  The file could be corrupt due to unauthorized modification or the invalid hash could indicate a potential disk device error.
+
+File Name:	\Device\HarddiskVolume4\ProgramData\McAfee\Agent\Evaluation\ENDP_GS_1070\Install\0000\setupCC.exe

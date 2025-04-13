@@ -1,0 +1,36 @@
+03/27/2025 09:28:35 AM
+LogName=Security
+EventCode=4662
+EventType=0
+ComputerName=ISE-MGMT.auth.ad.bgu.ac.il
+SourceName=Microsoft Windows security auditing.
+Type=Information
+RecordNumber=15879780
+Keywords=Audit Success
+TaskCategory=Other Object Access Events
+OpCode=Info
+Message=An operation was performed on an object.
+
+Subject :
+	Security ID:		S-1-5-18
+	Account Name:		ISE-MGMT$
+	Account Domain:		BGU-USERS
+	Logon ID:		0x3E7
+
+Object:
+	Object Server:		WMI
+	Object Type:		WMI Namespace
+	Object Name:		ROOT\CIMV2\Security\MicrosoftVolumeEncryption
+	Handle ID:		0x0
+
+Operation:
+	Operation Type:		Object Access
+	Accesses:		Unknown specific access (bit 0)
+				Unknown specific access (bit 1)
+				
+	Access Mask:		0x3
+	Properties:		-
+
+Additional Information:
+	Parameter 1:		Local Execute (ExecMethod)
+	Parameter 2:		ROOT\CIMV2\Security\MicrosoftVolumeEncryption:\\ISE-MGMT\ROOT\CIMV2\Security\MicrosoftVolumeEncryption:Win32_EncryptableVolume.DeviceID="\\\\?\\Volume{48f23cb5-0000-0000-0000-300300000000}\\"::GetProtectionStatus

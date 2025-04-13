@@ -1,0 +1,33 @@
+03/27/2025 09:17:15 AM
+LogName=Security
+EventCode=5058
+EventType=0
+ComputerName=DT-O7.auth.ad.bgu.ac.il
+SourceName=Microsoft Windows security auditing.
+Type=Information
+RecordNumber=14089612
+Keywords=Audit Success
+TaskCategory=Other System Events
+OpCode=Info
+Message=Key file operation.
+
+Subject:
+	Security ID:		BGU-USERS\yovell
+	Account Name:		yovell
+	Account Domain:		BGU-USERS
+	Logon ID:		0x204CF9BB
+
+Process Information:
+	Process ID:		12800
+	Process Creation Time:	‎2025‎-‎03‎-‎27T07:17:13.381530800Z
+
+Cryptographic Parameters:
+	Provider Name:	Microsoft Software Key Storage Provider
+	Algorithm Name:	UNKNOWN
+	Key Name:	eae9100c-5972-469d-85dc-5bab32e925fe
+	Key Type:	User key.
+
+Key File Operation Information:
+	File Path:	C:\Users\yovell\AppData\Roaming\Microsoft\Crypto\Keys\8eb87dea73bc590410f21d6b9c06812f_8a35e73b-ec3d-4255-84d5-0f2717a67335
+	Operation:	Read persisted key from file.
+	Return Code:	0x0

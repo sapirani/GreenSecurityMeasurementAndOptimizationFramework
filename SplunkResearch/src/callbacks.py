@@ -1,4 +1,5 @@
 
+import random
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from typing import Dict, Any
 import numpy as np
@@ -108,9 +109,15 @@ class MetricsLoggerCallback:
             self._log_metrics('diversity_episode_logs', info['diversity_episode_logs'], exclude_from_csv=True)
         
         if 'real_relevant_distribution' in info:
+            current_sum = np.sum(list(info['real_relevant_distribution'].values()))
+            for k,v in info['real_relevant_distribution'].items():
+                info['real_relevant_distribution'][k] = v / current_sum
             self._log_metrics('real_relevant_distribution', info['real_relevant_distribution'], exclude_from_csv=True)
         
         if 'fake_relevant_distribution' in info:
+            current_sum = np.sum(list(info['fake_relevant_distribution'].values()))
+            for k,v in info['fake_relevant_distribution'].items():
+                info['fake_relevant_distribution'][k] = v / current_sum
             self._log_metrics('fake_relevant_distribution', info['fake_relevant_distribution'], exclude_from_csv=True)
 
 
@@ -122,8 +129,7 @@ class CustomTensorboardCallback(BaseCallback, MetricsLoggerCallback):
     def _on_step(self) -> bool:
         """Log metrics at each step"""
         info = self.locals['infos'][0]  # Get info from environment step
-        
-        # Log step metrics
+        num_time_steps = self.num_timesteps
         self.log_step_metrics(info)
 
         # Log episode end metrics

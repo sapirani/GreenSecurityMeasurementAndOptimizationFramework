@@ -1,0 +1,15 @@
+03/27/2025 08:46:02 AM
+LogName=System
+EventCode=1500
+EventType=4
+ComputerName=LB-111-11.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-18
+SidType=0
+SourceName=Microsoft-Windows-GroupPolicy
+Type=Information
+RecordNumber=147204
+Keywords=None
+TaskCategory=None
+OpCode=Start
+Message=The Group Policy settings for the computer were processed successfully. There were no changes detected since the last successful processing of Group Policy.

@@ -1,0 +1,13 @@
+03/27/2025 07:01:05 AM
+LogName=System
+EventCode=32
+EventType=4
+ComputerName=LB-105-21.auth.ad.bgu.ac.il
+SourceName=e1dexpress
+Type=Information
+RecordNumber=72661
+Keywords=Classic
+TaskCategory=None
+OpCode=None
+Message=Intel(R) Ethernet Connection (17) I219-LM
+ Network link has been established at 1Gbps full duplex.

@@ -1,24 +1,24 @@
-01/03/2024 08:47:26 AM
+03/27/2025 09:29:02 AM
 LogName=Security
 EventCode=4624
 EventType=0
-ComputerName=LB-107-14.auth.ad.bgu.ac.il
+ComputerName=LB-003-25.auth.ad.bgu.ac.il
 SourceName=Microsoft Windows security auditing.
 Type=Information
-RecordNumber=119016
+RecordNumber=2711197
 Keywords=Audit Success
 TaskCategory=Logon
 OpCode=Info
 Message=An account was successfully logged on.
 
 Subject:
-	Security ID:		S-1-0-0
-	Account Name:		-
-	Account Domain:		-
-	Logon ID:		0x0
+	Security ID:		NT AUTHORITY\SYSTEM
+	Account Name:		LB-003-25$
+	Account Domain:		BGU-USERS
+	Logon ID:		0x3E7
 
 Logon Information:
-	Logon Type:		3
+	Logon Type:		5
 	Restricted Admin Mode:	-
 	Virtual Account:		No
 	Elevated Token:		Yes
@@ -26,27 +26,27 @@ Logon Information:
 Impersonation Level:		Impersonation
 
 New Logon:
-	Security ID:		S-1-5-21-1220750395-818509756-262303683-91927
-	Account Name:		corotech
-	Account Domain:		AUTH.AD.BGU.AC.IL
-	Logon ID:		0x2B871A4
+	Security ID:		NT AUTHORITY\SYSTEM
+	Account Name:		SYSTEM
+	Account Domain:		NT AUTHORITY
+	Logon ID:		0x3E7
 	Linked Logon ID:		0x0
 	Network Account Name:	-
 	Network Account Domain:	-
-	Logon GUID:		{4b504fc6-179d-5f78-3f6e-b97a5650cc2d}
+	Logon GUID:		{00000000-0000-0000-0000-000000000000}
 
 Process Information:
-	Process ID:		0x0
-	Process Name:		-
+	Process ID:		0x32c
+	Process Name:		C:\Windows\System32\services.exe
 
 Network Information:
 	Workstation Name:	-
-	Source Network Address:	132.72.64.111
-	Source Port:		56270
+	Source Network Address:	-
+	Source Port:		-
 
 Detailed Authentication Information:
-	Logon Process:		Kerberos
-	Authentication Package:	Kerberos
+	Logon Process:		Advapi  
+	Authentication Package:	Negotiate
 	Transited Services:	-
 	Package Name (NTLM only):	-
 	Key Length:		0
@@ -67,5 +67,4 @@ The authentication information fields provide detailed information about this sp
 	- Logon GUID is a unique identifier that can be used to correlate this event with a KDC event.
 	- Transited services indicate which intermediate services have participated in this logon request.
 	- Package name indicates which sub-protocol was used among the NTLM protocols.
-	- Key length indicates the length of the generated session key. This will be 0 if no session key was requested.  	
-[EOF]
+	- Key length indicates the length of the generated session key. This will be 0 if no session key was requested.

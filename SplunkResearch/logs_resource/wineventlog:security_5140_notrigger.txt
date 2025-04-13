@@ -1,4 +1,4 @@
-02/03/2022 19:40:12 PM
+03/26/2025 10:08:47 PM
 LogName=Security
 EventCode=5140
 TaskCategory=Sharing File System (12808)
@@ -6,6 +6,7 @@ Level=Information
 Keywords=0x80208000000000
 User=ATTACKRANGE\Administrator
 Computer=ar-win-2.attackrange.local
+is_fake=1
 Message=A network share object was accessed.
 
 Subject:
@@ -26,4 +27,4 @@ Share Information:
 Access Request Information:
     AccessMask:        0x1
     AccessList:        %%4416
-[EOF]
+

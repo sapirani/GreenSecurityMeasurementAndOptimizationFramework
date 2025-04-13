@@ -1,13 +1,12 @@
-06/22/2023 09:15:30 AM  
-LogName=System  
-EventCode=7036  
-EventType=0  
-ComputerName=user-PC.domain.com  
-SourceName=Service Control Manager  
-Type=Information  
-RecordNumber=987654  
-Keywords=Classic  
-TaskCategory=None  
-OpCode=Info  
-Message=The Remote Registry service entered the stopped state. 
-[EOF]
+03/27/2025 09:28:37 AM
+LogName=System
+EventCode=7036
+EventType=4
+ComputerName=dts12-vm1.auth.ad.bgu.ac.il
+SourceName=Microsoft-Windows-Service Control Manager
+Type=Information
+RecordNumber=954576
+Keywords=Classic
+TaskCategory=None
+OpCode=The operation completed successfully.
+Message=The Software Protection service entered the running state.

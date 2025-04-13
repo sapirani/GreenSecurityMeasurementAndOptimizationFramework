@@ -52,7 +52,6 @@ class SplunkConfig:
     rule_frequency: float
     search_window: int
     fake_start_datetime: str = None
-    
     action_duration: int = 1
     
     # Load parameters
@@ -74,10 +73,12 @@ class SplunkEnv(gym.Env):
     def __init__(self,
                  savedsearches: List[str],
                  fake_start_datetime: str,
-                 config: SplunkConfig):
+                 config: SplunkConfig,
+                 top_logtypes: List[Tuple[str, str]]):
         """Initialize environment."""
         super().__init__()
-                # Initialize time manager
+
+        # Initialize time manager
         self.time_manager = TimeManager(
             start_datetime=config.fake_start_datetime if config.fake_start_datetime else fake_start_datetime,
             window_size=config.search_window,
@@ -104,12 +105,16 @@ class SplunkEnv(gym.Env):
         self.config = config
         self.section_logtypes = section_logtypes
         self.relevant_logtypes = sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]}))
+        # concat top_logtypes and relevant_logtypes, while removing duplicates and keeping order
+        top_logtypes = sorted(list(dict.fromkeys(self.relevant_logtypes + top_logtypes)))       
+        self.top_logtypes = top_logtypes
+        
         self.savedsearches = savedsearches
         # Initialize tools and strategies
         self.splunk_tools  = SplunkTools(savedsearches, config.rule_frequency)
-        self.log_generator = LogGenerator(self.relevant_logtypes, self.splunk_tools)
-
-        self.episode_logs = {}
+        self.log_generator = LogGenerator(self.top_logtypes, self.splunk_tools)
+        # self.log_generator = LogGenerator(self.relevant_logtypes, self.splunk_tools)
+        self._normalize_factor = 200000
         
         # Calculate episode parameters
         self.total_steps = self.config.search_window * 60 // self.config.action_duration
@@ -120,7 +125,9 @@ class SplunkEnv(gym.Env):
         self.action_auditor = []
         self.step_violation = False
         self.done = False
-
+        self.obs = None
+        self.real_state = np.array([])
+        self.fake_state = np.array([])
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
         """Execute environment step."""
@@ -129,13 +136,13 @@ class SplunkEnv(gym.Env):
         logger.info(f"Total steps: {self.all_steps_counter}")
         logger.info(f"Step {self.step_counter}")
 
-        obs = None
         self.done = self.step_violation or self._check_termination()
         truncated = False
         reward = 0
         info = self.get_step_info()
-        return obs, reward, self.done, truncated, info
-    
+        obs = self.obs
+        return self.obs, reward, self.done, truncated, info
+
 
 
  
@@ -165,7 +172,7 @@ class SplunkEnv(gym.Env):
             super().reset(seed=seed)
         
         # Reset counters and tracking
-        self.step_counter = 1
+        self.step_counter = 0
         self.action_auditor = []
 
 
@@ -186,6 +193,7 @@ class SplunkEnv(gym.Env):
             # 'fake_distribution': self.fake_state,
             'total_steps': self.total_steps,
             'done': self.done, 
+
             **self.time_manager.get_time_info()
             # 'action_metrics': self.action_strategy.get_metrics(),
             # 'state_metrics': self.state_strategy.get_metrics(),

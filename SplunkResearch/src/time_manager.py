@@ -125,15 +125,18 @@ class TimeWrapper(Wrapper):
         
     def step(self, action):
         obs, reward, done, truncated, info = super().step(action)
-        action_window = self.time_manager.step()
-        info['action_window'] = action_window
+        if not info['done']:
+            action_window = self.time_manager.step()
+            info['action_window'] = action_window
         return obs, reward, done, truncated, info
         # return self.env.step(action)
     
 
     def reset(self, *, seed=None, options=None):
-
+        obs, info = self.env.reset(seed=seed, options=options)
         # Advance time window based on previous episode
-        self.time_manager.advance_window(violation=self.step_violation)
-        return self.env.reset(seed=seed, options=options)
+        # self.time_manager.advance_window(violation=self.step_violation)
+        # action_window = self.time_manager.step()
+        # info['action_window'] = action_window
+        return obs, info
         

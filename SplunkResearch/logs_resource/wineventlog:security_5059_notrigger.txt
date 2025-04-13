@@ -1,0 +1,32 @@
+03/27/2025 09:06:18 AM
+LogName=Security
+EventCode=5059
+EventType=0
+ComputerName=dt-it.auth.ad.bgu.ac.il
+SourceName=Microsoft Windows security auditing.
+Type=Information
+RecordNumber=866122
+Keywords=Audit Success
+TaskCategory=Logon
+OpCode=Info
+Message=Key migration operation.
+
+Subject:
+	Security ID:		BGU-USERS\nicolayg
+	Account Name:		nicolayg
+	Account Domain:		BGU-USERS
+	Logon ID:		0x1E9991
+
+Process Information:
+	Process ID:		12100
+	Process Creation Time:	‎2025‎-‎03‎-‎20T10:37:45.502474600Z
+
+Cryptographic Parameters:
+	Provider Name:	Microsoft Software Key Storage Provider
+	Algorithm Name:	RSA
+	Key Name:	TB_0_microsoft.com
+	Key Type:	User key.
+
+Additional Information:
+	Operation:	Export of persistent cryptographic key.
+	Return Code:	0x0

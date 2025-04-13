@@ -1,0 +1,15 @@
+03/27/2025 09:23:49 AM
+LogName=System
+EventCode=1085
+EventType=3
+ComputerName=cyb301-5.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-18
+SidType=0
+SourceName=Microsoft-Windows-GroupPolicy
+Type=Warning
+RecordNumber=246318
+Keywords=None
+TaskCategory=None
+OpCode=Start
+Message=Windows failed to apply the {F312195E-3D9D-447A-A3F5-08DFFA24735E} settings. {F312195E-3D9D-447A-A3F5-08DFFA24735E} settings might have its own log file. Please click on the "More information" link.

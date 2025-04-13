@@ -1,4 +1,4 @@
-06/22/2023 09:20:45 AM  
+03/26/2025 10:08:42 PM  
 LogName=Security  
 EventCode=4663  
 EventType=0  
@@ -9,6 +9,7 @@ RecordNumber=987655
 Keywords=Audit Success  
 TaskCategory=File System  
 OpCode=Info  
+is_fake=1
 Message=An attempt was made to access an object.  
   
 Subject:  
@@ -30,4 +31,4 @@ Process Information:
 Access Request Information:  
   Accesses:           READ_DATA  
   Access Mask:        0x12345679  	
-[EOF]
+

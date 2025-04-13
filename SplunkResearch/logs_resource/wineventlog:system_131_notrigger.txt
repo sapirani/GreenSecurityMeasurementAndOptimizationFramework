@@ -1,0 +1,12 @@
+03/27/2025 07:00:45 AM
+LogName=System
+EventCode=131
+EventType=4
+ComputerName=LB-003-3.auth.ad.bgu.ac.il
+SourceName=Microsoft-Windows-Kernel-Power
+Type=Information
+RecordNumber=87372
+Keywords=None
+TaskCategory=33
+OpCode=Info
+Message=Firmware S3 times. ResumeCount: 3, FullResume: 1762, AverageResume: 1765

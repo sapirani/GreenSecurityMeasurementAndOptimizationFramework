@@ -170,7 +170,8 @@ class EnergyRewardWrapper(RewardWrapper):
             energy_reward = np.clip(energy_reward, 0, 1) # Normalize to [0, 1]
             info['energy_reward'] = energy_reward
             # reward +=  energy_reward
-            reward += self.alpha * energy_reward
+            reward = energy_reward/(reward + self.epsilon)
+            # reward += self.alpha * energy_reward
             
         return obs, reward, terminated, truncated, info
 
@@ -263,8 +264,8 @@ class DistributionRewardWrapper(RewardWrapper):
         step_counter = info.get('step', 0)
         if info.get('done', True):
             dist_value = self._calculate_distribution_value(
-                self.real_state,
-                self.fake_state
+                self.real_state/np.sum(self.real_state),
+                self.fake_state/np.sum(self.fake_state)
             )
             info['distribution_value'] = dist_value
             dist_reward = self._calculate_distribution_reward(dist_value)
@@ -274,14 +275,15 @@ class DistributionRewardWrapper(RewardWrapper):
             if dist_reward == 0:
                 reward = 0
             else:
-                reward += self.gamma * dist_reward
+                reward += dist_reward
+                # reward += self.gamma * dist_reward
         # since this is the last wrapper, we can consider it as final reward
         logger.info(f"Reward: {reward}")  
         return obs, reward, terminated, truncated, info
     
     def _calculate_distribution_reward(self, distribution_value: float) -> float:
         # return 0.1 * np.log(distribution_value+self.epsilon) - distribution_value**2
-        return -distribution_value
+        return distribution_value/3.5
     
     def _calculate_distribution_value(self, real_dist, fake_dist):
         # Add epsilon and normalize
@@ -289,11 +291,13 @@ class DistributionRewardWrapper(RewardWrapper):
         fake_dist = (fake_dist + self.epsilon) / np.sum(fake_dist + self.epsilon)
         
         # Calculate JSD
-        m = (real_dist + fake_dist) / 2
-        jsd = (self._kl_divergence(real_dist, m) + 
-               self._kl_divergence(fake_dist, m)) / 2
-        return jsd
+        # m = (real_dist + fake_dist) / 2
+        # jsd = (self._kl_divergence(real_dist, m) + 
+        #        self._kl_divergence(fake_dist, m)) / 2
+        # return jsd
         # return -jsd
+        # Calculate KL divergence
+        return self._kl_divergence(fake_dist, real_dist)
         
     def _kl_divergence(self, p, q):
         return np.sum(p * np.log(p / q))
