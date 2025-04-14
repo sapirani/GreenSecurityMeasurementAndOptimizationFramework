@@ -1,5 +1,5 @@
 class AxisInfo:
-    def __init__(self, label, unit, axis):
+    def __init__(self, label: str, unit: str, axis: list[str]):
         self.axis = axis
         self.label = label
         self.unit = unit
