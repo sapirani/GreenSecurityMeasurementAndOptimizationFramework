@@ -5,7 +5,8 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from results_analyzer.analyzer_constants import AxisInfo
+from general_consts import KB
+from results_analyzer.analyzer_constants import AxisInfo, DEFAULT
 
 
 def design_and_plot(x_info, y_info, graph_name, path_for_graphs):
@@ -44,52 +45,36 @@ def draw_subplots(df: pd.DataFrame, path_for_graphs: str, x_info: AxisInfo, y_in
         graph_name = f"{title} - {column.replace(' ', '_')}"
         draw_dataframe(df, path_for_graphs, graph_name, x_info, single_y_info)
 
-    # one graph with all plots
-    emphasis_column = y_info.axis[0] if y_info.axis else None
-    graph_name = f"{title} - All Cores"
-    draw_dataframe(df, path_for_graphs, graph_name, x_info, y_info, column_to_emphasis=emphasis_column)
 
-    # plt.figure(figsize=(12, 6))
-    # for col in y_info.axis:
-    #     plt.plot(df[x_info.axis[0]], df[col], label=col)
-    #
-    # design_and_plot(x_info, y_info, title, path_for_graphs)
-    # plt.xlabel(x_info.label)
-    # plt.ylabel('Usage (%)')
-    # plt.title(title)
-    # plt.legend(loc='upper right')
-    # plt.grid(True)
-    # plt.tight_layout()
-    # plt.show()
-    # number_of_cols_to_plot = len(y_info.axis)
-    # cols = round(math.sqrt(number_of_cols_to_plot))
-    # rows = cols
-    #
-    # fig, ax = plt.subplots(rows, cols, figsize=(18, 10))
-    # for i in range(rows):
-    #     for j in range(cols):
-    #         if i * cols + j >= number_of_cols_to_plot:
-    #             break
-    #         ax[i][j].plot(df[y_info.axis[i + j]])
-    #         ax[i][j].set_title(y_info.axis[i * cols + j])
-    #
-    # fig.suptitle(title, color="darkblue", fontsize=30, fontname="Times New Roman", fontweight="bold")
-    # fig.supxlabel(x_info.label, fontsize=20, color='crimson')
-    # fig.supylabel(y_info.label, fontsize=20, color='crimson')
-    # fig.tight_layout(pad=3.0)
+# def draw_grouped_dataframe(grouped_df, path_for_graphs: str, x_info: AxisInfo, y_info: AxisInfo, title: str):
+#     cpu_pivot = df.pivot(index='time', columns='process id', values='cpu usage')
+#
+#     # Optional: rename columns to include 'PID' prefix
+#     cpu_pivot.columns = [f'PID {pid}' for pid in cpu_pivot.columns]
+#
+#     # Define AxisInfo
+#     x_info = AxisInfo(axis='time', label='Time')
+#     y_info = AxisInfo(axis=cpu_pivot.columns.tolist(), label='CPU Usage (%)')
+#
+#     # Call the plotting function
+#     draw_dataframe(cpu_pivot, path_for_graphs='.', graph_name='cpu_usage_by_process', x_info=x_info, y_info=y_info)
 
-    # save graph as picture
-    # plt.savefig(os.path.join(path_for_graphs, title))
-    #
-    # # function to show the plot
-    # plt.show()
 
-def draw_dataframe(df, path_for_graphs, graph_name, x_info, y_info, column_to_emphasis=None, do_subplots=False):
+def draw_dataframe(df: pd.DataFrame, path_for_graphs: str, graph_name: str, x_info: AxisInfo, y_info: AxisInfo,
+                   column_to_emphasis: str = None, do_subplots: bool = False):
     fig, ax = plt.subplots(figsize=(10, 5))
 
     if column_to_emphasis is not None:
         y_info.axis.remove(column_to_emphasis)
         df[column_to_emphasis].plot(ax=ax, legend=True, linewidth=5, subplots=do_subplots)
+
     df[y_info.axis].plot(ax=ax, legend=True)
     design_and_plot(x_info, y_info, graph_name, path_for_graphs)
 
+
+def draw_process_and_total(total_df: pd.DataFrame, process_df: pd.DataFrame, x: AxisInfo, y: AxisInfo, title: str,
+                           path_for_graphs: str, ):
+    fig, ax = plt.subplots(figsize=(15, 6))
+    total_df.plot(color='black', ax=ax).legend(labels=["Total Consumption"])
+    process_df.plot(y=y.axis, ax=ax, label=True, color="r")
+    design_and_plot(x, y, title, path_for_graphs)

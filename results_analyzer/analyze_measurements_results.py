@@ -52,8 +52,11 @@ def print_container_name(container_results_dir: str) -> str:
 
 def print_measurement_results(measurement_results_dir: str, container_name: str) -> None:
     graphs_generator = GraphsGenerator(measurement_dir=measurement_results_dir, container_name=container_name)
-    graphs_generator.display_battery_graphs()
-    graphs_generator.display_cpu_graphs()
+    # graphs_generator.display_battery_graphs()
+    # graphs_generator.display_cpu_graphs()
+    # graphs_generator.display_memory_graphs()
+    # graphs_generator.display_disk_io_graphs()
+    graphs_generator.display_processes_graphs([1214])
 
 
 def print_results_graphs_per_container(container_results_dir: str):
