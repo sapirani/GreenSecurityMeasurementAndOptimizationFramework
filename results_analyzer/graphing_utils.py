@@ -63,6 +63,7 @@ def draw_processes_and_total(processes_df: pd.DataFrame, total_df: pd.DataFrame,
                              total_time_column: str, total_resource_column: str,
                              process_resource_column: str, process_ids_to_plot: List[int],
                              x_info: AxisInfo, y_info: AxisInfo, title: str, graphs_output_dir: str):
+
     plt.figure(figsize=(12, 6))
 
     has_lines = False  # Track if anything was plotted

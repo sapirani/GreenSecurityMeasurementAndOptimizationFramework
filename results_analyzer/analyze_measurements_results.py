@@ -4,6 +4,7 @@ from typing import List
 
 from containers_control.scanner_results_zipper import RESULTS_DIR_PREFIX
 from general_consts import MEASUREMENT_NAME_DIR
+from results_analyzer.analyzer_constants import RELEVANT_PROCESSES
 from results_analyzer.analyzer_utils import is_results_dir
 from results_analyzer.graph_generator import GraphsGenerator
 
@@ -52,11 +53,11 @@ def print_container_name(container_results_dir: str) -> str:
 
 def print_measurement_results(measurement_results_dir: str, container_name: str) -> None:
     graphs_generator = GraphsGenerator(measurement_dir=measurement_results_dir, container_name=container_name)
-    # graphs_generator.display_battery_graphs()
-    # graphs_generator.display_cpu_graphs()
-    # graphs_generator.display_memory_graphs()
-    # graphs_generator.display_disk_io_graphs()
-    graphs_generator.display_processes_graphs([423])
+    graphs_generator.display_battery_graphs()
+    graphs_generator.display_cpu_graphs()
+    graphs_generator.display_memory_graphs()
+    graphs_generator.display_disk_io_graphs()
+    graphs_generator.display_processes_graphs(RELEVANT_PROCESSES)
 
 
 def print_results_graphs_per_container(container_results_dir: str):

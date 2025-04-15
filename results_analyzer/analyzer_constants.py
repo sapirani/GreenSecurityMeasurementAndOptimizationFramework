@@ -16,3 +16,5 @@ class Units:
 
 
 DEFAULT = "default"
+MINIMAL_REQUIRED_RECORDS = 4
+RELEVANT_PROCESSES = []

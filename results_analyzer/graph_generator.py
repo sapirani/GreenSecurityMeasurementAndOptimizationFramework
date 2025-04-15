@@ -2,11 +2,9 @@ import os
 from typing import List
 
 import pandas as pd
-from matplotlib.pyplot import title
 
 from general_consts import BatteryColumns, CPUColumns, MemoryColumns, DiskIOColumns, ProcessesColumns
-from initialization_helper import result_paths
-from results_analyzer.analyzer_constants import AxisInfo, Units, DEFAULT
+from results_analyzer.analyzer_constants import AxisInfo, Units, DEFAULT, MINIMAL_REQUIRED_RECORDS
 from results_analyzer.graphing_utils import draw_dataframe, draw_subplots, draw_processes_and_total
 
 NUM_OF_PATHS = 12
@@ -136,6 +134,30 @@ class GraphsGenerator:
                                                        units_for_y=Units.MEMORY_PROCESS,
                                                        graph_name="Memory consumption per process")
 
+        self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
+                                                       resource_type=ProcessesColumns.READ_BYTES,
+                                                       label_for_y="IO Read bytes",
+                                                       units_for_y=Units.IO_BYTES,
+                                                       graph_name="IO Read bytes per process")
+
+        self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
+                                                       resource_type=ProcessesColumns.WRITE_BYTES,
+                                                       label_for_y="IO Write bytes",
+                                                       units_for_y=Units.IO_BYTES,
+                                                       graph_name="IO Write bytes per process")
+
+        self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
+                                                       resource_type=ProcessesColumns.READ_COUNT,
+                                                       label_for_y="IO Read count",
+                                                       units_for_y=Units.COUNT,
+                                                       graph_name="IO Read count per process")
+
+        self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
+                                                       resource_type=ProcessesColumns.WRITE_COUNT,
+                                                       label_for_y="IO Write count",
+                                                       units_for_y=Units.COUNT,
+                                                       graph_name="IO Write count per process")
+
         if processes_ids_to_emphasize is not None and len(processes_ids_to_emphasize) > 0:
             relevant_processes_df = processes_df.loc[processes_df[ProcessesColumns.PROCESS_ID].isin(processes_ids_to_emphasize)]
             self.__display_process_and_total_resource(processes_df=relevant_processes_df,
@@ -159,66 +181,6 @@ class GraphsGenerator:
                                                       units_for_y=Units.MEMORY_PROCESS,
                                                       processes_to_plot_id=processes_ids_to_emphasize)
 
-        # self.__create_source_graph_per_processes_graph(filtered_processes_df, ProcessesColumns.USED_MEMORY,
-        #                                                "Memory consumption",
-        #                                                Units.MEMORY_PROCESS, "Memory consumption per process")
-
-        # processes_df_grouped = processes_df.groupby(ProcessesColumns.PROCESS_ID)
-        #
-        # # display CPU consumption
-        # x_info_cpu = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
-        # y_info_cpu = AxisInfo("CPU consumption", Units.PERCENT, ProcessesColumns.CPU_CONSUMPTION)
-        # self.__display_specific_processes_graph(processes_df, processes_df_grouped, ProcessesColumns.CPU_CONSUMPTION,
-        #                                         [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME],
-        #                                         x_info_cpu, y_info_cpu, "CPU consumption per process", self.__total_cpu_csv,
-        #                                         CPUColumns.TIME, CPUColumns.USED_PERCENT)
-
-        # # display Total CPU consumption and Antivirus/Dummy CPU consumption
-        # if process_to_plot_id is not None:
-        #     display_process_and_total_cpu(x_info_cpu, y_info_cpu, processes_df.loc[
-        #         processes_df[ProcessesColumns.PROCESS_ID] == process_to_plot_id])
-        #
-        # # display Memory
-        # x_info_memory = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
-        # y_info_memory = AxisInfo("Memory consumption", Units.MEMORY_PROCESS, ProcessesColumns.USED_MEMORY)
-        # self.__display_specific_processes_graph(processes_df, processes_df_grouped, ProcessesColumns.USED_MEMORY,
-        #                                         [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME],
-        #                                         x_info_memory, y_info_memory, "Memory consumption per process",
-        #                                         self.__total_memory_each_moment_csv, MemoryColumns.TIME,
-        #                                         MemoryColumns.USED_MEMORY)
-        #
-        # # display Total memory consumption and Antivirus/Dummy memory consumption
-        # if process_to_plot_id is not None:
-        #     display_process_and_total_memory(x_info_memory, y_info_memory, processes_df.loc[
-        #         processes_df[ProcessesColumns.PROCESS_ID] == process_to_plot_id])
-        #
-        # # display IO read bytes
-        # x_info_read = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
-        # y_info_read = AxisInfo("IO Read bytes", Units.IO_BYTES, ProcessesColumns.READ_BYTES)
-        # self.__display_specific_processes_graph(processes_df, processes_df_grouped, ProcessesColumns.READ_BYTES,
-        #                                         [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME],
-        #                                         x_info_read, y_info_read, "IO read bytes per process")
-        #
-        # # display IO write bytes
-        # x_info_write = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
-        # y_info_write = AxisInfo("IO Write bytes", Units.IO_BYTES, ProcessesColumns.WRITE_BYTES)
-        # self.__display_specific_processes_graph(processes_df, processes_df_grouped, ProcessesColumns.WRITE_BYTES,
-        #                                         [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME],
-        #                                         x_info_write, y_info_write, "IO write bytes per process")
-        #
-        # # display io read count
-        # x_info_read_count = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
-        # y_info_read_count = AxisInfo("IO Read count", Units.COUNT, ProcessesColumns.READ_COUNT)
-        # self.__display_specific_processes_graph(processes_df, processes_df_grouped, ProcessesColumns.READ_COUNT,
-        #                                         [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME],
-        #                                         x_info_read_count, y_info_read_count, "IO read count per process")
-        #
-        # # display io write count
-        # x_info_write_count = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
-        # y_info_write_count = AxisInfo("IO Write count", Units.COUNT, ProcessesColumns.WRITE_COUNT)
-        # self.__display_specific_processes_graph(processes_df, processes_df_grouped, ProcessesColumns.WRITE_COUNT,
-        #                                         [ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME],
-        #                                         x_info_write_count, y_info_write_count, "IO write count per process")
 
     def __display_process_and_total_resource(self, processes_df: pd.DataFrame, path_to_resource_df: str,
                                              column_from_resource: str, time_column_from_resource: str,
@@ -230,31 +192,29 @@ class GraphsGenerator:
         x_info = AxisInfo(label='Time', unit=Units.TIME, axis=ProcessesColumns.TIME)
         y_info = AxisInfo(label=label_for_y, unit=units_for_y, axis=[])  # axis list is not needed here
 
-        draw_processes_and_total(
-            processes_df=processes_df,
-            total_df=total_df,
-            total_time_column=time_column_from_resource,
-            total_resource_column=column_from_resource,
-            process_resource_column=column_of_resource_in_processes,
-            process_ids_to_plot=processes_to_plot_id,
-            x_info=x_info,
-            y_info=y_info,
-            title=self.__get_graph_name(graph_name, for_comparison=True),
-            graphs_output_dir=self.__graphs_output_dir
-        )
+        if len(processes_df) > MINIMAL_REQUIRED_RECORDS:
+            draw_processes_and_total(
+                processes_df=processes_df,
+                total_df=total_df,
+                total_time_column=time_column_from_resource,
+                total_resource_column=column_from_resource,
+                process_resource_column=column_of_resource_in_processes,
+                process_ids_to_plot=processes_to_plot_id,
+                x_info=x_info,
+                y_info=y_info,
+                title=self.__get_graph_name(graph_name, for_comparison=True),
+                graphs_output_dir=self.__graphs_output_dir
+            )
 
     def __create_source_graph_per_processes_graph(self, processes_df: pd.DataFrame, resource_type: str,
                                                   label_for_y: str, units_for_y: str, graph_name: str):
         resource_pivot = processes_df.pivot(index=ProcessesColumns.TIME, columns=ProcessesColumns.PROCESS_ID,
                                             values=resource_type)
 
-        # Optional: rename columns to include 'PID' prefix
         resource_pivot.columns = [f'PID {pid}' for pid in resource_pivot.columns]
 
-        # Define AxisInfo
         x_info = AxisInfo("Time", Units.TIME, ProcessesColumns.TIME)
         y_info = AxisInfo(axis=resource_pivot.columns, label=label_for_y, unit=units_for_y)
 
-        # Call the plotting function
         draw_dataframe(resource_pivot, path_for_graphs=self.__graphs_output_dir,
                        graph_name=self.__get_graph_name(graph_name), x_info=x_info, y_info=y_info)
