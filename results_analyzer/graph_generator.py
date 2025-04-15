@@ -130,6 +130,12 @@ class GraphsGenerator:
                                                        units_for_y=Units.PERCENT,
                                                        graph_name="CPU consumption per process")
 
+        self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
+                                                       resource_type=ProcessesColumns.MEMORY_PERCENT,
+                                                       label_for_y="Memory consumption",
+                                                       units_for_y=Units.MEMORY_PROCESS,
+                                                       graph_name="Memory consumption per process")
+
         if processes_ids_to_emphasize is not None and len(processes_ids_to_emphasize) > 0:
             relevant_processes_df = processes_df.loc[processes_df[ProcessesColumns.PROCESS_ID].isin(processes_ids_to_emphasize)]
             self.__display_process_and_total_resource(processes_df=relevant_processes_df,
@@ -142,6 +148,16 @@ class GraphsGenerator:
                                                       units_for_y=Units.PERCENT,
                                                       processes_to_plot_id=processes_ids_to_emphasize)
 
+            # TODO: CHANGE TOTAL DF TO BE TOTAL DF * KB IN THE MEMORY USAGE COLUM
+            self.__display_process_and_total_resource(processes_df=relevant_processes_df,
+                                                      path_to_resource_df=self.__total_memory_each_moment_csv,
+                                                      column_from_resource=MemoryColumns.USED_MEMORY,
+                                                      time_column_from_resource=MemoryColumns.TIME,
+                                                      column_of_resource_in_processes=ProcessesColumns.MEMORY_PERCENT,
+                                                      graph_name="Memory consumption",
+                                                      label_for_y="Memory consumption",
+                                                      units_for_y=Units.MEMORY_PROCESS,
+                                                      processes_to_plot_id=processes_ids_to_emphasize)
 
         # self.__create_source_graph_per_processes_graph(filtered_processes_df, ProcessesColumns.USED_MEMORY,
         #                                                "Memory consumption",
