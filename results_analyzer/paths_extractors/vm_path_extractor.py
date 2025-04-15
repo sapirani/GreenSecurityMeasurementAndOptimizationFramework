@@ -4,21 +4,21 @@ from typing import List
 
 from general_consts import MEASUREMENT_NAME_DIR
 from results_analyzer.analyzer_utils import is_results_dir
+from results_analyzer.paths_extractors.abstract_path_extractor import PathExtractor
 
+RESULTS_DIR_PREFIX = "results_"
+NUM_OF_CHARS_RESULT_DIR = len(RESULTS_DIR_PREFIX)
 
-class PathsExtractor:
-    @staticmethod
-    def read_all_results_dirs(all_results_dir: str) -> List[str]:
+class VMPathExtractor(PathExtractor):
+    def read_all_results_dirs(self, all_results_dir: str) -> List[str]:
         if os.path.exists(all_results_dir):
             return [os.path.join(all_results_dir, result_dir) for result_dir in os.listdir(all_results_dir)
-                    if
-                    is_results_dir(result_dir)]
+                    if is_results_dir(result_dir)]
 
         else:
             return []
 
-    @staticmethod
-    def read_all_containers_results_dirs(results_main_dir: str) -> List[str]:
+    def read_all_containers_results_dirs(self, results_main_dir: str) -> List[str]:
         containers_paths = []
         if os.path.exists(results_main_dir):
             for container_results_dir in os.listdir(results_main_dir):
@@ -45,3 +45,7 @@ class PathsExtractor:
                         measurement_dirs_paths.append(str(item.resolve()))
                 else:
                     self.__search_measurement_dirs(item, measurement_dirs_paths)
+
+
+    def get_container_name_from_path(self, container_results_dir: str) -> str:
+        return  os.path.basename(container_results_dir)[NUM_OF_CHARS_RESULT_DIR:]
