@@ -2,11 +2,12 @@ import os
 from typing import List
 
 import pandas as pd
+from matplotlib.pyplot import title
 
 from general_consts import BatteryColumns, CPUColumns, MemoryColumns, DiskIOColumns, ProcessesColumns
 from initialization_helper import result_paths
 from results_analyzer.analyzer_constants import AxisInfo, Units, DEFAULT
-from results_analyzer.graphing_utils import draw_dataframe, draw_subplots, draw_process_and_total
+from results_analyzer.graphing_utils import draw_dataframe, draw_subplots, draw_processes_and_total
 
 NUM_OF_PATHS = 12
 MAX_PROCESSES_TO_PLOT = 10
@@ -40,7 +41,9 @@ class GraphsGenerator:
     def get_base_dir(self) -> str:
         return self.__base_dir
 
-    def __get_graph_name(self, title: str) -> str:
+    def __get_graph_name(self, title: str, for_comparison: bool = False) -> str:
+        if for_comparison:
+            title = f"{title} - Comparison"
         return f"{title} Graph for {self.__container_name}"
 
     def display_battery_graphs(self):
@@ -108,7 +111,7 @@ class GraphsGenerator:
         else:
             print(f"The total disk io usage file {self.__disk_io_each_moment_csv} does not exist.")
 
-    def display_processes_graphs(self, processes_ids_to_emphasize: List[str]):
+    def display_processes_graphs(self, processes_ids_to_emphasize: List[int]):
         processes_df = pd.read_csv(self.__processes_results_csv)
         top_pids = (
             processes_df
@@ -123,14 +126,22 @@ class GraphsGenerator:
 
         self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
                                                        resource_type=ProcessesColumns.CPU_CONSUMPTION,
-                                                       path_to_resource_total_df=self.__total_cpu_csv,
-                                                       time_column_from_resource=CPUColumns.TIME,
-                                                       column_of_resource_in_processes=ProcessesColumns.CPU_CONSUMPTION,
-                                                       column_chosen_from_resource=CPUColumns.USED_PERCENT,
                                                        label_for_y="CPU consumption",
                                                        units_for_y=Units.PERCENT,
-                                                       graph_name="CPU consumption per process",
-                                                       processes_to_plot_id=processes_ids_to_emphasize)
+                                                       graph_name="CPU consumption per process")
+
+        if processes_ids_to_emphasize is not None and len(processes_ids_to_emphasize) > 0:
+            relevant_processes_df = processes_df.loc[processes_df[ProcessesColumns.PROCESS_ID].isin(processes_ids_to_emphasize)]
+            self.__display_process_and_total_resource(processes_df=relevant_processes_df,
+                                                      path_to_resource_df=self.__total_cpu_csv,
+                                                      column_from_resource=CPUColumns.USED_PERCENT,
+                                                      time_column_from_resource=CPUColumns.TIME,
+                                                      column_of_resource_in_processes=ProcessesColumns.CPU_CONSUMPTION,
+                                                      graph_name="CPU consumption",
+                                                      label_for_y="CPU consumption",
+                                                      units_for_y=Units.PERCENT,
+                                                      processes_to_plot_id=processes_ids_to_emphasize)
+
 
         # self.__create_source_graph_per_processes_graph(filtered_processes_df, ProcessesColumns.USED_MEMORY,
         #                                                "Memory consumption",
@@ -195,39 +206,29 @@ class GraphsGenerator:
 
     def __display_process_and_total_resource(self, processes_df: pd.DataFrame, path_to_resource_df: str,
                                              column_from_resource: str, time_column_from_resource: str,
-                                             column_of_resource_in_processes: str, title: str, y_label: str):
-        total_df = pd.read_csv(path_to_resource_df)
-        total_df = total_df[column_from_resource]
+                                             column_of_resource_in_processes: str, graph_name: str,
+                                             label_for_y: str, units_for_y: str,
+                                             processes_to_plot_id: List[int]):
 
-        resource_pivot = processes_df.pivot(
-            index=ProcessesColumns.TIME,
-            columns=ProcessesColumns.PROCESS_ID,
-            values=column_of_resource_in_processes
+        total_df = pd.read_csv(path_to_resource_df)
+        x_info = AxisInfo(label='Time', unit=Units.TIME, axis=ProcessesColumns.TIME)
+        y_info = AxisInfo(label=label_for_y, unit=units_for_y, axis=[])  # axis list is not needed here
+
+        draw_processes_and_total(
+            processes_df=processes_df,
+            total_df=total_df,
+            total_time_column=time_column_from_resource,
+            total_resource_column=column_from_resource,
+            process_resource_column=column_of_resource_in_processes,
+            process_ids_to_plot=processes_to_plot_id,
+            x_info=x_info,
+            y_info=y_info,
+            title=self.__get_graph_name(graph_name, for_comparison=True),
+            graphs_output_dir=self.__graphs_output_dir
         )
 
-        resource_pivot.columns = [f'PID {pid}' for pid in resource_pivot.columns]
-
-        # Step 4: Set time as index in system CPU data too
-        # total_df.set_index(time_column_from_resource, inplace=True)
-
-        # Step 5: Merge system CPU into the same DataFrame
-        combined_df = resource_pivot.join(total_df)
-
-        # Optional: rename system column
-        # combined_df.rename(columns={'total cpu': 'Total CPU'}, inplace=True)
-
-        # Step 6: Plot
-        x_info = AxisInfo(axis=ProcessesColumns.TIME, label='Time', unit=Units.TIME)
-        y_info = AxisInfo(axis=combined_df.columns.tolist(), label=y_label, unit=Units.PERCENT)
-
-        draw_dataframe(combined_df, path_for_graphs=self.__graphs_output_dir, graph_name=f"{title} - comparison",
-                       x_info=x_info, y_info=y_info)
-
     def __create_source_graph_per_processes_graph(self, processes_df: pd.DataFrame, resource_type: str,
-                                                  path_to_resource_total_df: str, time_column_from_resource,
-                                                  column_of_resource_in_processes, column_chosen_from_resource: str,
-                                                  label_for_y: str, units_for_y: str, graph_name: str,
-                                                  processes_to_plot_id: List[str]):
+                                                  label_for_y: str, units_for_y: str, graph_name: str):
         resource_pivot = processes_df.pivot(index=ProcessesColumns.TIME, columns=ProcessesColumns.PROCESS_ID,
                                             values=resource_type)
 
@@ -241,10 +242,3 @@ class GraphsGenerator:
         # Call the plotting function
         draw_dataframe(resource_pivot, path_for_graphs=self.__graphs_output_dir,
                        graph_name=self.__get_graph_name(graph_name), x_info=x_info, y_info=y_info)
-
-        if processes_to_plot_id is not None and len(processes_to_plot_id) > 0:
-            relevant_processes_df = processes_df.loc[
-                processes_df[ProcessesColumns.PROCESS_ID].isin(processes_to_plot_id)]
-            self.__display_process_and_total_resource(relevant_processes_df, path_to_resource_total_df,
-                                                      column_chosen_from_resource, time_column_from_resource,
-                                                      column_of_resource_in_processes, graph_name, label_for_y)

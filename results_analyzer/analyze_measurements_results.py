@@ -56,7 +56,7 @@ def print_measurement_results(measurement_results_dir: str, container_name: str)
     # graphs_generator.display_cpu_graphs()
     # graphs_generator.display_memory_graphs()
     # graphs_generator.display_disk_io_graphs()
-    graphs_generator.display_processes_graphs([1214])
+    graphs_generator.display_processes_graphs([423])
 
 
 def print_results_graphs_per_container(container_results_dir: str):

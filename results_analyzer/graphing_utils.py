@@ -1,11 +1,12 @@
 import math
 import os
+from typing import List
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from general_consts import KB
+from general_consts import KB, ProcessesColumns
 from results_analyzer.analyzer_constants import AxisInfo, DEFAULT
 
 
@@ -46,20 +47,6 @@ def draw_subplots(df: pd.DataFrame, path_for_graphs: str, x_info: AxisInfo, y_in
         draw_dataframe(df, path_for_graphs, graph_name, x_info, single_y_info)
 
 
-# def draw_grouped_dataframe(grouped_df, path_for_graphs: str, x_info: AxisInfo, y_info: AxisInfo, title: str):
-#     cpu_pivot = df.pivot(index='time', columns='process id', values='cpu usage')
-#
-#     # Optional: rename columns to include 'PID' prefix
-#     cpu_pivot.columns = [f'PID {pid}' for pid in cpu_pivot.columns]
-#
-#     # Define AxisInfo
-#     x_info = AxisInfo(axis='time', label='Time')
-#     y_info = AxisInfo(axis=cpu_pivot.columns.tolist(), label='CPU Usage (%)')
-#
-#     # Call the plotting function
-#     draw_dataframe(cpu_pivot, path_for_graphs='.', graph_name='cpu_usage_by_process', x_info=x_info, y_info=y_info)
-
-
 def draw_dataframe(df: pd.DataFrame, path_for_graphs: str, graph_name: str, x_info: AxisInfo, y_info: AxisInfo,
                    column_to_emphasis: str = None, do_subplots: bool = False):
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -72,9 +59,40 @@ def draw_dataframe(df: pd.DataFrame, path_for_graphs: str, graph_name: str, x_in
     design_and_plot(x_info, y_info, graph_name, path_for_graphs)
 
 
-def draw_process_and_total(total_df: pd.DataFrame, process_df: pd.DataFrame, x: AxisInfo, y: AxisInfo, title: str,
-                           path_for_graphs: str, ):
-    fig, ax = plt.subplots(figsize=(15, 6))
-    total_df.plot(color='black', ax=ax).legend(labels=["Total Consumption"])
-    process_df.plot(y=y.axis, ax=ax, label=True, color="r")
-    design_and_plot(x, y, title, path_for_graphs)
+def draw_processes_and_total(processes_df: pd.DataFrame, total_df: pd.DataFrame,
+                             total_time_column: str, total_resource_column: str,
+                             process_resource_column: str, process_ids_to_plot: List[int],
+                             x_info: AxisInfo, y_info: AxisInfo, title: str, graphs_output_dir: str):
+    plt.figure(figsize=(12, 6))
+
+    has_lines = False  # Track if anything was plotted
+
+    # Plot each process
+    for pid in process_ids_to_plot:
+        pid_data = processes_df[processes_df[ProcessesColumns.PROCESS_ID] == pid]
+        if not pid_data.empty:
+            plt.plot(
+                pid_data[ProcessesColumns.TIME],
+                pid_data[process_resource_column],
+                label=f'PID {pid}'
+            )
+            has_lines = True
+
+    # Plot total system resource
+    if not total_df.empty:
+        plt.plot(
+            total_df[total_time_column],
+            total_df[total_resource_column],
+            label='Total',
+            color='black',
+            linewidth=2,
+            linestyle='--'
+        )
+        has_lines = True
+
+    if has_lines:
+        print("HAS LINES")
+        plt.legend(loc='best', fontsize='medium')
+
+
+    design_and_plot(x_info, y_info, title, graphs_output_dir)
