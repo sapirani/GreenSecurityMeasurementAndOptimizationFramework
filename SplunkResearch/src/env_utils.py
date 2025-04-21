@@ -59,6 +59,7 @@ def clean_env(splunk_tools_instance, time_range=None):
     start_time = start_time - datetime.timedelta(minutes=5)
     end_time = end_time + datetime.timedelta(minutes=5)
     time_range = (start_time.strftime("%m/%d/%Y:%H:%M:%S"), end_time.strftime("%m/%d/%Y:%H:%M:%S"))
+    logger.info(f'update time range to {time_range}')
     empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:security.txt")
     empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:system.txt")
     splunk_tools_instance.delete_fake_logs(time_range)

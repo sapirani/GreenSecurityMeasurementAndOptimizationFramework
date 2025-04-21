@@ -557,7 +557,7 @@ class Action6(Action):
             obs, info = self.env.reset(**kwargs)
             return obs, info
         
-class Action7(Action):
+class Action7(Action): # working!!!! 21/04/25
         """relevant logs = top logtypes"""
         
         def __init__(self, env):
@@ -623,7 +623,6 @@ class Action7(Action):
             
             obs, info = self.env.reset(**kwargs)
             return obs, info
-        
 class RandomAction(ActionWrapper):
         
     def __init__(self, env):

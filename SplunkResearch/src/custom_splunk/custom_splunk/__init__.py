@@ -360,8 +360,10 @@ savedsearches = ["Windows Event For Service Disabled",
                  "Known Services Killed by Ransomware",
                  "Non Chrome Process Accessing Chrome Default Dir",
                  "Kerberoasting spn request with RC4 encryption",
-                 "Clop Ransomware Known Service Name"]
-fake_start_datetime = "01/01/2024:00:00:00"
+                 "Clop Ransomware Known Service Name",
+                 'Windows AD Replication Request Initiated from Unsanctioned Location',
+                 'ESCU Windows Rapid Authentication On Multiple Hosts Rule']
+fake_start_datetime = "05/01/2024:00:00:00"
 env_id = "splunk_train-v32"
 register(id=env_id,
         entry_point='custom_splunk.envs:SplunkEnv', 

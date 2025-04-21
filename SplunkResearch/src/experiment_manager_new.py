@@ -107,7 +107,7 @@ class ExperimentManager:
         top_logtypes = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
         # include only system and security logs
         top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
-        top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:10]
+        top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
         top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
         
         env = make(
@@ -256,10 +256,10 @@ class ExperimentManager:
             eval_config.env_config.env_id = "splunk_eval-v32"
             self.eval_env = self.create_environment(eval_config)
 
-            if config.experiment_name != "test_experiment" :
-                # clean and warm up the env
-                clean_env(env.splunk_tools, (env.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
-                env.warmup()
+            # if config.experiment_name != "test_experiment" :
+            #     # clean and warm up the env
+            #     # clean_env(env.splunk_tools, (env.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
+            #     env.warmup()
             # Setup callbacks
             config.experiment_name = experiment_name
             callbacks = self._setup_callbacks(config)
@@ -434,17 +434,17 @@ class ExperimentManager:
 # Example usage:
 if __name__ == "__main__":
     # Create experiment config
-    retrain_fake_start_datetime = "05/01/2024:00:00:00"
+    # retrain_fake_start_datetime = "05/01/2024:00:00:00"
     
     env_config = SplunkConfig(
-        fake_start_datetime=retrain_fake_start_datetime,
+        # fake_start_datetime=retrain_fake_start_datetime,
         rule_frequency=60,
         search_window=2880,
         # savedsearches=["rule1", "rule2"],
         logs_per_minute=150,
         additional_percentage=.5,
         action_duration=7200,
-        num_of_measurements=1,
+        num_of_measurements=3,
         env_id="splunk_train-v32"        
     )
     experiment_config = ExperimentConfig(

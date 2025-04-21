@@ -210,7 +210,7 @@ class SplunkEnv(gym.Env):
         for _ in range(1):
             logger.info("Running saved searches for warmup")
             time_range = self.time_manager.current_window.to_tuple()
-            asyncio.run(self.splunk_tools.run_saved_searches(time_range, self.config.num_of_measurements))
+            asyncio.run(self.splunk_tools.run_saved_searches(time_range, None, self.config.num_of_measurements))
 
 # Example usage:
 if __name__ == "__main__":

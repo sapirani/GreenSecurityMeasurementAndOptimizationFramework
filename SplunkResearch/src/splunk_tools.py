@@ -245,10 +245,10 @@ class SplunkTools(object):
         return metric, results
 
 
-    async def run_saved_search(self, saved_search: Dict[str, str], time_range: Tuple[str, str]) -> QueryMetrics:
+    async def run_saved_search(self, saved_search:  str, time_range: Tuple[str, str]) -> QueryMetrics:
         """Run a saved search and collect metrics"""
-        search_name = saved_search['title']
-        query = saved_search['search']
+        search_name = saved_search
+        query = self.active_saved_searches[saved_search]['search']
         
         # Parse time range
         earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
@@ -259,14 +259,15 @@ class SplunkTools(object):
         # query_parts[0] = f'{query_parts[0]} earliest={earliest_time} latest={latest_time}'
         # query = '|'.join(query_parts)
         
-        logger.info(f'Running saved search {search_name} with query: {query}')
+        logger.info(f'Running saved search {search_name}')
         return await self.execute_query(search_name, query, earliest_time, latest_time)
 
 
     async def run_saved_searches(
         self, 
         time_range: Tuple[str, str], 
-        num_of_measurements: int
+        running_plan: Dict[str, int]=None,
+        num_measurements: int = 1        
     ) -> Tuple[List[QueryMetrics], float]:
         """
         Run multiple saved searches in parallel with multiple measurements each.
@@ -277,10 +278,13 @@ class SplunkTools(object):
         
         try:
             all_tasks = []
-            
-            for _ in range(num_of_measurements):
-                for saved_search in self.active_saved_searches:
-                    task = asyncio.create_task(self.run_saved_search(saved_search, time_range))
+            if running_plan is None:
+                running_plan = {search: num_measurements for search in self.active_saved_searches}
+            for search_name, num_measurements in running_plan.items():
+                for i in range(num_measurements):
+                    # Create a task for each measurement
+                    task = asyncio.create_task(self.run_saved_search(
+                        search_name, time_range))
                     all_tasks.append(task)
                 
             # Run all tasks concurrently
@@ -351,8 +355,8 @@ class SplunkTools(object):
             # Parse each line as JSON
             results = [json.loads(obj)['result'] for obj in json_objects]
         if get_only_enabled:
-            results = [result for result in results if result['title'] in active_saved_searches]
-        return sorted(results, key=lambda x: x['title'])
+            results = {result['title']: result for result in results if result['title'] in active_saved_searches}
+        return results
     
     def _send_post_request(self, url, data):
         response = requests.post(url, headers=HEADERS, data=data, auth=self.auth, verify=False)
@@ -389,7 +393,7 @@ class SplunkTools(object):
     def update_all_searches(self, update_func, update_arg):
         searches_names = self.active_saved_searches
         with Pool() as pool:
-            pool.starmap(update_func, [(search_name['title'], update_arg) for search_name in searches_names])
+            pool.starmap(update_func, [(search_name, update_arg) for search_name in searches_names])
             
     def load_real_logs_distribution_bucket(self, start_time, end_time):
         """

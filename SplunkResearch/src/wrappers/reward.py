@@ -52,23 +52,33 @@ class BaseRuleExecutionWrapper(RewardWrapper):
         relevant_rows = self.baseline_df[(self.baseline_df['start_time'] == time_range[0]) & (self.baseline_df['end_time'] == time_range[1])]
         actual_num_of_measurements = relevant_rows.groupby(['start_time', 'end_time', 'search_name']).size().values[0] if not relevant_rows.empty else 0
         needed_measurements = num_of_measurements - actual_num_of_measurements
+        # check if some search is missing
+        running_dict = {}
+        existing_searches = set()
+        if len(relevant_rows) != 0:
+            existing_searches = set(relevant_rows.reset_index()['search_name'].values)
+            running_dict.update({search: needed_measurements for search in existing_searches})
+        missing_searches = set([search for search in self.splunk_tools.active_saved_searches]) - existing_searches
+        running_dict.update({search: num_of_measurements for search in missing_searches})
+
         logger.info('Cleaning the environment')
         clean_env(self.splunk_tools, time_range)
         logger.info('Measure no agent reward values')
-        if needed_measurements > 0:
-            rules_metrics, total_cpu = asyncio.run(self.splunk_tools.run_saved_searches(time_range, needed_measurements))
-            new_lines = self.convert_metrics(time_range, rules_metrics)
+        # if needed_measurements > 0:
+        rules_metrics, total_cpu = asyncio.run(self.splunk_tools.run_saved_searches(time_range, running_dict))
+        new_lines = self.convert_metrics(time_range, rules_metrics)
+        if len(new_lines) != 0:
             self.baseline_df = pd.concat([self.baseline_df, pd.DataFrame(
-                new_lines
-            )])
-            random_val = np.random.randint(0, 10)
-            if random_val % 3 == 0:
-                self.baseline_df.to_csv(self.baseline_path, index=False)
-            relevant_rows = self.baseline_df[(self.baseline_df['start_time'] == time_range[0]) & (self.baseline_df['end_time'] == time_range[1])]
+            new_lines
+        )])
+        random_val = np.random.randint(0, 10)
+        if random_val % 3 == 0:
+            self.baseline_df.to_csv(self.baseline_path, index=False)
+        relevant_rows = self.baseline_df[(self.baseline_df['start_time'] == time_range[0]) & (self.baseline_df['end_time'] == time_range[1])]
         return relevant_rows
     
     def get_current_reward_values(self, time_range: TimeWindow) -> Tuple[pd.DataFrame, Dict]:
-        rules_metrics, total_cpu = asyncio.run(self.splunk_tools.run_saved_searches(time_range, self.env.config.num_of_measurements))
+        rules_metrics, total_cpu = asyncio.run(self.splunk_tools.run_saved_searches(time_range, None, self.env.config.num_of_measurements))
         relevant_rows = self.convert_metrics(time_range, rules_metrics)
         relevant_rows = pd.DataFrame(relevant_rows)
         grouped = relevant_rows.groupby('search_name')
@@ -170,7 +180,8 @@ class EnergyRewardWrapper(RewardWrapper):
             energy_reward = np.clip(energy_reward, 0, 1) # Normalize to [0, 1]
             info['energy_reward'] = energy_reward
             # reward +=  energy_reward
-            reward = energy_reward/(reward + self.epsilon)
+            reward = 0.5*energy_reward - 0.5*reward
+            # reward = energy_reward/(reward + self.epsilon)
             # reward += self.alpha * energy_reward
             
         return obs, reward, terminated, truncated, info
