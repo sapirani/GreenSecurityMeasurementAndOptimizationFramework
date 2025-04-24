@@ -40,7 +40,7 @@ class LogGenerator:
         self._init_variation_templates()
         
         logger.info(f"LogGenerator initialization completed in {time.time() - start_time:.3f} seconds")
-    
+        
     def _init_variation_templates(self):
         """Initialize the variation templates for faster substitution"""
         self.variations = {
@@ -50,7 +50,7 @@ class LogGenerator:
                 'Account Name': 'DT-{}$',
                 'Account Domain': 'BGU-USERS-{}',
             },
-            
+
             ('wineventlog:security', '4769'): {  # Kerberoasting
                 'ComputerName': 'win-dc-{}.attackrange.local',
                 'Account Name': 'Administrator@ATTACKRANGE{}.LOCAL',
@@ -66,12 +66,28 @@ class LogGenerator:
                 'Account Domain': 'DOMAIN_{}',
             },
 
-            ('wineventlog:security', '5140'): {  # Network share
-                'Computer': 'ar-win-{}.attackrange.local',
-                'SecurityID': 'ATTACKRANGE\\Admin_{}',
-                'AccountName': 'Admin_{}',
-                'AccountDomain': 'ATTACKRANGE',
-                'SourceAddress': '10.0.1.{}',
+            ('wineventlog:security', '5140'): {  # Network Share Discovery
+                'ComputerName': 'sharehost-{}.lab.internal',
+                'Account Name': 'user_{}',
+                'Account Domain': 'LABDOM{}',
+                'Workstation Name': 'CLIENT-{}',
+                'Source Network Address': '10.0.0.{}',
+            },
+
+            ('wineventlog:security', '4624'): {  # Rapid Auth on Multiple Hosts
+                'ComputerName': 'node-{}.net.corp',
+                'Account Name': 'jcrawford',
+                'Account Domain': 'net.corp',
+                'Source Network Address': '192.168.{}.77',
+                'Logon ID': '0x4E5B3A{}',
+            },
+
+            ('wineventlog:security', '4662'): {  # AD Replication Request
+                'ComputerName': 'replica-{}.ad.internal',
+                'Account Name': 'replica_user{}',
+                'Account Domain': 'INTERNALDOM{}',
+                'Security ID': 'S-1-5-21-999999999-888888888-777777777-{}',
+                'Object Name': 'CN=Configuration,DC=internal,DC=dom{}',
             },
 
             ('wineventlog:system', '7040'): {  # Service disabled
@@ -90,7 +106,7 @@ class LogGenerator:
                 'Service File Name': 'c:\\Users\\Public\\clop_{}.exe'
             }
         }
-    
+
     def _get_template(self, logsource, eventcode, istrigger):
         """Lazy-loading templates to avoid loading everything at once"""
         key = f"{logsource.lower()}_{eventcode}_{istrigger}"
@@ -428,54 +444,54 @@ class LogGenerator:
         
         return timestamp_pool
     
-    def _apply_variations(self, log, logsource, eventcode, variation_id):
-        """Apply variations to a log template using more efficient string operations"""
-        start_time = time.time()
+    # def _apply_variations(self, log, logsource, eventcode, variation_id):
+    #     """Apply variations to a log template using more efficient string operations"""
+    #     start_time = time.time()
         
-        if (logsource, eventcode) not in self.variations:
-            return log
+    #     if (logsource, eventcode) not in self.variations:
+    #         return log
         
-        log_variations = self.variations[(logsource, eventcode)]
-        field_count = 0
-        regex_time = 0
+    #     log_variations = self.variations[(logsource, eventcode)]
+    #     field_count = 0
+    #     regex_time = 0
         
-        for field, template in log_variations.items():
-            field_start = time.time()
-            field_count += 1
+    #     for field, template in log_variations.items():
+    #         field_start = time.time()
+    #         field_count += 1
             
-            # Format the value with the variation ID
-            value = template.format(variation_id)
-            # Escape backslashes
-            escaped_value = value.replace('\\', '\\\\')
+    #         # Format the value with the variation ID
+    #         value = template.format(variation_id)
+    #         # Escape backslashes
+    #         escaped_value = value.replace('\\', '\\\\')
             
-            # Determine pattern and replacement based on field type
-            if field == 'Message':
-                pattern = self.field_patterns['Message'][0]
-                replacement = self.field_patterns['Message'][1].format(escaped_value)
-                log = pattern.sub(replacement, log)
-            elif field in ['Security ID', 'SecurityID']:
-                pattern = self.field_patterns.get(field, (None, None))[0]
-                if pattern:
-                    replacement = self.field_patterns.get(field, (None, None))[1].format(escaped_value)
-                    log = pattern.sub(replacement, log)
-            else:
-                regex_start = time.time()
-                # First try with equals sign format
-                field_pattern = r'{}=[^\n]+'.format(re.escape(field))
-                if re.search(field_pattern, log):
-                    log = re.sub(field_pattern, f'{field}={escaped_value}', log)
-                else:
-                    # Then try with colon format
-                    field_pattern = r'{}:\s*[^\n]+'.format(re.escape(field))
-                    if re.search(field_pattern, log):
-                        log = re.sub(field_pattern, f'{field}:\t{escaped_value}', log)
-                regex_time += time.time() - regex_start
+    #         # Determine pattern and replacement based on field type
+    #         if field == 'Message':
+    #             pattern = self.field_patterns['Message'][0]
+    #             replacement = self.field_patterns['Message'][1].format(escaped_value)
+    #             log = pattern.sub(replacement, log)
+    #         elif field in ['Security ID', 'SecurityID']:
+    #             pattern = self.field_patterns.get(field, (None, None))[0]
+    #             if pattern:
+    #                 replacement = self.field_patterns.get(field, (None, None))[1].format(escaped_value)
+    #                 log = pattern.sub(replacement, log)
+    #         else:
+    #             regex_start = time.time()
+    #             # First try with equals sign format
+    #             field_pattern = r'{}=[^\n]+'.format(re.escape(field))
+    #             if re.search(field_pattern, log):
+    #                 log = re.sub(field_pattern, f'{field}={escaped_value}', log)
+    #             else:
+    #                 # Then try with colon format
+    #                 field_pattern = r'{}:\s*[^\n]+'.format(re.escape(field))
+    #                 if re.search(field_pattern, log):
+    #                     log = re.sub(field_pattern, f'{field}:\t{escaped_value}', log)
+    #             regex_time += time.time() - regex_start
         
-        total_time = time.time() - start_time
-        if total_time > 0.01:  # Only log if it took more than 10ms
-            logger.info(f"Applied {field_count} variations in {total_time:.3f}s (regex: {regex_time:.3f}s) for {logsource}:{eventcode}:{variation_id}")
+    #     total_time = time.time() - start_time
+    #     if total_time > 0.01:  # Only log if it took more than 10ms
+    #         logger.info(f"Applied {field_count} variations in {total_time:.3f}s (regex: {regex_time:.3f}s) for {logsource}:{eventcode}:{variation_id}")
         
-        return log
+    #     return log
     
     @lru_cache(maxsize=32)
     def _prepare_base_template(self, logsource, eventcode, istrigger):

@@ -117,7 +117,7 @@ class ExperimentManager:
         )
         # env = SingleAction2(env)
         # env = Action(env)
-        env = Action7(env)
+        env = Action8(env)
         
         if config.use_random_agent:
             env = RandomAction(env)
@@ -145,16 +145,16 @@ class ExperimentManager:
             
         
         if config.use_alert_reward:
-            # env = AlertRewardWrapper(
-            #     env,
-            #     beta=config.beta_alert,
-            #     epsilon=1e-3
-            # )
-            env = AlertRewardWrapper1(
+            env = AlertRewardWrapper(
                 env,
                 beta=config.beta_alert,
                 epsilon=1e-3
             )
+            # env = AlertRewardWrapper1(
+            #     env,
+            #     beta=config.beta_alert,
+            #     epsilon=1e-3
+            # )
         # env = ClipRewardWrapper(env,
         #                         low=0,
         #                         high=1)
@@ -256,10 +256,10 @@ class ExperimentManager:
             eval_config.env_config.env_id = "splunk_eval-v32"
             self.eval_env = self.create_environment(eval_config)
 
-            # if config.experiment_name != "test_experiment" :
-            #     # clean and warm up the env
-            #     # clean_env(env.splunk_tools, (env.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
-            #     env.warmup()
+            if config.experiment_name != "test_experiment" :
+                # clean and warm up the env
+                clean_env(env.splunk_tools, (env.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
+                env.warmup()
             # Setup callbacks
             config.experiment_name = experiment_name
             callbacks = self._setup_callbacks(config)
@@ -457,7 +457,7 @@ if __name__ == "__main__":
         ent_coef=0.01,
         gamma=1,
         # experiment_name="test_experiment",
-        use_alert_reward=False,
+        use_alert_reward=True,
         use_energy_reward=True,
         use_random_agent=False,
     )

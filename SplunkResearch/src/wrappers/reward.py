@@ -180,7 +180,7 @@ class EnergyRewardWrapper(RewardWrapper):
             energy_reward = np.clip(energy_reward, 0, 1) # Normalize to [0, 1]
             info['energy_reward'] = energy_reward
             # reward +=  energy_reward
-            reward = 0.5*energy_reward - 0.5*reward
+            reward = 0.4*energy_reward - 0.3*reward
             # reward = energy_reward/(reward + self.epsilon)
             # reward += self.alpha * energy_reward
             
@@ -192,7 +192,7 @@ class AlertRewardWrapper(RewardWrapper):
         super().__init__(env)
         self.beta = beta
         self.epsilon = epsilon
-        self.expected_alerts = {'Windows Event For Service Disabled':3, 'Detect New Local Admin account':0, 'ESCU Network Share Discovery Via Dir Command Rule':0, 'Known Services Killed by Ransomware':1, 'Non Chrome Process Accessing Chrome Default Dir':0, 'Kerberoasting spn request with RC4 encryption':0, 'Clop Ransomware Known Service Name':0}
+        self.expected_alerts = {'ESCU Windows Rapid Authentication On Multiple Hosts Rule': 0, 'Windows AD Replication Request Initiated from Unsanctioned Location': 0, 'Windows Event For Service Disabled':3, 'Detect New Local Admin account':0, 'ESCU Network Share Discovery Via Dir Command Rule':0, 'Known Services Killed by Ransomware':1, 'Non Chrome Process Accessing Chrome Default Dir':0, 'Kerberoasting spn request with RC4 encryption':0, 'Clop Ransomware Known Service Name':0}
         
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)
@@ -209,7 +209,7 @@ class AlertRewardWrapper(RewardWrapper):
             alert_reward = self._calculate_alert_reward(current_alerts)
             self._sanity_check(current_alerts, baseline_alerts, diversity_episode_logs)
             info['alert_reward'] = alert_reward
-            reward += self.beta * alert_reward
+            reward += 0.3 * alert_reward
 
             # reward /= (alert_reward + self.epsilon)
         return obs, reward, terminated, truncated, info

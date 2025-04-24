@@ -1,3 +1,4 @@
+import datetime
 from gymnasium.core import ObservationWrapper
 import numpy as np
 from gymnasium import make, spaces
@@ -92,6 +93,8 @@ class StateWrapper(ObservationWrapper):
         sparse_vector = np.zeros(self.env.total_steps)
         sparse_vector[self.unwrapped.step_counter] = 1
         state = np.append(state, sparse_vector)
+        # add sparse vector for weekday and hour
+
         logger.info(f"State: {state}")
         self.unwrapped.obs = state
         return state
@@ -167,6 +170,13 @@ class StateWrapper2(StateWrapper):
 
     def __init__(self, env):
         super().__init__(env)
+        self.observation_space = spaces.Box(
+            low=0,
+            high=1,
+            shape=(len(self.top_logtypes)*2 + self.env.total_steps,),  # +1 for 'other' category
+            dtype=np.float64
+        )
+        
         
     def observation(self, obs):
         """Convert current distributions to normalized state"""
@@ -194,6 +204,13 @@ class StateWrapper2(StateWrapper):
         sparse_vector = np.zeros(self.env.total_steps)
         sparse_vector[self.unwrapped.step_counter] = 1
         state = np.append(state, sparse_vector)
+        # current_datetime = datetime.datetime.strptime(self.env.time_manager.action_window.end, '%m/%d/%Y:%H:%M:%S')
+        # weekday_vector = np.zeros(7)
+        # weekday_vector[current_datetime.weekday()] = 1
+        # hour_vector = np.zeros(24)
+        # hour_vector[current_datetime.hour] = 1
+        # state = np.append(state, weekday_vector)
+        # state = np.append(state, hour_vector)
         logger.info(f"State: {state}")
         self.unwrapped.obs = state
         return state
