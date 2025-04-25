@@ -110,76 +110,82 @@ class GraphsGenerator:
             print(f"The total disk io usage file {self.__disk_io_each_moment_csv} does not exist.")
 
     def display_processes_graphs(self, processes_ids_to_emphasize: List[int]):
-        processes_df = pd.read_csv(self.__processes_results_csv)
-        top_pids = (
-            processes_df
-            .groupby(ProcessesColumns.PROCESS_ID)[ProcessesColumns.CPU_CONSUMPTION]
-            .sum()
-            .nlargest(MAX_PROCESSES_TO_PLOT)
-            .index
-        )
+        if os.path.exists(self.__processes_results_csv):
+            processes_df = pd.read_csv(self.__processes_results_csv)
+            top_pids = (
+                processes_df
+                .groupby(ProcessesColumns.PROCESS_ID)[ProcessesColumns.CPU_CONSUMPTION]
+                .sum()
+                .nlargest(MAX_PROCESSES_TO_PLOT)
+                .index
+            )
 
-        # Step 3: Filter the DataFrame
-        filtered_processes_df = processes_df[processes_df[ProcessesColumns.PROCESS_ID].isin(top_pids)]
+            # Step 3: Filter the DataFrame
+            filtered_processes_df = processes_df[processes_df[ProcessesColumns.PROCESS_ID].isin(top_pids)]
 
-        self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
-                                                       resource_type=ProcessesColumns.CPU_CONSUMPTION,
-                                                       label_for_y="CPU consumption",
-                                                       units_for_y=Units.PERCENT,
-                                                       graph_name="CPU consumption per process")
+            self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
+                                                           resource_type=ProcessesColumns.CPU_CONSUMPTION,
+                                                           label_for_y="CPU consumption",
+                                                           units_for_y=Units.PERCENT,
+                                                           graph_name="CPU consumption per process")
 
-        self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
-                                                       resource_type=ProcessesColumns.MEMORY_PERCENT,
-                                                       label_for_y="Memory consumption",
-                                                       units_for_y=Units.MEMORY_PROCESS,
-                                                       graph_name="Memory consumption per process")
+            self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
+                                                           resource_type=ProcessesColumns.MEMORY_PERCENT,
+                                                           label_for_y="Memory consumption",
+                                                           units_for_y=Units.MEMORY_PROCESS,
+                                                           graph_name="Memory consumption per process")
 
-        self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
-                                                       resource_type=ProcessesColumns.READ_BYTES,
-                                                       label_for_y="IO Read bytes",
-                                                       units_for_y=Units.IO_BYTES,
-                                                       graph_name="IO Read bytes per process")
+            self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
+                                                           resource_type=ProcessesColumns.READ_BYTES,
+                                                           label_for_y="IO Read bytes",
+                                                           units_for_y=Units.IO_BYTES,
+                                                           graph_name="IO Read bytes per process")
 
-        self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
-                                                       resource_type=ProcessesColumns.WRITE_BYTES,
-                                                       label_for_y="IO Write bytes",
-                                                       units_for_y=Units.IO_BYTES,
-                                                       graph_name="IO Write bytes per process")
+            self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
+                                                           resource_type=ProcessesColumns.WRITE_BYTES,
+                                                           label_for_y="IO Write bytes",
+                                                           units_for_y=Units.IO_BYTES,
+                                                           graph_name="IO Write bytes per process")
 
-        self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
-                                                       resource_type=ProcessesColumns.READ_COUNT,
-                                                       label_for_y="IO Read count",
-                                                       units_for_y=Units.COUNT,
-                                                       graph_name="IO Read count per process")
+            self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
+                                                           resource_type=ProcessesColumns.READ_COUNT,
+                                                           label_for_y="IO Read count",
+                                                           units_for_y=Units.COUNT,
+                                                           graph_name="IO Read count per process")
 
-        self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
-                                                       resource_type=ProcessesColumns.WRITE_COUNT,
-                                                       label_for_y="IO Write count",
-                                                       units_for_y=Units.COUNT,
-                                                       graph_name="IO Write count per process")
+            self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
+                                                           resource_type=ProcessesColumns.WRITE_COUNT,
+                                                           label_for_y="IO Write count",
+                                                           units_for_y=Units.COUNT,
+                                                           graph_name="IO Write count per process")
 
-        if processes_ids_to_emphasize is not None and len(processes_ids_to_emphasize) > 0:
-            relevant_processes_df = processes_df.loc[processes_df[ProcessesColumns.PROCESS_ID].isin(processes_ids_to_emphasize)]
-            self.__display_process_and_total_resource(processes_df=relevant_processes_df,
-                                                      path_to_resource_df=self.__total_cpu_csv,
-                                                      column_from_resource=CPUColumns.USED_PERCENT,
-                                                      time_column_from_resource=CPUColumns.TIME,
-                                                      column_of_resource_in_processes=ProcessesColumns.CPU_CONSUMPTION,
-                                                      graph_name="CPU consumption",
-                                                      label_for_y="CPU consumption",
-                                                      units_for_y=Units.PERCENT,
-                                                      processes_to_plot_id=processes_ids_to_emphasize)
+            if processes_ids_to_emphasize is not None and len(processes_ids_to_emphasize) > 0:
+                relevant_processes_df = processes_df.loc[processes_df[ProcessesColumns.PROCESS_ID].isin(processes_ids_to_emphasize)]
+                self.__display_process_and_total_resource(processes_df=relevant_processes_df,
+                                                          path_to_resource_df=self.__total_cpu_csv,
+                                                          column_from_resource=CPUColumns.USED_PERCENT,
+                                                          time_column_from_resource=CPUColumns.TIME,
+                                                          column_of_resource_in_processes=ProcessesColumns.CPU_CONSUMPTION,
+                                                          graph_name="CPU consumption",
+                                                          label_for_y="CPU consumption",
+                                                          units_for_y=Units.PERCENT,
+                                                          processes_to_plot_id=processes_ids_to_emphasize)
 
-            # TODO: CHANGE TOTAL DF TO BE TOTAL DF * KB IN THE MEMORY USAGE COLUM
-            self.__display_process_and_total_resource(processes_df=relevant_processes_df,
-                                                      path_to_resource_df=self.__total_memory_each_moment_csv,
-                                                      column_from_resource=MemoryColumns.USED_MEMORY,
-                                                      time_column_from_resource=MemoryColumns.TIME,
-                                                      column_of_resource_in_processes=ProcessesColumns.MEMORY_PERCENT,
-                                                      graph_name="Memory consumption",
-                                                      label_for_y="Memory consumption",
-                                                      units_for_y=Units.MEMORY_PROCESS,
-                                                      processes_to_plot_id=processes_ids_to_emphasize)
+                # TODO: CHANGE TOTAL DF TO BE TOTAL DF * KB IN THE MEMORY USAGE COLUM
+                self.__display_process_and_total_resource(processes_df=relevant_processes_df,
+                                                          path_to_resource_df=self.__total_memory_each_moment_csv,
+                                                          column_from_resource=MemoryColumns.USED_MEMORY,
+                                                          time_column_from_resource=MemoryColumns.TIME,
+                                                          column_of_resource_in_processes=ProcessesColumns.MEMORY_PERCENT,
+                                                          graph_name="Memory consumption",
+                                                          label_for_y="Memory consumption",
+                                                          units_for_y=Units.MEMORY_PROCESS,
+                                                          processes_to_plot_id=processes_ids_to_emphasize)
+
+        else:
+            print(f"The processes usage file {self.__processes_results_csv} does not exist.")
+
+
 
 
     def __display_process_and_total_resource(self, processes_df: pd.DataFrame, path_to_resource_df: str,
