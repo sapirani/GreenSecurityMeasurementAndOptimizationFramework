@@ -2,7 +2,7 @@ from measurements_model.dataset_creation.dataset_creator import DatasetCreator
 from measurements_model.dataset_creation.dataset_utils import save_df_to_excel
 
 IDLE_DIR_PATH = fr""
-ALL_MEASUREMENTS_DIR_PATH = fr""
+ALL_MEASUREMENTS_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results"
 DATASET_PATH = fr""
 
 if __name__ == '__main__':
