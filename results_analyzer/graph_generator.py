@@ -3,7 +3,7 @@ from typing import List
 
 import pandas as pd
 
-from general_consts import BatteryColumns, CPUColumns, MemoryColumns, DiskIOColumns, ProcessesColumns
+from general_consts import BatteryColumns, CPUColumns, MemoryColumns, DiskIOColumns, ProcessesColumns, KB
 from results_analyzer.analyzer_constants import AxisInfo, Units, DEFAULT, MINIMAL_REQUIRED_RECORDS
 from results_analyzer.graphing_utils import draw_dataframe, draw_subplots, draw_processes_and_total
 
@@ -199,6 +199,10 @@ class GraphsGenerator:
         y_info = AxisInfo(label=label_for_y, unit=units_for_y, axis=[])  # axis list is not needed here
 
         if len(processes_df) > MINIMAL_REQUIRED_RECORDS:
+            # TODO: patch for now to receive the same units.
+            if column_of_resource_in_processes is ProcessesColumns.USED_MEMORY:
+                total_df[MemoryColumns.USED_MEMORY] = total_df[MemoryColumns.USED_MEMORY] * KB
+
             draw_processes_and_total(
                 processes_df=processes_df,
                 total_df=total_df,
