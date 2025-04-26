@@ -116,6 +116,46 @@ class IDLEColumns:
 
 # *** Hardware Related Cols *** #
 
+class HardwareColumns:
+    ## machine info
+    PC_TYPE = "PC_type"
+    PC_MANUFACTURER = "PC_manufacturer"
+    SYSTEM_FAMILY = "system_family"
+    PC_MODEL = "model"
+    MACHINE_TYPE = "machine_type"
+    DEVICE_NAME = "device_name"
+
+    ## operating system info
+    OPERATING_SYSTEM = "operating_system"
+    OPERATING_SYSTEM_RELEASE = "operating_system_release"
+    OPERATING_SYSTEM_VERSION = "operating_system_version"
+
+    ## cpu info
+    PROCESSOR_NAME = "processor_name"
+    PROCESSOR_PHYSICAL_CORES = "processor_physical_cores"
+    PROCESSOR_TOTAL_CORES = "processor_total_cores"
+    PROCESSOR_MAX_FREQ = "processor_max_frequency"
+    PROCESSOR_MIN_FREQ = "processor_min_frequency"
+
+    ## RAM info
+    TOTAL_RAM = "Total RAM:"
+    PHYSICAL_DISK_NAME = "physical_disk_name"
+    PHYSICAL_DISK_MANUFACTURER = "physical_disk_manufacturer"
+    PHYSICAL_DISK_MODEL = "physical_disk_model"
+    PHYSICAL_DISK_MEDIA_TYPE = "physical_disk_media_type"
+    PHYSICAL_DISK_FIRMWARE_VERSION = "disk_firmware_version"
+    LOGICAL_DISK_NAME = "logical_disk_name"
+    LOGICAL_DISK_MANUFACTURER = "logical_disk_manufacturer"
+    LOGICAL_DISK_MODEL = "logical_disk_model"
+    LOGICAL_DISK_DISK_TYPE = "logical_disk_disk_type"
+    LOGICAL_DISK_PARTITION_STYLE = "logical_disk_partition_style"
+    LOGICAL_DISK_NUMBER_OF_PARTITIONS = "logical_disk_number_of_partitions"
+    PHYSICAL_SECTOR_SIZE = "physical_sector_size"
+    LOGICAL_SECTOR_SIZE = "logical_sector_size"
+    BUS_TYPE = "bus_type"
+    FILESYSTEM = "file_system"
+    BATTERY_DESIGN_CAPACITY = "design_battery_capacity"
+    FULLY_CHARGED_BATTERY_CAPACITY = "fully_charged_battery_capacity"
 
 
 # DATASET_COLUMNS = [ProcessColumns.CPU_PROCESS_COL, ProcessColumns.MEMORY_PROCESS_COL,
