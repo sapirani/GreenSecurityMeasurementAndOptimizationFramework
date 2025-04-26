@@ -1,5 +1,5 @@
 import pandas as pd
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
 
 from measurements_model.config import TRAIN_SET_PATH, TEST_SET_PATH, FULL_PREPROCESSED_DATASET_PATH, IDLE_DIR_PATH, \
     ALL_MEASUREMENTS_DIR_PATH, ProcessColumns
@@ -10,10 +10,16 @@ from measurements_model.model_training.utils import calculate_and_print_scores
 
 
 class BestModelConfig:
-    model_type = ""
+    MODEL_NAME = RandomForestRegressor
+    MODEL_PARAMETERS = {
+        "n_estimators": 500,
+        "max_features": 'sqrt',
+        "max_depth": 7,
+        "min_samples_split": 5
+    }
 
 def create_model():
-    return LinearRegression()
+    return BestModelConfig.MODEL_NAME(**BestModelConfig.MODEL_PARAMETERS)
 
 
 def run_model():
@@ -32,3 +38,6 @@ def run_model():
     y_pred = model.predict(X_test)
     y_pred = pd.Series(y_pred).reset_index(drop=True)
     calculate_and_print_scores(y_test, y_pred)
+
+if __name__ == '__main__':
+    run_model()

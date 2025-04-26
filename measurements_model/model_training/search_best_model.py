@@ -59,12 +59,6 @@ class ModelSelector:
         final_results.to_csv(results_for_metric_path, index=False)
         return best_five_by_score
 
-    @classmethod
-    def __print_scores_per_metric(cls, scores: dict[str, float]):
-        print("*** Model's Accuracy on test-set ***")
-        for metric, score in scores.items():
-            print(f"{metric} value: {score}")
-
 
     def __select_top_models(self, x_train: pd.DataFrame, y_train: pd.Series, score_method: str):
         pipe = Pipeline([self.__initial_model])
