@@ -34,23 +34,15 @@ if __name__ == '__main__':
     feature_selector = AllFeaturesNoEnergy()
     df_all_features_no_energy = feature_selector.select_features(preprocessed_df)
     save_df_to_excel(df_all_features_no_energy, DF_ALL_FEATURES_NO_ENERGY_PATH)
-    print("***** ALL FEATURES NO ENERGY: *******")
-    print(df_all_features_no_energy.columns)
 
     feature_selector = ProcessAndHardware()
     df_without_system = feature_selector.select_features(preprocessed_df)
     save_df_to_excel(df_without_system, DF_WITHOUT_SYSTEM_PATH)
-    print("***** Without System: *******")
-    print(df_without_system.columns)
 
     feature_selector = ProcessAndTotalSystem()
     df_process_and_full_system = feature_selector.select_features(preprocessed_df)
     save_df_to_excel(df_process_and_full_system, DF_PROCESS_AND_FULL_SYSTEM_PATH)
-    print("***** Process And Full System: *******")
-    print(df_process_and_full_system.columns)
 
     feature_selector = ProcessAndSystemNoHardware()
     df_without_hardware = feature_selector.select_features(df)
     save_df_to_excel(df_without_hardware, DF_WITHOUT_HARDWARE_PATH)
-    print("***** Without Hardware: *******")
-    print(df_without_hardware.columns)
