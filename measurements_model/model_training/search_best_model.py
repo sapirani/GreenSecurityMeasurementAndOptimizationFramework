@@ -11,6 +11,7 @@ from sklearn.pipeline import Pipeline
 
 from measurements_model.config import RESULTS_TOP_MODELS_PATH, GRID_SEARCH_TEST_RESULTS_PATH
 from measurements_model.model_training.models_config import MODELS_WITHOUT_PARAMETERS
+from measurements_model.model_training.utils import calculate_and_print_scores
 
 TEST_REAL_LABEL_COLUMN = "Actual"
 CLASSIFIER_KEYWORD = "classifier"
@@ -64,19 +65,6 @@ class ModelSelector:
         for metric, score in scores.items():
             print(f"{metric} value: {score}")
 
-    def __calculate_and_print_scores(self, y: pd.Series, y_pred: pd.Series) -> dict[str, float]:
-        # todo: ADD MORE METRICS
-        scores_per_metric = {}
-        PER = (abs(y - y_pred) / y).mean() * 100
-        scores_per_metric["Average PER"] = PER
-
-        MSE = mean_squared_error(y_pred, y)
-        scores_per_metric["MSE"] = MSE
-        scores_per_metric["RMSE"] = math.sqrt(MSE)
-
-        scores_per_metric["MAE"] = mean_absolute_error(y_pred, y)
-        self.__print_scores_per_metric(scores_per_metric)
-        return scores_per_metric
 
     def __select_top_models(self, x_train: pd.DataFrame, y_train: pd.Series, score_method: str):
         pipe = Pipeline([self.__initial_model])
@@ -95,7 +83,7 @@ class ModelSelector:
         print(best_estimator)
         y_pred_test = best_estimator.predict(x_test)
         y_pred_test = pd.Series(y_pred_test).reset_index(drop=True)
-        self.__calculate_and_print_scores(y_test, y_pred_test)
+        calculate_and_print_scores(y_test, y_pred_test)
         return y_pred_test
 
     def choose_best_model(self, scoring_methods: list[str], x_train: pd.DataFrame, x_test: pd.DataFrame,
