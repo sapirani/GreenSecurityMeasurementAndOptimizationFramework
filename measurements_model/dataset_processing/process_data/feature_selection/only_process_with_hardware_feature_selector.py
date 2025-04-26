@@ -2,10 +2,16 @@ import pandas as pd
 
 from measurements_model.config import SystemColumns
 from measurements_model.dataset_processing.process_data.feature_selection.process_and_full_system_feature_selector import \
-    ProcessAndFullSystem
+    ProcessAndTotalSystem
 
 
-class WithoutSystem(ProcessAndFullSystem):
+class ProcessAndHardware(ProcessAndTotalSystem):
+    """
+    Includes all process and hardware features.
+    Doesn't include any idle or system features.
+    Includes the energy consumption of a process.
+    """
+
     def select_features(self, df: pd.DataFrame) -> pd.DataFrame:
         df = super().select_features(df)
         return df.drop([SystemColumns.CPU_SYSTEM_COL, SystemColumns.MEMORY_SYSTEM_COL,

@@ -4,7 +4,14 @@ from measurements_model.config import SystemColumns, IDLEColumns
 from measurements_model.dataset_processing.process_data.feature_selection.feature_selector import FeatureSelector
 
 
-class ProcessAndFullSystem(FeatureSelector):  # no subtraction in system column
+class ProcessAndTotalSystem(FeatureSelector):
+    """
+    Includes all process, hardware and system features.
+    Doesn't include any idle features.
+    Includes the energy consumption of a process BUT not the total energy consumption of the system.
+    The system features are NOT a subtraction of idle and process.
+    """
+
     def select_features(self, df: pd.DataFrame) -> pd.DataFrame:
         return df.drop([SystemColumns.ENERGY_TOTAL_USAGE_SYSTEM_COL, IDLEColumns.ENERGY_TOTAL_USAGE_IDLE_COL,
                         IDLEColumns.CPU_IDLE_COL, IDLEColumns.MEMORY_IDLE_COL, IDLEColumns.PAGE_FAULT_IDLE_COL,

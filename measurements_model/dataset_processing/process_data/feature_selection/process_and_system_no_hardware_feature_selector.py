@@ -2,10 +2,17 @@ import pandas as pd
 
 from measurements_model.config import HardwareColumns
 from measurements_model.dataset_processing.process_data.feature_selection.process_and_full_system_feature_selector import \
-    ProcessAndFullSystem
+    ProcessAndTotalSystem
 
 
-class WithoutHardware(ProcessAndFullSystem):
+class ProcessAndSystemNoHardware(ProcessAndTotalSystem):
+    """
+    Includes all process and system features.
+    Doesn't include any idle or hardware features.
+    Includes the energy consumption of a process BUT not the total energy consumption of the system.
+    The system features are NOT a subtraction of idle and process.
+    """
+
     def select_features(self, df: pd.DataFrame) -> pd.DataFrame:
         df = super().select_features(df)
         return df.drop([HardwareColumns.PC_TYPE, HardwareColumns.PC_MANUFACTURER, HardwareColumns.SYSTEM_FAMILY,
