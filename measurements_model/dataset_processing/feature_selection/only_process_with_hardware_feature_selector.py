@@ -1,7 +1,7 @@
 import pandas as pd
 
 from measurements_model.config import SystemColumns
-from measurements_model.dataset_processing.process_data.feature_selection.process_and_full_system_feature_selector import \
+from measurements_model.dataset_processing.feature_selection.process_and_full_system_feature_selector import \
     ProcessAndTotalSystem
 
 

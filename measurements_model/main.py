@@ -2,14 +2,15 @@ from measurements_model.config import ProcessColumns
 from measurements_model.dataset_creation.dataset_creator import DatasetCreator
 from measurements_model.dataset_creation.dataset_utils import save_df_to_excel
 from measurements_model.dataset_processing.process_data.dataset_processor import DatasetProcessor
-from measurements_model.dataset_processing.process_data.feature_selection.all_features_no_energy_selector import \
+from measurements_model.dataset_processing.feature_selection.all_features_no_energy_selector import \
     AllFeaturesNoEnergy
-from measurements_model.dataset_processing.process_data.feature_selection.only_process_with_hardware_feature_selector import \
+from measurements_model.dataset_processing.feature_selection.only_process_with_hardware_feature_selector import \
     ProcessAndHardware
-from measurements_model.dataset_processing.process_data.feature_selection.process_and_full_system_feature_selector import \
+from measurements_model.dataset_processing.feature_selection.process_and_full_system_feature_selector import \
     ProcessAndTotalSystem
-from measurements_model.dataset_processing.process_data.feature_selection.process_and_system_no_hardware_feature_selector import \
+from measurements_model.dataset_processing.feature_selection.process_and_system_no_hardware_feature_selector import \
     ProcessAndSystemNoHardware
+from measurements_model.dataset_processing.split_data.regular_spliter import RegularDatasetSplitter
 
 IDLE_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\idle\Measurement 427"
 ALL_MEASUREMENTS_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources"
@@ -21,6 +22,8 @@ DF_WITHOUT_SYSTEM_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Gree
 DF_PROCESS_AND_FULL_SYSTEM_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\process_and_full_system_preprocessed_dataset.csv"
 DF_WITHOUT_HARDWARE_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\without_hardware_preprocessed_dataset.csv"
 
+TRAIN_SET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\train_set.csv"
+TEST_SET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\test_set.csv"
 
 if __name__ == '__main__':
     dataset_creator = DatasetCreator(idle_dir_path=IDLE_DIR_PATH, measurements_dir_path=ALL_MEASUREMENTS_DIR_PATH)
@@ -46,3 +49,6 @@ if __name__ == '__main__':
     feature_selector = ProcessAndSystemNoHardware()
     df_without_hardware = feature_selector.select_features(df)
     save_df_to_excel(df_without_hardware, DF_WITHOUT_HARDWARE_PATH)
+
+    dataset_splitter = RegularDatasetSplitter(train_path=TRAIN_SET_PATH, test_path=TEST_SET_PATH, full_dataset_path=FULL_DATASET_PATH, test_size=0.2)
+    X_train, X_test, y_train, y_test = dataset_splitter.split_data()
