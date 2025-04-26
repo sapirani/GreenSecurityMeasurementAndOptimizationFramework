@@ -1,7 +1,7 @@
 import pandas as pd
 
 from measurements_model.config import SystemColumns, IDLEColumns
-from measurements_model.dataset_processing.process_data.feature_selection.feature_selector import FeatureSelector
+from measurements_model.dataset_processing.feature_selection.feature_selector import FeatureSelector
 
 
 class AllFeaturesNoEnergy(FeatureSelector):
