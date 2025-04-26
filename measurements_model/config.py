@@ -2,14 +2,22 @@ SCORING_METHODS_FOR_MODEL = ['neg_mean_absolute_error', 'neg_root_mean_squared_e
 
 
 # Paths
-TRAIN_MEASUREMENTS_DIR_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Green Security Experiments\Experiments - HeavyLoad combinations - No scan\No scan - heavyLoad - different combinations - 171023"
-TEST_MEASUREMENTS_DIR_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Green Security Experiments\ClamAV optimizations\Initiail optimization\Measurement2"
-IDLE_SUMMARY_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Green Security Experiments\Idle - Sapir's Dell - Average.xlsx"
-DATASETS_DIRECTORY = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Green Security Documents\Datasets"
-TRAIN_SET_PATH = DATASETS_DIRECTORY + r"\train.csv"
-TEST_SET_PATH = DATASETS_DIRECTORY + r"\test.csv"
-TRAIN_SET_AFTER_PROCESSING_PATH = DATASETS_DIRECTORY + r"\after_processing_train.csv"
-TEST_SET_AFTER_PROCESSING_PATH = DATASETS_DIRECTORY + r"\after_processing_test.csv"
+IDLE_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\idle\Measurement 427"
+ALL_MEASUREMENTS_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources"
+FULL_DATASET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_dataset.csv"
+FULL_PREPROCESSED_DATASET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_preprocessed_dataset.csv"
+DATASET_AFTER_FEATURE_SELECTION_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\dataset_after_feature_selection.csv"
+
+DF_ALL_FEATURES_NO_ENERGY_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\all_features_no_energy_preprocessed_dataset.csv"
+DF_WITHOUT_SYSTEM_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\without_system_preprocessed_dataset.csv"
+DF_PROCESS_AND_FULL_SYSTEM_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\process_and_full_system_preprocessed_dataset.csv"
+DF_WITHOUT_HARDWARE_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\without_hardware_preprocessed_dataset.csv"
+
+TRAIN_SET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\train_set.csv"
+TEST_SET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\test_set.csv"
+
+GRID_SEARCH_TEST_RESULTS_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\best_estimators_results.csv"
+RESULTS_TOP_MODELS_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\top_estimators_results"
 
 
 # Summary File related

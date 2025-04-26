@@ -1,4 +1,5 @@
-from measurements_model.config import ProcessColumns, SCORING_METHODS_FOR_MODEL
+from measurements_model.config import ProcessColumns, SCORING_METHODS_FOR_MODEL, TRAIN_SET_PATH, TEST_SET_PATH, \
+    FULL_PREPROCESSED_DATASET_PATH, IDLE_DIR_PATH, ALL_MEASUREMENTS_DIR_PATH
 from measurements_model.dataset_creation.dataset_creator import DatasetCreator
 from measurements_model.dataset_creation.dataset_utils import save_df_to_excel
 from measurements_model.dataset_pipeline_executor import DatasetPipelineExecutor
@@ -14,18 +15,6 @@ from measurements_model.dataset_processing.feature_selection.process_and_system_
 from measurements_model.dataset_processing.split_data.regular_spliter import RegularDatasetSplitter
 from measurements_model.model_training.search_best_model import ModelSelector
 
-IDLE_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\idle\Measurement 427"
-ALL_MEASUREMENTS_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources"
-FULL_DATASET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_dataset.csv"
-FULL_PREPROCESSED_DATASET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_preprocessed_dataset.csv"
-
-DF_ALL_FEATURES_NO_ENERGY_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\all_features_no_energy_preprocessed_dataset.csv"
-DF_WITHOUT_SYSTEM_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\without_system_preprocessed_dataset.csv"
-DF_PROCESS_AND_FULL_SYSTEM_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\process_and_full_system_preprocessed_dataset.csv"
-DF_WITHOUT_HARDWARE_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\without_hardware_preprocessed_dataset.csv"
-
-TRAIN_SET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\train_set.csv"
-TEST_SET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\test_set.csv"
 
 if __name__ == '__main__':
     feature_selector = AllFeaturesNoEnergy()
@@ -39,7 +28,7 @@ if __name__ == '__main__':
     processed_dataset = dataset_pipeline.process_dataset(full_dataset)
     X_train, X_test, y_train, y_test = dataset_pipeline.split_dataset()
 
-    model_selector = ModelSelector(num_of_splits=3)
+    model_selector = ModelSelector(num_of_splits=2)
     best_estimator_per_metric = model_selector.choose_best_model(SCORING_METHODS_FOR_MODEL,
                                                                  X_train, X_test,
                                                                  y_train, y_test)

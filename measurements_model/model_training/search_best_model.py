@@ -1,27 +1,32 @@
 import math
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from datetime import datetime
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, KFold
 from sklearn.pipeline import Pipeline
 
+from measurements_model.config import RESULTS_TOP_MODELS_PATH, GRID_SEARCH_TEST_RESULTS_PATH
 from measurements_model.model_training.models_config import MODELS_WITHOUT_PARAMETERS
 
-GRID_SEARCH_TEST_RESULTS_PATH = fr""
 TEST_REAL_LABEL_COLUMN = "Actual"
+CLASSIFIER_KEYWORD = "classifier"
+TEST_SCORE_FIELD_IN_GRID = "mean_test_score"
+PARAMS_FIELD_IN_GRID = "params"
 
 class ModelSelector:
 
     def __init__(self, num_of_splits: int = 5, num_of_top_models: int = 5):
-        self.__initial_model = ('classifier', LogisticRegression())
-        self.__num_of_splits = num_of_splits + 1
+        self.__initial_model = (CLASSIFIER_KEYWORD, LogisticRegression())
+        self.__num_of_splits = num_of_splits
         self.__num_of_top_models = num_of_top_models
+        self.__models_to_experiment = MODELS_WITHOUT_PARAMETERS
 
     def __print_grid_search_top_models(self, best_models, score_method: str):
-        print(f"~~~~ Best {self.__num_of_top_models} models based on {score_method} score ~~~~")
+        print(f"~~~~~~~~~~~~~~~ Best {self.__num_of_top_models} models based on {score_method} score ~~~~~~~~~~~~~~~")
         for index, (score, model) in enumerate(best_models):
             print("*************** model number", index + 1, "***************")
             print(f"model {score_method} on train:", -1 * score)
@@ -39,16 +44,18 @@ class ModelSelector:
     def __save_grid_search_results(self, final_results: pd.DataFrame, score_method: str):
         res_list = []
         for index, row in final_results.iterrows():
-            score = row[f"mean_test_score"]
+            score = row[TEST_SCORE_FIELD_IN_GRID]
 
             if math.isnan(score):
                 continue
 
-            res_list.append((score, row["params"]))
+            res_list.append((score, row[PARAMS_FIELD_IN_GRID]))
 
         best_five_by_score = list(sorted(res_list, key=lambda x: x[0], reverse=True))[:self.__num_of_top_models]
-        final_results.to_csv(f"final_results_{score_method}_metric_{datetime.now().strftime('%d_%m_%Y %H_%M')}.csv",
-                             index=False)
+
+        results_for_metric_path = Path(f"{RESULTS_TOP_MODELS_PATH}\\final_results_{score_method}_metric_{datetime.now().strftime('%d_%m_%Y %H_%M')}.csv")
+        results_for_metric_path.parent.mkdir(parents=True, exist_ok=True)
+        final_results.to_csv(results_for_metric_path, index=False)
         return best_five_by_score
 
     @classmethod
@@ -58,10 +65,10 @@ class ModelSelector:
             print(f"{metric} value: {score}")
 
     def __calculate_and_print_scores(self, y: pd.Series, y_pred: pd.Series) -> dict[str, float]:
+        # todo: ADD MORE METRICS
         scores_per_metric = {}
-        PER = (abs(y - y_pred) / y) * 100
-        scores_per_metric["PER"] = PER
-        scores_per_metric["Average PER"] = np.mean(PER)
+        PER = (abs(y - y_pred) / y).mean() * 100
+        scores_per_metric["Average PER"] = PER
 
         MSE = mean_squared_error(y_pred, y)
         scores_per_metric["MSE"] = MSE
@@ -72,13 +79,9 @@ class ModelSelector:
         return scores_per_metric
 
     def __select_top_models(self, x_train: pd.DataFrame, y_train: pd.Series, score_method: str):
-        full_train_set = pd.concat([x_train, y_train], axis=1)
-        # train = train.sort_values(by=[ProcessColumns.ENERGY_USAGE_PROCESS_COL])
-
         pipe = Pipeline([self.__initial_model])
-        models = MODELS_WITHOUT_PARAMETERS[:3]
-        grid = GridSearchCV(pipe, models, verbose=3, refit=True, cv=self.__cv_splitter(full_train_set),
-                            scoring=score_method, n_jobs=-1)
+        kf_cv = KFold(n_splits=self.__num_of_splits, shuffle=True, random_state=42)
+        grid = GridSearchCV(pipe, self.__models_to_experiment, verbose=3, refit=True, cv=kf_cv, scoring=score_method, n_jobs=1)
 
         grid.fit(x_train, y_train)
         final_results = pd.DataFrame(grid.cv_results_)
@@ -91,6 +94,7 @@ class ModelSelector:
         print(f"Best estimator from grid based {score_method} :")
         print(best_estimator)
         y_pred_test = best_estimator.predict(x_test)
+        y_pred_test = pd.Series(y_pred_test).reset_index(drop=True)
         self.__calculate_and_print_scores(y_test, y_pred_test)
         return y_pred_test
 
