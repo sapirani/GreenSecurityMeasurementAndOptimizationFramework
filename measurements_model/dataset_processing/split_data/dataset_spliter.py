@@ -4,6 +4,8 @@ from pathlib import Path
 import pandas as pd
 from typing import Optional
 
+from measurements_model.config import ProcessColumns
+
 
 class DatasetSpliter(ABC):
     def __init__(self, train_path: str, test_path: str, full_dataset_path: str):
@@ -24,19 +26,19 @@ class DatasetSpliter(ABC):
         full_test_set.to_csv(self.test_path)
 
     @classmethod
-    def __extract_dataframe_if_exists(cls, dataset_path: str) -> Optional[tuple[pd.DataFrame, pd.Series]]:
+    def _extract_dataframe_if_exists(cls, dataset_path: str) -> Optional[tuple[pd.DataFrame, pd.Series]]:
         dataset_file_path = Path(dataset_path)
         if dataset_file_path.exists():
-            dataset = pd.read_csv(dataset_file_path)
-            X = dataset.drop(columns=['label'])
-            y = dataset['label']
+            dataset = pd.read_csv(dataset_file_path, index_col=0)
+            X = dataset.drop(columns=[ProcessColumns.ENERGY_USAGE_PROCESS_COL])
+            y = dataset[ProcessColumns.ENERGY_USAGE_PROCESS_COL]
             return X, y
 
         return None
 
     def __extract_train_test(self) -> Optional[tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]]:
-        train_splits = self.__extract_dataframe_if_exists(self.train_path)
-        test_splits = self.__extract_dataframe_if_exists(self.test_path)
+        train_splits = self._extract_dataframe_if_exists(self.train_path)
+        test_splits = self._extract_dataframe_if_exists(self.test_path)
 
         if train_splits is not None and test_splits is not None:
             X_train, y_train = train_splits
@@ -46,13 +48,16 @@ class DatasetSpliter(ABC):
         return None
 
     def split_data(self) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
-        splits = self.__extract_train_test()
-        if splits is not None:
-            X_train, X_test, y_train, y_test = splits
+        existing_splits = self.__extract_train_test()
+        if existing_splits is not None:
+            X_train, X_test, y_train, y_test = existing_splits
             return X_train, X_test, y_train, y_test
 
         else:
-            X, y = self.__extract_dataframe_if_exists(self.full_dataset_path)
+            full_dataset = self._extract_dataframe_if_exists(self.full_dataset_path)
+            if full_dataset is None:
+                raise ValueError('Dataset not found at {}'.format(self.full_dataset_path))
+            X, y = full_dataset
             X_train, X_test, y_train, y_test = self._train_test_split(X, y)
             self.__save_split(X_train, X_test, y_train, y_test)
             return X_train, X_test, y_train, y_test
