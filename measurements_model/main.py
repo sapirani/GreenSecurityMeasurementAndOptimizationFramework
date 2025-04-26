@@ -1,7 +1,7 @@
 from measurements_model.config import ProcessColumns
 from measurements_model.dataset_creation.dataset_creator import DatasetCreator
 from measurements_model.dataset_creation.dataset_utils import save_df_to_excel
-from measurements_model.dataset_processing.process_data.preprocess_dataset import DatasetProcessor
+from measurements_model.dataset_processing.process_data.dataset_processor import DatasetProcessor
 
 IDLE_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\idle\Measurement 427"
 ALL_MEASUREMENTS_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources"
