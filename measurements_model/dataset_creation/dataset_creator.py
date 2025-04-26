@@ -1,7 +1,7 @@
 from pathlib import Path
 import pandas as pd
 
-from measurements_model.config import IDLEColumns, SystemColumns
+from measurements_model.config import IDLEColumns, SystemColumns, ProcessColumns
 from measurements_model.dataset_creation.measurement_extractor import MeasurementExtractor
 from measurements_model.dataset_creation.summary_version_columns import DuduSummaryVersionCols
 
@@ -39,8 +39,11 @@ class DatasetCreator:
         process_summary_results = measurement_extractor.extract_process_summary_result(no_scan_mode=IS_NO_SCAN_MODE,
                                                                                        process_name=PROCESS_NAME)
         hardware_results = measurement_extractor.extract_hardware_result()
+        process_energy_value = system_summary_results[SystemColumns.ENERGY_TOTAL_USAGE_SYSTEM_COL] - \
+                               idle_results[IDLEColumns.ENERGY_TOTAL_USAGE_IDLE_COL]
+        new_sample = {**process_summary_results, **system_summary_results, **idle_results, **hardware_results,
+                      ProcessColumns.ENERGY_USAGE_PROCESS_COL: process_energy_value}
 
-        new_sample = {**process_summary_results, **system_summary_results, **idle_results, **hardware_results}
         return pd.Series(new_sample)
 
     def __read_measurements(self) -> pd.DataFrame:
