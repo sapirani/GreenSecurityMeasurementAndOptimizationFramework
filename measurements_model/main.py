@@ -1,6 +1,7 @@
+from measurements_model.config import ProcessColumns
 from measurements_model.dataset_creation.dataset_creator import DatasetCreator
 from measurements_model.dataset_creation.dataset_utils import save_df_to_excel
-from measurements_model.dataset_processing.process_data.preprocess_dataset import preprocess_dataset
+from measurements_model.dataset_processing.process_data.preprocess_dataset import DatasetProcessor
 
 IDLE_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\idle\Measurement 427"
 ALL_MEASUREMENTS_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources"
@@ -11,5 +12,6 @@ if __name__ == '__main__':
     df = dataset_creator.create_dataset()
     print(df)
     save_df_to_excel(df, FULL_DATASET_PATH)
-    # processed_df = preprocess_dataset(df)
-    # save_df_to_excel(processed_df, FULL_PREPROCESSED_DATASET_PATH)
+    dataset_processor = DatasetProcessor(ProcessColumns.ENERGY_USAGE_PROCESS_COL)
+    preprocessed_df = dataset_processor.preprocess_dataset(df)
+    save_df_to_excel(preprocessed_df, FULL_PREPROCESSED_DATASET_PATH)
