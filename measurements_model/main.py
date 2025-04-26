@@ -1,4 +1,4 @@
-from measurements_model.config import ProcessColumns
+from measurements_model.config import ProcessColumns, SCORING_METHODS_FOR_MODEL
 from measurements_model.dataset_creation.dataset_creator import DatasetCreator
 from measurements_model.dataset_creation.dataset_utils import save_df_to_excel
 from measurements_model.dataset_pipeline_executor import DatasetPipelineExecutor
@@ -12,6 +12,7 @@ from measurements_model.dataset_processing.feature_selection.process_and_full_sy
 from measurements_model.dataset_processing.feature_selection.process_and_system_no_hardware_feature_selector import \
     ProcessAndSystemNoHardware
 from measurements_model.dataset_processing.split_data.regular_spliter import RegularDatasetSplitter
+from measurements_model.model_training.search_best_model import ModelSelector
 
 IDLE_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\idle\Measurement 427"
 ALL_MEASUREMENTS_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources"
@@ -29,13 +30,19 @@ TEST_SET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Securit
 if __name__ == '__main__':
     feature_selector = AllFeaturesNoEnergy()
     dataset_splitter = RegularDatasetSplitter(TRAIN_SET_PATH, TEST_SET_PATH, FULL_PREPROCESSED_DATASET_PATH)
-    dataset_pipeline = DatasetPipelineExecutor(idle_measurement_path=IDLE_DIR_PATH, all_measurement_path=ALL_MEASUREMENTS_DIR_PATH,
+    dataset_pipeline = DatasetPipelineExecutor(idle_measurement_path=IDLE_DIR_PATH,
+                                               all_measurement_path=ALL_MEASUREMENTS_DIR_PATH,
                                                energy_column_to_filter_by=ProcessColumns.ENERGY_USAGE_PROCESS_COL,
                                                feature_selector=feature_selector, dataset_spliter=dataset_splitter)
 
     full_dataset = dataset_pipeline.create_dataset()
     processed_dataset = dataset_pipeline.process_dataset(full_dataset)
     X_train, X_test, y_train, y_test = dataset_pipeline.split_dataset()
+
+    model_selector = ModelSelector(num_of_splits=3)
+    best_estimator_per_metric = model_selector.choose_best_model(SCORING_METHODS_FOR_MODEL,
+                                                                 X_train, X_test,
+                                                                 y_train, y_test)
 
     # dataset_creator = DatasetCreator(idle_dir_path=IDLE_DIR_PATH, measurements_dir_path=ALL_MEASUREMENTS_DIR_PATH)
     # df = dataset_creator.create_dataset()

@@ -1,3 +1,5 @@
+SCORING_METHODS_FOR_MODEL = ['neg_mean_absolute_error', 'neg_root_mean_squared_error']
+
 
 # Paths
 TRAIN_MEASUREMENTS_DIR_PATH = r"C:\Users\sapir\שולחן העבודה\University\Second Degree\Green Security\Green Security Experiments\Experiments - HeavyLoad combinations - No scan\No scan - heavyLoad - different combinations - 171023"
