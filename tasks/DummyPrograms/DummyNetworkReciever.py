@@ -22,4 +22,4 @@ def receive_udp_packets(ip: int = UDP_IP, port: int = UDP_PORT):
 
 
 if __name__ == "__main__":
-    receive_udp_packets()  # Run for 10 seconds
+    receive_udp_packets()

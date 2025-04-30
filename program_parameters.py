@@ -1,11 +1,11 @@
 from general_consts import *
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.PythonServer
-background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
+main_program_to_scan = ProgramToScan.NO_SCAN
+background_programs_types = [ProgramToScan.NetworkReceiver, ProgramToScan.NetworkSender]
 
 kill_background_process_when_main_finished = True
-summary_version = SummaryVersion.OTHER
+summary_version = SummaryVersion.DUDU
 
 scanner_version = ScannerVersion.WITHOUT_BATTERY
 
@@ -24,7 +24,7 @@ custom_scan_path = r'""'
 #custom_scan_path = fr'"C:\Users\Administrator\Desktop\GreenSecurity-FirstExperiment"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
 
-RUNNING_TIME = 10 * SECOND # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
+RUNNING_TIME = 60 * SECOND # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
 MINIMUM_DELTA_CAPACITY = 200     # in mWh
 
@@ -65,3 +65,6 @@ cpu_percent_to_consume = 20
 # For MEMORY CONSUMER program
 memory_chunk_size = 1 * MB
 consumption_speed = 10 * MB / SECOND
+
+# For Network Sender
+time_interval = 0.01

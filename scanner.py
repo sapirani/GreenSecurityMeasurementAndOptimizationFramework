@@ -1,5 +1,6 @@
 import shutil
 import signal
+import time
 import warnings
 
 from statistics import mean
