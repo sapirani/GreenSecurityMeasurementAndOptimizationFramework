@@ -1,0 +1,190 @@
+SCORING_METHODS_FOR_MODEL = ['neg_mean_absolute_error', 'neg_root_mean_squared_error']
+
+
+# Paths
+IDLE_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\idle\Measurement 427"
+ALL_MEASUREMENTS_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources"
+FULL_DATASET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_dataset.csv"
+FULL_PREPROCESSED_DATASET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_preprocessed_dataset.csv"
+DATASET_AFTER_FEATURE_SELECTION_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\dataset_after_feature_selection.csv"
+
+DF_ALL_FEATURES_NO_ENERGY_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\all_features_no_energy_preprocessed_dataset.csv"
+DF_WITHOUT_SYSTEM_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\without_system_preprocessed_dataset.csv"
+DF_PROCESS_AND_FULL_SYSTEM_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\process_and_full_system_preprocessed_dataset.csv"
+DF_WITHOUT_HARDWARE_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\without_hardware_preprocessed_dataset.csv"
+
+TRAIN_SET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\train_set.csv"
+TEST_SET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\test_set.csv"
+
+GRID_SEARCH_TEST_RESULTS_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\best_estimators_results.csv"
+RESULTS_TOP_MODELS_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\top_estimators_results"
+
+
+# Summary File related
+TOTAL_COL_SUMMARY = "System (total - all processes)"
+SUMMARY_FILE_NAME = 'summary.xlsx'
+
+class SummaryFieldsOtherVersion:
+    DURATION = "Duration"
+    CPU = "CPU"
+    MEMORY = "Memory (MB)"
+    PAGE_FAULTS = "Page Faults"
+    IO_READ_BYTES = "IO Read (KB - sum)"
+    IO_READ_COUNT = "IO Read Count (# - sum)"
+    IO_WRITE_BYTES = "IO Write (KB - sum)"
+    IO_WRITE_COUNT = "IO Write Count (# - sum)"
+    DISK_IO_READ_TIME = "Disk IO Read Time (ms - sum)"
+    DISK_IO_WRITE_TIME = "Disk IO Write Time (ms - sum)"
+    ENERGY_CONSUMPTION = "Energy consumption - total energy(mwh)"
+    TOTAL_COLUMN = "Toal"
+    PROCESS_COLUMN = "ClamAV" # TODO: change according to the process
+
+class SummaryFieldsDuduVersion:
+    DURATION = "Duration"
+    CPU_PROCESS = "CPU Process"
+    CPU_SYSTEM = "CPU System (total - process)"
+    MEMORY_PROCESS = "Memory Process (MB)"
+    MEMORY_SYSTEM = "Memory Total (total - process) (MB)"
+    PAGE_FAULTS = "Page Faults"
+    IO_READ_BYTES_PROCESS = "IO Read Process (KB - sum)"
+    IO_READ_BYTES_SYSTEM = "IO Read System (total - process) (KB - sum)"
+    IO_READ_COUNT_PROCESS = "IO Read Count Process (# - sum)"
+    IO_READ_COUNT_SYSTEM = "IO Read Count System (total - process) (# - sum)"
+    IO_WRITE_BYTES_PROCESS = "IO Write Process (KB - sum)"
+    IO_WRITE_BYTES_SYSTEM = "IO Write System (total - process) (KB - sum)"
+    IO_WRITE_COUNT_PROCESS = "IO Write Count Process (# - sum)"
+    IO_WRITE_COUNT_SYSTEM = "IO Write Count System (total - process) (# - sum)"
+    DISK_IO_READ_TIME = "Disk IO Read Time (ms - sum)"
+    DISK_IO_WRITE_TIME = "Disk IO Write Time (ms - sum)"
+    ENERGY_CONSUMPTION = "Energy consumption - total energy(mwh)"
+    TOTAL_COLUMN = "System (total - all processes)"
+
+
+# Processes File related
+PROCESSES_FILE_NAME = "processes_data.csv"
+HEAVYLOAD_PROCESS_NAME = "HeavyLoad.exe"
+
+class AllProcessesFileFields:
+    PROCESS_NAME_COL = "PNAME"
+    CPU = "CPU(%)"
+    MEMORY = "MEMORY(MB)"
+    DISK_READ_BYTES = "READ_IO(KB)"
+    DISK_READ_COUNT = "READ_IO(#)"
+    DISK_WRITE_BYTES = "WRITE_IO(KB)"
+    DISK_WRITE_COUNT = "WRITE_IO(#)"
+    PAGE_FAULTS = "PAGE_FAULTS"
+
+# Hardware Information File related
+HARDWARE_INFORMATION_NAME = 'hardware_information.csv'
+
+# column names in dataset
+
+# *** Process Related Cols *** #
+class ProcessColumns:
+    CPU_PROCESS_COL = "cpu_usage_process"
+    MEMORY_PROCESS_COL = "memory_usage_process"
+    DISK_READ_BYTES_PROCESS_COL = "disk_read_bytes_usage_process"
+    DISK_READ_COUNT_PROCESS_COL = "disk_read_count_usage_process"
+    DISK_WRITE_BYTES_PROCESS_COL = "disk_write_bytes_usage_process"
+    DISK_WRITE_COUNT_PROCESS_COL = "disk_write_count_usage_process"
+    PAGE_FAULTS_PROCESS_COL = "number_of_page_faults_process"
+    ENERGY_USAGE_PROCESS_COL = "energy_consumption_process_mWh"  # total - idle, Target col
+
+
+# *** System Related Cols *** #
+class SystemColumns:
+    CPU_SYSTEM_COL = "cpu_usage_system"
+    MEMORY_SYSTEM_COL = "memory_usage_system"
+    DISK_READ_BYTES_SYSTEM_COL = "disk_read_bytes_usage_system"
+    DISK_READ_COUNT_SYSTEM_COL = "disk_read_count_usage_system"
+    DISK_WRITE_BYTES_SYSTEM_COL = "disk_write_bytes_usage_system"
+    DISK_WRITE_COUNT_SYSTEM_COL = "disk_write_count_usage_system"
+    DISK_READ_TIME = "disk_read_time_system_ms_sum"
+    DISK_WRITE_TIME = "disk_write_time_system_ms_sum"
+
+    DURATION_COL = "duration_system"  # ??? maybe give up
+    ENERGY_TOTAL_USAGE_SYSTEM_COL = "total_energy_consumption_system_mWh"
+    PAGE_FAULT_SYSTEM_COL = "number_of_page_faults_system"
+
+
+# *** IDLE State Related Cols *** #
+class IDLEColumns:
+    CPU_IDLE_COL = "cpu_usage_idle"
+    MEMORY_IDLE_COL = "memory_usage_idle"
+    DISK_READ_BYTES_IDLE_COL = "disk_read_bytes_usage_idle"
+    DISK_READ_COUNT_IDLE_COL = "disk_read_count_usage_idle"
+    DISK_WRITE_BYTES_IDLE_COL = "disk_write_bytes_usage_idle"
+    DISK_WRITE_COUNT_IDLE_COL = "disk_write_count_usage_idle"
+    DISK_READ_TIME = "disk_read_time_idle_ms_sum"
+    DISK_WRITE_TIME = "disk_write_time_idle_ms_sum"
+
+    ENERGY_TOTAL_USAGE_IDLE_COL = "total_energy_consumption_in_idle_mWh"
+    PAGE_FAULT_IDLE_COL = "number_of_page_faults_idle"
+    COMPARED_TO_IDLE = "compared_to_idle"
+    DURATION_COL = "duration_idle"  # ??
+
+
+# *** Hardware Related Cols *** #
+
+class HardwareColumns:
+    ## machine info
+    PC_TYPE = "PC_type"
+    PC_MANUFACTURER = "PC_manufacturer"
+    SYSTEM_FAMILY = "system_family"
+    PC_MODEL = "model"
+    MACHINE_TYPE = "machine_type"
+    DEVICE_NAME = "device_name"
+
+    ## operating system info
+    OPERATING_SYSTEM = "operating_system"
+    OPERATING_SYSTEM_RELEASE = "operating_system_release"
+    OPERATING_SYSTEM_VERSION = "operating_system_version"
+
+    ## cpu info
+    PROCESSOR_NAME = "processor_name"
+    PROCESSOR_PHYSICAL_CORES = "processor_physical_cores"
+    PROCESSOR_TOTAL_CORES = "processor_total_cores"
+    PROCESSOR_MAX_FREQ = "processor_max_frequency"
+    PROCESSOR_MIN_FREQ = "processor_min_frequency"
+
+    ## RAM info
+    TOTAL_RAM = "Total RAM:"
+    PHYSICAL_DISK_NAME = "physical_disk_name"
+    PHYSICAL_DISK_MANUFACTURER = "physical_disk_manufacturer"
+    PHYSICAL_DISK_MODEL = "physical_disk_model"
+    PHYSICAL_DISK_MEDIA_TYPE = "physical_disk_media_type"
+    PHYSICAL_DISK_FIRMWARE_VERSION = "disk_firmware_version"
+    LOGICAL_DISK_NAME = "logical_disk_name"
+    LOGICAL_DISK_MANUFACTURER = "logical_disk_manufacturer"
+    LOGICAL_DISK_MODEL = "logical_disk_model"
+    LOGICAL_DISK_DISK_TYPE = "logical_disk_disk_type"
+    LOGICAL_DISK_PARTITION_STYLE = "logical_disk_partition_style"
+    LOGICAL_DISK_NUMBER_OF_PARTITIONS = "logical_disk_number_of_partitions"
+    PHYSICAL_SECTOR_SIZE = "physical_sector_size"
+    LOGICAL_SECTOR_SIZE = "logical_sector_size"
+    BUS_TYPE = "bus_type"
+    FILESYSTEM = "file_system"
+    BATTERY_DESIGN_CAPACITY = "design_battery_capacity"
+    FULLY_CHARGED_BATTERY_CAPACITY = "fully_charged_battery_capacity"
+
+
+# DATASET_COLUMNS = [ProcessColumns.CPU_PROCESS_COL, ProcessColumns.MEMORY_PROCESS_COL,
+#                    ProcessColumns.DISK_READ_BYTES_PROCESS_COL, ProcessColumns.DISK_READ_COUNT_PROCESS_COL,
+#                    ProcessColumns.DISK_WRITE_BYTES_PROCESS_COL, ProcessColumns.DISK_WRITE_COUNT_PROCESS_COL, ProcessColumns.PAGE_FAULTS_PROCESS_COL,
+#                    SystemColumns.DURATION_COL, SystemColumns.CPU_SYSTEM_COL, SystemColumns.MEMORY_SYSTEM_COL,
+#                    SystemColumns.DISK_READ_BYTES_SYSTEM_COL, SystemColumns.DISK_READ_COUNT_SYSTEM_COL,
+#                    SystemColumns.DISK_WRITE_BYTES_SYSTEM_COL, SystemColumns.DISK_WRITE_COUNT_SYSTEM_COL,
+#                    SystemColumns.DISK_READ_TIME, SystemColumns.DISK_WRITE_TIME, SystemColumns.PAGE_FAULT_SYSTEM_COL, SystemColumns.ENERGY_TOTAL_USAGE_SYSTEM_COL,
+#                    IDLEColumns.DURATION_COL, IDLEColumns.CPU_IDLE_COL, IDLEColumns.MEMORY_IDLE_COL,
+#                    IDLEColumns.DISK_READ_BYTES_IDLE_COL, IDLEColumns.DISK_READ_COUNT_IDLE_COL,
+#                    IDLEColumns.DISK_WRITE_BYTES_IDLE_COL, IDLEColumns.DISK_WRITE_COUNT_IDLE_COL,
+#                    IDLEColumns.DISK_READ_TIME, IDLEColumns.DISK_WRITE_TIME, IDLEColumns.PAGE_FAULT_IDLE_COL, IDLEColumns.ENERGY_TOTAL_USAGE_IDLE_COL,
+#                    HardwareColumns.PC_TYPE, HardwareColumns.PC_MANUFACTURER, HardwareColumns.SYSTEM_FAMILY, HardwareColumns.MACHINE_TYPE,
+#                    HardwareColumns.DEVICE_NAME, HardwareColumns.OPERATING_SYSTEM, HardwareColumns.OPERATING_SYSTEM_RELEASE, HardwareColumns.OPERATING_SYSTEM_VERSION,
+#                    HardwareColumns.PROCESSOR_NAME, HardwareColumns.PROCESSOR_PHYSICAL_CORES, HardwareColumns.PROCESSOR_TOTAL_CORES, HardwareColumns.PROCESSOR_MAX_FREQ,
+#                    HardwareColumns.PROCESSOR_MIN_FREQ, HardwareColumns.TOTAL_RAM,
+#                    HardwareColumns.PHYSICAL_DISK_NAME, HardwareColumns.PHYSICAL_DISK_MANUFACTURER, HardwareColumns.PHYSICAL_DISK_MODEL,
+#                    HardwareColumns.PHYSICAL_DISK_MEDIA_TYPE, HardwareColumns.LOGICAL_DISK_NAME, HardwareColumns.LOGICAL_DISK_MANUFACTURER,
+#                    HardwareColumns.LOGICAL_DISK_MODEL, HardwareColumns.LOGICAL_DISK_DISK_TYPE, HardwareColumns.LOGICAL_DISK_PARTITION_STYLE,
+#                    HardwareColumns.LOGICAL_DISK_NUMBER_OF_PARTITIONS, HardwareColumns.PHYSICAL_SECTOR_SIZE, HardwareColumns.LOGICAL_SECTOR_SIZE,
+#                    HardwareColumns.BUS_TYPE, HardwareColumns.FILESYSTEM, HardwareColumns.BATTERY_DESIGN_CAPACITY, HardwareColumns.FULLY_CHARGED_BATTERY_CAPACITY]
