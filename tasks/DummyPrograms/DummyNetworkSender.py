@@ -1,18 +1,19 @@
+import os
 import socket
 import sys
 import time
 import psutil
 
-UDP_IP = "127.0.0.1"
+UDP_IP = "192.168.1.126"
 UDP_PORT = 12345
-MESSAGE = b"Hello, World!"
 DEFAULT_TIME_INTERVAL = 0.01
+PACKET_SIZE = 10000
 
 DURATION_PARAM_INDEX = 1
 INTERVAL_PARAM_INDEX = 2
 
 
-def send_udp_packets(duration: float, ip: str = UDP_IP, port: int = UDP_PORT, interval: float = DEFAULT_TIME_INTERVAL):
+def send_udp_packets(duration: float, ip: str = UDP_IP, port: int = UDP_PORT, interval: float = DEFAULT_TIME_INTERVAL, packet_size: int = PACKET_SIZE):
     p = psutil.Process()
     print(p.io_counters())
     print(psutil.net_io_counters())
@@ -21,7 +22,8 @@ def send_udp_packets(duration: float, ip: str = UDP_IP, port: int = UDP_PORT, in
     end_time = time.time() + duration
 
     while time.time() < end_time:
-        sock.sendto(MESSAGE, (ip, port))
+        message = os.urandom(packet_size)
+        sock.sendto(message, (ip, port))
         time.sleep(interval)
 
     sock.close()
