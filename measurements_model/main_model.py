@@ -1,0 +1,56 @@
+from typing import Optional
+
+import numpy as np
+from sklearn.ensemble import RandomForestRegressor
+
+from measurements_model.dataset_processing.feature_selection.all_features_no_network import AllFeaturesNoNetwork
+
+
+class BestModelConfig:
+    MODEL_NAME = RandomForestRegressor
+    MODEL_PARAMETERS = {
+        "n_estimators": 500,
+        "max_features": 'sqrt',
+        "max_depth": 7,
+        "min_samples_split": 5
+    }
+
+
+ENERGY_CONSUMPTION_PER_BYTE_SENT = 5  # TODO: CHANGE TO ACTUAL VALUE
+ENERGY_CONSUMPTION_PER_BYTE_RECEIVED = 5  # TODO: CHANGE TO ACTUAL VALUE
+
+
+class MeasurementsModel:
+    def __init__(self, network_sent_bytes_column: Optional[str], network_received_bytes_column: Optional[str]):
+        self.__model = BestModelConfig.MODEL_NAME(**BestModelConfig.MODEL_PARAMETERS)
+        self.__network_sent_bytes_column = network_sent_bytes_column
+        self.__network_received_bytes_column = network_received_bytes_column
+        self.__feature_selector_no_network = AllFeaturesNoNetwork()
+
+    def fit(self, X, y):
+        y = np.array(y) + self.__calculate_total_network_energy_usage(X)
+        X = self.__feature_selector_no_network.select_features(X)
+        self.__model.fit(X, y)
+
+    def __calculate_network_energy_usage(self, row) -> float:
+        network_energy_addition = 0
+        if self.__network_sent_bytes_column in row:
+            network_energy_addition += row[self.__network_sent_bytes_column] * 1000 * ENERGY_CONSUMPTION_PER_BYTE_SENT
+
+        if self.__network_received_bytes_column in row:
+            network_energy_addition += row[
+                                           self.__network_received_bytes_column] * 1000 * ENERGY_CONSUMPTION_PER_BYTE_RECEIVED
+
+        return network_energy_addition
+
+    def __calculate_total_network_energy_usage(self, X):
+        if (self.__network_sent_bytes_column is None and self.__network_received_bytes_column is None) or \
+                (self.__network_sent_bytes_column not in X and self.__network_received_bytes_column not in X):
+            return np.zeros(len(X))
+
+        return np.array([self.__calculate_network_energy_usage(row) for row in X])
+
+    def predict(self, X):
+        y_pred = self.__model.predict(X)
+        y_pred = np.array(y_pred) + self.__calculate_total_network_energy_usage(X)
+        return y_pred
