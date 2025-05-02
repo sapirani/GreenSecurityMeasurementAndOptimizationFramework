@@ -1,34 +1,27 @@
 import os
+import pathlib
 
 import pandas as pd
 from typing import Optional
 
-from measurements_model.config import SystemColumns, ProcessColumns, AllProcessesFileFields, HardwareColumns
-from measurements_model.dataset_creation.dataset_utils import return_dict_as_sample
+from measurements_model.config import ProcessColumns, AllProcessesFileFields, HardwareColumns
+from measurements_model.dataset_creation.dataset_utils import create_sample_from_mapping
 from measurements_model.dataset_creation.summary_version_columns import SummaryVersionCols, DuduSummaryVersionCols
 
 ALL_PROCESSES_CSV = fr"processes_data.csv"
 SUMMARY_CSV = fr"summary.xlsx"
+NETWORK_IO_PER_TIMESTAMP_CSV = fr"network_io_each_moment.csv"
 HARDWARE_DETAILS_CSV = fr""
 DEFAULT_SUMMARY_VERSION = DuduSummaryVersionCols()
-
-SYSTEM_FEATURES = [SystemColumns.DURATION_COL, SystemColumns.CPU_SYSTEM_COL, SystemColumns.MEMORY_SYSTEM_COL,
-                   SystemColumns.DISK_READ_BYTES_SYSTEM_COL, SystemColumns.DISK_READ_COUNT_SYSTEM_COL,
-                   SystemColumns.DISK_WRITE_BYTES_SYSTEM_COL, SystemColumns.DISK_WRITE_COUNT_SYSTEM_COL,
-                   SystemColumns.DISK_READ_TIME, SystemColumns.DISK_WRITE_TIME,
-                   SystemColumns.PAGE_FAULT_SYSTEM_COL,
-                   SystemColumns.ENERGY_TOTAL_USAGE_SYSTEM_COL]
-
-PROCESS_SUMMARY_FEATURES = [ProcessColumns.CPU_PROCESS_COL, ProcessColumns.MEMORY_PROCESS_COL,
-                            ProcessColumns.DISK_READ_BYTES_PROCESS_COL, ProcessColumns.DISK_READ_COUNT_PROCESS_COL,
-                            ProcessColumns.DISK_WRITE_BYTES_PROCESS_COL, ProcessColumns.DISK_WRITE_COUNT_PROCESS_COL,
-                            ProcessColumns.PAGE_FAULTS_PROCESS_COL]
 
 
 class MeasurementExtractor:
     def __init__(self, summary_version: Optional[SummaryVersionCols], measurement_dir: str):
         self.measurement_dir = measurement_dir
         self.summary_version = summary_version if summary_version else DEFAULT_SUMMARY_VERSION
+        self.summary_with_network_stats = True if not isinstance(summary_version,
+                                                                 DuduSummaryVersionCols) and pathlib.Path(
+            os.path.join(self.measurement_dir, NETWORK_IO_PER_TIMESTAMP_CSV)).is_file() else False
 
     def __extract_system_file(self, need_process: bool) -> dict[str, any]:
         summary_file_path = os.path.join(self.measurement_dir, SUMMARY_CSV)
@@ -36,16 +29,13 @@ class MeasurementExtractor:
         df_summary = df_summary.set_index("Metric")
 
         if need_process:
-            df_columns = self.summary_version.get_process_summary_columns()
+            features_mapping = self.summary_version.get_process_summary_mapping(self.summary_with_network_stats)
             total_df_column = self.summary_version.get_total_process_column()
-            features = PROCESS_SUMMARY_FEATURES
         else:
-            df_columns = self.summary_version.get_system_summary_columns()
+            features_mapping = self.summary_version.get_system_summary_mapping(self.summary_with_network_stats)
             total_df_column = self.summary_version.get_total_system_column()
-            features = SYSTEM_FEATURES
 
-        values = [df_summary.loc[summary_col, total_df_column] for summary_col in df_columns]
-        return return_dict_as_sample(features, values)
+        return create_sample_from_mapping(df_summary, features_mapping, total_df_column)
 
     def extract_system_summary_result(self) -> dict[str, any]:
         return self.__extract_system_file(need_process=False)
@@ -69,9 +59,18 @@ class MeasurementExtractor:
                   ProcessColumns.DISK_WRITE_BYTES_PROCESS_COL: df_specific_process[
                       AllProcessesFileFields.DISK_WRITE_BYTES].sum(),
                   ProcessColumns.DISK_WRITE_COUNT_PROCESS_COL: df_specific_process[
-                      AllProcessesFileFields.DISK_WRITE_COUNT].sum(),
-                  ProcessColumns.PAGE_FAULTS_PROCESS_COL: df_specific_process[
-                      AllProcessesFileFields.PAGE_FAULTS].sum()}
+                      AllProcessesFileFields.DISK_WRITE_COUNT].sum()}
+
+        if self.summary_with_network_stats:
+            sample[ProcessColumns.NETWORK_BYTES_SENT_PROCESS_COL] = df_specific_process[
+                AllProcessesFileFields.NETWORK_BYTES_SENT].sum()
+            sample[ProcessColumns.NETWORK_PACKETS_SENT_PROCESS_COL] = df_specific_process[
+                AllProcessesFileFields.NETWORK_PACKETS_SENT].sum()
+            sample[ProcessColumns.NETWORK_BYTES_RECEIVED_PROCESS_COL] = df_specific_process[
+                AllProcessesFileFields.NETWORK_BYTES_RECEIVED].sum()
+            sample[ProcessColumns.NETWORK_PACKETS_RECEIVED_PROCESS_COL] = df_specific_process[
+                AllProcessesFileFields.NETWORK_PACKETS_RECEIVED].sum()
+
         return sample
 
     def extract_hardware_result(self, use_default: bool = True) -> dict[str, any]:

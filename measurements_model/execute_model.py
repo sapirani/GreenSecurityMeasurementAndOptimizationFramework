@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 
 from measurements_model.config import TRAIN_SET_PATH, TEST_SET_PATH, FULL_PREPROCESSED_DATASET_PATH, IDLE_DIR_PATH, \
-    ALL_MEASUREMENTS_DIR_PATH, ProcessColumns
+    ALL_MEASUREMENTS_DUDU_VERSION_NO_NETWORK_DIR_PATH, ProcessColumns
 from measurements_model.dataset_pipeline_executor import DatasetPipelineExecutor
 from measurements_model.dataset_processing.feature_selection.all_features_no_energy_selector import AllFeaturesNoEnergy
 from measurements_model.dataset_processing.split_data.regular_spliter import RegularDatasetSplitter
@@ -26,7 +26,7 @@ def run_model():
     feature_selector = AllFeaturesNoEnergy()
     dataset_splitter = RegularDatasetSplitter(TRAIN_SET_PATH, TEST_SET_PATH, FULL_PREPROCESSED_DATASET_PATH)
     dataset_pipeline = DatasetPipelineExecutor(idle_measurement_path=IDLE_DIR_PATH,
-                                               all_measurement_path=ALL_MEASUREMENTS_DIR_PATH,
+                                               all_measurement_path=ALL_MEASUREMENTS_DUDU_VERSION_NO_NETWORK_DIR_PATH,
                                                energy_column_to_filter_by=ProcessColumns.ENERGY_USAGE_PROCESS_COL,
                                                feature_selector=feature_selector, dataset_spliter=dataset_splitter)
 

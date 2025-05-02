@@ -3,11 +3,12 @@ import pandas as pd
 
 from measurements_model.config import IDLEColumns, SystemColumns, ProcessColumns
 from measurements_model.dataset_creation.measurement_extractor import MeasurementExtractor
-from measurements_model.dataset_creation.summary_version_columns import DuduSummaryVersionCols
+from measurements_model.dataset_creation.summary_version_columns import DuduSummaryVersionCols, OtherSummaryVersionCols
 
 IS_NO_SCAN_MODE = True
-SUMMARY_VERSION = DuduSummaryVersionCols()
-PROCESS_NAME = "HeavyLoad.exe"
+IDLE_SUMMARY_VERSION = DuduSummaryVersionCols()
+MEASUREMENTS_SUMMARY_VERSION = DuduSummaryVersionCols()
+PROCESS_NAME = "HeavyLoad.exe" # todo: change accordingly to the process that we want to monitor
 
 
 class DatasetCreator:
@@ -16,7 +17,7 @@ class DatasetCreator:
         self.__measurements_dir_path = measurements_dir_path
 
     def __read_idle_stats(self) -> dict[str, any]:
-        idle_extractor = MeasurementExtractor(SUMMARY_VERSION, self.__idle_dir_path)
+        idle_extractor = MeasurementExtractor(IDLE_SUMMARY_VERSION, self.__idle_dir_path)
         idle_results = idle_extractor.extract_system_summary_result()
         return {
             IDLEColumns.DURATION_COL: idle_results[SystemColumns.DURATION_COL],
@@ -33,7 +34,7 @@ class DatasetCreator:
         }
 
     def __extract_sample(self, measurement_dir: str, idle_results: dict[str, any]) -> pd.Series:
-        measurement_extractor = MeasurementExtractor(summary_version=SUMMARY_VERSION,
+        measurement_extractor = MeasurementExtractor(summary_version=MEASUREMENTS_SUMMARY_VERSION,
                                                      measurement_dir=measurement_dir)
         system_summary_results = measurement_extractor.extract_system_summary_result()
         process_summary_results = measurement_extractor.extract_process_summary_result(no_scan_mode=IS_NO_SCAN_MODE,
