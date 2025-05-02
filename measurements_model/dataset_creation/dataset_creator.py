@@ -1,13 +1,13 @@
 from pathlib import Path
 import pandas as pd
 
-from measurements_model.config import IDLEColumns, SystemColumns, ProcessColumns
+from measurements_model.config import IDLEColumns, SystemColumns, ProcessColumns, NO_ENERGY_MEASURED
 from measurements_model.dataset_creation.measurement_extractor import MeasurementExtractor
 from measurements_model.dataset_creation.summary_version_columns import DuduSummaryVersionCols, OtherSummaryVersionCols
 
 IS_NO_SCAN_MODE = True
 IDLE_SUMMARY_VERSION = DuduSummaryVersionCols()
-MEASUREMENTS_SUMMARY_VERSION = DuduSummaryVersionCols()
+MEASUREMENTS_SUMMARY_VERSION = OtherSummaryVersionCols()
 PROCESS_NAME = "HeavyLoad.exe" # todo: change accordingly to the process that we want to monitor
 
 
@@ -40,8 +40,11 @@ class DatasetCreator:
         process_summary_results = measurement_extractor.extract_process_summary_result(no_scan_mode=IS_NO_SCAN_MODE,
                                                                                        process_name=PROCESS_NAME)
         hardware_results = measurement_extractor.extract_hardware_result()
-        process_energy_value = system_summary_results[SystemColumns.ENERGY_TOTAL_USAGE_SYSTEM_COL] - \
-                               idle_results[IDLEColumns.ENERGY_TOTAL_USAGE_IDLE_COL]
+
+        system_total_energy_consumption = system_summary_results[SystemColumns.ENERGY_TOTAL_USAGE_SYSTEM_COL]
+        idle_energy_consumption = idle_results[IDLEColumns.ENERGY_TOTAL_USAGE_IDLE_COL]
+
+        process_energy_value = system_total_energy_consumption - idle_energy_consumption if system_total_energy_consumption > 0 else NO_ENERGY_MEASURED
         new_sample = {**process_summary_results, **system_summary_results, **idle_results, **hardware_results,
                       ProcessColumns.ENERGY_USAGE_PROCESS_COL: process_energy_value}
 

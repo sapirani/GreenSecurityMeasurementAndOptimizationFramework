@@ -1,5 +1,6 @@
 SCORING_METHODS_FOR_MODEL = ['neg_mean_absolute_error', 'neg_root_mean_squared_error']
 
+NO_ENERGY_MEASURED = -1
 
 # Paths
 IDLE_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\idle\Measurement 427"
@@ -31,10 +32,10 @@ class SummaryFieldsOtherVersion:
     CPU = "CPU"
     MEMORY = "Memory (MB)"
     PAGE_FAULTS = "Page Faults"
-    IO_READ_BYTES = "IO Read (KB - sum)"
-    IO_READ_COUNT = "IO Read Count (# - sum)"
-    IO_WRITE_BYTES = "IO Write (KB - sum)"
-    IO_WRITE_COUNT = "IO Write Count (# - sum)"
+    DISK_IO_READ_BYTES = "Disk IO Read (KB - sum)"
+    DISK_IO_READ_COUNT = "Disk IO Read Count (# - sum)"
+    DISK_IO_WRITE_BYTES = "Disk IO Write (KB - sum)"
+    DISK_IO_WRITE_COUNT = "Disk IO Write Count (# - sum)"
     DISK_IO_READ_TIME = "Disk IO Read Time (ms - sum)"
     DISK_IO_WRITE_TIME = "Disk IO Write Time (ms - sum)"
     NETWORK_SENT_TOTAL = "Network Size Sent (KB - sum)"

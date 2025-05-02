@@ -65,8 +65,8 @@ class OtherSummaryVersionCols(SummaryVersionCols):
     def __get_summary_columns(self, feature_names: list[str], for_system: bool = True,
                                include_network_col: bool = False) -> dict[str, str]:
         current_columns = [SummaryFieldsOtherVersion.CPU, SummaryFieldsOtherVersion.MEMORY,
-                           SummaryFieldsOtherVersion.IO_READ_BYTES, SummaryFieldsOtherVersion.IO_READ_COUNT,
-                           SummaryFieldsOtherVersion.IO_WRITE_BYTES, SummaryFieldsOtherVersion.IO_WRITE_COUNT,
+                           SummaryFieldsOtherVersion.DISK_IO_READ_BYTES, SummaryFieldsOtherVersion.DISK_IO_READ_COUNT,
+                           SummaryFieldsOtherVersion.DISK_IO_WRITE_BYTES, SummaryFieldsOtherVersion.DISK_IO_WRITE_COUNT,
                            SummaryFieldsOtherVersion.DISK_IO_READ_TIME, SummaryFieldsOtherVersion.DISK_IO_WRITE_TIME]
 
         if include_network_col:
