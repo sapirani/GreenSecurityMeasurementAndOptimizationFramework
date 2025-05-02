@@ -6,7 +6,7 @@ from results_analyzer.graph_generator import GraphsGenerator
 from results_analyzer.paths_extractors.abstract_path_extractor import PathExtractor
 from results_analyzer.paths_extractors.vm_path_extractor import VMPathExtractor
 
-results_main_dir = fr"C:\Users\Administrator\Desktop\GreenSecurityAll\results"
+results_main_dir = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\project_code\Results"
 graphs_output_dir_name = fr"graphs"
 
 
