@@ -64,6 +64,7 @@ def program_to_scan_factory(program_type):
     :param program_type: The program specified by the user
     :return: The dedicated class
     """
+
     if program_type == ProgramToScan.ANTIVIRUS and antivirus_type == AntivirusType.DEFENDER:
         return DefenderProgram(scan_type, custom_scan_path)
     if program_type == ProgramToScan.ANTIVIRUS and antivirus_type == AntivirusType.ClamAV:
@@ -101,6 +102,9 @@ def program_to_scan_factory(program_type):
 
     raise Exception("choose program to scan from ProgramToScan enum")
 
+
+if main_program_to_scan == ProgramToScan.NO_SCAN and len(background_programs_types) != 0:
+    raise Exception("NO SCAN mode can't include background programs!")
 
 program = program_to_scan_factory(main_program_to_scan)
 background_programs = [program_to_scan_factory(background_program) for background_program in background_programs_types]

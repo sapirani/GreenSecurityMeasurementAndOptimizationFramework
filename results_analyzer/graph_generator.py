@@ -176,7 +176,7 @@ class GraphsGenerator:
                                                           path_to_resource_df=self.__total_memory_each_moment_csv,
                                                           column_from_resource=MemoryColumns.USED_MEMORY,
                                                           time_column_from_resource=MemoryColumns.TIME,
-                                                          column_of_resource_in_processes=ProcessesColumns.MEMORY_PERCENT,
+                                                          column_of_resource_in_processes=ProcessesColumns.USED_MEMORY,
                                                           graph_name="Memory consumption",
                                                           label_for_y="Memory consumption",
                                                           units_for_y=Units.MEMORY_PROCESS,
@@ -200,7 +200,7 @@ class GraphsGenerator:
 
         if len(processes_df) > MINIMAL_REQUIRED_RECORDS:
             # TODO: patch for now to receive the same units.
-            if column_of_resource_in_processes is ProcessesColumns.USED_MEMORY:
+            if column_from_resource is MemoryColumns.USED_MEMORY:
                 total_df[MemoryColumns.USED_MEMORY] = total_df[MemoryColumns.USED_MEMORY] * KB
 
             draw_processes_and_total(
