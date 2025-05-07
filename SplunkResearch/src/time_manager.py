@@ -3,6 +3,9 @@ from typing import Tuple, Optional
 import datetime
 import logging
 
+from env_utils import clean_env
+from splunk_tools import SplunkTools
+
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -29,7 +32,9 @@ class TimeManager:
                  start_datetime: str,
                  window_size: int,
                  step_size: int,
-                 rule_frequency: int):
+                 rule_frequency: int,
+                 end_time: Optional[str] = "06/31/2024:23:59:59",
+                 is_test: bool = False,):
         """
         Args:
             start_datetime: Initial datetime in format '%m/%d/%Y:%H:%M:%S'
@@ -44,8 +49,10 @@ class TimeManager:
         # Initialize time windows
         self.current_window = self._create_episode_window(start_datetime)
         self.action_window = self._create_action_window(start_datetime)
-        
+        self.end_time = end_time
         self._validate_configuration()
+        self.splunk_tools = SplunkTools()
+        self.is_test = is_test
         
     def _validate_configuration(self):
         """Validate time configuration"""
@@ -79,13 +86,37 @@ class TimeManager:
         self.action_window = self._create_action_window(self.get_current_time())        
         return self.action_window
         
-    def advance_window(self, violation: bool = False) -> TimeWindow:
+    def advance_window(self, global_step, violation: bool = False) -> TimeWindow:
         """Advance the main time window"""
         if violation:
             # On violation, stay at current window
             return self.current_window
-            
-        # Move window forward by rule frequency
+        # clean env in action window
+        if not self.is_test:
+            clean_env(self.splunk_tools, (self.current_window.start, self.current_window.end))
+        current_time = datetime.datetime.strptime(self.current_window.end, '%m/%d/%Y:%H:%M:%S')
+        if self.end_time:
+            end_datetime = datetime.datetime.strptime(self.end_time, '%m/%d/%Y:%H:%M:%S')
+            if current_time >= end_datetime:
+                logger.info("End of times arived, resetting to start time + one hour")
+
+                
+                # Reset to start time + one hour
+                start_dt = datetime.datetime.strptime(self.first_start_datetime, '%m/%d/%Y:%H:%M:%S')
+                # start_dt += datetime.timedelta(hours=1)
+                self.first_start_datetime = start_dt.strftime('%m/%d/%Y:%H:%M:%S')
+
+                # Reset to start time
+                self.current_window = self._create_episode_window(self.first_start_datetime)
+                self.action_window = self._create_action_window(self.first_start_datetime)
+                return self.current_window
+        
+        # Move window forward by rule frequency except in the first episode
+        if global_step == 0:
+            logger.info("First episode, not advancing window")
+            self.current_window = self._create_episode_window(self.first_start_datetime)
+            self.action_window = self._create_action_window(self.first_start_datetime)
+            return self.current_window
         start_dt = datetime.datetime.strptime(self.current_window.start, '%m/%d/%Y:%H:%M:%S')
         start_dt += datetime.timedelta(minutes=self.rule_frequency)
         self.current_window = self._create_episode_window(start_dt.strftime('%m/%d/%Y:%H:%M:%S'))

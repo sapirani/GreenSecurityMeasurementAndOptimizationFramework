@@ -63,9 +63,12 @@ class SplunkConfig:
     
     # Monitoring
     num_of_measurements: int = 1
+    baseline_num_of_measurements: int = 1
     num_of_episodes: int = 1000
 
     env_id: str = "splunk_train-v32"
+    end_time: str = None
+    is_test: bool = False
 
 class SplunkEnv(gym.Env):
     """Splunk environment for resource consumption experiments"""
@@ -77,13 +80,16 @@ class SplunkEnv(gym.Env):
                  top_logtypes: List[Tuple[str, str]]):
         """Initialize environment."""
         super().__init__()
+        self.splunk_tools  = SplunkTools(savedsearches, config.rule_frequency)
 
         # Initialize time manager
         self.time_manager = TimeManager(
             start_datetime=config.fake_start_datetime if config.fake_start_datetime else fake_start_datetime,
             window_size=config.search_window,
             step_size=config.action_duration,
-            rule_frequency=config.rule_frequency
+            rule_frequency=config.rule_frequency,
+            end_time=config.end_time,
+            is_test=config.is_test
         )
         # Define basic action space that will be overridden by wrapper
         self.action_space = spaces.Box(
@@ -111,10 +117,9 @@ class SplunkEnv(gym.Env):
         
         self.savedsearches = savedsearches
         # Initialize tools and strategies
-        self.splunk_tools  = SplunkTools(savedsearches, config.rule_frequency)
         self.log_generator = LogGenerator(self.top_logtypes, self.splunk_tools)
         # self.log_generator = LogGenerator(self.relevant_logtypes, self.splunk_tools)
-        self._normalize_factor = 200000
+        self._normalize_factor = 300000
         
         # Calculate episode parameters
         self.total_steps = self.config.search_window * 60 // self.config.action_duration

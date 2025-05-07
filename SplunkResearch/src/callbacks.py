@@ -37,15 +37,15 @@ class MetricsLoggerCallback:
         
         self._log_metrics('distribution_value', info.get('distribution_value'))
 
-        # Log quota information
-        if 'inserted_logs' in info:
-            self._log_metrics('inserted_logs', info['inserted_logs'])
+        # # Log quota information
+        # if 'inserted_logs' in info:
+        #     self._log_metrics('inserted_logs', info['inserted_logs'])
             
-        if 'total_current_logs' in info:
-            self._log_metrics('total_current_logs', info['total_current_logs'])
+        # if 'total_current_logs' in info:
+        #     self._log_metrics('total_current_logs', info['total_current_logs'])
         
-        if 'inserted_logs' in info and 'total_current_logs' in info:
-            self._log_metrics('actual_quota', info['inserted_logs']/info['total_current_logs'])
+        # if 'inserted_logs' in info and 'total_current_logs' in info:
+        #     self._log_metrics('actual_quota', info['inserted_logs']/info['total_current_logs'])
 
     def log_episode_metrics(self, info: Dict, env):
         """Log metrics at episode end"""
@@ -104,6 +104,12 @@ class MetricsLoggerCallback:
         # Log episodic policy
         if 'episode_logs' in info:
             self._log_metrics('episodic_policy', info['episode_logs'], exclude_from_csv=True)
+        
+        if 'episodic_inserted_logs' in info:
+            self._log_metrics('episodic_inserted_logs', info['episodic_inserted_logs'], exclude_from_csv=True)
+            
+        if 'episodic_inserted_logs' in info and 'episode_logs' in info:
+            self._log_metrics('actual_quota', info['episodic_inserted_logs']/info['total_episode_logs'])
         
         if 'diversity_episode_logs' in info:
             self._log_metrics('diversity_episode_logs', info['diversity_episode_logs'], exclude_from_csv=True)

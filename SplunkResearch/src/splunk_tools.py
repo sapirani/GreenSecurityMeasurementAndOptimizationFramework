@@ -243,7 +243,44 @@ class SplunkTools(object):
         )
         
         return metric, results
-
+    
+    def mock_run_saved_searches(self, time_range: Tuple[str, str]) -> List[QueryMetrics]:
+        """
+        Mock function to simulate running multiple saved searches and collecting metrics.
+        This is a placeholder and should be replaced with actual implementation.
+        """
+        metrics = []
+        for saved_search in self.active_saved_searches:
+            metric = self.mock_run_saved_search(saved_search, time_range)
+            metrics.append(metric)
+        return metrics
+    
+    def mock_run_saved_search(self, saved_search: str, time_range: Tuple[str, str]) -> QueryMetrics:
+        """
+        Mock function to simulate running a saved search and collecting metrics.
+        This is a placeholder and should be replaced with actual implementation.
+        """
+        search_name = saved_search
+        query = self.active_saved_searches[saved_search]['search']
+        
+        # Simulate CPU usage and IO metrics
+        cpu_time = 0
+        io_metrics = {
+            "read_count": 0,
+            "write_count": 0,
+            "read_bytes": 0,
+            "write_bytes": 0
+        }
+        
+        return QueryMetrics(
+            search_name=search_name,
+            results_count=0,
+            execution_time=0,
+            cpu=cpu_time,
+            io_metrics=io_metrics,
+            start_time=time_range[0],
+            end_time=time_range[1]
+        )
 
     async def run_saved_search(self, saved_search:  str, time_range: Tuple[str, str]) -> QueryMetrics:
         """Run a saved search and collect metrics"""
@@ -485,7 +522,7 @@ class SplunkTools(object):
         ) 
         
         while True:
-            job.refresh()()
+            job.refresh()
             if job.content['isDone'] == '1':
                 break
             time.sleep(2)

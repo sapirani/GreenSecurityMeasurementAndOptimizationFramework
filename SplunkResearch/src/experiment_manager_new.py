@@ -1,5 +1,6 @@
 from dataclasses import dataclass, replace
 import inspect
+import ssl
 from typing import Dict, Any, Optional, List
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 import custom_splunk #dont remove!!!
@@ -23,6 +24,8 @@ from wrappers.state import *
 from wrappers.action import *
 from callbacks import *
 from time_manager import TimeWrapper
+import smtplib
+from email.message import EmailMessage
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -107,9 +110,10 @@ class ExperimentManager:
         top_logtypes = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
         # include only system and security logs
         top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
-        top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
+        top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:10]
         top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
-        
+        if config.experiment_name == "test_experiment":
+            config.env_config.is_test = True
         env = make(
             id=config.env_config.env_id,
             config=config.env_config,
@@ -117,16 +121,11 @@ class ExperimentManager:
         )
         # env = SingleAction2(env)
         # env = Action(env)
-        env = Action8(env)
+        env = Action8(env, config.use_random_agent)
         
-        if config.use_random_agent:
-            env = RandomAction(env)
+        # if config.use_random_agent:
+        #     env = RandomAction(env)
 
-
-
-
-
-                
         # Add reward wrappers
         if config.use_distribution_reward:
             env = DistributionRewardWrapper(
@@ -145,11 +144,20 @@ class ExperimentManager:
             
         
         if config.use_alert_reward:
-            env = AlertRewardWrapper(
-                env,
-                beta=config.beta_alert,
-                epsilon=1e-3
-            )
+            if not config.use_energy_reward:
+                env = BaseRuleExecutionWrapper(env, baseline_dir=self.dirs['baseline'], is_mock=True)
+                env = AlertRewardWrapper(
+                    env,
+                    beta=config.beta_alert,
+                    epsilon=1e-3,
+                    is_mock=True
+                )
+            else:
+                env = AlertRewardWrapper(
+                    env,
+                    beta=config.beta_alert,
+                    epsilon=1e-3
+                )
             # env = AlertRewardWrapper1(
             #     env,
             #     beta=config.beta_alert,
@@ -160,7 +168,7 @@ class ExperimentManager:
         #                         high=1)
         env = TimeWrapper(env)
         
-        env = StateWrapper2(env)
+        env = StateWrapper3(env)
 
         return env
 
@@ -213,7 +221,7 @@ class ExperimentManager:
                 # 'batch_size': config.batch_size,
                 # 'n_epochs': config.n_epochs,
                 'ent_coef': config.ent_coef,
-                'sde_sample_freq': 12,
+                'sde_sample_freq': 240,
                 'use_sde': True
             })
             
@@ -254,12 +262,16 @@ class ExperimentManager:
             # create eval env
             eval_config = replace(config, mode="eval")
             eval_config.env_config.env_id = "splunk_eval-v32"
+            eval_config.env_config.end_time = "04/26/2025:23:59:59"
             self.eval_env = self.create_environment(eval_config)
 
             if config.experiment_name != "test_experiment" :
                 # clean and warm up the env
                 clean_env(env.splunk_tools, (env.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
                 env.warmup()
+            else:
+                env.disable_injection()
+                self.eval_env.disable_injection()
             # Setup callbacks
             config.experiment_name = experiment_name
             callbacks = self._setup_callbacks(config)
@@ -280,6 +292,9 @@ class ExperimentManager:
         except Exception as e:
             logger.error(f"Experiment failed: {str(e)}")
             self._record_experiment_end(experiment_id, "failed", {"error": str(e)})
+            # Send email notification
+            self.send_email(error_message=str(e))
+            
             raise
 
     def _run_training(self, model, env, config, callbacks):
@@ -419,7 +434,7 @@ class ExperimentManager:
                 eval_env=self.eval_env,
 
                 n_eval_episodes=3,
-                eval_freq=460,
+                eval_freq=480,
                 best_model_save_path=self.dirs['models'],
                 log_path=self.dirs['logs'],
                 # eval_log_dir=str(self.dirs['tensorboard']/f"eval_{config.experiment_name}"),
@@ -429,44 +444,62 @@ class ExperimentManager:
             )
             
         ]
+        
+    def send_email(self, error_message="Experiment has failed", log_file=None):
+        my_email = os.getenv('EMAIL')
+        email_password = os.getenv('EMAIL_PASSWORD')
+        msg = EmailMessage()
+        msg['Subject'] = 'Experiment has failed' 
+        msg['From'] = my_email
+        msg['To'] = my_email
+        msg.set_content
+        msg.set_content(f"The experiment has failed. \n Error message: {error_message}")
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+            smtp.login(my_email, email_password)
+            smtp.send_message(msg)
 
     
 # Example usage:
 if __name__ == "__main__":
     # Create experiment config
-    # retrain_fake_start_datetime = "05/01/2024:00:00:00"
+    retrain_fake_start_datetime = "08/01/2024:00:00:00"
     
     env_config = SplunkConfig(
-        # fake_start_datetime=retrain_fake_start_datetime,
+        fake_start_datetime=retrain_fake_start_datetime,
         rule_frequency=60,
         search_window=2880,
         # savedsearches=["rule1", "rule2"],
         logs_per_minute=150,
         additional_percentage=.5,
-        action_duration=7200,
-        num_of_measurements=3,
-        env_id="splunk_train-v32"        
+        action_duration=14400,#7200,
+        num_of_measurements=1,
+        baseline_num_of_measurements=1,
+        env_id="splunk_train-v32",
+        end_time="12/31/2024:23:59:59"       
     )
     experiment_config = ExperimentConfig(
         env_config=env_config,
-        model_type="recurrent_ppo",
-        policy_type="MlpLstmPolicy",
-        learning_rate=1e-3,
-        num_episodes=6000,
-        n_steps=48,
+        model_type="ppo",
+        policy_type="MlpPolicy",
+        learning_rate=1e-4,
+        num_episodes=12000,
+        n_steps=480,
         ent_coef=0.01,
         gamma=1,
-        # experiment_name="test_experiment",
-        use_alert_reward=True,
-        use_energy_reward=True,
+        experiment_name="test_experiment",
+        use_alert_reward=False,
+        use_energy_reward=False,
         use_random_agent=False,
     )
     
     #retrain model
     experiment_config.mode = "train"
     
-    model_path = "/home/shouei/GreenSecurity-FirstExperiment/experiments/models/train_20250320100253_42000_steps.zip"
-    experiment_config.model_path = model_path
+    # model_path = "/home/shouei/GreenSecurity-FirstExperiment/experiments/models/train_20250320100253_42000_steps.zip"
+    # experiment_config.model_path = model_path
     
     
     # Create manager and run experiment
