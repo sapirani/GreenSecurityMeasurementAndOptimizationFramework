@@ -366,7 +366,7 @@ class DistributionRewardWrapper(RewardWrapper):
         # self.update_fake_distribution(self.episode_logs)
 
         step_counter = info.get('step', 0)
-        if info.get('done', True):
+        if  random.randint(0, 10) % self.distribution_reward_freq == 0:
             dist_value = self._calculate_distribution_value(
                 self.real_state,
                 self.fake_state
@@ -381,6 +381,25 @@ class DistributionRewardWrapper(RewardWrapper):
             else:
                 # reward += 0
                 reward += dist_reward
+
+                # reward += self.gamma * dist_reward
+        if info.get('done', True) :
+            dist_value = self._calculate_distribution_value(
+                self.ac_real_state,
+                self.ac_fake_state
+            )
+            info['ac_distribution_value'] = dist_value
+            dist_reward = self._calculate_distribution_reward(dist_value)
+            # dist_reward /= 0.6 # NOrmalize the reward
+            info['ac_distribution_reward'] = dist_reward
+            reward += self.step_counter * dist_reward
+            # reward += dist_reward
+            # if dist_reward == 0:
+            #     reward = 0
+            # else:
+            #     # reward += 0
+            #     reward += dist_reward
+
                 # reward += self.gamma * dist_reward
         # since this is the last wrapper, we can consider it as final reward
         logger.info(f"Reward: {reward}")  

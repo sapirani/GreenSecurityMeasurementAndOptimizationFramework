@@ -67,6 +67,8 @@ class MetricsLoggerCallback:
         current_metrics = info.get('combined_metrics', {})
         baseline_metrics = info.get('combined_baseline_metrics', {})
         self._log_metrics('final_distribution_value', info.get('distribution_value'))
+        self._log_metrics('ac_distribution_value', info.get('ac_distribution_value'))
+        self._log_metrics('ac_distribution_reward', info.get('ac_distribution_reward'))
         self._log_metrics('total_episode_logs', info.get('total_episode_logs'))
         
         if current_metrics and baseline_metrics:
@@ -234,3 +236,25 @@ class CustomEvalCallback3(EvalCallback, MetricsLoggerCallback):
 
         return True
 
+
+class SplunkLincenceCheckCallback(BaseCallback):
+    def __init__(self, service):
+        super(SplunkLincenceCheckCallback, self).__init__()
+        self.service = service
+        self.last_check_time = None
+        self.check_interval = 60
+    
+    def _on_step(self) -> bool:
+        """Check Splunk license usage at each step"""
+        current_time = self.num_timesteps
+        if self.last_check_time is None or (current_time - self.last_check_time) >= self.check_interval:
+            try:
+                # Check license usage
+                license_usage = self.service.get_license_usage()
+                if license_usage:
+                    self.logger.record("license_usage", license_usage)
+            except Exception as e:
+                print(f"Error checking license usage: {e}")
+            
+            self.last_check_time = current_time
+        return True

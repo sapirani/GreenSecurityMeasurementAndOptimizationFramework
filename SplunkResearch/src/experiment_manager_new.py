@@ -121,6 +121,7 @@ class ExperimentManager:
         )
         # env = SingleAction2(env)
         # env = Action(env)
+        # env = SngleAction(env, config.use_random_agent)
         env = Action8(env, config.use_random_agent)
         
         # if config.use_random_agent:
@@ -474,7 +475,7 @@ if __name__ == "__main__":
         # savedsearches=["rule1", "rule2"],
         logs_per_minute=150,
         additional_percentage=.5,
-        action_duration=14400,#7200,
+        action_duration=7200,
         num_of_measurements=1,
         baseline_num_of_measurements=1,
         env_id="splunk_train-v32",
@@ -486,9 +487,9 @@ if __name__ == "__main__":
         policy_type="MlpPolicy",
         learning_rate=1e-4,
         num_episodes=12000,
-        n_steps=480,
+        n_steps=12,
         ent_coef=0.01,
-        gamma=1,
+        gamma=0.99,
         experiment_name="test_experiment",
         use_alert_reward=False,
         use_energy_reward=False,

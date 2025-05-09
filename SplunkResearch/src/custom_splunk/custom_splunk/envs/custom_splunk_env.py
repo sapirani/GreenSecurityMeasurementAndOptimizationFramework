@@ -133,7 +133,20 @@ class SplunkEnv(gym.Env):
         self.obs = None
         self.real_state = np.array([])
         self.fake_state = np.array([])
-
+        self.ac_real_state = np.array([])
+        self.ac_fake_state = np.array([])
+        self.fake_distribution = {logtype: 0 for logtype in self.top_logtypes}
+        self.fake_distribution['other'] = 0
+        self.fake_relevant_distribution = {"_".join(logtype): 0 for logtype in self.top_logtypes}
+        self.real_distribution = {logtype: 0 for logtype in self.top_logtypes}
+        self.real_distribution['other'] = 0
+        self.ac_real_distribution = {logtype: 0 for logtype in self.top_logtypes}
+        self.ac_real_distribution['other'] = 0
+        self.ac_fake_distribution = {logtype: 0 for logtype in self.top_logtypes}
+        self.ac_fake_distribution['other'] = 0
+        self.real_relevant_distribution = {"_".join(logtype): 0 for logtype in self.top_logtypes}
+        self.relevant_logtypes_indices = {logtype: i for i, logtype in enumerate(self.top_logtypes) if logtype in self.top_logtypes}
+        
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
         """Execute environment step."""
         self.step_counter += 1
@@ -175,14 +188,20 @@ class SplunkEnv(gym.Env):
         # Optional: set random seed
         if seed is not None:
             super().reset(seed=seed)
-        
+        self.fake_distribution = {logtype: 0 for logtype in self.top_logtypes}
+        self.fake_distribution['other'] = 0
+        self.fake_relevant_distribution = {"_".join(logtype): 0 for logtype in self.top_logtypes}
+
+        self.ac_fake_distribution = {logtype: 0 for logtype in self.top_logtypes}
+        self.ac_fake_distribution['other'] = 0
+
         # Reset counters and tracking
         self.step_counter = 0
         self.action_auditor = []
 
 
         info = self.get_step_info()
-        
+
         return np.zeros(self.observation_space.shape), info
 
 
