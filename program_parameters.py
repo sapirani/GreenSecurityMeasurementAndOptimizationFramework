@@ -1,8 +1,8 @@
 from general_consts import *
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.NetworkReceiver
-background_programs_types = [ProgramToScan.NetworkSender]
+main_program_to_scan = ProgramToScan.NetworkSender
+background_programs_types = [] #[ProgramToScan.NetworkSender]
 
 kill_background_process_when_main_finished = True
 summary_version = SummaryVersion.OTHER
@@ -24,7 +24,7 @@ custom_scan_path = r'""'
 #custom_scan_path = fr'"C:\Users\Administrator\Desktop\GreenSecurity-FirstExperiment"'
 #custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
 
-RUNNING_TIME = 120 * SECOND # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
+RUNNING_TIME = 10 * MINUTE # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
 MINIMUM_DELTA_CAPACITY = 200     # in mWh
 
@@ -67,4 +67,4 @@ memory_chunk_size = 1 * MB
 consumption_speed = 10 * MB / SECOND
 
 # For Network Sender
-time_interval = 0.01
+time_interval = 0.2
