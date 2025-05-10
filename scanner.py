@@ -1,16 +1,23 @@
+import argparse
 import shutil
 import signal
 import warnings
 
 from statistics import mean
+
+from human_id import generate_id
 from prettytable import PrettyTable
 from threading import Thread, Timer
 import pandas as pd
+
+from application_logging import get_measurement_logger, set_measurement_session_id
 from initialization_helper import *
 from datetime import date
 from pathlib import Path
 from general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
 from process_connections import ProcessNetworkMonitor
+
+
 
 base_dir, GRAPHS_DIR, STDOUT_FILES_DIR, STDERR_FILES_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, \
 DISK_IO_EACH_MOMENT, NETWORK_IO_EACH_MOMENT, BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, \
@@ -24,6 +31,7 @@ starting_time = 0
 main_process_id = None
 max_timeout_reached = False
 main_process = None
+logger = None
 
 # include main programs and background
 processes_ids = []
@@ -57,6 +65,12 @@ def save_current_total_memory():
     """_summary_: take memory information and append it to a dataframe
     """
     vm = psutil.virtual_memory()
+
+    logger.info(
+        "Total memory measurement",
+        extra={"total_memory_gb": vm.used / GB, "total_memory_percent": vm.percent}
+    )
+
     memory_df.loc[len(memory_df.index)] = [
         scanner_imp.calc_time_interval(starting_time),
         f'{vm.used / GB:.3f}',
@@ -94,6 +108,18 @@ def save_current_disk_io(previous_disk_io):
         disk_io_stat.write_time - previous_disk_io.write_time
     ]
 
+    logger.info(
+        "Total disk measurements",
+        extra={
+            "disk_read_count": disk_io_stat.read_count - previous_disk_io.read_count,
+            "disk_write_count":  disk_io_stat.write_count - previous_disk_io.write_count,
+            "disk_read_bytes": (disk_io_stat.read_bytes - previous_disk_io.read_bytes) / KB,
+            "disk_write_bytes": (disk_io_stat.write_bytes - previous_disk_io.write_bytes) / KB,
+            "disk_read_time": disk_io_stat.read_time - previous_disk_io.read_time,
+            "disk_write_time": disk_io_stat.write_time - previous_disk_io.write_time
+        }
+    )
+
     return disk_io_stat
 
 
@@ -109,6 +135,16 @@ def save_current_network_io(previous_network_io):
             f'{(network_io_stat.bytes_sent - previous_network_io.bytes_sent) / KB:.3f}',
             f'{(network_io_stat.bytes_recv - previous_network_io.bytes_recv) / KB:.3f}',
         ]
+    )
+
+    logger.info(
+        "Total network measurements",
+        extra={
+            "packets_sent": network_io_stat.packets_sent - previous_network_io.packets_sent,
+            "packets_received": network_io_stat.packets_recv - previous_network_io.packets_recv,
+            "bytes_sent": (network_io_stat.bytes_sent - previous_network_io.bytes_sent) / KB,
+            "bytes_received": (network_io_stat.bytes_recv - previous_network_io.bytes_recv) / KB
+        }
     )
 
     return network_io_stat
@@ -190,6 +226,26 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_data_per_process, 
 
                 prev_data_per_process[(p.pid, p.name())] = io_stat, page_faults  # after finishing loop
 
+                logger.info(
+                    "Process measurements",
+                    extra={
+                        "pid": p.pid,
+                        "process_name": p.name(),
+                        "threads_num": p.num_threads(),
+                        "used_memory_mb": p.memory_info().rss / MB,
+                        "used_memory_percent": round(p.memory_percent(), 2),
+                        "disk_read_count": io_stat.read_count - prev_io.read_count,
+                        "disk_write_count": io_stat.write_count - prev_io.write_count,
+                        "disk_read_bytes": (io_stat.read_bytes - prev_io.read_bytes) / KB,
+                        "disk_write_bytes": (io_stat.write_bytes - prev_io.write_bytes) / KB,
+                        "page_faults": page_faults - prev_data_per_process[(p.pid, p.name())][1],
+                        "bytes_sent": process_traffic.bytes_sent / KB,
+                        "packets_sent": process_traffic.packets_sent,
+                        "bytes_received": process_traffic.bytes_received / KB,
+                        "packets_received": process_traffic.packets_received
+                    }
+                )
+
         except psutil.NoSuchProcess:
             pass
 
@@ -237,6 +293,15 @@ def save_current_total_cpu():
     """
     total_cpu = psutil.cpu_percent(percpu=True)
     cpu_df.loc[len(cpu_df.index)] = [scanner_imp.calc_time_interval(starting_time), mean(total_cpu)] + total_cpu
+
+    logger.info(
+        "Total CPU measurements",
+        extra={
+            "mean_across_cores_percent": mean(total_cpu),
+            "number_of_cores": len(total_cpu),
+            **{f"core{i}_percent": total_cpu[i] for i in range(len(total_cpu))}
+        }
+    )
 
 
 def continuously_measure():
@@ -750,4 +815,19 @@ def main():
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description="This program periodically monitors the resource consumption of the device at the process-level."
+                    "It supports CPU, RAN, DISK and NETWORK measurements"
+    )
+
+    parser.add_argument("--measurement_session_id",
+                        type=str,
+                        default=generate_id(),
+                        help="ip address to listen on")
+
+    args = parser.parse_args()
+
+    set_measurement_session_id(args.measurement_session_id)
+    logger = get_measurement_logger()
+
     main()

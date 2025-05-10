@@ -41,3 +41,8 @@ six==1.16.0
 tenacity==8.2.2
 tzdata==2023.3
 Werkzeug==2.3.3
+
+
+elasticsearch==9.0.1
+human-id==0.2.0
+
