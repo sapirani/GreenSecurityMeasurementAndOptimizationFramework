@@ -5,6 +5,8 @@ from typing import List, Tuple
 
 from scanner_trigger import logging_configuration
 
+from human_id import generate_id
+
 DEFAULT_TRIGGER_RECEIVER_HOST = "127.0.0.1"
 DEFAULT_TRIGGER_RECEIVER_PORT = 65432
 CONNECT_TIMEOUT = 5
@@ -35,7 +37,8 @@ def main(trigger_message: str, receivers_addresses: List[Tuple[str, int]]) -> No
                 logging.warning(f"Connect timout ({CONNECT_TIMEOUT} seconds). Address: {receiver_address}, ")
                 continue
             logging.info(f"Connected to {receiver_address}, Sending:{trigger_message}")
-            s.sendall(trigger_message.encode())
+            full_message = f"{trigger_message} --measurement_session_id {generate_id()}"
+            s.sendall(full_message.encode())
 
 
 if __name__ == '__main__':
