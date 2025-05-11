@@ -16,8 +16,8 @@ class BestModelConfig:
     }
 
 
-ENERGY_CONSUMPTION_PER_BYTE_SENT = 5  # TODO: CHANGE TO ACTUAL VALUE
-ENERGY_CONSUMPTION_PER_BYTE_RECEIVED = 5  # TODO: CHANGE TO ACTUAL VALUE
+ENERGY_CONSUMPTION_PER_KBYTE_SENT = 0.00587
+ENERGY_CONSUMPTION_PER_KBYTE_RECEIVED = 0.1161 
 
 
 class MeasurementsModel:
@@ -35,11 +35,11 @@ class MeasurementsModel:
     def __calculate_network_energy_usage(self, row) -> float:
         network_energy_addition = 0
         if self.__network_sent_bytes_column in row:
-            network_energy_addition += row[self.__network_sent_bytes_column] * 1000 * ENERGY_CONSUMPTION_PER_BYTE_SENT
+            network_energy_addition += row[self.__network_sent_bytes_column] * 1000 * ENERGY_CONSUMPTION_PER_KBYTE_SENT
 
         if self.__network_received_bytes_column in row:
             network_energy_addition += row[
-                                           self.__network_received_bytes_column] * 1000 * ENERGY_CONSUMPTION_PER_BYTE_RECEIVED
+                                           self.__network_received_bytes_column] * 1000 * ENERGY_CONSUMPTION_PER_KBYTE_RECEIVED
 
         return network_energy_addition
 
