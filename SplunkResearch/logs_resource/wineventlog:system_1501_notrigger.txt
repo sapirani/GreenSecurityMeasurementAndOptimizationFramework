@@ -1,0 +1,15 @@
+03/27/2025 09:26:40 AM
+LogName=System
+EventCode=1501
+EventType=4
+ComputerName=dt-boris.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-21-1220750395-818509756-262303683-110341
+SidType=0
+SourceName=Microsoft-Windows-GroupPolicy
+Type=Information
+RecordNumber=151303
+Keywords=None
+TaskCategory=None
+OpCode=Start
+Message=The Group Policy settings for the user were processed successfully. There were no changes detected since the last successful processing of Group Policy.

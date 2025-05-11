@@ -1,504 +1,509 @@
-import logging
+from dataclasses import dataclass, replace
+import inspect
+import ssl
+from typing import Dict, Any, Optional, List
+from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
+import custom_splunk #dont remove!!!
+from custom_splunk.envs.custom_splunk_env import SplunkConfig
+import gymnasium as gym
+from gymnasium import register, spaces, make
+# from gymnasium.vector import VecNormalize, DummyVecEnv
+import pandas as pd
+import numpy as np
 import os
-import pickle
-import shutil
+import logging
 import datetime
+from pathlib import Path
+import json
+from stable_baselines3.common.callbacks import BaseCallback, CallbackList
+from stable_baselines3 import A2C, PPO, DQN, DDPG, TD3, SAC
+from stable_baselines3.ppo.policies import MlpPolicy
+from sb3_contrib import RecurrentPPO
+from wrappers.reward import *
+from wrappers.state import *
+from wrappers.action import *
+from callbacks import *
+from time_manager import TimeWrapper
 import smtplib
 from email.message import EmailMessage
-import ssl
-from dotenv import load_dotenv
-import os
-
-from strategies.state_strategy import *
-load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env')
-import datetime
-import os
-import inspect
-import numpy as np
-import urllib3
-import json
-import sys
-sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
-import logging
-from stable_baselines3.ppo.policies import MlpPolicy
-from stable_baselines3.ddpg.policies import MlpPolicy as DDPGMlpPolicy
-from stable_baselines3.td3.policies import MlpPolicy as TD3Policy   
-from stable_baselines3.sac.policies import MlpPolicy as SACPolicy
-from stable_baselines3.common.evaluation import evaluate_policy
-import gym
-import custom_splunk #dont remove!!!
-from sb3_contrib.ppo_recurrent.policies import MlpLstmPolicy
-from sb3_contrib import RecurrentPPO
-from stable_baselines3 import A2C, PPO, DQN, DDPG, TD3, SAC
-from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
-
-urllib3.disable_warnings()
-from stable_baselines3.common.logger import configure
-from env_utils import *
-from measurement import Measurement
-from strategies.reward_strategy import *
-from strategies.action_strategy import *
-from pathlib import Path
-import logging
-from stable_baselines3.common.callbacks import BaseCallback, EvalCallback, CallbackList
-from stable_baselines3.common.logger import HParam
-from callbacks import *
-from datetime_manager import MockedDatetimeManager
-from splunk_tools import SplunkTools
-from stable_baselines3.common.distributions  import DirichletDistribution
-from policy import *
-from stable_baselines3.common.vec_env import VecNormalize, DummyVecEnv
-from stable_baselines3.common.env_util import make_vec_env
-
-# disable sb3 warning
-import warnings
-warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
-model_names = {'a2c': A2C, 'ppo': PPO, 'dqn': DQN, 'recurrentppo': RecurrentPPO, 'ddpg': DDPG, 'td3': TD3, 'sac': SAC}
-policy_names = {'mlp': MlpPolicy, 'lstm': MlpLstmPolicy, "custommlp": CustomActor, "ddpgmlp": DDPGMlpPolicy, "td3mlp": TD3Policy, "sacmlp": SACPolicy}
+@dataclass
+class ExperimentConfig:
+    """Configuration for experiments"""
+    # Environment config
+    env_config: SplunkConfig
+    
+    # Training config
+    model_type: str = "ppo"  # ppo, a2c, dqn, etc.
+    policy_type: str = "mlp"
+    learning_rate: float = 3e-4
+    n_steps: int = 2048
+    # batch_size: int = 64
+    # n_epochs: int = 10
+    gamma: float = 0.99
+    ent_coef: float = 0.0
+    num_episodes: int = 1000
+    
+    # Reward components
+    use_distribution_reward: bool = True
+    use_energy_reward: bool = True
+    use_alert_reward: bool = True
+    use_quota_violation: bool = True
+    use_random_agent: bool = False
+    
+    
+    # Reward parameters
+    gamma_dist: float = 0.2
+    alpha_energy: float = 0.5
+    beta_alert: float = 0.3
+    
+    # Experiment metadata
+    experiment_name: Optional[str] = None
+    mode: str = "train"  # train, eval, retrain
 
-# Dynamically find all reward calculator classes
-RewardCalc_classes = {}
-for name, obj in inspect.getmembers(sys.modules['strategies.reward_strategy'], inspect.isclass):
-    if issubclass(obj, RewardStrategy) and obj is not RewardStrategy:
-        RewardCalc_classes[name.split("RewardStrategy")[1]] = obj
-logger.info(f"Loaded RewardCalc_classes: {RewardCalc_classes}")
-StateStrategy_classes = {}
-for name, obj in inspect.getmembers(sys.modules['strategies.state_strategy'], inspect.isclass):
-    if issubclass(obj, StateStrategy) and obj is not StateStrategy:
-        StateStrategy_classes[name.split("StateStrategy")[1]] = obj
-logger.info(f"Loaded StateStrategy_classes: {StateStrategy_classes}")
-ActionStrategy_classes = {}
-for name, obj in inspect.getmembers(sys.modules['strategies.action_strategy'], inspect.isclass):
-    if issubclass(obj, ActionStrategy) and obj is not ActionStrategy:
-        ActionStrategy_classes[name.split("ActionStrategy")[1]] = obj
-
-manual_policy_dict = {
-    '4663_0': {0:1},
-    '4663_1': {1:1},
-    '4732_0': {2:1},
-    '4732_1': {3:1},
-    '4769_0': {4:1},
-    '4769_1': {5:1},
-    '5140_0': {6:1},
-    '5140_1': {7:1},
-    '7036_0': {8:1},
-    '7036_1': {9:1},
-    '7040_0': {10:1},
-    '7040_1': {11:1},
-    '7045_0': {12:1},
-    '7045_1': {13:1},
-    '4624_0': {14:1},
-    'equal_1': {1:1/7, 3:1/7, 5:1/7, 7:1/7, 9:1/7, 11:1/7, 13:1/7},
-    'equal_0': {0:1/7, 2:1/7, 4:1/7, 6:1/7, 8:1/7, 10:1/7, 12:1/7, 14:1/7},
-    'no_agent': {},
-}
-manual_policy_dict_1 = {
-    '4663_0': {0:100, 1:0, 2:0, 3:0},
-    '4663_1': {0:100, 1:0, 2:1, 3:5},
-    '4732_0': {0:100, 1:1, 2:0, 3:0},
-    '4732_1': {0:100, 1:1, 2:1, 3:5},
-    '4769_0': {0:100, 1:2, 2:0, 3:0},
-    '4769_1': {0:100, 1:2, 2:1, 3:5},
-    '5140_0': {0:100, 1:3, 2:0, 3:0},
-    '5140_1': {0:100, 1:3, 2:1, 3:5},
-    '7036_0': {0:100, 1:4, 2:0, 3:0},
-    '7036_1': {0:100, 1:4, 2:1, 3:5},
-    '7040_0': {0:100, 1:5, 2:0, 3:0},
-    '7040_1': {0:100, 1:5, 2:1, 3:5},
-    '7045_0': {0:100, 1:6, 2:0, 3:0},
-    '7045_1': {0:100, 1:6, 2:1, 3:5},
-    '4624_0': {0:100, 1:7, 2:0, 3:0},
-
-    'no_agent': {0:0, 1:0, 2:0, 3:0}
-}
-        
 class ExperimentManager:
+    """Manages training and evaluation experiments"""
     
-    def __init__(self, base_dir="experiments____", log_level=logging.INFO):
-        self.log_level = log_level
-        self.base_dir = base_dir
-        self.train_dir = os.path.join(self.base_dir, 'train')
-        self.eval_dir = os.path.join(self.base_dir, 'eval')
-        self.retrain_model_dir = os.path.join(self.base_dir, 'retrain')
-        self.models_dir = os.path.join(self.base_dir, 'models')
-        self.train_logs_dir = os.path.join(self.train_dir, 'logs')
-        self.eval_logs_dir = os.path.join(self.eval_dir, 'logs')
-        self.retrain_model_logs_dir = os.path.join(self.retrain_model_dir, 'logs')
-        self.train_tensorboard_dir = os.path.join(self.train_dir, 'tensorboard')
-        self.eval_tensorboard_dir = os.path.join(self.eval_dir, 'tensorboard') 
-        self.retrain_model_tensorboard_dir = os.path.join(self.retrain_model_dir, 'tensorboard')
-        self.experiment_master_tables_dir = os.path.join(self.base_dir, 'experiment_master_tables')
-        self.no_agent_baseline_experiment_dir = os.path.join(self.base_dir, 'no_agent_baseline')
-        
-        Path(self.base_dir).mkdir(parents=True, exist_ok=True)
-        Path(self.train_dir).mkdir(parents=True, exist_ok=True)
-        Path(self.eval_dir).mkdir(parents=True, exist_ok=True)
-        Path(self.retrain_model_dir).mkdir(parents=True, exist_ok=True)
-        Path(self.models_dir).mkdir(parents=True, exist_ok=True)
-        Path(self.train_logs_dir).mkdir(parents=True, exist_ok=True)
-        Path(self.eval_logs_dir).mkdir(parents=True, exist_ok=True)
-        Path(self.retrain_model_logs_dir).mkdir(parents=True, exist_ok=True)
-        Path(self.train_tensorboard_dir).mkdir(parents=True, exist_ok=True)
-        Path(self.eval_tensorboard_dir).mkdir(parents=True, exist_ok=True)
-        Path(self.retrain_model_tensorboard_dir).mkdir(parents=True, exist_ok=True)
-        Path(self.experiment_master_tables_dir).mkdir(parents=True, exist_ok=True)
-        Path(self.no_agent_baseline_experiment_dir).mkdir(parents=True, exist_ok=True)
-        self.mode = None
-        self.current_kwargs = None
-        self.train_master, self.eval_master, self.retrain_master , self.no_agent_master = self.load_master_tables()
-        self.total_steps = 0
-        
-    def load_master_tables(self):
-        """Loads train_master, eval_master, and no_agent_master tables, if exists."""
-        
-        train_master_path = os.path.join(self.experiment_master_tables_dir, 'train_master.csv')
-        eval_master_path = os.path.join(self.experiment_master_tables_dir, 'eval_master.csv')
-        retrain_master_path = os.path.join(self.experiment_master_tables_dir, 'retrain_master.csv')
-        no_agent_master_path = os.path.join(self.experiment_master_tables_dir, 'no_agent_master.csv')
-        
-        if os.path.exists(train_master_path):
-            train_master = pd.read_csv(train_master_path)
-        else:
-            train_master = pd.DataFrame()            
-        if os.path.exists(eval_master_path):
-            eval_master = pd.read_csv(eval_master_path)
-        else:
-            eval_master = pd.DataFrame()     
-        if os.path.exists(retrain_master_path):
-            retrain_master = pd.read_csv(retrain_master_path)
-        else:
-            retrain_master = pd.DataFrame()       
-        if os.path.exists(no_agent_master_path):
-            no_agent_master = pd.read_csv(no_agent_master_path)
-        else:
-            no_agent_master = pd.DataFrame()           
-        return train_master, eval_master, retrain_master, no_agent_master
-    
-    def save_master_tables(self):
-        """Saves train_master, eval_master, and no_agent_master tables."""
-        
-        train_master_path = os.path.join(self.experiment_master_tables_dir, 'train_master.csv')
-        eval_master_path = os.path.join(self.experiment_master_tables_dir, 'eval_master.csv')
-        retrain_master_path = os.path.join(self.experiment_master_tables_dir, 'retrain_master.csv')
-        no_agent_master_path = os.path.join(self.experiment_master_tables_dir, 'no_agent_master.csv')
-        
-        
-        if not self.train_master.empty:
-            self.train_master.to_csv(train_master_path, index=False)
-        if not self.eval_master.empty:
-            self.eval_master.to_csv(eval_master_path, index=False)
-        if not self.no_agent_master.empty:
-            self.no_agent_master.to_csv(no_agent_master_path, index=False)
-        if not self.retrain_master.empty:
-            self.retrain_master.to_csv(retrain_master_path, index=False)
-            
-    def setup_logging(self, mode, name):
-        """Sets up logging to write to the specified log file."""
-        if mode == 'train':
-            log_file = os.path.join(self.train_logs_dir, f"{name}.log")
-        elif 'eval' in mode:
-            log_file = os.path.join(self.eval_logs_dir, f"{name}.log")
-        elif mode == 'retrain':
-            log_file = os.path.join(self.retrain_model_logs_dir, f"{name}.log")
-        logging.basicConfig(level=self.log_level, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', filename=log_file)
-        
-        
-    def setup_envionment(self, **kwargs):
-        """Sets up the environment for the experiment."""
-        env_kwargs = {}
-        env_kwargs['additional_percentage'] = kwargs['additional_percentage']
-        if fake_start_datetime := kwargs.get('fake_start_datetime'):
-            # convert fake_start_datetime format
-            kwargs['fake_start_datetime'] = datetime.datetime.strptime(fake_start_datetime, '%Y-%m-%d %H:%M:%S')
-            kwargs['fake_start_datetime'] = kwargs['fake_start_datetime'].strftime('%m/%d/%Y:%H:%M:%S')
-            env_kwargs['fake_start_datetime'] = kwargs['fake_start_datetime']
-        env_kwargs['rule_frequency'] = kwargs['rule_frequency']
-        env_kwargs['span_size'] = kwargs['span_size']
-        env_kwargs['logs_per_minute'] = kwargs['logs_per_minute']
-        env_kwargs['num_of_measurements'] = kwargs['num_of_measurements']
-        env_kwargs['id'] = kwargs['env_name']
-        env_kwargs['search_window'] = kwargs['search_window']
-        env_kwargs['state_strategy'] = StateStrategy_classes[kwargs['state_strategy_version']]
-        env_kwargs['action_strategy'] = ActionStrategy_classes[kwargs['action_strategy_version']]
-        env = gym.make(**env_kwargs)
-        self.total_steps = env.total_steps
-        # env = DummyVecEnv([lambda: env])
-        env = make_vec_env(lambda: env, n_envs=1)
-        env = VecNormalize(
-            env,
-            norm_obs=True,  # normalize observations
-            norm_reward=True,  # normalize rewards
-            clip_obs=10.,
-            clip_reward=10.,
-            gamma=kwargs['df'],
-            epsilon=1e-8
-        )
-        reward_calculator = self.setup_reward_calc(kwargs)
-        # env.set_reward_calculator(reward_calculator)
-        env.env_method('set_reward_calculator', reward_calculator)
-        
-        return env
+    def __init__(self, base_dir: str = "experiments"):
+        self.base_dir = Path(base_dir)
+        self._setup_directories()
+        self.experiments_db = self._load_experiments_db()
+        self.eval_env = None
 
-    def setup_reward_calc(self, kwargs):
-        splunk_tools_instance = SplunkTools()
-        num_of_searches = splunk_tools_instance.get_num_of_searches()
-        measurment_tool = Measurement(splunk_tools_instance, num_of_searches, measure_energy=False)
+    def _setup_directories(self):
+        """Create necessary directories"""
+        dirs = {
+            'train': self.base_dir / 'train',
+            'eval': self.base_dir / 'eval',
+            'models': self.base_dir / 'models',
+            'logs': self.base_dir / 'logs',
+            'tensorboard': self.base_dir / 'tensorboard',
+            'baseline': self.base_dir / 'baseline'
+        }
         
-        reward_calc_kwargs = {}
-        reward_calc_kwargs['alpha'] = kwargs['alpha']
-        reward_calc_kwargs['beta'] = kwargs['beta']
-        reward_calc_kwargs['gamma'] = kwargs['gamma']
-        reward_calc_kwargs['splunk_tools'] = splunk_tools_instance
-        reward_calc_kwargs['dt_manager'] = MockedDatetimeManager()
-        reward_calc_kwargs['num_of_searches'] = num_of_searches
-        reward_calc_kwargs['measurment_tool'] = measurment_tool
-        reward_calc_kwargs['no_agent_table_path'] = self.get_no_agent_table_path(kwargs)
-        RewardCalc = RewardCalc_classes[kwargs['reward_calculator_version']]
-        reward_calculator = RewardCalc(**reward_calc_kwargs)
-        self.save_master_tables()
-        return reward_calculator
-    
-    def get_no_agent_table_path(self, kwargs):
-        """Returns the table name for the no agent baseline."""
-        no_agent_kwargs = {}
-        no_agent_kwargs['env_id'] = kwargs['env_name']
-        no_agent_kwargs['search_window'] = kwargs['search_window']
-        no_agent_kwargs['num_of_measurements'] = kwargs['num_of_measurements']
-        filtered_df = self.no_agent_master.copy()
-        for key, value in no_agent_kwargs.items():
-            if key not in filtered_df.columns:
-                break
-            filtered_df = filtered_df[filtered_df[key] == value]
-        if len(filtered_df) == 0:
-            table_name = f"no_agent_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            no_agent_kwargs['table_name'] = table_name
-            self.no_agent_master = pd.concat([self.no_agent_master, pd.DataFrame(no_agent_kwargs, index=[0])], ignore_index=True)
-        else:
-            table_name = filtered_df.iloc[0]['table_name']
-        
-        return os.path.join(self.no_agent_baseline_experiment_dir, f"{table_name}.csv")
-    
-    def get_train_experiment_name(self, kwargs):
-        if experiment_name := kwargs.get('experiment_name'):
-            return experiment_name
-        """Returns the name of the train experiment."""
-        filtered_df = self.train_master.copy()
-        for key, value in kwargs.items():
-            if key not in filtered_df.columns:
-                logger.error(f"Key: {key} not found in train_master.")
-                break
-            if key == 'env_name':
-                value = value.split('-v')[1]
-            if key == 'num_of_episodes':
-                continue                
-            filtered_df = filtered_df[filtered_df[key].astype(str) == str(value)]
-            if len(filtered_df) == 0:
-                raise ValueError(f"Key: {key} with value: {value} not found in train_master.")
-        name = filtered_df.iloc[0]['name']
-        logger.info(f"Found train experiment with name: {name}")
-        return name
-    
-    def setup_model(self, kwargs, env):
-        model_object = model_names[kwargs['model']]
-        model_kwargs = {}
-        model_kwargs['env'] = env
-        model_kwargs['policy'] = policy_names[kwargs['policy']]
-        model_kwargs['learning_rate'] = kwargs['learning_rate']
-        
-        if kwargs['model'] != 'ddpg' and kwargs['model'] != 'td3' and kwargs['model'] != 'sac' and kwargs['model'] != 'dqn':
-            model_kwargs['ent_coef'] = kwargs['ent_coef']
-            model_kwargs['n_steps'] = kwargs['n_steps']
-            model_kwargs['stats_window_size'] = 5
-            model_kwargs['policy_kwargs'] = dict(
-                                net_arch=dict(
-                                    pi=[128, 128, 64],    # 3 layers
-                                    vf=[128, 128, 64]
-                                )
-                            )
-            # model_kwargs['use_sde'] = True
-            # model_kwargs['sde_sample_freq'] = 9
+        for dir_path in dirs.values():
+            dir_path.mkdir(parents=True, exist_ok=True)
             
-        elif kwargs['model'] == 'td3' or kwargs['model'] == 'sac' or kwargs['model'] == 'ddpg':
-            # model_kwargs['policy_kwargs'] = dict(
-            # net_arch=[128, 128, 64]
-            # )
-            # model_kwargs['action_noise'] = NormalActionNoise(mean=np.zeros(env.action_space.shape), sigma=0.1 * np.ones(env.action_space.shape))
-            model_kwargs['train_freq'] = kwargs['n_steps']
-            model_kwargs['use_sde'] = True
-            model_kwargs['sde_sample_freq'] = 10
-        else:
-            model_kwargs['policy_kwargs'] = dict(
-            net_arch=dict(
-                pi=[128, 128, 64],
-                qf=[128, 128, 64]  # For DDPG, use 'qf' instead of 'vf'
-                )
+        self.dirs = dirs
+
+    def _load_experiments_db(self) -> pd.DataFrame:
+        """Load or create experiments database"""
+        db_path = self.base_dir / 'experiments.csv'
+        if db_path.exists():
+            return pd.read_csv(db_path)
+        return pd.DataFrame(columns=[
+            'experiment_id', 'name', 'mode', 'start_time', 'end_time',
+            'config', 'status', 'metrics'
+        ])
+
+    def _save_experiments_db(self):
+        """Save experiments database"""
+        self.experiments_db.to_csv(
+            self.base_dir / 'experiments.csv',
+            index=False
+        )
+
+    def create_environment(self, config: ExperimentConfig) -> gym.Env:
+        """Create and configure environment with reward wrappers"""
+
+        top_logtypes = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
+        # include only system and security logs
+        top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
+        top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
+        top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
+        if config.experiment_name == "test_experiment":
+            config.env_config.is_test = True
+        env = make(
+            id=config.env_config.env_id,
+            config=config.env_config,
+            top_logtypes=top_logtypes
+        )
+        # env = SingleAction2(env)
+        # env = Action(env)
+        # env = SngleAction(env, config.use_random_agent)
+        env = Action8(env, config.use_random_agent)
+        
+        # if config.use_random_agent:
+        #     env = RandomAction(env)
+
+        # Add reward wrappers
+        if config.use_distribution_reward:
+            env = DistributionRewardWrapper(
+                env,
+                gamma=config.gamma_dist,
+                epsilon=1e-8,
+                distribution_freq=1
+            )
+        if config.use_energy_reward:
+            env = BaseRuleExecutionWrapper(env, baseline_dir=self.dirs['baseline'])
+            
+            env = EnergyRewardWrapper(
+                env,
+                alpha=config.alpha_energy
             )
             
-        model_kwargs['gamma'] = kwargs['df']
-        model_kwargs['tensorboard_log'] = self.train_tensorboard_dir
-        model_kwargs['verbose'] = 1
-
-        return model_object(**model_kwargs)
         
-    def train_model(self, **kwargs):
-        """Trains a model."""
-        self.mode = 'train'
-        env, model, callback_list = self.prepare_experiment('train', kwargs)
-        name = kwargs['name']
-        kwargs['env_name'] = kwargs['env_name'].split('-v')[1]        
-        self.current_kwargs = kwargs
-        total_steps = env.get_attr('total_steps')[0]
-        print(total_steps)
-
-        model.learn(total_timesteps=self.total_steps*kwargs['num_of_episodes'], callback=callback_list, tb_log_name=name)
+        if config.use_alert_reward:
+            if not config.use_energy_reward:
+                env = BaseRuleExecutionWrapper(env, baseline_dir=self.dirs['baseline'], is_mock=True)
+                env = AlertRewardWrapper(
+                    env,
+                    beta=config.beta_alert,
+                    epsilon=1e-3,
+                    is_mock=True
+                )
+            else:
+                env = AlertRewardWrapper(
+                    env,
+                    beta=config.beta_alert,
+                    epsilon=1e-3
+                )
+            # env = AlertRewardWrapper1(
+            #     env,
+            #     beta=config.beta_alert,
+            #     epsilon=1e-3
+            # )
+        # env = ClipRewardWrapper(env,
+        #                         low=0,
+        #                         high=1)
+        env = TimeWrapper(env)
         
-        self.post_experiment(env, model)
-        return model
-        
-    def test_model(self, **kwargs):
-        """Evaluates a model."""
-        self.mode = 'eval'
-        env, model, callback_list = self.prepare_experiment('eval', kwargs)
-        self.current_kwargs = kwargs
-        episode_rewards = self.custom_evaluate_policy(model, env, callback_list, num_episodes=kwargs['num_of_episodes'])
-        self.post_experiment(env, model)
-        return episode_rewards
-    
-    def manual_policy_eval(self, **kwargs):
-        """Evaluates a model."""
-        self.mode =  'manual_policy_eval'
-        env, model, callback_list = self.prepare_experiment('manual_policy_eval', kwargs)
-        self.current_kwargs = kwargs
-        episode_rewards = self.custom_evaluate_policy(model, env, callback_list, num_episodes=kwargs['num_of_episodes'])
-        self.post_experiment(env, model)
-        return episode_rewards
-    
-    def random_policy_eval(self, **kwargs):
-        """Evaluates a model."""
-        self.mode =  'random_policy_eval'
-        env, model, callback_list = self.prepare_experiment('random_policy_eval', kwargs)
-        self.current_kwargs = kwargs
-        episode_rewards = self.custom_evaluate_policy(model, env, callback_list, num_episodes=kwargs['num_of_episodes'])
-        self.post_experiment(env, model)
-        return episode_rewards
-    
-    def get_fake_start_datetime(self, kwargs):
-        """Returns the fake start datetime."""
-        try:
-            train_experiment_name = self.get_train_experiment_name(kwargs)
-            return self.train_master[self.train_master['name'] == train_experiment_name]['end_time'].values[0]
-        except Exception as e:
-            logger.warning(f"Error getting fake_start_datetime: {e}")
-            return None
-            
-    def retrain_model(self, **kwargs):
-        """Retrains a model."""
-        self.mode = 'retrain'
-        if kwargs['fake_start_datetime'] is None:
-            kwargs['fake_start_datetime'] = self.get_fake_start_datetime(kwargs)
-        env, model, callback_list = self.prepare_experiment('retrain', kwargs)
-        logger.info(f"Retraining model from datetime: {kwargs['fake_start_datetime']}")
-        name = kwargs['name']
-        self.current_kwargs = kwargs
-        total_steps = env.get_attr('total_steps')
-        model.learn(total_timesteps=total_steps*kwargs['num_of_episodes'], callback=callback_list, tb_log_name=name)        
-        self.retrain_master = self.update_master_tables(self.retrain_master, datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S'), kwargs)        
-        self.post_experiment(env, model)        
-        return model
+        env = StateWrapper3(env)
 
-    def update_master_tables(self, master_table, end_time, kwargs):
-        """Updates the master table with the end time and kwargs."""
-        kwargs['end_time'] = end_time
-        new_row = pd.DataFrame(kwargs, index=[0])
-        if new_row['name'].values[0] in master_table['name'].values:
-            master_table[master_table['name'] == new_row['name'].values[0]] = new_row
+        return env
+
+
+    def create_model(self, config: ExperimentConfig, env: gym.Env):
+        """Create or load model based on config"""
+        if config.mode == "train":
+            return self._create_new_model(config, env)
         else:
-            master_table = pd.concat([master_table, new_row], ignore_index=True)
-        return master_table
+            return self._load_existing_model(config, env)
+    def _get_model_class(self, model_type: str):
+        """Get model class based on type"""
+        if model_type == "ppo":
+            return PPO
+        elif model_type == "a2c":
+            return A2C
+        elif model_type == "dqn":
+            return DQN
+        elif model_type == "sac":
+            return SAC
+        elif model_type == "recurrent_ppo":
+            return RecurrentPPO
+        else:
+            raise ValueError(f"Unknown model type: {model_type}")
     
-    def prepare_experiment(self, mode, kwargs):
-        """Prepares an experiment."""
-        name = f"{mode}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}" 
-        self.setup_logging(mode, name)
-        logger.info(f"Preparing experiment with env kwargs: {kwargs}")
-        env = self.setup_envionment(**kwargs)
-        model = self.get_model(kwargs, name, env, mode)
-        kwargs['name'] = name
-        callback_list = CallbackList([TrainTensorboardCallback(experiment_kwargs=kwargs, verbose=3), HparamsCallback(experiment_kwargs=kwargs, verbose=3), SaveArtifacts(experiment_menager=self)])#SaveModelCallback(save_path=os.path.join(self.models_dir, kwargs['name']))])
-        return env, model, callback_list
-    
-    def post_experiment(self, env, model):
-        """Post experiment actions."""
-        try:
-            time_range = env.get_attr('time_range')
-        except:
-            time_range = env.time_range
+    def _get_policy_class(self, policy_type: str):
+        """Get policy class based on type"""
+        if policy_type == "mlp":
+            return MlpPolicy
+
+        else:
+            raise ValueError(f"Unknown policy type: {policy_type}")
+    def _create_new_model(self, config: ExperimentConfig, env: gym.Env):
+        """Create new model instance"""
+        model_cls = self._get_model_class(config.model_type)
         
-        if self.mode == 'train':
-            self.train_master = self.update_master_tables(self.train_master, datetime.datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S'), self.current_kwargs)
-            model.save(os.path.join(self.models_dir, self.current_kwargs['name']))            
-        elif self.mode == 'eval' or self.mode == 'manual_policy_eval':
-            self.eval_master = self.update_master_tables(self.eval_master, datetime.datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S'), self.current_kwargs)
-        elif self.mode == 'retrain':
-            self.retrain_master = self.update_master_tables(self.retrain_master, datetime.datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S'), self.current_kwargs)
-            model.save(os.path.join(self.models_dir, self.current_kwargs['name']))
+        model_kwargs = {
+            'env': env,
+            'policy': config.policy_type,
+            'learning_rate': config.learning_rate,
+            'gamma': config.gamma,
+            'tensorboard_log': str(self.dirs['tensorboard']),
+            'stats_window_size': 5,
+            'verbose': 1
+        }
+        
+        if config.model_type in ['recurrent_ppo', 'ppo', 'a2c']:
+            model_kwargs.update({
+                'n_steps': config.n_steps,
+                # 'batch_size': config.batch_size,
+                # 'n_epochs': config.n_epochs,
+                'ent_coef': config.ent_coef,
+                'sde_sample_freq': 240,
+                'use_sde': True
+            })
             
-        self.save_master_tables()
-        # env.reward_calculator.no_agent_values.to_csv(env.reward_calculator.no_agent_table_path, index=False)
+        return model_cls(**model_kwargs)
     
-    def get_model(self, kwargs, name, env, mode):
-        if mode == 'train':
-            model = self.setup_model(kwargs, env)
-        elif mode == 'eval' or mode == 'retrain':
-            model_name = self.get_train_experiment_name(kwargs)
-            model = self.load_model(kwargs, name, env, model_name, mode)
-        elif mode == "manual_policy_eval":
-            model = ManualPolicyModel(ManualPolicy(manual_policy_dict_1[kwargs['policy']],env.observation_space, env.action_space), [env])
-            tb_logger = configure(os.path.join(self.eval_tensorboard_dir, name), ["stdout", "tensorboard"])
-            model.logger = tb_logger
-        elif mode == "random_policy_eval":
-            model = ManualPolicyModel(RandomPolicy(env.observation_space, env.action_space), [env])
-            tb_logger = configure(os.path.join(self.eval_tensorboard_dir, name), ["stdout", "tensorboard"])
-            model.logger = tb_logger
-        # model.policy.action_dist = NormalizedDiagGaussianDistribution(int(np.prod(env.action_space.shape))) # DirichletDistribution(env.action_space.shape[0])
-        return model
+    def _generate_experiment_id(self):
+        """Generate unique experiment ID"""
+        return datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    
+    def _setup_experiment_logging(self, experiment_name: str):
+        """Setup logging for experiment"""
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s [%(levelname)s] %(name)s %(message)s",
+            handlers=[
+                logging.FileHandler(self.dirs['logs'] / f"{experiment_name}.log"),
+                # logging.StreamHandler()
+            ]
+        )
+    
+    def run_experiment(self, config: ExperimentConfig):
+        """Run experiment based on configuration"""
+        # Generate experiment ID and name
+        experiment_id = self._generate_experiment_id()
+        experiment_name = config.experiment_name or f"{config.mode}_{experiment_id}"
+        
+        # Setup logging
+        self._setup_experiment_logging(experiment_name)
+        logger.info(f"Starting experiment: {experiment_name}")
+        
+        # Record experiment start
+        self._record_experiment_start(experiment_id, experiment_name, config)
+        
+        try:
+            # Create environment and model
+            env = self.create_environment(config)
+            model = self.create_model(config, env)
+            # create eval env
+            eval_config = replace(config, mode="eval")
+            eval_config.env_config.env_id = "splunk_eval-v32"
+            eval_config.env_config.end_time = "04/26/2025:23:59:59"
+            self.eval_env = self.create_environment(eval_config)
 
-    def load_model(self, kwargs, name, env, model_name, mode):
-        if mode == 'eval':
-            tb_logger = configure(os.path.join(self.eval_tensorboard_dir, name), ["stdout", "tensorboard"])
-        elif mode == 'retrain':
-            tb_logger = configure(os.path.join(self.retrain_model_tensorboard_dir, name), ["stdout", "tensorboard"])
-        model = model_names[kwargs['model']].load(os.path.join(self.models_dir, model_name), env=env)
-        model.set_logger(tb_logger)
-        return model
-    
-    def custom_evaluate_policy(self, model, env, callbacks, num_episodes=100):
-        model.num_timesteps = 0
-        obs = env.reset()
+            if config.experiment_name != "test_experiment" :
+                # clean and warm up the env
+                clean_env(env.splunk_tools, (env.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
+                env.warmup()
+            else:
+                env.disable_injection()
+                self.eval_env.disable_injection()
+            # Setup callbacks
+            config.experiment_name = experiment_name
+            callbacks = self._setup_callbacks(config)
+            
+            # Run experiment
+            if config.mode == "train":
+                results = self._run_training(model, env, config, callbacks)
+            elif config.mode == "eval":
+                results = self._run_evaluation(model, env, config, callbacks)
+            else:  # retrain
+                results = self._run_retraining(model, env, config, callbacks)
+                
+            # Record success
+            self._record_experiment_end(experiment_id, "completed", results)
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Experiment failed: {str(e)}")
+            self._record_experiment_end(experiment_id, "failed", {"error": str(e)})
+            # Send email notification
+            self.send_email(error_message=str(e))
+            
+            raise
+
+    def _run_training(self, model, env, config, callbacks):
+        """Run training experiment"""
+        # total_timesteps = env.get_attr('total_steps')[0] * config.num_episodes
+        total_timesteps = env.total_steps * config.num_episodes
+        
+        model.learn(
+            total_timesteps=total_timesteps,
+            callback=callbacks,
+            tb_log_name=config.experiment_name
+        )
+        
+        # Save model
+        model_path = self.dirs['models'] / f"{config.experiment_name}.zip"
+        model.save(str(model_path))
+        
+        return {
+            "model_path": str(model_path),
+            "total_timesteps": total_timesteps
+        }
+
+    def _run_evaluation(self, model, env, config, callbacks):
+        """Run evaluation experiment"""
         episode_rewards = []
-        callbacks.init_callback(model)
-        callbacks.on_training_start(globals(), locals())
-        dones = [False]
-        for episode in range(num_episodes):
-            episode_reward = 0
-            done = False
-            while not done:
-                action, _states = model.predict(obs, deterministic=False)
-                obs, reward, done, info = env.step(action)
-                dones[0] = done
-                callbacks.update_locals(locals())
-                episode_reward += reward
-                # callbacks.update_child_locals(locals())
-                callbacks.on_step()
-                model.num_timesteps += 1
-            episode_rewards.append(episode_reward)
+        
+        for episode in range(config.num_episodes):
             obs = env.reset()
-            callbacks.on_rollout_end()
-        callbacks.on_training_end()
-        return episode_rewards
+            done = False
+            episode_reward = 0
+            
+            while not done:
+                action, _ = model.predict(obs, deterministic=True)
+                obs, reward, done, info = env.step(action)
+                episode_reward += reward
+                
+            episode_rewards.append(episode_reward)
+            
+        return {
+            "mean_reward": np.mean(episode_rewards),
+            "std_reward": np.std(episode_rewards),
+            "min_reward": np.min(episode_rewards),
+            "max_reward": np.max(episode_rewards),
+            "episode_rewards": episode_rewards
+        }
+
+    def _load_existing_model(self, config: ExperimentConfig, env: gym.Env):
+        """Load model from path"""
+        model_cls = self._get_model_class(config.model_type)
+        model = model_cls.load(config.model_path, env=env)
+        
+        
+        return model
+        
+        
+    def _run_retraining(self, model, env, config, callbacks):
+        """Run retraining experiment"""
+        total_timesteps = env.total_steps * config.num_episodes
+              
+        # model = self.load_model(config.model_path, env)
+
+         
+        model.learn(
+            total_timesteps=total_timesteps,
+            callback=callbacks,
+            tb_log_name=config.experiment_name
+        )
+        model_path = self.dirs['models'] / f"{config.experiment_name}.zip"
+        model.save(str(model_path))
+        
+        return {
+            "model_path": str(model_path),
+            "total_timesteps": total_timesteps
+        }
     
+    def _record_experiment_start(self, experiment_id: str, name: str, 
+                               config: ExperimentConfig):
+        """Record experiment start in database"""
+        serialized_config = config.__dict__.copy()
+        serialized_config['env_config'] = serialized_config['env_config'].__dict__
+        new_row = {
+            'experiment_id': experiment_id,
+            'name': name,
+            'mode': config.mode,
+            'start_time': datetime.datetime.now().isoformat(),
+            'config': json.dumps(serialized_config),
+            'status': 'running',
+            'metrics': None
+        }
+        
+        self.experiments_db = pd.concat([
+            self.experiments_db,
+            pd.DataFrame([new_row])
+        ], ignore_index=True)
+        
+        self._save_experiments_db()
 
+    def _record_experiment_end(self, experiment_id: str, status: str, 
+                             metrics: Dict[str, Any]):
+        """Record experiment completion in database"""
+        idx = self.experiments_db['experiment_id'] == experiment_id
+        self.experiments_db.loc[idx, 'status'] = status
+        self.experiments_db.loc[idx, 'end_time'] = datetime.datetime.now().isoformat()
+        self.experiments_db.loc[idx, 'metrics'] = json.dumps(metrics)
+        
+        self._save_experiments_db()
 
+    def get_experiment_results(self, experiment_id: str) -> Dict[str, Any]:
+        """Get results for a specific experiment"""
+        experiment = self.experiments_db[
+            self.experiments_db['experiment_id'] == experiment_id
+        ].iloc[0]
+        
+        return {
+            'name': experiment['name'],
+            'mode': experiment['mode'],
+            'start_time': experiment['start_time'],
+            'end_time': experiment['end_time'],
+            'status': experiment['status'],
+            'metrics': json.loads(experiment['metrics']) if experiment['metrics'] else None,
+            'config': json.loads(experiment['config'])
+        }
+    
+    def _setup_callbacks(self, config: ExperimentConfig):
+        """Setup training/evaluation callbacks"""
+    
+        
+        return [
+            CustomTensorboardCallback(),
+            # HParamsCallback(
+            #     experiment_kwargs=config,
+            #     phase=config.get('phase', 'train')
+            # ),
+            CheckpointCallback(save_freq=1000, save_path=self.dirs['models'], name_prefix=config.experiment_name),
+            
+            CustomEvalCallback3(
+                eval_env=self.eval_env,
+
+                n_eval_episodes=3,
+                eval_freq=480,
+                best_model_save_path=self.dirs['models'],
+                log_path=self.dirs['logs'],
+                # eval_log_dir=str(self.dirs['tensorboard']/f"eval_{config.experiment_name}"),
+                deterministic=True,
+                render=False,
+                verbose=1
+            ), 
+            SplunkLincenceCheckCallback()
+            
+        ]
+        
+    def send_email(self, error_message="Experiment has failed", log_file=None):
+        my_email = os.getenv('EMAIL')
+        email_password = os.getenv('EMAIL_PASSWORD')
+        msg = EmailMessage()
+        msg['Subject'] = 'Experiment has failed' 
+        msg['From'] = my_email
+        msg['To'] = my_email
+        msg.set_content
+        msg.set_content(f"The experiment has failed. \n Error message: {error_message}")
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+            smtp.login(my_email, email_password)
+            smtp.send_message(msg)
+
+    
+# Example usage:
+if __name__ == "__main__":
+    # Create experiment config
+    retrain_fake_start_datetime = "08/01/2024:00:00:00"
+    
+    env_config = SplunkConfig(
+        fake_start_datetime=retrain_fake_start_datetime,
+        rule_frequency=60,
+        search_window=2880,
+        # savedsearches=["rule1", "rule2"],
+        logs_per_minute=150,
+        additional_percentage=.5,
+        action_duration=7200,
+        num_of_measurements=1,
+        baseline_num_of_measurements=1,
+        env_id="splunk_train-v32",
+        end_time="12/31/2024:23:59:59"       
+    )
+    experiment_config = ExperimentConfig(
+        env_config=env_config,
+        model_type="ppo",
+        policy_type="MlpPolicy",
+        learning_rate=1e-4,
+        num_episodes=12000,
+        n_steps=512,
+        ent_coef=0.0,
+        gamma=0.99,
+        # experiment_name="test_experiment",
+        use_alert_reward=True,
+        use_energy_reward=True,
+        use_random_agent=False,
+    )
+    
+    #retrain model
+    experiment_config.mode = "train"
+    
+    # model_path = "/home/shouei/GreenSecurity-FirstExperiment/experiments/models/train_20250320100253_42000_steps.zip"
+    # experiment_config.model_path = model_path
+    
+    
+    # Create manager and run experiment
+    manager = ExperimentManager(base_dir="experiments")
+    results = manager.run_experiment(experiment_config)

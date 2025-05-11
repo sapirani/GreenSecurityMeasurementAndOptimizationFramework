@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 import time
-import gym
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
 import logging
 logger = logging.getLogger(__name__)
@@ -508,7 +507,7 @@ class ActionStrategy11(ActionStrategy):
         self.current_step_action = np.zeros(self.action_shape)
         
 import numpy as np
-from gym import spaces
+from gymnasium import spaces
 import logging
 
 

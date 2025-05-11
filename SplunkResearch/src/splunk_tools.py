@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 import json
 import logging
@@ -21,6 +22,8 @@ import requests
 from datetime import datetime
 from datetime import timezone
 from random import randint
+from dataclasses import dataclass, field
+from typing import List, Dict, Tuple, Any, Optional
 
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env')
 # Precompile the regex pattern
@@ -33,6 +36,28 @@ HEADERS = {
 PREFIX_PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/'
 import logging
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ProcessMetrics:
+    cpu_time: float = 0.0
+    read_count: int = 0
+    write_count: int = 0
+    read_bytes: int = 0
+    write_bytes: int = 0
+
+@dataclass
+class QueryMetrics:
+    search_name: str
+    results_count: int
+    execution_time: float
+    cpu: float
+    io_metrics: Dict[str, int]
+    start_time: float = 0.0
+    end_time: float = 0.0
+
+
+
 class SplunkTools(object):
     _instance = None
 
@@ -42,7 +67,7 @@ class SplunkTools(object):
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, active_saved_searches=None, num_of_measurements=1, rule_frequency=1):
+    def __init__(self, active_saved_searches=None, rule_frequency=1):
         if self._initialized:
             return
         
@@ -60,12 +85,11 @@ class SplunkTools(object):
         self.max_workers = 3
         self.total_interval_queue = queue.Queue()
         self.total_cpu_queue = queue.Queue()
-        self.total_cpu = 0
+        self.total_cpu_time = 0
         self.stop_cpu_monitor = threading.Event()
         while True:
             try:
                 self.active_saved_searches = self.get_saved_search_names(active_saved_searches)
-                self.num_of_measurements = num_of_measurements
                 self.real_logtypes_counter = {}
                 self.rule_frequency = rule_frequency
                 self.service = client.connect(
@@ -78,215 +102,297 @@ class SplunkTools(object):
                 break
             except Exception as e:
                 logger.error(f'Failed to connect to Splunk: {str(e)}')
-                time.sleep(5)
+                time.sleep(120)#TODO: change to 5
         self._initialized = True
 
+
+    def check_license_usage(self):
+        """
+        Get the remaining license quota for the Splunk instance.
+        """
+        query = """search index=_internal source=*license_usage.log type=Usage 
+                | eval used_mb = b/1024/1024 
+                | stats sum(used_mb) as used_mb_today by pool 
+                | join type=left pool 
+                    [| rest /services/licenser/pools 
+                    | fields title quota_used quota 
+                    | rename title as pool 
+                    | eval quota_mb = quota/1024/1024 
+                    | eval quota_used_mb = quota_used/1024/1024] 
+                | eval remaining_mb = quota_mb - used_mb_today 
+                | table pool quota_mb used_mb_today remaining_mb"""
+        self.service.jobs.create(query, earliest_time='-1d', latest_time='now')
+        job = self.service.jobs.create(query, earliest_time='-1d', latest_time='now')
+        while True:
+            job.refresh()
+            if job.content['isDone'] == '1':
+                break
+            time.sleep(2)
+        response = job.results(output_mode='json')
+        reader = splunk_results.JSONResultsReader(response)
+        results = []
+        for result in reader:
+            if isinstance(result, dict):
+                results.append(result)
+        if len(results) > 0:
+            results = results[0]
+            return {
+                'pool': results['pool'],
+                'quota_mb': float(results['quota_mb']),
+                'used_mb_today': float(results['used_mb_today']),
+                'remaining_mb': float(results['remaining_mb'])
+            }
+    
     
     def get_num_of_searches(self):
         return len(self.active_saved_searches)
     
-    def monitor_total_cpu(self, interval=0.1):
-        """Monitor total CPU usage of the machine"""
-        # cpu_measurements = []
-        # intervals = [] 
-        total_cpu_time_start = psutil.cpu_times().user# + psutil.cpu_times().system 
-        while not self.stop_cpu_monitor.is_set():
-            # start_time = time.time()
-            # cpu_percent = psutil.cpu_percent(interval=interval)
-            # end_time = time.time()  
-            # self.total_cpu_queue.put(cpu_percent)
-            # self.total_interval_queue.put(end_time - start_time)
-            cpu_time = psutil.cpu_times().user# + psutil.cpu_times().system
-            time.sleep(interval)
-        self.total_cpu = cpu_time - total_cpu_time_start
+    def start_cpu_monitoring(self):
+        """Start CPU monitoring in a separate thread"""
+        self.stop_cpu_monitor.clear()
+        self._cpu_monitor_thread = threading.Thread(target=self.monitor_total_cpu)
+        self._cpu_monitor_thread.start()
 
-    
-    def query_splunk(self, query, earliest_time, latest_time):
+    def stop_cpu_monitoring(self):
+        """Stop CPU monitoring and wait for thread to finish"""
+        if self._cpu_monitor_thread is not None:
+            self.stop_cpu_monitor.set()
+            self._cpu_monitor_thread.join()
+            self._cpu_monitor_thread = None
+
+    async def execute_query(self, search_name: str, query: str, earliest_time: float, latest_time: float) -> QueryMetrics:
         query = f" search {query}"
-        k = self.num_of_measurements
-        results = []
-        execution_times = []
-        cpu_integral = []
-        io_metrics = []
-        interval = 0.1
-        intervals = []
-        
-        for i in range(k):
-            logger.info(f'Measurement {i+1}/{k} - Running query: {query}')
-            job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
-            process_cpu_percents = []
-            io_counters_dict = { "read_count": 0,  "write_count": 0, "read_bytes": 0, "write_bytes": 0}
-            
-            # Wait for job to get PID
-            while True:
-                job.refresh()
-                stats = job.content
-                pid = stats.get('pid', None)
-                if pid is not None or stats['isDone'] == '1':
-                    break
-                time.sleep(0.01)
+        # loop = asyncio.get_event_loop()
 
+        job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
+        io_counters_dict = { "read_count": 0,  "write_count": 0, "read_bytes": 0, "write_bytes": 0}
+        
+        # Wait for job to get PID
+        while True:
+            job.refresh()  # Make job.refresh()() non-blocking
+            stats = job.content
+            pid = stats.get('pid', None)
             if pid is not None:
-                try:
-                    process = psutil.Process(int(pid))
-                    process_start_time = time.time()
-                    # previous_time = process_start_time
-                    process_start_cpu_time = process.cpu_times().user# + process.cpu_times().system
-                    while True:
-                        try:
-                            process_end_cpu_time = process.cpu_times().user# + process.cpu_times().system
-                            if not process.is_running():
-                                logger.debug(f"Process {pid} has finished running")
-                                break
-                                
-                            job.refresh()
-                            if job.content['isDone'] == '1':
-                                logger.debug(f"Job is marked as done")
-                                break
-                            # cpu_percent = process.cpu_percent(interval=interval)
-                            # concurrent_time = time.time()
-                            # intervals.append(concurrent_time - previous_time)
-                            # previous_time = concurrent_time
-                            # process_cpu_percents.append(cpu_percent)
-                            
-                            with process.oneshot():
-                                io_counters = process.io_counters()
-                                
-                                # Update IO metrics
-                                for key in io_counters_dict:
-                                    io_counters_dict[key] += getattr(io_counters, key)
-                                
-                            time.sleep(interval)
-                            
-                        except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
-                            # If the process disappeared but the job isn't done, it might have spawned a new process
-                            job.refresh()
-                            if job.content['isDone'] == '0':
-                                logger.debug(e)
-                                logger.debug(f"Process {pid} disappeared but job isn't done. Waiting for job completion.")
-                                time.sleep(interval)
-                                continue
-                            else:
-                                logger.debug(f"Process {pid} no longer exists but job is done")
-                                break
-                            
-                        # Add timeout protection
-                        if time.time() - process_start_time > 300:  # 5 minute timeout
-                            logger.warning(f"Process monitoring timed out after 5 minutes for pid {pid}")
+                break
+            if stats['isDone'] == '1':
+                job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
+            await asyncio.sleep(0.01)  # Use asyncio.sleep instead of time.sleep
+
+        process_end_cpu_time = 0
+        process_start_cpu_time = 0
+        logger.info(f"Monitoring process {pid}")
+        if pid is not None:
+            try:
+                process = psutil.Process(int(pid))
+                process_start_time = time.time()
+                # Get initial CPU times in a non-blocking way
+                process_start_cpu_time =  process.cpu_times().user
+                # process_start_cpu_time = await loop.run_in_executor(
+                #     None, lambda: process.cpu_times().user  # + process.cpu_times().system
+                # )
+                
+                while True:
+                    try:
+                        # Get CPU times non-blockingly
+                        process_end_cpu_time =  process.cpu_times().user
+                        # Check if process is running in a non-blocking way
+                        is_running = process.is_running
+                        if not is_running:
+                            logger.debug(f"Process {pid} has finished running")
                             break
                             
-                except psutil.NoSuchProcess:
-                    logger.debug(f"Initial process {pid} not found")
-                except Exception as e:
-                    logger.error(f"Unexpected error monitoring process {pid}: {e}")
-                finally:
-                    # Ensure we get the final job status
-                    try:
+                        # Refresh job status non-blockingly
                         job.refresh()
-                    except Exception as e:
-                        logger.error(f"Error refreshing job status: {e}")
-            process_cpu_time = process_end_cpu_time - process_start_cpu_time
-            job.refresh()
-            stats = job.content
-            run_duration = stats.get('runDuration', 0)
-            
-            # Calculate CPU integral
-            # cpu_auc = np.trapz(np.array(process_cpu_percents)/100, intervals)
-            cpu_integral.append(process_cpu_time)
-            io_metrics.append(io_counters_dict)
-            
-            # Get results
-            response = job.results(output_mode='json')
-            results = [result for result in splunk_results.JSONResultsReader(response) if isinstance(result, dict)]
-            logger.info(f"Measurement {i+1}/{k} - Query results: {results}")
-            execution_times.append(float(run_duration))
+                        if job.content['isDone'] == '1':
+                            logger.debug(f"Job is marked as done")
+                            break
 
-        return results, execution_times, cpu_integral, io_metrics
+                        # Get IO counters non-blockingly
+                        try:
+                            # Run the oneshot operation in a thread
+                            def get_io_counters():
+                                with process.oneshot():
+                                    return process.io_counters()
+                                    
+                            io_counters = get_io_counters()
+                            
+                            # Update IO metrics
+                            for key in io_counters_dict:
+                                io_counters_dict[key] += getattr(io_counters, key)
+                                
+                        except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+                            logger.debug(f"Error getting IO counters: {e}")
+                        
+                        await asyncio.sleep(0.1)  # Non-blocking sleep
+                        
+                    except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+                        # If the process disappeared but the job isn't done, it might have spawned a new process
+                        job.refresh()
+                        if job.content['isDone'] == '0':
+                            logger.error(e)
+                            logger.error(f"Process {pid} disappeared but job isn't done. Waiting for job completion.")
+                            await asyncio.sleep(0.1)
+                            continue
+                        else:
+                            logger.debug(f"Process {pid} no longer exists but job is done")
+                            break
+                        
+                    # Add timeout protection
+                    if time.time() - process_start_time > 600:  # 5 minute timeout
+                        logger.warning(f"Process monitoring timed out after 10 minutes for pid {pid}")
+                        job.cancel()
+                        break
+                        
+            except psutil.NoSuchProcess:
+                logger.debug(f"Initial process {pid} not found")
+            except Exception as e:
+                logger.error(f"Unexpected error monitoring process {pid}: {e}")
+            finally:
+                # Ensure we get the final job status
+                try:
+                    job.refresh()
+                except Exception as e:
+                    logger.error(f"Error refreshing job status: {e}")
+        
+        # Get final CPU time
+        process_cpu_time = process_end_cpu_time - process_start_cpu_time
+        
+        # Get final job status
+        job.refresh()
+        stats = job.content
+        run_duration = float(stats.get('runDuration', 0))
+        
+        # Get results 
+        response = job.results(output_mode='json')
+        
+        # Parse results non-blockingly
 
-    def run_saved_search_parallel(self, saved_search, time_range):
-        search_name = saved_search['title']
-        query = saved_search['search']
+        results =  [result for result in splunk_results.JSONResultsReader(response) if isinstance(result, dict)]
+        
+        # Get results count
+        results_count = len(results)
+        
+        metric = QueryMetrics(
+            search_name=search_name,
+            results_count=results_count,
+            execution_time=run_duration,
+            cpu=process_cpu_time,
+            io_metrics=io_counters_dict
+        )
+        
+        return metric, results
+    
+    def mock_run_saved_searches(self, time_range: Tuple[str, str]) -> List[QueryMetrics]:
+        """
+        Mock function to simulate running multiple saved searches and collecting metrics.
+        This is a placeholder and should be replaced with actual implementation.
+        """
+        metrics = []
+        for saved_search in self.active_saved_searches:
+            metric = self.mock_run_saved_search(saved_search, time_range)
+            metrics.append(metric)
+        return metrics
+    
+    def mock_run_saved_search(self, saved_search: str, time_range: Tuple[str, str]) -> QueryMetrics:
+        """
+        Mock function to simulate running a saved search and collecting metrics.
+        This is a placeholder and should be replaced with actual implementation.
+        """
+        search_name = saved_search
+        query = self.active_saved_searches[saved_search]['search']
+        
+        # Simulate CPU usage and IO metrics
+        cpu_time = 0
+        io_metrics = {
+            "read_count": 0,
+            "write_count": 0,
+            "read_bytes": 0,
+            "write_bytes": 0
+        }
+        
+        return QueryMetrics(
+            search_name=search_name,
+            results_count=0,
+            execution_time=0,
+            cpu=cpu_time,
+            io_metrics=io_metrics,
+            start_time=time_range[0],
+            end_time=time_range[1]
+        )
+
+    async def run_saved_search(self, saved_search:  str, time_range: Tuple[str, str]) -> QueryMetrics:
+        """Run a saved search and collect metrics"""
+        search_name = saved_search
+        query = self.active_saved_searches[saved_search]['search']
+        
+        # Parse time range
         earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
         latest_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').timestamp()
         
-        # Modify query with time range
-        query = query.split('|')
-        query[0] = f'{query[0]} earliest={earliest_time} latest={latest_time}'
-        query = '|'.join(query)
+        # # Modify query with time range
+        # query_parts = query.split('|')
+        # query_parts[0] = f'{query_parts[0]} earliest={earliest_time} latest={latest_time}'
+        # query = '|'.join(query_parts)
         
-        logger.info(f'Running saved search {search_name} with query: {query}')
-        results, execution_times, cpu_integral, io_metrics = self.query_splunk(query, earliest_time, latest_time)
-        return self.query_metrics_combiner(results, execution_times, cpu_integral, io_metrics)
+        logger.info(f'Running saved search {search_name}')
+        return await self.execute_query(search_name, query, earliest_time, latest_time)
 
-    def run_saved_searches_parallel(self, time_range):
-        self.stop_cpu_monitor = threading.Event()
-        saved_searches = self.active_saved_searches
-        results = {
-            'mean_execution_times': [], 'std_execution_times': [], 
-            'results_list': [], 'cpu': [], 'std_cpu': [],
-            'read_chars': [], 'write_chars': [], 'read_count': [],
-            'write_count': [], 'read_bytes': [], 'write_bytes': [],
-            'saved_searches_titles': [], 'total_cpu_usage': []
-        }
 
-        # Start CPU monitoring in a separate thread
-        cpu_monitor_thread = threading.Thread(target=self.monitor_total_cpu)
-        cpu_monitor_thread.start()
-
+    async def run_saved_searches(
+        self, 
+        time_range: Tuple[str, str], 
+        running_plan: Dict[str, int]=None,
+        num_measurements: int = 1        
+    ) -> Tuple[List[QueryMetrics], float]:
+        """
+        Run multiple saved searches in parallel with multiple measurements each.
+        Returns a tuple of (list of metrics, total CPU time).
+        """
+        # Start CPU monitoring
+        self.start_cpu_monitoring()
+        
         try:
-            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-                # Change this part: submit all tasks and keep futures in order
-                futures = []
-                for search in saved_searches:
-                    future = executor.submit(self.run_saved_search_parallel, search, time_range)
-                    futures.append((future, search['title']))
+            all_tasks = []
+            if running_plan is None:
+                running_plan = {search: num_measurements for search in self.active_saved_searches}
+            for search_name, num_measurements in running_plan.items():
+                for i in range(num_measurements):
+                    # Create a task for each measurement
+                    task = asyncio.create_task(self.run_saved_search(
+                        search_name, time_range))
+                    all_tasks.append(task)
                 
-                # Process results in order
-                for future, search_title in futures:
-                    try:
-                        (results_len, mean_exec_time, std_exec_time, 
-                        mean_cpu_integral, std_cpu_integrals, 
-                        sum_read_count, sum_write_count, 
-                        sum_read_bytes, sum_write_bytes) = future.result()
-
-                        # Store results (unchanged)
-                        results['mean_execution_times'].append(mean_exec_time)
-                        results['std_execution_times'].append(std_exec_time)
-                        results['results_list'].append(results_len)
-                        results['cpu'].append(mean_cpu_integral)
-                        results['std_cpu'].append(std_cpu_integrals)
-                        results['read_count'].append(sum_read_count)
-                        results['write_count'].append(sum_write_count)
-                        results['read_bytes'].append(sum_read_bytes)
-                        results['write_bytes'].append(sum_write_bytes)
-                        results['saved_searches_titles'].append(search_title)
-
-                    except Exception as e:
-                        logger.error(f"Search {search_title} generated an exception: {e}")
-
+            # Run all tasks concurrently
+            results = await asyncio.gather(*all_tasks)
+            
+            # Filter out any failed measurements
+            valid_results = [m for m, r in results if isinstance(m, QueryMetrics)]
+            for result in valid_results:
+                result.start_time = time_range[0]
+                result.end_time = time_range[1]
+            
+            if len(valid_results) < len(results):
+                logger.warning(f"Some measurements failed: {len(results) - len(valid_results)} failures")
+                
+            return valid_results, self.total_cpu_time
+            
         finally:
-            # Stop CPU monitoring and get measurements (unchanged)
-            self.stop_cpu_monitor.set()
-            cpu_monitor_thread.join()
-            results['total_cpu_usage'] = [self.total_cpu]
+            # Stop CPU monitoring
+            self.stop_cpu_monitoring()
 
-        return (results['results_list'], results['mean_execution_times'], 
-                results['std_execution_times'], results['saved_searches_titles'],
-                results['cpu'], results['std_cpu'], results['read_count'], results['write_count'],
-                results['read_bytes'], results['write_bytes'], results['total_cpu_usage'])
-    def query_metrics_combiner(self, results, execution_times, cpu_integral, io_metrics):
-        mean_execution_time = np.mean(execution_times)
-        std_execution_time = np.std(execution_times)
-        mean_cpu_integral = np.mean(cpu_integral)
-        std_cpu_integral = np.std(cpu_integral)
-        sum_read_count = sum([io['read_count'] for io in io_metrics])
-        sum_write_count = sum([io['write_count'] for io in io_metrics])
-        sum_read_bytes = sum([io['read_bytes'] for io in io_metrics])
-        sum_write_bytes = sum([io['write_bytes'] for io in io_metrics])
-        return (len(results), mean_execution_time, std_execution_time, 
-                mean_cpu_integral, std_cpu_integral, sum_read_count, sum_write_count, 
-                sum_read_bytes, sum_write_bytes)       
-           
+    def monitor_total_cpu(self):
+        """Monitor total CPU usage across all Splunk processes"""
+        start_time = time.time()
+        start_cpu = psutil.cpu_times().user
+
+        while not self.stop_cpu_monitor.is_set():
+            time.sleep(0.1)
+
+        self.total_cpu_time = psutil.cpu_times().user - start_cpu
+        
+        
+        
+        
     def make_splunk_request(self, endpoint, method='get', params=None, data=None, headers=None):  
         url = f"{self.base_url}{endpoint}"  
         try:  
@@ -324,8 +430,8 @@ class SplunkTools(object):
             # Parse each line as JSON
             results = [json.loads(obj)['result'] for obj in json_objects]
         if get_only_enabled:
-            results = [result for result in results if result['title'] in active_saved_searches]
-        return sorted(results, key=lambda x: x['title'])
+            results = {result['title']: result for result in results if result['title'] in active_saved_searches}
+        return results
     
     def _send_post_request(self, url, data):
         response = requests.post(url, headers=HEADERS, data=data, auth=self.auth, verify=False)
@@ -362,7 +468,7 @@ class SplunkTools(object):
     def update_all_searches(self, update_func, update_arg):
         searches_names = self.active_saved_searches
         with Pool() as pool:
-            pool.starmap(update_func, [(search_name['title'], update_arg) for search_name in searches_names])
+            pool.starmap(update_func, [(search_name, update_arg) for search_name in searches_names])
             
     def load_real_logs_distribution_bucket(self, start_time, end_time):
         """
@@ -396,11 +502,12 @@ class SplunkTools(object):
                     df = df.dropna(subset=['_time'])
                     
                     # Filter data for current time slice
-                    mask = (df['_time'] >= current_ts)
-                    if current_ts + (end_date_time_file - start_date_time_file) > ts_end_time:
-                        mask &= (df['_time'] <= ts_end_time)
+                    # mask = (df['_time'] >= current_ts)
+                    # if current_ts + (end_date_time_file - start_date_time_file) > ts_end_time:
+                        # mask &= (df['_time'] <= ts_end_time)
                     
-                    all_data.append(df[mask])
+                    all_data.append(df)
+                    # all_data.append(df[mask])
                     current_ts = end_date_time_file
                     bucket_found = True
                     break
@@ -502,10 +609,11 @@ class SplunkTools(object):
         relevant_logs['_time'].max() < end_time:
             logger.info('Loading missing distribution data from disk.')
             self.load_real_logs_distribution_bucket(start_time, end_time)
-            relevant_logs = self.real_logs_distribution[
+            relevant_logs = pd.concat((relevant_logs, self.real_logs_distribution[
                 (self.real_logs_distribution['_time'] >= pd.Timestamp(start_time, unit='s')) & 
                 (self.real_logs_distribution['_time'] <= pd.Timestamp(end_time, unit='s'))
-            ]
+            ]))
+        relevant_logs.loc[:, 'count'] = relevant_logs['count'].astype(int)
         
         return relevant_logs       
               
@@ -529,7 +637,6 @@ class SplunkTools(object):
         
         # Group by source and EventCode, summing the counts
         relevant_logs = relevant_logs.groupby(['source', 'EventCode']).agg({'count': 'sum'}).reset_index()
-        
         # Create dictionary of log types and counts
         res_dict = {
             (row['source'].lower(), str(row['EventCode'])): row['count'] 
@@ -545,6 +652,7 @@ class SplunkTools(object):
         #         self.real_logtypes_counter[logtype] = res_dict[logtype]
         
         return res_dict
+
     
     def get_search_details(self, search,  is_measure_energy=False):
         search_id = search['search_id'].strip('\'')
@@ -621,19 +729,26 @@ class SplunkTools(object):
         return results
     
     def delete_fake_logs(self, time_range=None):
-        url = f"{self.base_url}/services/search/jobs/export"
+        # Use RFC3339 format for Splunk query
         if time_range is None:
-            time_expression = 'earliest=0'
-        else:
-            time_expression = f'earliest="{time_range[0]}" latest="{time_range[1]}"'
-        data = {
-            "search": f'search index=main sourcetype IN ("xmlwineventlog", "wineventlog") host="dt-splunk" {time_expression} | delete',
-           
-            "output_mode": "json"
-        }
-        response = requests.post(url, headers=HEADERS, data=data, auth=self.auth, verify=False)
-        results = response.text
-        logger.info(time_range)
+            time_range = ("0", datetime.now())
+        start_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+        end_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+        job = self.service.jobs.create(
+            f'search index=main host="dt-splunk" | delete', 
+            earliest_time=start_time, 
+            latest_time=end_time,
+            time_format='%Y-%m-%d %H:%M:%S',
+            count=0
+        )
+        while True:
+            job.refresh()
+            if job.content['isDone'] == '1':
+                break
+            time.sleep(2)
+        
+        # Get the results properly
+        results = job.results(output_mode='json')
         logger.info(results)
 
     def save_logs(self, log_source, eventcode, logs):
@@ -650,7 +765,7 @@ class SplunkTools(object):
     def load_logs_to_duplicate_dict(self, logtypes):
         dir_name = 'logs_resource'
         # load the logs to duplicate from disk
-        logs_to_duplicate_dict = {(logtype[0].lower(), logtype[1], istrigger): [] for istrigger,_ in enumerate(['notrigger', 'trigger']) for logtype in logtypes}
+        logs_to_duplicate_dict = {f"{logtype[0].lower()}_{logtype[1]}_{istrigger}": [] for istrigger,_ in enumerate(['notrigger', 'trigger']) for logtype in logtypes}
         for logtype in logtypes:
             source = logtype[0].lower()
             eventcode = logtype[1]
@@ -664,7 +779,7 @@ class SplunkTools(object):
                     # results = self.split_logs(source, text)   
                     for log in results:
                          if log != '':
-                             logs_to_duplicate_dict[(source, eventcode, istrigger)].append(log)
+                             logs_to_duplicate_dict[f"{logtype[0].lower()}_{logtype[1]}_{istrigger}"].append(log)
         return logs_to_duplicate_dict   
      
                 
@@ -687,132 +802,3 @@ class SplunkTools(object):
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-    # def extract_distribution(self, start_time, end_time):
-    #     command = f'/opt/splunk/bin/splunk search "index=main (earliest="{start_time}" latest="{end_time}") | eval is_fake=if(isnotnull(is_fake), is_fake, 0)|stats count by source EventCode is_fake| eventstats sum(count) as totalCount" -maxout 0 -auth shouei:'
-    #     cmd = subprocess.run(command, shell=True, capture_output=True, text=True)
-    #     res_dict = {}
-    #     if len(cmd.stdout.split('\n')) > 2:
-    #         for row in cmd.stdout.split('\n')[2:-1]:
-    #             row = row.split()
-    #             source = row[0]
-    #             event_code = row[1]
-    #             is_fake = row[2]
-    #             count = row[3]
-    #             total_count = row[4]
-    #             res_dict[f"{source.lower()} {event_code} {int(is_fake)}"] = int(count)
-    #         res_dict['total_count'] = int(total_count)
-    #     return res_dict          
-    # def extract_logs(self, log_source, time_range=("-24h@h", "now"), eventcode='*', limit=0):
-    #     if  os.path.exists(f'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/logs_to_duplicate_files/{log_source.replace("/", "__")}_{eventcode}.txt'):
-    #         return None        
-    #     # Define your SPL query
-    #     spl_query = f'search index=main source="{log_source}" EventCode={eventcode} earliest="{time_range[0]}" latest="{time_range[1]}"'
-    #     if limit > 0:
-    #         spl_query += f' | head {limit}'
-    #     # Define the REST API endpoint
-    #     url = f"{self.base_url}/services/search/jobs/export"
-    #     data = {'output_mode': 'json', 'search': spl_query}
-    #     headers = {
-    #         "Content-Type": "application/json",
-    #     }
-    #     response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
-        
-    #     if response.status_code != 200:
-    #         logger.info(f'Error: {response}')
-    #         return None
-    #     json_objects = response.text.splitlines()
-    #     if 'result' not in json_objects[0]:
-    #         results = []
-    #     else:
-    #         # Parse each line as JSON
-    #         results = [json.loads(obj)['result']['_raw'] for obj in json_objects]
-    #     self.save_logs(log_source, eventcode, results)
-    #     return results
-    
-    
-    # def sample_log(self, logs, action_value):
-    #     if len(logs) > 0:
-    #         logs = random.sample(logs, min(len(logs), action_value))
-    #         return logs
-    #     else:
-    #         # logger.info('No results found or results is not a list.')
-    #         return None  
-
-
-    # async def insert_logs(self, logs, log_source, eventcode, istrigger):
-    #     if len(logs) == 0:
-    #         return
-    #     # select randomly one of the tokens
-    #     hec_tokens = [self.hec_token1, self.hec_token2]
-    #     tasks = []
-    #     for i, token in enumerate(hec_tokens):
-    #         start = i * len(logs) // 2
-    #         end = (i + 1) * len(logs) // 2
-    #         if len(logs) == 1 and i == 0:
-    #             continue                
-    #         task = asyncio.create_task(self._send_logs(logs[start:end], log_source, eventcode, istrigger, token))
-    #         tasks.append(task)
-    #     await asyncio.gather(*tasks)
-       
-   
-    # async def _send_logs(self, logs, log_source, eventcode, istrigger, hec_token):
-    #     headers = {
-    #         "Authorization": f"Splunk {hec_token}",
-    #         "Content-Type": "application/x-www-form-urlencoded",
-    #     }
-    #     url = f"http://{self.splunk_host}:8088/services/collector/event"
-    #     events = []
-    #     for i, (log, time) in enumerate(logs):
-    #         events.append(json.dumps({'event': log, 'source': log_source, 'sourcetype': log_source.split(':')[0], 'time': time}))
-    #     async with httpx.AsyncClient() as client:
-    #         response = await client.post(url, headers=headers, data="\n".join(events))
-    #     if response.status_code == 200:
-    #         logger.info(f'Logs successfully sent to Splunk. {len(logs)} logs of source {log_source}_{eventcode}_{istrigger} were sent.')
-    #     else:
-    #         logger.info('Failed to send log entry to Splunk.')
-    #         logger.info(response.text)
-    #         logger.info("\n".join(events))    
-            
-# if __name__ == "__main__":
-   # test run saved searches for 01/05/2023
-    # splunk_tools = SplunkTools()
-    # splunk_tools.run_saved_searches(['05/01/2023:09:00:00', '05/01/2023:12:10:00'])
-    # test get rules pids
-    # pids = splunk_tools.get_rules_pids(['01/01/2022:00:00:00', '01/01/2022:00:10:00'], 10)
-    # print(pids)
-    # test get alert count
-    # alert_count = splunk_tools.get_alert_count(['scheduler__admin__search__RMD5d3d4f6f9d2d3c3c_at_1640990400_108'])
-    # print(alert_count)
-    # test delete fake logs
-    # splunk_tools.delete_fake_logs()
-    # test save logs
-    # splunk_tools.save_logs('WinEventLog:Security', 4624, ['log1', 'log2'])
-    # test load logs to duplicate dict
-    # logtypes = [('WinEventLog:Security', 4624), ('WinEventLog:Security', 4625)]
-    # logs_to_duplicate_dict = splunk_tools.load_logs_to_duplicate_dict(logtypes)
-    # print(logs_to_duplicate_dict)
-    # test get real distribution
-    # real_distribution = splunk_tools.get_real_distribution('01/01/2022:00:00:00', '01/01/2022:00:10:00')
-    # print(real_distribution)
-    # test get saved search names
-    # saved_searches = splunk_tools.get_saved_search_names()
-    # print(saved_searches)
-    # test run saved search
-    # splunk_tools.run_saved_search(saved_searches[0], ['01/01/2022:00:00:00', '01/01/2022:00:10:00'])
-    # test enable search
-    # splunk_tools.enable_search(saved_searches[0]['title'])
-    # test disable search
-    # splunk_tools.disable_search(saved_searches[0]['title'])
-    # test update search cron expression
-    # splunk_tools.update_search_cron_expression(saved_searches[0]['title'], '*/5 * * * *')
-    # test update search time range
-    # splunk_tools.update_search_time_range(saved_searches[0

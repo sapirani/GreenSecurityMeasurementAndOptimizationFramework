@@ -1,29 +1,31 @@
-02/03/2022 19:40:12 PM
+04/21/2025 04:47:32 PM
 LogName=Security
+SourceName=Microsoft Windows security auditing.
 EventCode=5140
-TaskCategory=Sharing File System (12808)
-Level=Information
-Keywords=0x80208000000000
-User=ATTACKRANGE\Administrator
-Computer=ar-win-2.attackrange.local
+EventType=0
+Type=Information
+ComputerName=AdminServer-03.local.net
+TaskCategory=File Share
+OpCode=Info
+RecordNumber=84522
+Keywords=Audit Success
 Message=A network share object was accessed.
 
 Subject:
-    SecurityID:        ATTACKRANGE\Administrator
-    AccountName:       Administrator  
-    AccountDomain:     ATTACKRANGE
-    LogonID:           0x5e340a
+  Security ID:		CONTOSO\dadmin
+  Account Name:		dadmin
+  Account Domain:		CONTOSO
+  Logon ID:		0x2F1C5D9
 
 Network Information:
-    ObjectType:        File
-    SourceAddress:     10.0.1.14
-    SourcePort:        57804
+  Object Type: File
+  Source Address:	192.168.200.45
+  Source Port:		49832
 
 Share Information:
-    ShareName:         \\MININT-LDTUS6A\ADMIN$  
-    ShareLocalPath:   \??\C:\Windows
+  Share Name:		\\*\C$
+  Share Path:		\\AdminServer-03\C$
 
 Access Request Information:
-    AccessMask:        0x1
-    AccessList:        %%4416
-[EOF]
+  Access Mask:		0x1
+  Accesses:		ReadData (or ListDirectory)

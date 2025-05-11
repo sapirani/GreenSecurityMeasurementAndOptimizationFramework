@@ -1,0 +1,13 @@
+03/27/2025 07:00:52 AM
+LogName=System
+EventCode=27
+EventType=3
+ComputerName=LB-101-3.auth.ad.bgu.ac.il
+SourceName=e1dexpress
+Type=Warning
+RecordNumber=80990
+Keywords=Classic
+TaskCategory=None
+OpCode=None
+Message=Intel(R) Ethernet Connection (17) I219-LM
+ Network link is disconnected.

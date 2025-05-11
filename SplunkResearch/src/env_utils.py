@@ -1,9 +1,11 @@
+import datetime
 import logging
 import subprocess
 import json
 import numpy as np
 logger = logging.getLogger(__name__)
-
+SYSTEM_MONITOR_FILE_PATH = r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:system.txt"
+SECURITY_MONITOR_FILE_PATH = r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:security.txt"
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.integer):
@@ -47,12 +49,20 @@ def clean_env(splunk_tools_instance, time_range=None):
     if time_range is None:
         time_range = ("04/29/2023:00:00:00","05/30/2023:00:00:00")
         splunk_tools_instance.delete_fake_logs(time_range)
-        empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:security.txt")
-        empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:system.txt")
+        empty_monitored_files(SYSTEM_MONITOR_FILE_PATH)
+        empty_monitored_files(SECURITY_MONITOR_FILE_PATH)
         return time_range
     # date = time_range[1].split(':')[0]
     # time_range = (f'{date}:00:00:00', f'{date}:23:59:59')
+    # add small mergine to the time range
+    start_time = datetime.datetime.strptime(time_range[0], "%m/%d/%Y:%H:%M:%S")
+    end_time = datetime.datetime.strptime(time_range[1], "%m/%d/%Y:%H:%M:%S")
+    start_time = start_time - datetime.timedelta(minutes=5)
+    end_time = end_time + datetime.timedelta(minutes=5)
+    time_range = (start_time.strftime("%m/%d/%Y:%H:%M:%S"), end_time.strftime("%m/%d/%Y:%H:%M:%S"))
+    logger.info(f'update time range to {time_range}')
+    empty_monitored_files(SYSTEM_MONITOR_FILE_PATH)
+    empty_monitored_files(SECURITY_MONITOR_FILE_PATH)
     splunk_tools_instance.delete_fake_logs(time_range)
-    empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:security.txt")
-    empty_monitored_files(r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:system.txt")
+
     return time_range

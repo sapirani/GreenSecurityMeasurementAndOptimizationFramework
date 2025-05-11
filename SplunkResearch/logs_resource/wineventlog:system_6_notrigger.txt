@@ -1,0 +1,15 @@
+03/27/2025 12:01:25 AM
+LogName=System
+EventCode=6
+EventType=4
+ComputerName=LB-101-12.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-18
+SidType=0
+SourceName=Microsoft-Windows-FilterManager
+Type=Information
+RecordNumber=66171
+Keywords=None
+TaskCategory=None
+OpCode=Info
+Message=File System Filter 'bindflt' (10.0, ‎1991‎-‎09‎-‎23T20:59:56.000000000Z) has successfully loaded and registered with Filter Manager.

@@ -1,0 +1,30 @@
+04/21/2025 11:01:00 AM
+LogName=Security
+SourceName=Microsoft Windows security auditing.
+EventCode=4662
+EventType=0
+Type=Information
+ComputerName=DC01.secure.corp
+TaskCategory=Directory Service Access
+OpCode=Info
+RecordNumber=50002
+Keywords=Audit Success
+Message=An operation was performed on an object.
+
+Subject:
+  Security ID:		S-1-5-18
+  Account Name:		$
+  Account Domain:		Window Manager
+  Logon ID:		0x3F2B4A6C
+
+Object:
+  Object Server:	DS
+  Object Type:		domainDNS
+  Object Name:		CN=Configuration,DC=secure,DC=corp
+  Handle ID:		0x0
+
+Operation:
+  Operation Type:	Object Access
+  Accesses:		Replicating Directory Changes All
+  Access Mask:		0x100
+  Properties:		1131f6ac-9c07-11d1-f79f-00c04fc2dcd2

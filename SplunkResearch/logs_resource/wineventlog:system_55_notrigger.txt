@@ -1,0 +1,23 @@
+03/27/2025 12:01:22 AM
+LogName=System
+EventCode=55
+EventType=4
+ComputerName=LB-101-12.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-18
+SidType=0
+SourceName=Microsoft-Windows-Kernel-Processor-Power
+Type=Information
+RecordNumber=66150
+Keywords=None
+TaskCategory=47
+OpCode=Info
+Message=Processor 11 in group 0 exposes the following power management capabilities:
+
+Idle state type: ACPI Idle (C) States (3 state(s))
+
+Performance state type: ACPI Collaborative Processor Performance Control
+Nominal Frequency (MHz): 3000
+Maximum performance percentage: 155
+Minimum performance percentage: 42
+Minimum throttle percentage: 2

@@ -1,0 +1,15 @@
+03/27/2025 09:28:05 AM
+LogName=System
+EventCode=103
+EventType=2
+ComputerName=LB-003-26.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-18
+SidType=0
+SourceName=Application Management Group Policy
+Type=Error
+RecordNumber=101674
+Keywords=Classic
+TaskCategory=None
+OpCode=Info
+Message=The removal of the assignment of application Trellix Agent from policy EPOAgent-5.7.9 failed.  The error was : %%2

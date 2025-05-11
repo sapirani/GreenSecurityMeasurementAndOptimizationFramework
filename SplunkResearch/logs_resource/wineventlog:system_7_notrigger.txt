@@ -1,0 +1,15 @@
+03/26/2025 10:08:44 PM
+LogName=System
+EventCode=7
+EventType=4
+ComputerName=Cyb301-6.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-18
+SidType=0
+SourceName=Microsoft-Windows-Hyper-V-VmSwitch
+Type=Information
+RecordNumber=321238
+Keywords=None
+TaskCategory=1004
+OpCode=Info
+Message=Miniport NIC 05536E5F-3C72-4336-8EAA-D1B7F918FB00 (Friendly Name: Default Switch) successfully initialized.

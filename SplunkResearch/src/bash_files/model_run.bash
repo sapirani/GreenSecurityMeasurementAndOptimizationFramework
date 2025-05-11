@@ -67,7 +67,7 @@ configure_experiment() {
         ["action_strategy_version"]=$action_strategy_version
         ["rule_frequency"]=$rule_frequency
         ["logs_per_minute"]=150
-        ["num_of_measurements"]=1
+        ["num_of_measurements"]=5
         ['experiment_name']=$experiment_name
         ['fake_start_datetime']=$fake_start_datetime
         ['n_steps']=$n_steps

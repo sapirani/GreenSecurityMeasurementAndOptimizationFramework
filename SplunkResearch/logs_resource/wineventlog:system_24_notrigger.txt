@@ -1,0 +1,15 @@
+03/27/2025 12:31:41 AM
+LogName=System
+EventCode=24
+EventType=4
+ComputerName=LB-101-12.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-19
+SidType=0
+SourceName=Microsoft-Windows-Kernel-General
+Type=Information
+RecordNumber=66210
+Keywords=Time
+TaskCategory=11
+OpCode=Info
+Message=The time zone information was refreshed with exit reason 0. Current time zone bias is -120.

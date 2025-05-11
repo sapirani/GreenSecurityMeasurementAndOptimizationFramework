@@ -1,0 +1,38 @@
+03/27/2025 09:28:05 AM
+LogName=Security
+EventCode=4648
+EventType=0
+ComputerName=LB-003-26.auth.ad.bgu.ac.il
+SourceName=Microsoft Windows security auditing.
+Type=Information
+RecordNumber=4131263
+Keywords=Audit Success
+TaskCategory=Logon
+OpCode=Info
+Message=A logon was attempted using explicit credentials.
+
+Subject:
+	Security ID:		NT AUTHORITY\SYSTEM
+	Account Name:		LB-003-26$
+	Account Domain:		BGU-USERS
+	Logon ID:		0x3E7
+	Logon GUID:		{00000000-0000-0000-0000-000000000000}
+
+Account Whose Credentials Were Used:
+	Account Name:		LB-003-26$
+	Account Domain:		AUTH.AD.BGU.AC.IL
+	Logon GUID:		{388bd472-acbe-2217-6928-5075e7a9f8ef}
+
+Target Server:
+	Target Server Name:	lb-003-26$
+	Additional Information:	lb-003-26$
+
+Process Information:
+	Process ID:		0x21fc
+	Process Name:		C:\Windows\System32\taskhostw.exe
+
+Network Information:
+	Network Address:	-
+	Port:			-
+
+This event is generated when a process attempts to log on an account by explicitly specifying that account’s credentials.  This most commonly occurs in batch-type configurations such as scheduled tasks, or when using the RUNAS command.

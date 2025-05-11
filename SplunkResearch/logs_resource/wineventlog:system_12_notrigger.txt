@@ -1,0 +1,15 @@
+03/27/2025 08:05:05 AM
+LogName=System
+EventCode=12
+EventType=4
+ComputerName=LB-101-14.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-18
+SidType=0
+SourceName=Microsoft-Windows-UserModePowerService
+Type=Information
+RecordNumber=72615
+Keywords=None
+TaskCategory=10
+OpCode=Info
+Message=Process C:\Windows\SysWOW64\powercfg.exe (process ID:14208) reset policy scheme from {381b4222-f694-41f0-9685-ff5bb260df2e} to {381b4222-f694-41f0-9685-ff5bb260df2e}

@@ -1,71 +1,53 @@
-01/03/2024 08:47:26 AM
+04/21/2025 10:00:02 AM
 LogName=Security
+SourceName=Microsoft Windows security auditing.
 EventCode=4624
 EventType=0
-ComputerName=LB-107-14.auth.ad.bgu.ac.il
-SourceName=Microsoft Windows security auditing.
 Type=Information
-RecordNumber=119016
-Keywords=Audit Success
+ComputerName=Node-01.labdomain.local
 TaskCategory=Logon
 OpCode=Info
+RecordNumber=20001
+Keywords=Audit Success
 Message=An account was successfully logged on.
 
 Subject:
-	Security ID:		S-1-0-0
-	Account Name:		-
-	Account Domain:		-
-	Logon ID:		0x0
+  Security ID:		S-1-0-0
+  Account Name:		-
+  Account Domain:		-
+  Logon ID:		0x0
 
 Logon Information:
-	Logon Type:		3
-	Restricted Admin Mode:	-
-	Virtual Account:		No
-	Elevated Token:		Yes
+  Logon Type:		10
+  Restricted Admin Mode:	-
+  Virtual Account:		No
+  Elevated Token:		Yes
 
-Impersonation Level:		Impersonation
+Impersonation Level:	Impersonation
 
 New Logon:
-	Security ID:		S-1-5-21-1220750395-818509756-262303683-91927
-	Account Name:		corotech
-	Account Domain:		AUTH.AD.BGU.AC.IL
-	Logon ID:		0x2B871A4
-	Linked Logon ID:		0x0
-	Network Account Name:	-
-	Network Account Domain:	-
-	Logon GUID:		{4b504fc6-179d-5f78-3f6e-b97a5650cc2d}
+  Security ID:		S-1-5-21-1234567890-2345678901-3456789012-1125
+  Account Name:		jcrawford
+  Account Domain:		labdomain
+  Logon ID:		0x1D5F3B7E
+  Linked Logon ID:		0x0
+  Network Account Name:	-
+  Network Account Domain:	-
+
+Logon GUID:		{22222222-3333-4444-5555-666666666666}
 
 Process Information:
-	Process ID:		0x0
-	Process Name:		-
+  Process ID:		0x0
+  Process Name:		-
 
 Network Information:
-	Workstation Name:	-
-	Source Network Address:	132.72.64.111
-	Source Port:		56270
+  Workstation Name:	Node-01
+  Source Network Address:	192.168.1.77
+  Source Port:		55001
 
 Detailed Authentication Information:
-	Logon Process:		Kerberos
-	Authentication Package:	Kerberos
-	Transited Services:	-
-	Package Name (NTLM only):	-
-	Key Length:		0
-
-This event is generated when a logon session is created. It is generated on the computer that was accessed.
-
-The subject fields indicate the account on the local system which requested the logon. This is most commonly a service such as the Server service, or a local process such as Winlogon.exe or Services.exe.
-
-The logon type field indicates the kind of logon that occurred. The most common types are 2 (interactive) and 3 (network).
-
-The New Logon fields indicate the account for whom the new logon was created, i.e. the account that was logged on.
-
-The network fields indicate where a remote logon request originated. Workstation name is not always available and may be left blank in some cases.
-
-The impersonation level field indicates the extent to which a process in the logon session can impersonate.
-
-The authentication information fields provide detailed information about this specific logon request.
-	- Logon GUID is a unique identifier that can be used to correlate this event with a KDC event.
-	- Transited services indicate which intermediate services have participated in this logon request.
-	- Package name indicates which sub-protocol was used among the NTLM protocols.
-	- Key length indicates the length of the generated session key. This will be 0 if no session key was requested.  	
-[EOF]
+  Logon Process:		User32
+  Authentication Package:	Negotiate
+  Transited Services:		-
+  Package Name (NTLM only):	-
+  Key Length:		0

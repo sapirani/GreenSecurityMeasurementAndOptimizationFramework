@@ -1,228 +1,264 @@
 
 import random
-from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
+from typing import Dict, Any
 import numpy as np
-import datetime
-import os
-import inspect
-import numpy as np
-import urllib3
-import json
-import sys
-
-from strategies.action_strategy import ActionStrategy8
-sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
-import logging
-from stable_baselines3.ppo.policies import MlpPolicy
+from collections import defaultdict
 from stable_baselines3.common.evaluation import evaluate_policy
-import gym
-import custom_splunk #dont remove!!!
-from sb3_contrib.ppo_recurrent.policies import MlpLstmPolicy
-from sb3_contrib import RecurrentPPO
-from stable_baselines3 import A2C, PPO, DQN
-import stable_baselines3 as sb3
-urllib3.disable_warnings()
-from stable_baselines3.common.logger import configure
-from env_utils import *
-from measurement import Measurement
-from strategies.reward_strategy import *
 
-import logging
-from stable_baselines3.common.callbacks import BaseCallback, EvalCallback, CallbackList
-from stable_baselines3.common.logger import HParam
-logger = logging.getLogger(__name__)
-
-class SaveModelCallback(BaseCallback):
-    def __init__(self, verbose=1, save_freq=500, save_path=None):
-        super(SaveModelCallback, self).__init__(verbose)
-        self.save_freq = save_freq
-        self.save_path = save_path
-
-    def _on_step(self) -> bool:
-        if self.n_calls % self.save_freq == 0:
-            self.model.save(self.save_path)
-        return True
+class MetricsLoggerCallback:
+    """Base class containing shared logging logic"""
     
-class SaveArtifacts(BaseCallback):
-    def __init__(self, verbose=1, save_freq=500, experiment_menager=None):
-        super(SaveArtifacts, self).__init__(verbose)
-        self.save_freq = save_freq
-        self.experiment_menager = experiment_menager
-
-    def _on_step(self) -> bool:
-        if self.n_calls % self.save_freq == 0:
-            env = self.training_env.envs[0]
-            self.experiment_menager.post_experiment(env, self.model)
-        return True
-
-class ModularTensorboardCallback(BaseCallback):
-    def __init__(self, verbose=1, phase="train", experiment_kwargs=None):
-        super(ModularTensorboardCallback, self).__init__(verbose)
-        self.phase = phase  # This will determine whether it's "train" or "test"
-        print("Experiment kwargs: ", experiment_kwargs)
-        self.experiment_kwargs = experiment_kwargs
-        self.episodic_metrics = ["alert", "duration", "std_duration", "cpu", "std_cpu", "read_bytes", "read_count", "write_bytes", "write_count", "total_cpu_usage"]
-        self.reward_values = [ "p_values", "t_values", "degrees_of_freedom"] 
-        self.started_measurements = False
-        self.time_rules_energy_current_len = 0
-        
-    def _safe_log(self, key, value_list):
-        # Check if value_list is a pandas Series or a list
-        if isinstance(value_list, pd.Series):
-            # For pandas Series, check if it's empty
-            if not value_list.empty:
-                self.logger.record(key, value_list.iloc[-1])
-                return True
-        elif isinstance(value_list, list) and len(value_list) > 0:
-            # For lists, check if it's non-empty
-            self.logger.record(key, value_list[-1])
-            return True
-        return False
-
-    def log_common_metrics(self, env):
-
-        # if self.started_measurements or random.randint(0, 100) == 2:
-            # Record common metrics for both training and evaluation phases
-        self._safe_log(f"{self.phase}/distribution_val", env.reward_calculator.reward_values_dict.get('distributions', []))
-        self._safe_log(f"{self.phase}/distribution_reward", env.reward_calculator.reward_dict.get('distributions', []))
-        self._safe_log(f"{self.phase}/quotas", env.action_strategy.action_quotas)
-
-    def log_detailed_metrics(self, env, no_agent_last_row):
-        # Log detailed metrics while safely checking list indices
-        self._safe_log(f"{self.phase}/total_reward", env.reward_calculator.reward_dict.get('total', []))
-        if len(env.reward_calculator.time_rules_energy) > self.time_rules_energy_current_len:
-            self.time_rules_energy_current_len = len(env.reward_calculator.time_rules_energy)
-            print(f"Time rules energy length: {self.time_rules_energy_current_len}")
-            self._safe_log(f"{self.phase}/alert_reward", env.reward_calculator.reward_dict.get('alerts', []))
-            self._safe_log(f"{self.phase}/duration_reward", env.reward_calculator.reward_dict.get('duration', []))
-            self._safe_log(f"{self.phase}/final_distribution", env.reward_calculator.reward_dict.get('final_distribution', []))
-            for metric in self.episodic_metrics:
-                if len(env.reward_calculator.time_rules_energy):
-                    success = self._safe_log(f"{self.phase}/{metric}", [env.reward_calculator.time_rules_energy[-1].get(metric, [])])
-                    if success:
-                        self.started_measurements = True
-                    if success and no_agent_last_row is not None:
-                        self._safe_log(f"{self.phase}/{metric}_gap", [env.reward_calculator.time_rules_energy[-1].get(metric, []) - no_agent_last_row[metric].values[-1]])
-            for metric in self.reward_values:
-                self._safe_log(f"{self.phase}/{metric}", env.reward_calculator.reward_values_dict.get(metric, []))
-
-
-            # Rule-based metrics
-            for metric in self.episodic_metrics:
-                for i, rule in enumerate(env.splunk_tools_instance.active_saved_searches):
-                    rule = rule['title']
-                    if len(env.reward_calculator.time_rules_energy):
-                        self.logger.record(f"{self.phase}/rules_{metric}", 
-                                    {key.split(f'rule_{metric}_')[1]: env.reward_calculator.time_rules_energy[-1][key]
-                                        for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith(f'rule_{metric}')})
-                        if no_agent_last_row is not None:
-                            self.logger.record(f"{self.phase}/rules_{metric}_gap", 
-                                    {key.split(f'rule_{metric}_')[1]: env.reward_calculator.time_rules_energy[-1][key] - no_agent_last_row[key].values[-1]
-                                        for key in env.reward_calculator.time_rules_energy[-1].keys() if key.startswith(f'rule_{metric}')})
-                        
-            # self.logger.record(f"{self.phase}/rules_alert_reward", {rule['title']: env.reward_calculator.current_rules_alert_reward.get(rule['title'], []) for rule in env.splunk_tools_instance.active_saved_searches})                    
-            # log episodic policy
-            policy_dict = {}
-            for i, logtype in enumerate(env.relevant_logtypes):
-                for is_trigger in range(2):
-                    if isinstance(env.action_strategy, ActionStrategy8):
-                        policy_dict[f'{logtype}_0'] = env.action_per_episode[-1][i]
-                    else:
-                        policy_dict[f'{logtype}_{is_trigger}'] = env.action_per_episode[-1][i*2+is_trigger]
-                    # if i == len(env.relevant_logtypes)-1:
-                    #     break 
-            self.logger.record(f"{self.phase}/episodic_policy", policy_dict)
-
-    def log_no_agent_metrics(self, env, no_agent_last_row):
-        if len(env.reward_calculator.time_rules_energy) > self.time_rules_energy_current_len:
-            # Log metrics related to no-agent scenario while safely checking list indices
-            if no_agent_last_row is None:
-                return
-            self._safe_log(f"{self.phase}/no_agent_alert_val", no_agent_last_row.get('alert', []))
-            self._safe_log(f"{self.phase}/no_agent_duration_val", no_agent_last_row.get('duration', []))
-            self._safe_log(f"{self.phase}/no_agent_cpu", no_agent_last_row.get('cpu', []))
-            self._safe_log(f"{self.phase}/no_agent_total_cpu_usage", no_agent_last_row.get('total_cpu_usage', []))
-
-            self.logger.record(f"{self.phase}/no_agent_rules_alerts", {col.split('rule_alert_')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_alert')})
-            self.logger.record(f"{self.phase}/no_agent_rules_duration", {col.split('rule_duration_')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_duration')})
-            self.logger.record(f"{self.phase}/no_agent_rules_std_duration", {col.split('rule_std_duration')[1]: no_agent_last_row[col].values[-1] for col in no_agent_last_row.columns if col.startswith('rule_std_duration')})
-            self.logger.record(f"{self.phase}/logs_amount", env.time_range_logs_amount[-1])
-        
-    
-
-
-class HparamsCallback(BaseCallback):
-    def __init__(self, verbose=1, experiment_kwargs=None, phase="train" ):
-        super(HparamsCallback, self).__init__(verbose)
-        self.experiment_kwargs = experiment_kwargs
+    def __init__(self, phase="train"):
         self.phase = phase
-    def _on_training_start(self) -> None:
-        metric_dict = {f"{self.phase}/{tag}": 0 for tag in ["distribution_val", "distribution_reward", "alert_reward", "duration_reward", "total_reward", "alert_val", "duration_val", "duration_gap", "alert_gap", "no_agent_alert_val", "no_agent_duration_val"]}
-        # add to metric_dict the default metrics
-        metric_dict.update({f"rollout/{tag}": 0 for tag in ["ep_rew_mean", "ep_rew_std", "ep_len_mean", "ep_len_std"]})
-        hparams = HParam(self.experiment_kwargs, metric_dict)
-        self.logger.record("hparams", hparams, exclude=("log", "json", "csv"))
-    
-    def _on_step(self) -> bool:
-        return True
+        self.episodic_metrics = [
+            "alert", "duration", "cpu"]
+        #     , "std_cpu", "std_duration", 
+        #     "read_bytes", "read_count", "write_bytes", "write_count",
+        #     "total_cpu_usage"
+        # ]
 
-class TrainTensorboardCallback(ModularTensorboardCallback):
-    def __init__(self, verbose=1, experiment_kwargs=None, phase="train"):
-        super(TrainTensorboardCallback, self).__init__(verbose, phase=phase, experiment_kwargs=experiment_kwargs)
+    def _log_metrics(self, key: str, value, exclude_from_csv=True):
+        """Safely log metrics to tensorboard"""
+        if value is not None:
+            self.logger.record(f"{self.phase}/{key}", value)
 
-    # def _on_rollout_end(self) -> None:
-    #     env = self.training_env.envs[0]
-    #     no_agent_last_row = env.reward_calculator.no_agent_last_row
-    #     self.log_no_agent_metrics(env, no_agent_last_row)
-    #     self.log_detailed_metrics(env, no_agent_last_row)
+    def log_step_metrics(self, info: Dict):
+        """Log metrics available at each step"""
+        # Log basic step information
+        action_window = info.get('action_window')
+        if action_window:
+            self._log_metrics('action_window', f"{action_window}")
 
-    def _on_step(self) -> bool:
-        env = self.training_env.envs[0]
-        current_step = env.all_steps_counter
-        # if current_step == 2:
-        #     no_agent_last_row = env.reward_calculator.no_agent_last_row
-        #     self.log_no_agent_metrics(env, no_agent_last_row)
-        self.log_common_metrics(env)
-        if self.locals.get('dones')[0]:#env.done:#
-            no_agent_last_row = env.reward_calculator.no_agent_last_row
-            # no_agent_last_row = None
-            self.log_no_agent_metrics(env, no_agent_last_row)
-            self.log_detailed_metrics(env, no_agent_last_row)
-        self.logger.dump(current_step)
-        return True
-
-    def _on_training_end(self) -> None:
-        env = self.training_env.envs[0]
-        start_time_datetime = datetime.datetime.strptime(env.fake_start_datetime, '%m/%d/%Y:%H:%M:%S')#datetime.datetime.strptime(kwargs['fake_start_datetime'], '%m/%d/%Y:%H:%M:%S')
-        end_time_datetime = datetime.datetime.strptime(env.time_range[1], '%m/%d/%Y:%H:%M:%S')
-        clean_env(env.splunk_tools_instance, (start_time_datetime.timestamp(), end_time_datetime.timestamp()))
-    
-    # def _on_training_start(self) -> None:
-    #     super()._on_training_start()
-    #     self.log_hparams(self.experiment_kwargs)
-    
-
+        # Log reward components
+        for reward_type in ['distribution_reward', 'energy_reward', 'alert_reward']:
+            if reward_type in info:
+                self._log_metrics(reward_type, info[reward_type])
         
-# def eval_tensorboard_callback(locals_dict, globals_dict):
-#     env = locals_dict["env"].envs[0]
-#     model = locals_dict["model"]
-#     tb_logger = model.logger
-#     current_step = env.step_counter
-#     done_episodes = len(locals_dict["episode_lengths"])
-#     total_steps = env.total_steps
-#     no_agent_last_row = env.reward_calculator.no_agent_last_row
+        self._log_metrics('distribution_value', info.get('distribution_value'))
 
-#     # Use the shared ModularTensorboardCallback for logging
-#     modular_callback = ModularTensorboardCallback(phase="test")
-#     modular_callback.logger = tb_logger
-#     modular_callback.log_common_metrics(env)
-#     if current_step == 2:
-#         modular_callback.log_no_agent_metrics(env, no_agent_last_row)
-#         tb_logger.dump(done_episodes * total_steps + current_step - 1)
-#     elif current_step == 1:
-#         modular_callback.log_detailed_metrics(env, no_agent_last_row)
-#         tb_logger.dump(done_episodes * total_steps + total_steps)
-#     else:
-#         tb_logger.dump(done_episodes * total_steps + current_step - 1)
+        # # Log quota information
+        # if 'inserted_logs' in info:
+        #     self._log_metrics('inserted_logs', info['inserted_logs'])
+            
+        # if 'total_current_logs' in info:
+        #     self._log_metrics('total_current_logs', info['total_current_logs'])
+        
+        # if 'inserted_logs' in info and 'total_current_logs' in info:
+        #     self._log_metrics('actual_quota', info['inserted_logs']/info['total_current_logs'])
 
-#     return True
+    def log_episode_metrics(self, info: Dict, env):
+        """Log metrics at episode end"""
+        # Log current window
+        current_window = info.get('current_window')
+        if current_window:
+            self._log_metrics('current_window', f"{current_window}", exclude_from_csv=True)
+            
+        # Get the actual environment from the vectorized env wrapper
+        actual_env = env.envs[0] if hasattr(env, 'envs') else env
+            
+        # # Compute and log total reward
+        # total_reward = (getattr(actual_env, 'alpha', 1.0) * info.get('energy_reward', 0) + 
+        #                getattr(actual_env, 'beta', 1.0) * info.get('alert_reward', 0) + 
+        #                getattr(actual_env, 'gamma', 1.0) * info.get('distribution_reward', 0))
+        # self._log_metrics('total_reward', total_reward)
+        
+        # Log metrics for current and baseline
+        current_metrics = info.get('combined_metrics', {})
+        baseline_metrics = info.get('combined_baseline_metrics', {})
+        self._log_metrics('final_distribution_value', info.get('distribution_value'))
+        self._log_metrics('ac_distribution_value', info.get('ac_distribution_value'))
+        self._log_metrics('ac_distribution_reward', info.get('ac_distribution_reward'))
+        self._log_metrics('total_episode_logs', info.get('total_episode_logs'))
+        
+        if current_metrics and baseline_metrics:
+            # Log basic metrics
+            for metric in self.episodic_metrics:
+                current_val = current_metrics.get(metric)
+                baseline_val = baseline_metrics.get(metric)
+                if current_val is not None and baseline_val is not None:
+                    self._log_metrics(f'{metric}', current_val)
+                    self._log_metrics(f'baseline_{metric}', baseline_val)
+                    self._log_metrics(f'{metric}_gap', current_val - baseline_val)
+
+            # Log detailed rules metrics
+            raw_current_metrics = info.get('raw_metrics', {})
+            raw_baseline_metrics = info.get('raw_baseline_metrics', {})
+            
+            baseline_dict = {metric: {} for metric in self.episodic_metrics}
+            current_dict = {metric: {} for metric in self.episodic_metrics}
+            gap_dict = {metric: {} for metric in self.episodic_metrics}
+            
+            for search_name in raw_current_metrics.keys():
+                for metric in self.episodic_metrics:
+                    current_val = raw_current_metrics[search_name].get(metric)
+                    baseline_val = raw_baseline_metrics[search_name].get(metric)
+                    if current_val is not None and baseline_val is not None:
+                        current_dict[metric][search_name] = current_val
+                        baseline_dict[metric][search_name] = baseline_val
+                        gap_dict[metric][search_name] = current_val - baseline_val
+                        
+            for metric in self.episodic_metrics:
+                self._log_metrics(f'{metric}_rules_metrics', current_dict[metric], exclude_from_csv=True)
+                self._log_metrics(f'baseline_{metric}_rules_metrics', baseline_dict[metric], exclude_from_csv=True)
+                self._log_metrics(f'{metric}_gap_rules_metrics', gap_dict[metric], exclude_from_csv=True)
+
+        # Log episodic policy
+        if 'episode_logs' in info:
+            self._log_metrics('episodic_policy', info['episode_logs'], exclude_from_csv=True)
+        
+        if 'episodic_inserted_logs' in info:
+            self._log_metrics('episodic_inserted_logs', info['episodic_inserted_logs'], exclude_from_csv=True)
+            
+        if 'episodic_inserted_logs' in info and 'episode_logs' in info:
+            self._log_metrics('actual_quota', info['episodic_inserted_logs']/info['total_episode_logs'])
+        
+        if 'diversity_episode_logs' in info:
+            self._log_metrics('diversity_episode_logs', info['diversity_episode_logs'], exclude_from_csv=True)
+        
+        if 'real_relevant_distribution' in info:
+            current_sum = np.sum(list(info['real_relevant_distribution'].values()))
+            for k,v in info['real_relevant_distribution'].items():
+                info['real_relevant_distribution'][k] = v / current_sum
+            self._log_metrics('real_relevant_distribution', info['real_relevant_distribution'], exclude_from_csv=True)
+        
+        if 'fake_relevant_distribution' in info:
+            current_sum = np.sum(list(info['fake_relevant_distribution'].values()))
+            for k,v in info['fake_relevant_distribution'].items():
+                info['fake_relevant_distribution'][k] = v / current_sum
+            self._log_metrics('fake_relevant_distribution', info['fake_relevant_distribution'], exclude_from_csv=True)
+
+
+class CustomTensorboardCallback(BaseCallback, MetricsLoggerCallback):
+    def __init__(self, verbose=1):
+        BaseCallback.__init__(self, verbose)
+        MetricsLoggerCallback.__init__(self, phase="train")
+
+    def _on_step(self) -> bool:
+        """Log metrics at each step"""
+        info = self.locals['infos'][0]  # Get info from environment step
+        num_time_steps = self.num_timesteps
+        self.log_step_metrics(info)
+
+        # Log episode end metrics
+        if info.get('done', False):
+            self.log_episode_metrics(info, self.training_env)
+            
+        all_steps = info.get('all_steps_counter', 0)
+        self.logger.dump(all_steps)
+        return True
+
+
+class CustomEvalCallback3(EvalCallback, MetricsLoggerCallback):
+    def __init__(self, 
+                 eval_env,
+                 n_eval_episodes: int = 5,
+                 eval_freq: int = 10000,
+                 log_path: str = None,
+                 best_model_save_path: str = None,
+                 deterministic: bool = True,
+                 render: bool = False,
+                 verbose: int = 1):
+        
+        EvalCallback.__init__(
+            self,
+            eval_env=eval_env,
+            n_eval_episodes=n_eval_episodes,
+            eval_freq=eval_freq,
+            log_path=log_path,
+            best_model_save_path=best_model_save_path,
+            deterministic=deterministic,
+            render=render,
+            verbose=verbose
+        )
+        MetricsLoggerCallback.__init__(self, phase="eval")
+        
+    def evaluate_policy(self, *args, **kwargs):
+        """Override evaluate_policy to collect info during evaluation"""
+        self.eval_infos = []
+        
+        def _log_info_callback(locals_, globals_):
+            info = locals_['info']
+            self.eval_infos.append(info)
+            return True
+            
+        kwargs['callback'] = _log_info_callback
+        return evaluate_policy(*args, **kwargs)
+        
+    def _aggregate_eval_metrics(self, infos):
+        """Aggregate metrics from multiple evaluation episodes"""
+        # Get the last info which should contain final episode metrics
+        last_info = infos[-1] if infos else None
+        if not last_info:
+            return
+            
+        # Calculate mean of step-wise metrics across all infos
+        mean_metrics = defaultdict(list)
+        for info in infos:
+            for metric in ['distribution_reward', 'energy_reward', 'alert_reward', 
+                         'distribution_value', 'inserted_logs', 'total_current_logs']:
+                if metric in info:
+                    mean_metrics[metric].append(info[metric])
+                    
+        # Log mean metrics
+        for metric, values in mean_metrics.items():
+            if values:
+                self._log_metrics(f'mean_{metric}', np.mean(values))
+        
+        # Log the final episode metrics using the base class method
+        self.log_episode_metrics(last_info, self.eval_env)
+
+    def _on_step(self) -> bool:
+        """Evaluate the agent and log metrics"""
+        if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
+            # Reset eval info collection
+            self.eval_infos = []
+            
+            # Run evaluation
+            episode_rewards, episode_lengths = self.evaluate_policy(
+                self.model,
+                self.eval_env,
+                n_eval_episodes=self.n_eval_episodes,
+                render=self.render,
+                deterministic=self.deterministic,
+                return_episode_rewards=True,
+                warn=self.warn
+            )
+
+            # Log aggregated evaluation metrics
+            self._aggregate_eval_metrics(self.eval_infos)
+
+            # Log standard evaluation metrics
+            self._log_metrics('mean_reward', np.mean(episode_rewards))
+            self._log_metrics('mean_ep_length', np.mean(episode_lengths))
+
+            self.logger.dump(self.n_calls)
+
+        return True
+
+
+class SplunkLincenceCheckCallback(BaseCallback):
+    def __init__(self):
+        super(SplunkLincenceCheckCallback, self).__init__()
+        self.check_interval = 1000
+    
+    def _on_step(self) -> bool:
+        """Check Splunk license usage at each step"""
+        if self.n_calls % self.check_interval == 0:
+            env = self.training_env.envs[0] if hasattr(self.training_env, 'envs') else self.training_env
+            res = env.splunk_tools.check_license_usage()
+            remaining_mb = res['remaining_mb']
+            quota_mb = res['quota_mb']
+            if remaining_mb < 1000:
+                print(f"Splunk license usage is low: {remaining_mb} MB remaining out of {quota_mb} MB")
+                self.logger.record('splunk/remaining_mb', remaining_mb)
+                self.logger.record('splunk/quota_mb', quota_mb)
+                self.logger.dump(self.n_calls)
+                # stop training 
+                return False
+            else:
+                print(f"Splunk license usage is sufficient: {remaining_mb} MB remaining out of {quota_mb} MB")
+                self.logger.record('splunk/license_usage', remaining_mb)
+                self.logger.record('splunk/quota_mb', quota_mb)
+                self.logger.dump(self.n_calls)
+        return True

@@ -1,0 +1,12 @@
+03/26/2025 11:33:23 PM
+LogName=System
+EventCode=7031
+EventType=2
+ComputerName=LB-101-18.auth.ad.bgu.ac.il
+SourceName=Microsoft-Windows-Service Control Manager
+Type=Error
+RecordNumber=42329
+Keywords=Classic
+TaskCategory=None
+OpCode=The operation completed successfully.
+Message=The Trellix Agent Service service terminated unexpectedly.  It has done this 1 time(s).  The following corrective action will be taken in 60000 milliseconds: Restart the service.

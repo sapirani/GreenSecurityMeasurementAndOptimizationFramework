@@ -1,0 +1,15 @@
+03/26/2025 10:08:42 PM
+LogName=System
+EventCode=7038
+EventType=2
+ComputerName=LB-101-1.auth.ad.bgu.ac.il
+SourceName=Microsoft-Windows-Service Control Manager
+Type=Error
+RecordNumber=97549
+Keywords=Classic
+TaskCategory=None
+OpCode=The operation completed successfully.
+Message=The CryptSvc service was unable to log on as NT Authority\NetworkService with the currently configured password due to the following error: 
+The request is not supported.
+
+To ensure that the service is configured properly, use the Services snap-in in Microsoft Management Console (MMC).

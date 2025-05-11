@@ -1,0 +1,27 @@
+03/27/2025 09:28:15 AM
+LogName=Security
+EventCode=4799
+EventType=0
+ComputerName=dts12-vm1.auth.ad.bgu.ac.il
+SourceName=Microsoft Windows security auditing.
+Type=Information
+RecordNumber=1037142
+Keywords=Audit Success
+TaskCategory=Security Group Management
+OpCode=Info
+Message=A security-enabled local group membership was enumerated.
+
+Subject:
+	Security ID:		NT AUTHORITY\SYSTEM
+	Account Name:		DTS12-VM1$
+	Account Domain:		BGU-USERS
+	Logon ID:		0x3E7
+
+Group:
+	Security ID:		BUILTIN\Backup Operators
+	Group Name:		Backup Operators
+	Group Domain:		Builtin
+
+Process Information:
+	Process ID:		0x2e50
+	Process Name:		C:\Windows\System32\VSSVC.exe

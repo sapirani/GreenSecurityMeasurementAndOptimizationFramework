@@ -1,0 +1,15 @@
+03/27/2025 07:00:53 AM
+LogName=System
+EventCode=129
+EventType=3
+ComputerName=LB-003-3.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-19
+SidType=0
+SourceName=Microsoft-Windows-Time-Service
+Type=Warning
+RecordNumber=87386
+Keywords=None
+TaskCategory=None
+OpCode=Info
+Message=NtpClient was unable to set a domain peer to use as a time source because of discovery error. NtpClient will try again in 15 minutes and double the reattempt interval thereafter. The error was: The entry is not found. (0x800706E1)

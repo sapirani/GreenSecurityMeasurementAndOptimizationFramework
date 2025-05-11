@@ -1,0 +1,29 @@
+03/27/2025 07:09:16 AM
+LogName=System
+EventCode=8015
+EventType=3
+ComputerName=LB-105-9.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-20
+SidType=0
+SourceName=Microsoft-Windows-DNS Client Events
+Type=Warning
+RecordNumber=42758
+Keywords=None
+TaskCategory=1028
+OpCode=Info
+Message=The system failed to register host (A or AAAA) resource records (RRs) for network adapter
+with settings:
+
+           Adapter Name : {A3C8D3EF-D3C5-47D7-B955-CED97A6C9BB9}
+           Host Name : LB-105-9
+           Primary Domain Suffix : auth.ad.bgu.ac.il
+           DNS server list :
+             	fec0:0:0:ffff::1, fec0:0:0:ffff::2, fec0:0:0:ffff::3
+           Sent update to server : <?>
+           IP Address(es) :
+             192.168.56.1
+
+The reason the system could not register these RRs was because the update request it sent to the DNS server timed out. The most likely cause of this is that the DNS server authoritative for the name it was attempting to register or update is not running at this time.
+
+You can manually retry DNS registration of the network adapter and its settings by typing 'ipconfig /registerdns' at the command prompt. If problems still persist, contact your DNS server or network systems administrator.

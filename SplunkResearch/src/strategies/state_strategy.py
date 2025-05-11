@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
 import logging
 logger = logging.getLogger(__name__)

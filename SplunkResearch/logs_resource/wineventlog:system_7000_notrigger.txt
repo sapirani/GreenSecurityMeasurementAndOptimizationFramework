@@ -1,0 +1,13 @@
+03/26/2025 10:08:42 PM
+LogName=System
+EventCode=7000
+EventType=2
+ComputerName=LB-101-1.auth.ad.bgu.ac.il
+SourceName=Microsoft-Windows-Service Control Manager
+Type=Error
+RecordNumber=97561
+Keywords=Classic
+TaskCategory=None
+OpCode=The operation completed successfully.
+Message=The igccservice service failed to start due to the following error: 
+The service did not respond to the start or control request in a timely fashion.

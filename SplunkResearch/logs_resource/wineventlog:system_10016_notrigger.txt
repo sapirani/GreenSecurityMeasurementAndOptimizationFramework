@@ -1,0 +1,19 @@
+03/27/2025 09:28:15 AM
+LogName=System
+EventCode=10016
+EventType=3
+ComputerName=DT-O5.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-21-1220750395-818509756-262303683-42468
+SidType=0
+SourceName=Microsoft-Windows-DistributedCOM
+Type=Warning
+RecordNumber=96858
+Keywords=Classic
+TaskCategory=None
+OpCode=Info
+Message=The application-specific permission settings do not grant Local Activation permission for the COM Server application with CLSID 
+{2593F8B9-4EAF-457C-B68A-50F6B8EA6B54}
+ and APPID 
+{15C20B67-12E7-4BB6-92BB-7AFF07997402}
+ to the user BGU-USERS\yehudith SID (S-1-5-21-1220750395-818509756-262303683-42468) from address LocalHost (Using LRPC) running in the application container Unavailable SID (Unavailable). This security permission can be modified using the Component Services administrative tool.

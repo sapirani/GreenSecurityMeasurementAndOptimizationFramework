@@ -1,0 +1,76 @@
+03/27/2025 09:28:05 AM
+LogName=Security
+EventCode=4698
+EventType=0
+ComputerName=LB-003-26.auth.ad.bgu.ac.il
+SourceName=Microsoft Windows security auditing.
+Type=Information
+RecordNumber=4131255
+Keywords=Audit Success
+TaskCategory=Other Object Access Events
+OpCode=Info
+Message=A scheduled task was created.
+
+Subject:
+	Security ID:		NT AUTHORITY\SYSTEM
+	Account Name:		LB-003-26$
+	Account Domain:		BGU-USERS
+	Logon ID:		0x3E7
+
+Task Information:
+	Task Name: 		\copy user data
+	Task Content: 		<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Author>BGU-USERS\ilyadr</Author>
+    <URI>\copy user data</URI>
+  </RegistrationInfo>
+  <Triggers>
+    <TimeTrigger>
+      <StartBoundary>2025-03-27T09:28:10</StartBoundary>
+      <EndBoundary>2025-03-27T09:29:05</EndBoundary>
+      <Enabled>true</Enabled>
+    </TimeTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <RunLevel>LeastPrivilege</RunLevel>
+      <UserId>NT AUTHORITY\System</UserId>
+      <LogonType>S4U</LogonType>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <Duration>PT5M</Duration>
+      <WaitTimeout>PT1H</WaitTimeout>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>P3D</ExecutionTimeLimit>
+    <DeleteExpiredTaskAfter>PT0S</DeleteExpiredTaskAfter>
+    <Priority>7</Priority>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>powershell.exe</Command>
+      <Arguments>-ExecutionPolicy Bypass -command "\\ise-deploy\REMINST\ISE-LAB\copy-data.ps1"</Arguments>
+    </Exec>
+  </Actions>
+</Task>
+
+Other Information:
+	ProcessCreationTime: 		43910096366873103
+	ClientProcessId: 			1480
+	ParentProcessId: 			816
+	FQDN: 		0

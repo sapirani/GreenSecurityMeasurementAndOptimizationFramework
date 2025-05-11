@@ -1,0 +1,15 @@
+03/27/2025 07:18:27 AM
+LogName=System
+EventCode=35
+EventType=4
+ComputerName=LB-105-21.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-19
+SidType=0
+SourceName=Microsoft-Windows-Time-Service
+Type=Information
+RecordNumber=72672
+Keywords=None
+TaskCategory=None
+OpCode=Info
+Message=The time service is now synchronizing the system time with the time source auth161.auth.ad.bgu.ac.il (ntp.d|0.0.0.0:123->132.72.140.114:123) with reference id 1921796228. Current local stratum number is 5.

@@ -1,0 +1,15 @@
+03/27/2025 09:28:05 AM
+LogName=System
+EventCode=108
+EventType=3
+ComputerName=LB-003-26.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-18
+SidType=0
+SourceName=Application Management Group Policy
+Type=Warning
+RecordNumber=101675
+Keywords=Classic
+TaskCategory=None
+OpCode=Info
+Message=Failed to apply changes to software installation settings.  The installation of software deployed through Group Policy for this user has been delayed until the next logon because the changes must be applied before the user logon.  The error was : %%1274

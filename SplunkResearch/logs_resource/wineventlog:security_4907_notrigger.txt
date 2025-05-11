@@ -1,0 +1,32 @@
+03/27/2025 09:17:11 AM
+LogName=Security
+EventCode=4907
+EventType=0
+ComputerName=LB-101-12.auth.ad.bgu.ac.il
+SourceName=Microsoft Windows security auditing.
+Type=Information
+RecordNumber=3325711
+Keywords=Audit Success
+TaskCategory=Audit Policy Change
+OpCode=Info
+Message=Auditing settings on object were changed.
+
+Subject:
+	Security ID:		NT AUTHORITY\SYSTEM
+	Account Name:		LB-101-12$
+	Account Domain:		BGU-USERS
+	Logon ID:		0x3E7
+
+Object:
+	Object Server:	Security
+	Object Type:	File
+	Object Name:	C:\Windows\SysWOW64\poqexec.exe
+	Handle ID:	0xb80
+
+Process Information:
+	Process ID:	0x1334
+	Process Name:	C:\Windows\WinSxS\amd64_microsoft-windows-servicingstack_31bf3856ad364e35_10.0.19041.4351_none_7e19dc327c844a77\TiWorker.exe
+
+Auditing Settings:
+	Original Security Descriptor:	S:AINO_ACCESS_CONTROL
+	New Security Descriptor:		S:ARAI(AU;SAFA;DCLCRPCRSDWDWO;;;WD)

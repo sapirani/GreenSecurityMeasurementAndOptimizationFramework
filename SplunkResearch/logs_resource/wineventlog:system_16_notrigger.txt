@@ -1,0 +1,15 @@
+03/27/2025 09:07:40 AM
+LogName=System
+EventCode=16
+EventType=4
+ComputerName=dt-it.auth.ad.bgu.ac.il
+User=NOT_TRANSLATED
+Sid=S-1-5-18
+SidType=0
+SourceName=Microsoft-Windows-Kernel-General
+Type=Information
+RecordNumber=12547
+Keywords=None
+TaskCategory=None
+OpCode=Info
+Message=The access history in hive \??\Volume{ead02d71-9b98-4904-a5ab-9b8425257d46}\System Volume Information\SPP\SppCbsHiveStore\{cd42efe1-f6f1-427c-b004-033192c625a4}{11866417-D063-4F5F-8762-4013D9413769} was cleared updating 1418 keys and creating 182 modified pages.

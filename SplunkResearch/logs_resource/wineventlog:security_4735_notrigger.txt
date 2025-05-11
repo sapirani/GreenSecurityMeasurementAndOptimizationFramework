@@ -1,0 +1,30 @@
+03/27/2025 09:28:04 AM
+LogName=Security
+EventCode=4735
+EventType=0
+ComputerName=LB-003-26.auth.ad.bgu.ac.il
+SourceName=Microsoft Windows security auditing.
+Type=Information
+RecordNumber=4131254
+Keywords=Audit Success
+TaskCategory=Security Group Management
+OpCode=Info
+Message=A security-enabled local group was changed.
+
+Subject:
+	Security ID:		NT AUTHORITY\SYSTEM
+	Account Name:		LB-003-26$
+	Account Domain:		BGU-USERS
+	Logon ID:		0x3E7
+
+Group:
+	Security ID:		BUILTIN\Event Log Readers
+	Group Name:		Event Log Readers
+	Group Domain:		Builtin
+
+Changed Attributes:
+	SAM Account Name:	-
+	SID History:		-
+
+Additional Information:
+	Privileges:		-

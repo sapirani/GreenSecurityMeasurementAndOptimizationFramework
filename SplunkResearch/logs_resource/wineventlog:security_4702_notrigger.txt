@@ -1,0 +1,88 @@
+03/27/2025 09:29:02 AM
+LogName=Security
+EventCode=4702
+EventType=0
+ComputerName=LB-003-25.auth.ad.bgu.ac.il
+SourceName=Microsoft Windows security auditing.
+Type=Information
+RecordNumber=2711199
+Keywords=Audit Success
+TaskCategory=Other Object Access Events
+OpCode=Info
+Message=A scheduled task was updated.
+
+Subject:
+	Security ID:		NT AUTHORITY\SYSTEM
+	Account Name:		LB-003-25$
+	Account Domain:		BGU-USERS
+	Logon ID:		0x3E7
+
+Task Information:
+	Task Name: 		\Microsoft\Windows\Flighting\OneSettings\RefreshCache
+	Task New Content: 		<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Source>$(@%systemroot%\system32\wosc.dll,-602)</Source>
+    <Author>$(@%systemroot%\system32\wosc.dll,-601)</Author>
+    <Description>$(@%systemroot%\system32\wosc.dll,-603)</Description>
+    <URI>\Microsoft\Windows\Flighting\OneSettings\RefreshCache</URI>
+    <SecurityDescriptor>D:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FRFX;;;AU)</SecurityDescriptor>
+  </RegistrationInfo>
+  <Triggers>
+    <TimeTrigger>
+      <Repetition>
+        <Interval>PT309M</Interval>
+        <StopAtDurationEnd>false</StopAtDurationEnd>
+      </Repetition>
+      <StartBoundary>2025-03-27T07:38:02.913Z</StartBoundary>
+      <Enabled>true</Enabled>
+      <RandomDelay>PT1H</RandomDelay>
+    </TimeTrigger>
+    <WnfStateChangeTrigger>
+      <Enabled>true</Enabled>
+      <StateName>7538BCA33A019502</StateName>
+    </WnfStateChangeTrigger>
+    <WnfStateChangeTrigger>
+      <Enabled>true</Enabled>
+      <StateName>757CBCA33A019502</StateName>
+    </WnfStateChangeTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="LocalSystem">
+      <UserId>NT AUTHORITY\SYSTEM</UserId>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>true</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <DisallowStartOnRemoteAppSession>false</DisallowStartOnRemoteAppSession>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>PT5M</ExecutionTimeLimit>
+    <Priority>7</Priority>
+  </Settings>
+  <Actions Context="LocalSystem">
+    <ComHandler>
+      <ClassId>{E07647F7-AED2-48D9-9720-939BC24A8A3C}</ClassId>
+    </ComHandler>
+  </Actions>
+</Task>
+
+Other Information:
+	ProcessCreationTime: 		30399297484785739
+	ClientProcessId: 			12940
+	ParentProcessId: 			2448
+	FQDN: 		0
