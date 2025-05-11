@@ -110,7 +110,7 @@ class ExperimentManager:
         top_logtypes = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
         # include only system and security logs
         top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
-        top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:10]
+        top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
         top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
         if config.experiment_name == "test_experiment":
             config.env_config.is_test = True
@@ -442,7 +442,8 @@ class ExperimentManager:
                 deterministic=True,
                 render=False,
                 verbose=1
-            )
+            ), 
+            SplunkLincenceCheckCallback()
             
         ]
         
@@ -487,12 +488,12 @@ if __name__ == "__main__":
         policy_type="MlpPolicy",
         learning_rate=1e-4,
         num_episodes=12000,
-        n_steps=12,
-        ent_coef=0.01,
+        n_steps=512,
+        ent_coef=0.0,
         gamma=0.99,
-        experiment_name="test_experiment",
-        use_alert_reward=False,
-        use_energy_reward=False,
+        # experiment_name="test_experiment",
+        use_alert_reward=True,
+        use_energy_reward=True,
         use_random_agent=False,
     )
     
