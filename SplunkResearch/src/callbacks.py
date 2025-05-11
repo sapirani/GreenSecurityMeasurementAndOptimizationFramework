@@ -238,23 +238,27 @@ class CustomEvalCallback3(EvalCallback, MetricsLoggerCallback):
 
 
 class SplunkLincenceCheckCallback(BaseCallback):
-    def __init__(self, service):
+    def __init__(self):
         super(SplunkLincenceCheckCallback, self).__init__()
-        self.service = service
-        self.last_check_time = None
-        self.check_interval = 60
+        self.check_interval = 1000
     
     def _on_step(self) -> bool:
         """Check Splunk license usage at each step"""
-        current_time = self.num_timesteps
-        if self.last_check_time is None or (current_time - self.last_check_time) >= self.check_interval:
-            try:
-                # Check license usage
-                license_usage = self.service.get_license_usage()
-                if license_usage:
-                    self.logger.record("license_usage", license_usage)
-            except Exception as e:
-                print(f"Error checking license usage: {e}")
-            
-            self.last_check_time = current_time
+        if self.n_calls % self.check_interval == 0:
+            env = self.training_env.envs[0] if hasattr(self.training_env, 'envs') else self.training_env
+            res = env.splunk_tools.check_license_usage()
+            remaining_mb = res['remaining_mb']
+            quota_mb = res['quota_mb']
+            if remaining_mb < 1000:
+                print(f"Splunk license usage is low: {remaining_mb} MB remaining out of {quota_mb} MB")
+                self.logger.record('splunk/remaining_mb', remaining_mb)
+                self.logger.record('splunk/quota_mb', quota_mb)
+                self.logger.dump(self.n_calls)
+                # stop training 
+                return False
+            else:
+                print(f"Splunk license usage is sufficient: {remaining_mb} MB remaining out of {quota_mb} MB")
+                self.logger.record('splunk/license_usage', remaining_mb)
+                self.logger.record('splunk/quota_mb', quota_mb)
+                self.logger.dump(self.n_calls)
         return True

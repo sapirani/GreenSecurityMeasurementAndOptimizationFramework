@@ -105,6 +105,44 @@ class SplunkTools(object):
                 time.sleep(120)#TODO: change to 5
         self._initialized = True
 
+
+    def check_license_usage(self):
+        """
+        Get the remaining license quota for the Splunk instance.
+        """
+        query = """search index=_internal source=*license_usage.log type=Usage 
+                | eval used_mb = b/1024/1024 
+                | stats sum(used_mb) as used_mb_today by pool 
+                | join type=left pool 
+                    [| rest /services/licenser/pools 
+                    | fields title quota_used quota 
+                    | rename title as pool 
+                    | eval quota_mb = quota/1024/1024 
+                    | eval quota_used_mb = quota_used/1024/1024] 
+                | eval remaining_mb = quota_mb - used_mb_today 
+                | table pool quota_mb used_mb_today remaining_mb"""
+        self.service.jobs.create(query, earliest_time='-1d', latest_time='now')
+        job = self.service.jobs.create(query, earliest_time='-1d', latest_time='now')
+        while True:
+            job.refresh()
+            if job.content['isDone'] == '1':
+                break
+            time.sleep(2)
+        response = job.results(output_mode='json')
+        reader = splunk_results.JSONResultsReader(response)
+        results = []
+        for result in reader:
+            if isinstance(result, dict):
+                results.append(result)
+        if len(results) > 0:
+            results = results[0]
+            return {
+                'pool': results['pool'],
+                'quota_mb': float(results['quota_mb']),
+                'used_mb_today': float(results['used_mb_today']),
+                'remaining_mb': float(results['remaining_mb'])
+            }
+    
     
     def get_num_of_searches(self):
         return len(self.active_saved_searches)

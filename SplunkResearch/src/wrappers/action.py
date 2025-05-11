@@ -574,7 +574,7 @@ class Action8(Action):
             self.action_space = spaces.Box(
                 low=0,
                 high=1,
-                shape=(len(self.top_logtypes),),# + len(self.relevant_logtypes),),
+                shape=(len(self.top_logtypes)+ len(self.relevant_logtypes),),
                 dtype=np.float32
             )
             self.diversity_episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
@@ -591,8 +591,8 @@ class Action8(Action):
             # distribution = np.exp(distribution) / np.sum(np.exp(distribution))
             distribution /= (np.sum(distribution) + 1e-8) 
             
-            # diversity_list = action[len(self.top_logtypes):]
-            num_logs = 0.5 * self.current_real_quantity
+            diversity_list = action[len(self.top_logtypes):]
+            num_logs = 0.2 * self.current_real_quantity
             self.inserted_logs = 0
             self.current_logs = {}
             # self.remaining_quota = self.quota - num_logs
@@ -611,8 +611,8 @@ class Action8(Action):
  
                 if log_count > 0:
                     diversity = 0
-                    # if logtype in self.relevant_logtypes:
-                    #     diversity = float(diversity_list[self.relevant_logtypes.index(logtype)])
+                    if logtype in self.relevant_logtypes:
+                        diversity = float(diversity_list[self.relevant_logtypes.index(logtype)])
                     is_trigger = int(np.ceil(diversity))
                     key = f"{logtype[0]}_{logtype[1]}_{int(is_trigger)}"
                     logs_to_inject[key] = {
