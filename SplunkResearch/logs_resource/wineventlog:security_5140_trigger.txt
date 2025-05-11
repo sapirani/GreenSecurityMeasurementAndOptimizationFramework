@@ -12,25 +12,20 @@ Keywords=Audit Success
 Message=A network share object was accessed.
 
 Subject:
-  Security ID:		S-1-5-21-3012987543-2178493712-3482174390-1601
-  Account Name:		rthomas
-  Account Domain:		local
+  Security ID:		CONTOSO\dadmin
+  Account Name:		dadmin
+  Account Domain:		CONTOSO
   Logon ID:		0x2F1C5D9
 
 Network Information:
+  Object Type: File
+  Source Address:	192.168.200.45
+  Source Port:		49832
+
+Share Information:
   Share Name:		\\*\C$
   Share Path:		\\AdminServer-03\C$
-  Relative Target Name:	Windows\System32
 
 Access Request Information:
   Access Mask:		0x1
   Accesses:		ReadData (or ListDirectory)
-
-Process Information:
-  Process ID:		0x3c4
-  Process Name:		C:\Windows\System32\cmd.exe
-
-Network Information:
-  Workstation Name:	USERLAPTOP-05
-  Source Network Address:	192.168.200.45
-  Source Port:		49832
