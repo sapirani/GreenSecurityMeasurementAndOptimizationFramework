@@ -226,6 +226,11 @@ class ExperimentManager:
                 'use_sde': True
             })
             
+        elif config.model_type in ['sac', 'td3', 'ddpg']:
+            model_kwargs.update({                "policy_kwargs": {
+                    "net_arch": [256, 256,128,64],
+
+                }})
         return model_cls(**model_kwargs)
     
     def _generate_experiment_id(self):
@@ -443,7 +448,7 @@ class ExperimentManager:
                 render=False,
                 verbose=1
             ), 
-            SplunkLincenceCheckCallback()
+            # SplunkLincenceCheckCallback()
             
         ]
         
@@ -484,16 +489,16 @@ if __name__ == "__main__":
     )
     experiment_config = ExperimentConfig(
         env_config=env_config,
-        model_type="ppo",
+        model_type="ddpg",
         policy_type="MlpPolicy",
-        learning_rate=1e-4,
+        learning_rate=3e-4,
         num_episodes=12000,
-        n_steps=512,
-        ent_coef=0.0,
+        n_steps=256,
+        ent_coef="auto",
         gamma=0.99,
-        # experiment_name="test_experiment",
-        use_alert_reward=True,
-        use_energy_reward=True,
+        experiment_name="test_experiment",
+        use_alert_reward=False,
+        use_energy_reward=False,
         use_random_agent=False,
     )
     

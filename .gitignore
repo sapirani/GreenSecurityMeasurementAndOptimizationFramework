@@ -24,3 +24,4 @@ SplunkResearch/monitor_files/wineventlog:system.txt
 SplunkResearch/best_experiments
 SplunkResearch/best_parallel_exp
 *.template
+*.png

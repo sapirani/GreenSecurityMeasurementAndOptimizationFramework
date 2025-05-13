@@ -27,7 +27,7 @@ class Action(ActionWrapper):
         self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.relevant_logtypes for istrigger in [0, 1]}
         self.remaining_quota = 0
         self.inserted_logs = 0
-        self.diversity_factor = 10
+        self.diversity_factor = 31
         self.diversity_episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.relevant_logtypes for istrigger in [0, 1]}
         self.info = {}
         self._disable_injection = False
