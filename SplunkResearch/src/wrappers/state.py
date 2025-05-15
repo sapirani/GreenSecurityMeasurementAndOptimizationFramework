@@ -56,11 +56,9 @@ class StateWrapper(ObservationWrapper):
         # Execute action in underlying environment
         observation, reward, terminated, truncated, info = self.env.step(action)
         info.update(self.get_step_info())
-        if not terminated:
-            obs = self.observation(observation)
-            info.update(self.get_step_info())            
-            return obs, reward, terminated, truncated, info
-        return observation, reward, terminated, truncated, info
+        obs = self.observation(observation)
+        info.update(self.get_step_info())            
+        return obs, reward, terminated, truncated, info
 
     def observation(self, obs):
         """Convert current distributions to normalized state"""
