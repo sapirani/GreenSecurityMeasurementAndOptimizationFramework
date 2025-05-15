@@ -25,3 +25,5 @@ SplunkResearch/best_experiments
 SplunkResearch/best_parallel_exp
 *.template
 *.png
+paper_results
+elastic-start-local

@@ -54,25 +54,23 @@ class Action(ActionWrapper):
         """Update fake distribution with injected logs"""
         # Add injected logs to existing real distribution
         # self.fake_distribution = self.real_distribution.copy()#BUG!!
-        self.fake_distribution = self.unwrapped.real_distribution.copy()
-        self.ac_fake_distribution = self.unwrapped.ac_real_distribution.copy()
+
         for logtype, count in self.current_logs.items():
             formated_logtype = (*logtype.split('_')[:-1],)
             if formated_logtype in self.top_logtypes:
-                self.fake_distribution[formated_logtype] += count
+                self.unwrapped.fake_distribution[formated_logtype] += count
+                self.unwrapped.ac_fake_distribution[formated_logtype] += count
+                
             # else:
             #     self.fake_distribution['other'] += count
-        for logtype, count in self.episode_logs.items():
-            formated_logtype = (*logtype.split('_')[:-1],)
-            if formated_logtype in self.top_logtypes:
-                self.ac_fake_distribution[formated_logtype] += count
+
             # else:
             #     self.ac_fake_distribution['other'] += count
             
         # Normalize fake distribution
-        self.fake_state = np.array([self.fake_distribution[k]/(sum(self.fake_distribution.values())+1e-8) for k in self.top_logtypes if k != 'other'])
-        self.ac_fake_state = np.array([self.ac_fake_distribution[k]/(sum(self.ac_fake_distribution.values())+1e-8) for k in self.top_logtypes if k != 'other'])
-        self.fake_relevant_distribution = {"_".join(logtype): self.fake_state[self.relevant_logtypes_indices[logtype]] for logtype in self.top_logtypes}
+        self.unwrapped.fake_state = np.array([self.fake_distribution[k]/(sum(self.fake_distribution.values())+1e-8) for k in self.top_logtypes if k != 'other'])
+        self.unwrapped.ac_fake_state = np.array([self.ac_fake_distribution[k]/(sum(self.ac_fake_distribution.values())+1e-8) for k in self.top_logtypes if k != 'other'])
+        self.unwrapped.fake_relevant_distribution = {"_".join(logtype): self.fake_state[self.relevant_logtypes_indices[logtype]] for logtype in self.top_logtypes}
     
     def action(self, action):
         """Convert raw action to log injection dictionary"""
@@ -162,7 +160,7 @@ class Action(ActionWrapper):
             'remaining_quota': self.remaining_quota,
             'inserted_logs': self.inserted_logs,
             'episodic_inserted_logs': self.episodic_inserted_logs,
-            'fake_relevant_distribution': self.fake_relevant_distribution,
+            'fake_relevant_distribution': self.unwrapped.fake_relevant_distribution,
             
             
             # 'quota_used_pct': (self.quota - self.remaining_quota) / self.quota
@@ -592,7 +590,7 @@ class Action8(Action):
             distribution /= (np.sum(distribution) + 1e-8) 
             
             diversity_list = action[len(self.top_logtypes):]
-            num_logs = 0.2 * self.current_real_quantity
+            num_logs = self.config.additional_percentage * self.current_real_quantity
             self.inserted_logs = 0
             self.current_logs = {}
             # self.remaining_quota = self.quota - num_logs
@@ -608,9 +606,8 @@ class Action8(Action):
                 # log_count = int(distribution[i] * 0.005 * self.unwrapped._normalize_factor)
                 self.inserted_logs += log_count
                 self.episodic_inserted_logs += log_count
- 
+                diversity = 0
                 if log_count > 0:
-                    diversity = 0
                     if logtype in self.relevant_logtypes:
                         diversity = float(diversity_list[self.relevant_logtypes.index(logtype)])
                     is_trigger = int(np.ceil(diversity))
