@@ -26,3 +26,4 @@ SplunkResearch/best_parallel_exp
 *.png
 paper_results
 elastic-start-local
+logs_resource

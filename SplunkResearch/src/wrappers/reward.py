@@ -214,7 +214,7 @@ class EnergyRewardWrapper(RewardWrapper):
             energy_reward = np.clip(energy_reward, 0, 1) # Normalize to [0, 1]
             info['energy_reward'] = energy_reward
             # reward +=  energy_reward
-            reward += self.step_counter*0.33*energy_reward
+            reward += self.alpha*energy_reward
             # reward = energy_reward/(reward + self.epsilon)
             # reward += self.alpha * energy_reward
             
@@ -276,7 +276,7 @@ class AlertRewardWrapper(RewardWrapper):
             
             info['alert_reward'] = alert_reward
             # reward += alert_reward
-            reward +=self.step_counter* 0.33 * alert_reward
+            reward +=self.beta * alert_reward
 
             # reward /= (alert_reward + self.epsilon)
         return obs, reward, terminated, truncated, info
@@ -366,33 +366,29 @@ class DistributionRewardWrapper(RewardWrapper):
         # self.update_fake_distribution(self.episode_logs)
 
         step_counter = info.get('step', 0)
-        if  random.randint(0, 10) % self.distribution_reward_freq == 0:
-            dist_value = self._calculate_distribution_value(
-                self.real_state,
-                self.fake_state
-            )
-            info['distribution_value'] = dist_value
-            dist_reward = self._calculate_distribution_reward(dist_value)
-            # dist_reward /= 0.6 # NOrmalize the reward
-            info['distribution_reward'] = dist_reward
+        # if  random.randint(0, 10) % self.distribution_reward_freq == 0:
+        #     dist_value = self._calculate_distribution_value(
+        #         self.unwrapped.real_state,
+        #         self.unwrapped.fake_state
+        #     )
+            # info['distribution_value'] = dist_value
+            # dist_reward = self._calculate_distribution_reward(dist_value)
+            # # dist_reward /= 0.6 # NOrmalize the reward
+            # info['distribution_reward'] = dist_reward
+            # # reward += dist_reward
             # reward += dist_reward
-            if dist_reward > -0.05:
-                reward = 1
-            else:
-                # reward += 0
-                reward += dist_reward
 
                 # reward += self.gamma * dist_reward
         if info.get('done', True) :
             dist_value = self._calculate_distribution_value(
-                self.ac_real_state,
-                self.ac_fake_state
+                self.unwrapped.ac_real_state,
+                self.unwrapped.ac_fake_state
             )
             info['ac_distribution_value'] = dist_value
             dist_reward = self._calculate_distribution_reward(dist_value)
             # dist_reward /= 0.6 # NOrmalize the reward
             info['ac_distribution_reward'] = dist_reward
-            reward += self.step_counter * 0.33*dist_reward
+            reward += self.gamma*dist_reward
             # reward += dist_reward
             # if dist_reward == 0:
             #     reward = 0
@@ -414,6 +410,7 @@ class DistributionRewardWrapper(RewardWrapper):
         #     self.gamma *= 0.5
         # return -self.gamma * distribution_value
         return -distribution_value
+        # return -(distribution_value*100)*3
         # return np.log(1-distribution_value)
      
     def _calculate_distribution_value(self, real_dist, fake_dist):

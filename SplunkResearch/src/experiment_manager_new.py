@@ -123,7 +123,9 @@ class ExperimentManager:
         # env = Action(env)
         # env = SngleAction(env, config.use_random_agent)
         env = Action8(env, config.use_random_agent)
+        env = TimeWrapper(env)
         
+        env = StateWrapper3(env)
         # if config.use_random_agent:
         #     env = RandomAction(env)
 
@@ -167,9 +169,7 @@ class ExperimentManager:
         # env = ClipRewardWrapper(env,
         #                         low=0,
         #                         high=1)
-        env = TimeWrapper(env)
-        
-        env = StateWrapper3(env)
+
 
         return env
 
@@ -481,7 +481,7 @@ if __name__ == "__main__":
         # savedsearches=["rule1", "rule2"],
         logs_per_minute=150,
         additional_percentage=.5,
-        action_duration=7200,
+        action_duration=7200*12,
         num_of_measurements=1,
         baseline_num_of_measurements=1,
         env_id="splunk_train-v32",
@@ -489,13 +489,17 @@ if __name__ == "__main__":
     )
     experiment_config = ExperimentConfig(
         env_config=env_config,
-        model_type="ddpg",
+        model_type="ppo",
         policy_type="MlpPolicy",
-        learning_rate=3e-4,
+        learning_rate=1e-4,
         num_episodes=12000,
         n_steps=256,
-        ent_coef="auto",
-        gamma=0.99,
+        ent_coef=0,
+        gamma=1,
+        gamma_dist=1,#0.4,
+        alpha_energy=0.2,
+        beta_alert=0.4,
+    
         experiment_name="test_experiment",
         use_alert_reward=False,
         use_energy_reward=False,

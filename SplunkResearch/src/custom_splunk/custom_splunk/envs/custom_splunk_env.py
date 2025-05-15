@@ -166,7 +166,7 @@ class SplunkEnv(gym.Env):
  
     def _check_termination(self) -> bool:
         """Check if episode should terminate"""
-        if self.step_counter >= self.total_steps:
+        if self.step_counter == self.total_steps:
             return True
 
         return False
@@ -188,12 +188,7 @@ class SplunkEnv(gym.Env):
         # Optional: set random seed
         if seed is not None:
             super().reset(seed=seed)
-        self.fake_distribution = {logtype: 0 for logtype in self.top_logtypes}
-        self.fake_distribution['other'] = 0
-        self.fake_relevant_distribution = {"_".join(logtype): 0 for logtype in self.top_logtypes}
 
-        self.ac_fake_distribution = {logtype: 0 for logtype in self.top_logtypes}
-        self.ac_fake_distribution['other'] = 0
 
         # Reset counters and tracking
         self.step_counter = 0
