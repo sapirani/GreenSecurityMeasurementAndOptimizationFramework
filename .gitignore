@@ -9,3 +9,7 @@ session_log.log
 *.csv
 *.json
 .vscode
+experiments
+unused_folders
+*.template
+*.png
