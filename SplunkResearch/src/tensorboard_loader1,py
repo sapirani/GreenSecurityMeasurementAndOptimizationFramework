@@ -1,0 +1,193 @@
+import pandas as pd
+from tensorflow.python.summary.summary_iterator import summary_iterator
+from collections import defaultdict
+import glob
+import os
+
+def extract_security_runs(base_dir):
+    """
+    Extract TensorBoard data from security-related runs into a pandas DataFrame.
+    
+    Args:
+        base_dir (str): Base directory containing run directories
+        
+    Returns:
+        pd.DataFrame: DataFrame containing steps and values for each run
+    """
+    # Dictionary to store data
+    data = defaultdict(lambda: defaultdict(list))
+    
+    # Get all subdirectories that match the pattern
+    run_dirs = glob.glob(os.path.join(base_dir, "train_*"))
+    
+    for run_dir in run_dirs:
+        run_name = os.path.basename(run_dir)
+        
+        # Find event files in this directory
+        event_files = glob.glob(os.path.join(run_dir, "events.out.tfevents.*"))
+        
+        for event_file in event_files:
+            try:
+                for event in summary_iterator(event_file):
+                    if not event.summary.value:
+                        continue
+                    
+                    step = event.step
+                    wall_time = event.wall_time
+                    
+                    for value in event.summary.value:
+                        # Extract the tag and handle different value types
+                        tag = value.tag
+                        if hasattr(value, 'simple_value'):
+                            val = value.simple_value
+                        else:
+                            continue
+                        
+                        # Store data
+                        data[run_name]['step'].append(step)
+                        data[run_name]['value'].append(val)
+                        data[run_name]['wall_time'].append(wall_time)
+                        data[run_name]['tag'].append(tag)
+                        
+            except Exception as e:
+                print(f"Error reading {event_file}: {e}")
+                continue
+    
+    # Convert to DataFrame
+    dfs = []
+    for run_name, values in data.items():
+        if values['step']:  # Check if we have any data
+            df = pd.DataFrame({
+                'step': values['step'],
+                'value': values['value'],
+                'wall_time': values['wall_time'],
+                'tag': values['tag']
+            })
+            df['run_name'] = run_name
+            
+            # Extract metadata from run_name
+            if 'episodic_policy' in run_name:
+                # Parse episodic policy runs
+                parts = run_name.split('_')
+                df['run_type'] = 'episodic_policy'
+                df['log_type'] = parts[3] if len(parts) > 3 else ''
+                df['event_id'] = parts[4] if len(parts) > 4 else ''
+                df['sub_id'] = parts[5] if len(parts) > 5 else ''
+            elif 'rules' in run_name:
+                # Parse rules-related runs
+                df['run_type'] = 'rules'
+                # Extract rule type (alert, duration, etc.)
+                if 'alert' in run_name:
+                    df['rule_type'] = 'alert'
+                elif 'duration' in run_name:
+                    df['rule_type'] = 'duration'
+                else:
+                    df['rule_type'] = 'other'
+                # Clean and store the rule description
+                rule_desc = '_'.join(run_name.split('_')[3:])
+                df['rule_description'] = rule_desc
+            
+            dfs.append(df)
+    
+    if not dfs:
+        return pd.DataFrame()
+    
+    # Combine all data
+    final_df = pd.concat(dfs, ignore_index=True)
+    
+    # Add timestamp column in readable format
+    final_df['timestamp'] = pd.to_datetime(final_df['wall_time'], unit='s')
+    
+    # Reorder columns for better readability
+    columns = ['run_name', 'run_type', 'log_type', 'event_id', 'sub_id', 
+              'rule_type', 'rule_description', 'step', 'value', 
+              'timestamp', 'wall_time', 'tag']
+    
+    final_df = final_df[columns]
+    return final_df
+
+def analyze_security_runs(df):
+    """
+    Generate summary analysis of security runs.
+    
+    Args:
+        df (pd.DataFrame): DataFrame from extract_security_runs
+        
+    Returns:
+        dict: Summary statistics and analysis
+    """
+    summary = {
+        'total_runs': df['run_name'].nunique(),
+        'episodic_policy_runs': df[df['run_type'] == 'episodic_policy']['run_name'].nunique(),
+        'rules_runs': df[df['run_type'] == 'rules']['run_name'].nunique(),
+        'unique_log_types': df['log_type'].unique().tolist(),
+        'unique_event_ids': df['event_id'].unique().tolist(),
+        'time_range': {
+            'start': df['timestamp'].min(),
+            'end': df['timestamp'].max()
+        },
+        'max_steps': df['step'].max()
+    }
+    
+    return summary
+
+def plot_security_runs(df, run_type=None, metric=None, smooth_factor=0.6):
+    """
+    Plot security run data with TensorBoard-like visualization.
+    
+    Args:
+        df (pd.DataFrame): DataFrame from extract_security_runs
+        run_type (str, optional): Filter by run type ('episodic_policy' or 'rules')
+        metric (str, optional): Filter by specific metric/tag
+        smooth_factor (float): Smoothing factor for the plot (0 to 1)
+    """
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    
+    # Filter data
+    plot_df = df.copy()
+    if run_type:
+        plot_df = plot_df[plot_df['run_type'] == run_type]
+    if metric:
+        plot_df = plot_df[plot_df['tag'] == metric]
+    
+    # Create figure
+    plt.figure(figsize=(15, 8))
+    
+    # Plot each run
+    for run_name in plot_df['run_name'].unique():
+        run_data = plot_df[plot_df['run_name'] == run_name].sort_values('step')
+        
+        # Apply smoothing
+        if smooth_factor > 0:
+            smooth_value = run_data['value'].ewm(alpha=(1 - smooth_factor)).mean()
+        else:
+            smooth_value = run_data['value']
+        
+        plt.plot(run_data['step'], smooth_value, label=run_name, alpha=0.8)
+    
+    plt.grid(True, alpha=0.3)
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.title(f'Security Runs: {run_type if run_type else "All"} - {metric if metric else "All Metrics"}')
+    plt.xlabel('Step')
+    plt.ylabel('Value')
+    plt.tight_layout()
+    plt.show()
+
+# Example usage:
+if __name__ == "__main__":
+    # Replace with your TensorBoard log directory
+    base_dir = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments_____/train/tensorboard/train_20241118_160536_1"
+    
+    # Extract data
+    df = extract_security_runs(base_dir)
+    
+    # Get summary statistics
+    summary = analyze_security_runs(df)
+    print("\nSummary:")
+    for key, value in summary.items():
+        print(f"{key}: {value}")
+    
+    # Plot different views of the data
+    plot_security_runs(df, run_type='episodic_policy')
+    plot_security_runs(df, run_type='rules')
