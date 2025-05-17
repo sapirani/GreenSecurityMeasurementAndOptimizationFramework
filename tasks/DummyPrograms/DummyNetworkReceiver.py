@@ -1,6 +1,6 @@
 import os
 import socket
-UDP_IP = "192.168.1.117"
+UDP_IP = "192.168.1.145"
 UDP_PORT = 12345
 TIMEOUT = 2.0
 BUFFER_SIZE = 1024
