@@ -4,7 +4,7 @@ import sys
 import time
 import psutil
 
-UDP_IP = "192.168.1.145"
+UDP_IP = "192.168.1.117"
 UDP_PORT = 12345
 DEFAULT_TIME_INTERVAL = 0.01
 PACKET_SIZE = 1024

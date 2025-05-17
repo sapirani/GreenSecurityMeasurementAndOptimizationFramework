@@ -1,13 +1,13 @@
 from general_consts import *
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.NetworkSender
-background_programs_types = [] #[ProgramToScan.NetworkSender]
+main_program_to_scan = ProgramToScan.NO_SCAN
+background_programs_types = []
 
 kill_background_process_when_main_finished = True
 summary_version = SummaryVersion.OTHER
 
-scanner_version = ScannerVersion.WITHOUT_BATTERY
+scanner_version = ScannerVersion.FULL
 
 power_plan = PowerPlan.BALANCED
 scan_option = ScanMode.ONE_SCAN
