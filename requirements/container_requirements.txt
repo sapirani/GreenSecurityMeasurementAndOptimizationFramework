@@ -5,3 +5,6 @@ pandas==2.2.3
 prettytable==3.3.0
 psutil==7.0.0
 scapy==2.5.0
+
+elasticsearch==9.0.1
+human-id==0.2.0

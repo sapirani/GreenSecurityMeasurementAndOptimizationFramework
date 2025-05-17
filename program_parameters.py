@@ -2,7 +2,7 @@ from general_consts import *
 
 # ======= Scanner Parameters =======
 main_program_to_scan = ProgramToScan.NO_SCAN
-background_programs_types = []
+background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = True
 summary_version = SummaryVersion.OTHER
@@ -39,7 +39,12 @@ screen_brightness_level = 75    # A number between 0 and 100
 DEFAULT_SCREEN_TURNS_OFF_TIME = 4
 DEFAULT_TIME_BEFORE_SLEEP_MODE = 4
 
-is_inside_container = False
+is_inside_container = True
+
+# ==== Elastic logging configuration
+elastic_url = "http://localhost:9200"
+elastic_username = "elastic"
+elastic_password = "t2gO98ya"
 
 # ==== ClamAV configurations
 recursive = True
