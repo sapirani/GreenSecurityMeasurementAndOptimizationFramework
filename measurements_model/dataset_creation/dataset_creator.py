@@ -7,7 +7,7 @@ from measurements_model.dataset_creation.summary_version_columns import DuduSumm
 
 IS_NO_SCAN_MODE = True
 IDLE_SUMMARY_VERSION = DuduSummaryVersionCols()
-MEASUREMENTS_SUMMARY_VERSION = OtherSummaryVersionCols()
+MEASUREMENTS_SUMMARY_VERSION = DuduSummaryVersionCols()
 PROCESS_NAME = "HeavyLoad.exe" # todo: change accordingly to the process that we want to monitor
 
 

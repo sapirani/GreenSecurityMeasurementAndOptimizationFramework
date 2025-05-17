@@ -16,6 +16,7 @@ class BestModelConfig:
     }
 
 
+KB = 1000
 ENERGY_CONSUMPTION_PER_KBYTE_SENT = 0.00587
 ENERGY_CONSUMPTION_PER_KBYTE_RECEIVED = 0.1161
 
@@ -35,11 +36,11 @@ class MeasurementsModel:
     def __calculate_network_energy_usage(self, row) -> float:
         network_energy_addition = 0
         if self.__network_sent_bytes_column in row:
-            network_energy_addition += row[self.__network_sent_bytes_column] * 1000 * ENERGY_CONSUMPTION_PER_KBYTE_SENT
+            network_energy_addition += row[self.__network_sent_bytes_column] * KB * ENERGY_CONSUMPTION_PER_KBYTE_SENT
 
         if self.__network_received_bytes_column in row:
             network_energy_addition += row[
-                                           self.__network_received_bytes_column] * 1000 * ENERGY_CONSUMPTION_PER_KBYTE_RECEIVED
+                                           self.__network_received_bytes_column] * KB * ENERGY_CONSUMPTION_PER_KBYTE_RECEIVED
 
         return network_energy_addition
 
@@ -51,6 +52,7 @@ class MeasurementsModel:
         return np.array([self.__calculate_network_energy_usage(row) for row in X])
 
     def predict(self, X):
-        y_pred = self.__model.predict(X)
+        X_without_network = self.__feature_selector_no_network.select_features(X)
+        y_pred = self.__model.predict(X_without_network)
         y_pred = np.array(y_pred) + self.__calculate_total_network_energy_usage(X)
         return y_pred
