@@ -3,12 +3,8 @@ import pandas as pd
 
 from measurements_model.config import IDLEColumns, SystemColumns, ProcessColumns, NO_ENERGY_MEASURED
 from measurements_model.dataset_creation.measurement_extractor import MeasurementExtractor
-from measurements_model.dataset_creation.summary_version_columns import DuduSummaryVersionCols, OtherSummaryVersionCols
-
-IS_NO_SCAN_MODE = True
-IDLE_SUMMARY_VERSION = DuduSummaryVersionCols()
-MEASUREMENTS_SUMMARY_VERSION = DuduSummaryVersionCols()
-PROCESS_NAME = "HeavyLoad.exe" # todo: change accordingly to the process that we want to monitor
+from measurements_model.main_model_configuration import IDLE_SUMMARY_VERSION, MEASUREMENTS_SUMMARY_VERSION, IS_NO_SCAN_MODE, \
+    PROCESS_NAME
 
 
 class DatasetCreator:

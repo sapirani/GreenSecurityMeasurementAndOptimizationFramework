@@ -49,7 +49,7 @@ class MeasurementsModel:
                 (self.__network_sent_bytes_column not in X and self.__network_received_bytes_column not in X):
             return np.zeros(len(X))
 
-        return np.array([self.__calculate_network_energy_usage(row) for row in X])
+        return np.array([self.__calculate_network_energy_usage(row) for _, row in X.iterrows()])
 
     def predict(self, X):
         X_without_network = self.__feature_selector_no_network.select_features(X)
