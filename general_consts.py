@@ -61,6 +61,8 @@ class ProgramToScan(Enum):
     MemoryConsumer = 10
     IOWriteConsumer = 11
     PythonServer = 12
+    NetworkReceiver = 13
+    NetworkSender = 14
 
 
 class ScanMode(Enum):

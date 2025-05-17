@@ -1,9 +1,12 @@
 SCORING_METHODS_FOR_MODEL = ['neg_mean_absolute_error', 'neg_root_mean_squared_error']
 
+NO_ENERGY_MEASURED = -1
 
 # Paths
 IDLE_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\idle\Measurement 427"
-ALL_MEASUREMENTS_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources"
+ALL_MEASUREMENTS_DUDU_VERSION_NO_NETWORK_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources_dudu_summary"
+ALL_MEASUREMENTS_OTHER_VERSION_WITH_NETWORK_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_other_summary"
+
 FULL_DATASET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_dataset.csv"
 FULL_PREPROCESSED_DATASET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_preprocessed_dataset.csv"
 DATASET_AFTER_FEATURE_SELECTION_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\dataset_after_feature_selection.csv"
@@ -29,14 +32,18 @@ class SummaryFieldsOtherVersion:
     CPU = "CPU"
     MEMORY = "Memory (MB)"
     PAGE_FAULTS = "Page Faults"
-    IO_READ_BYTES = "IO Read (KB - sum)"
-    IO_READ_COUNT = "IO Read Count (# - sum)"
-    IO_WRITE_BYTES = "IO Write (KB - sum)"
-    IO_WRITE_COUNT = "IO Write Count (# - sum)"
+    DISK_IO_READ_BYTES = "Disk IO Read (KB - sum)"
+    DISK_IO_READ_COUNT = "Disk IO Read Count (# - sum)"
+    DISK_IO_WRITE_BYTES = "Disk IO Write (KB - sum)"
+    DISK_IO_WRITE_COUNT = "Disk IO Write Count (# - sum)"
     DISK_IO_READ_TIME = "Disk IO Read Time (ms - sum)"
     DISK_IO_WRITE_TIME = "Disk IO Write Time (ms - sum)"
+    NETWORK_SENT_TOTAL = "Network Size Sent (KB - sum)"
+    NETWORK_SENT_PACKET_COUNT = "Network Packets Sent (# - sum)"
+    NETWORK_RECEIVED_TOTAL = "Network Size Received (KB - sum)"
+    NETWORK_RECEIVED_PACKET_COUNT = "Network Packets Received (# - sum)"
     ENERGY_CONSUMPTION = "Energy consumption - total energy(mwh)"
-    TOTAL_COLUMN = "Toal"
+    TOTAL_COLUMN = "Total"
     PROCESS_COLUMN = "ClamAV" # TODO: change according to the process
 
 class SummaryFieldsDuduVersion:
@@ -73,6 +80,10 @@ class AllProcessesFileFields:
     DISK_WRITE_BYTES = "WRITE_IO(KB)"
     DISK_WRITE_COUNT = "WRITE_IO(#)"
     PAGE_FAULTS = "PAGE_FAULTS"
+    NETWORK_BYTES_SENT = "NETWORK_DATA_SENT(KB)"
+    NETWORK_PACKETS_SENT = "PACKETS_SENT(#)"
+    NETWORK_BYTES_RECEIVED = "NETWORK_BYTES_RECEIVED(KB)"
+    NETWORK_PACKETS_RECEIVED = "PACKETS_RECEIVED(#)"
 
 # Hardware Information File related
 HARDWARE_INFORMATION_NAME = 'hardware_information.csv'
@@ -87,7 +98,10 @@ class ProcessColumns:
     DISK_READ_COUNT_PROCESS_COL = "disk_read_count_usage_process"
     DISK_WRITE_BYTES_PROCESS_COL = "disk_write_bytes_usage_process"
     DISK_WRITE_COUNT_PROCESS_COL = "disk_write_count_usage_process"
-    PAGE_FAULTS_PROCESS_COL = "number_of_page_faults_process"
+    NETWORK_BYTES_SENT_PROCESS_COL = "network_bytes_sum_sent_process"
+    NETWORK_PACKETS_SENT_PROCESS_COL = "network_packets_sum_sent_process"
+    NETWORK_BYTES_RECEIVED_PROCESS_COL = "network_bytes_sum_received_process"
+    NETWORK_PACKETS_RECEIVED_PROCESS_COL = "network_packets_sum_received_process"
     ENERGY_USAGE_PROCESS_COL = "energy_consumption_process_mWh"  # total - idle, Target col
 
 
@@ -101,6 +115,10 @@ class SystemColumns:
     DISK_WRITE_COUNT_SYSTEM_COL = "disk_write_count_usage_system"
     DISK_READ_TIME = "disk_read_time_system_ms_sum"
     DISK_WRITE_TIME = "disk_write_time_system_ms_sum"
+    NETWORK_BYTES_SENT_SYSTEM_COL = "network_bytes_sum_sent_system"
+    NETWORK_PACKETS_SENT_SYSTEM_COL = "network_packets_sum_sent_system"
+    NETWORK_BYTES_RECEIVED_SYSTEM_COL = "network_bytes_sum_received_system"
+    NETWORK_PACKETS_RECEIVED_SYSTEM_COL = "network_packets_sum_received_system"
 
     DURATION_COL = "duration_system"  # ??? maybe give up
     ENERGY_TOTAL_USAGE_SYSTEM_COL = "total_energy_consumption_system_mWh"

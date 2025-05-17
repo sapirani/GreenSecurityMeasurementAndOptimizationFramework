@@ -1,13 +1,10 @@
 from pathlib import Path
 import pandas as pd
 
-from measurements_model.config import IDLEColumns, SystemColumns, ProcessColumns
+from measurements_model.config import IDLEColumns, SystemColumns, ProcessColumns, NO_ENERGY_MEASURED
 from measurements_model.dataset_creation.measurement_extractor import MeasurementExtractor
-from measurements_model.dataset_creation.summary_version_columns import DuduSummaryVersionCols
-
-IS_NO_SCAN_MODE = True
-SUMMARY_VERSION = DuduSummaryVersionCols()
-PROCESS_NAME = "HeavyLoad.exe"
+from measurements_model.main_model_configuration import IDLE_SUMMARY_VERSION, MEASUREMENTS_SUMMARY_VERSION, IS_NO_SCAN_MODE, \
+    PROCESS_NAME
 
 
 class DatasetCreator:
@@ -16,7 +13,7 @@ class DatasetCreator:
         self.__measurements_dir_path = measurements_dir_path
 
     def __read_idle_stats(self) -> dict[str, any]:
-        idle_extractor = MeasurementExtractor(SUMMARY_VERSION, self.__idle_dir_path)
+        idle_extractor = MeasurementExtractor(IDLE_SUMMARY_VERSION, self.__idle_dir_path)
         idle_results = idle_extractor.extract_system_summary_result()
         return {
             IDLEColumns.DURATION_COL: idle_results[SystemColumns.DURATION_COL],
@@ -33,14 +30,17 @@ class DatasetCreator:
         }
 
     def __extract_sample(self, measurement_dir: str, idle_results: dict[str, any]) -> pd.Series:
-        measurement_extractor = MeasurementExtractor(summary_version=SUMMARY_VERSION,
+        measurement_extractor = MeasurementExtractor(summary_version=MEASUREMENTS_SUMMARY_VERSION,
                                                      measurement_dir=measurement_dir)
         system_summary_results = measurement_extractor.extract_system_summary_result()
         process_summary_results = measurement_extractor.extract_process_summary_result(no_scan_mode=IS_NO_SCAN_MODE,
                                                                                        process_name=PROCESS_NAME)
         hardware_results = measurement_extractor.extract_hardware_result()
-        process_energy_value = system_summary_results[SystemColumns.ENERGY_TOTAL_USAGE_SYSTEM_COL] - \
-                               idle_results[IDLEColumns.ENERGY_TOTAL_USAGE_IDLE_COL]
+
+        system_total_energy_consumption = system_summary_results[SystemColumns.ENERGY_TOTAL_USAGE_SYSTEM_COL]
+        idle_energy_consumption = idle_results[IDLEColumns.ENERGY_TOTAL_USAGE_IDLE_COL]
+
+        process_energy_value = system_total_energy_consumption - idle_energy_consumption if system_total_energy_consumption > 0 else NO_ENERGY_MEASURED
         new_sample = {**process_summary_results, **system_summary_results, **idle_results, **hardware_results,
                       ProcessColumns.ENERGY_USAGE_PROCESS_COL: process_energy_value}
 

@@ -2,9 +2,25 @@ import os.path
 
 import SummaryVersionImp
 from program_parameters import *
-from program_classes import *
 from os_funcs import *
 from scanner_versions_imp import FullScanner, LiteScanner, WithoutBatteryScanner
+from tasks.program_classes.antiviruses.clam_av_program import ClamAVProgram
+from tasks.program_classes.antiviruses.defender_program import DefenderProgram
+from tasks.program_classes.antiviruses.dummy_antivirus_program import DummyAntivirusProgram
+from tasks.program_classes.antiviruses.sophos_av_program import SophosAVProgram
+from tasks.program_classes.dummy_cpu_consumer_program import CPUConsumer
+from tasks.program_classes.dummy_io_writer_consumer_program import IOWriteConsumer
+from tasks.program_classes.dummy_memory_consumer_program import MemoryConsumer
+from tasks.program_classes.ids.snort_program import SnortProgram
+from tasks.program_classes.ids.suricata_program import SuricataProgram
+from tasks.program_classes.log_anomaly_detection_program import LogAnomalyDetection
+from tasks.program_classes.network_receiver_program import NetworkReceiver
+from tasks.program_classes.network_sender_program import NetworkSender
+from tasks.program_classes.no_scan_program import NoScanProgram
+from tasks.program_classes.perfmon_monitoring_program import PerfmonProgram
+from tasks.program_classes.server_program import PythonServer
+from tasks.program_classes.splunk_program import SplunkProgram
+from tasks.program_classes.user_activity_program import UserActivityProgram
 
 # ======= Get Operating System Type =======
 running_os = None
@@ -79,6 +95,10 @@ def program_to_scan_factory(program_type):
         return IOWriteConsumer(custom_scan_path)
     if program_type == ProgramToScan.PythonServer:
         return PythonServer()
+    if program_type == ProgramToScan.NetworkReceiver:
+        return NetworkReceiver()
+    if program_type == ProgramToScan.NetworkSender:
+        return NetworkSender(time_interval=time_interval, running_time=RUNNING_TIME)
 
     raise Exception("choose program to scan from ProgramToScan enum")
 
