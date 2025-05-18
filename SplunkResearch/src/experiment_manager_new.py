@@ -123,9 +123,8 @@ class ExperimentManager:
         # env = Action(env)
         # env = SngleAction(env, config.use_random_agent)
         env = Action8(env, config.use_random_agent)
-        env = TimeWrapper(env)
         
-        env = StateWrapper3(env)
+
         # if config.use_random_agent:
         #     env = RandomAction(env)
 
@@ -169,7 +168,8 @@ class ExperimentManager:
         # env = ClipRewardWrapper(env,
         #                         low=0,
         #                         high=1)
-
+        env = TimeWrapper(env)
+        env = StateWrapper3(env)
 
         return env
 
