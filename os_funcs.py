@@ -443,7 +443,12 @@ class LinuxOS(OSFuncsInterface):
         if res.returncode != 0 and psutil.pid_exists(psutil_process.pid):
             raise Exception(f'An error occurred while getting process {psutil_process.pid} page faults', res.stderr)
 
-        faults_res = res.stdout.decode("utf-8").strip().split("\n")[1].split()
+        output_lines = res.stdout.decode("utf-8").strip().split("\n")
+
+        if len(output_lines) < 2:
+            return 0
+
+        faults_res = output_lines[1].split()
         minor_faults, major_faults = int(faults_res[0].strip()), int(faults_res[1].strip())
         return minor_faults + major_faults
 
