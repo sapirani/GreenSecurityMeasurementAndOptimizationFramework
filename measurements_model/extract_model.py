@@ -9,9 +9,7 @@ from measurements_model.dataset_processing.split_data.regular_spliter import Reg
 from measurements_model.main_model import BestModelConfig
 from measurements_model.main_model_configuration import ALL_MEASUREMENTS_DIRS_PATH
 
-
 MODEL_FILE_NAME = "energy_prediction_model.pkl"
-
 
 if __name__ == '__main__':
     feature_selector = ProcessAndSystemNoHardware()
@@ -22,7 +20,7 @@ if __name__ == '__main__':
                                                feature_selector=feature_selector, dataset_spliter=dataset_splitter)
     X_train, X_test, y_train, y_test = dataset_pipeline.split_dataset()
 
-    model = BestModelConfig.MODEL_NAME(**BestModelConfig.MODEL_PARAMETERS) # todo: change accordingly
+    model = BestModelConfig.MODEL_NAME(**BestModelConfig.MODEL_PARAMETERS)  # todo: change accordingly
     model.fit(X_train, y_train)
     # Save the model as a pickle in a file
     joblib.dump(model, MODEL_FILE_NAME)

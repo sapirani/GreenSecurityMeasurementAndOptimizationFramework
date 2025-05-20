@@ -27,6 +27,5 @@ def run_grid_search(algs: dict):
     print(f"\nThe best model is:\n{best_model}")
 
 
-
 if __name__ == "__main__":
     run_grid_search(MODELS_WITHOUT_PARAMETERS)
