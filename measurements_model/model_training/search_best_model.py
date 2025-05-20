@@ -20,11 +20,11 @@ PARAMS_FIELD_IN_GRID = "params"
 
 class ModelSelector:
 
-    def __init__(self, num_of_splits: int = 5, num_of_top_models: int = 5):
+    def __init__(self, models_to_experiment: list[dict], num_of_splits: int = 5, num_of_top_models: int = 5):
         self.__initial_model = (CLASSIFIER_KEYWORD, LogisticRegression())
         self.__num_of_splits = num_of_splits
         self.__num_of_top_models = num_of_top_models
-        self.__models_to_experiment = MODELS_WITHOUT_PARAMETERS
+        self.__models_to_experiment = models_to_experiment
 
     def __print_grid_search_top_models(self, best_models, score_method: str):
         print(f"~~~~~~~~~~~~~~~ Best {self.__num_of_top_models} models based on {score_method} score ~~~~~~~~~~~~~~~")

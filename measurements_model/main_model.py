@@ -1,18 +1,16 @@
 from typing import Optional
 
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
 
 from measurements_model.dataset_processing.feature_selection.all_features_no_network import AllFeaturesNoNetwork
 
 
 class BestModelConfig:
-    MODEL_NAME = RandomForestRegressor
+    MODEL_NAME = HistGradientBoostingRegressor
     MODEL_PARAMETERS = {
-        "n_estimators": 500,
-        "max_features": 'sqrt',
-        "max_depth": 7,
-        "min_samples_split": 5
+        "max_depth": 11,
+        "min_samples_leaf": 10
     }
 
 
