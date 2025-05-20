@@ -1,5 +1,6 @@
 from ast import Tuple
 import asyncio
+import pickle
 import random
 import gymnasium as gym
 from gymnasium.core import RewardWrapper
@@ -34,12 +35,16 @@ class BaseRuleExecutionWrapper(RewardWrapper):
         self.baseline_path = self._get_baseline_path()
         self.baseline_df = self._load_baseline_table()
         
+        self.energy_models = {}
+        for rule in self.splunk_tools.active_saved_searches:
+            self.energy_models[rule] = pickle.load(open(f"/home/shouei/GreenSecurity-FirstExperiment/baseline_splunk_train-v32_2880_cpu_regressor_results/RandomForestRegressor_{rule}_with alert = 0.pkl", "rb"))
+        
     def _get_baseline_path(self) -> Path:
         """Get path for baseline data based on environment config"""
         env_id = self.env.config.env_id
         search_window = self.env.config.search_window
-        if self.is_mock:
-            return self.baseline_dir / f"mock_baseline_{env_id}_{search_window}.csv"
+        # if self.is_mock:
+        #     return self.baseline_dir / f"mock_baseline_{env_id}_{search_window}.csv"
         return self.baseline_dir / f"baseline_{env_id}_{search_window}.csv"
         
     def _load_baseline_table(self) -> pd.DataFrame:
@@ -194,10 +199,24 @@ class BaseRuleExecutionWrapper(RewardWrapper):
     
 class EnergyRewardWrapper(RewardWrapper):
     """Wrapper for energy consumption rewards"""
-    def __init__(self, env: gym.Env, alpha: float = 0.5):
+    def __init__(self, env: gym.Env, alpha: float = 0.5,is_mock: bool = False):
         super().__init__(env)
         self.alpha = alpha
-        
+        self.is_mock = is_mock
+    
+    def estimate_energy_consumption(self):
+        # Placeholder for energy consumption estimation logic
+        # This should return the estimated energy consumption for the current state
+        cpu_dict = {}
+        for rule in self.splunk_tools.active_saved_searches:
+            # Use the energy model to estimate energy consumption
+            model = self.energy_models[rule]
+            # Assuming the model has a predict method
+            # Replace with actual prediction logic
+            estimated_energy = model.predict(self.ac_fake_state.reshape(1, -1))[0]
+            cpu_dict[rule] = estimated_energy
+        return cpu_dict
+    
     def step(self, action):
         """Override step to properly handle info updates"""
         obs, reward, terminated, truncated, info = self.env.step(action)
@@ -206,15 +225,23 @@ class EnergyRewardWrapper(RewardWrapper):
             reward = 0
 
         if info.get('done', True):
+            if self.is_mock:                                           
+                cpu_dict = self.estimate_energy_consumption()
+                for rule in self.splunk_tools.active_saved_searches:
+                    info['raw_metrics'][rule]['cpu'] = cpu_dict[rule]
+                info['combined_metrics']['cpu'] = sum(cpu_dict.values())
             current = info['combined_metrics']['cpu']
+
             baseline = info['combined_baseline_metrics']['cpu']
+
+            
             energy_reward = (current - baseline) / baseline
             if energy_reward <= 0.1:
                 energy_reward = 0
             energy_reward = np.clip(energy_reward, 0, 1) # Normalize to [0, 1]
             info['energy_reward'] = energy_reward
             # reward +=  energy_reward
-            reward += self.alpha*energy_reward
+            reward += self.unwrapped.total_steps*self.alpha*energy_reward
             # reward = energy_reward/(reward + self.epsilon)
             # reward += self.alpha * energy_reward
             
@@ -371,15 +398,15 @@ class DistributionRewardWrapper(RewardWrapper):
         #         self.unwrapped.real_state,
         #         self.unwrapped.fake_state
         #     )
-            # info['distribution_value'] = dist_value
-            # dist_reward = self._calculate_distribution_reward(dist_value)
-            # # dist_reward /= 0.6 # NOrmalize the reward
-            # info['distribution_reward'] = dist_reward
-            # # reward += dist_reward
-            # reward += dist_reward
+        #     info['distribution_value'] = dist_value
+        #     dist_reward = self._calculate_distribution_reward(dist_value)
+        #     # dist_reward /= 0.6 # NOrmalize the reward
+        #     info['distribution_reward'] = dist_reward
+        #     # reward += dist_reward
+        #     reward += dist_reward
 
                 # reward += self.gamma * dist_reward
-        if info.get('done', True) :
+        if info.get('done', True) or True:
             dist_value = self._calculate_distribution_value(
                 self.unwrapped.ac_real_state,
                 self.unwrapped.ac_fake_state
@@ -389,14 +416,14 @@ class DistributionRewardWrapper(RewardWrapper):
             # dist_reward /= 0.6 # NOrmalize the reward
             info['ac_distribution_reward'] = dist_reward
             reward += self.gamma*dist_reward
-            # reward += dist_reward
-            # if dist_reward == 0:
-            #     reward = 0
-            # else:
-            #     # reward += 0
-            #     reward += dist_reward
+            reward += dist_reward
+            if dist_reward == 0:
+                reward = 0
+            else:
+                # reward += 0
+                reward += dist_reward
 
-                # reward += self.gamma * dist_reward
+                reward += self.gamma * dist_reward
         # since this is the last wrapper, we can consider it as final reward
         logger.info(f"Reward: {reward}")  
         return obs, reward, terminated, truncated, info

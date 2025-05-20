@@ -142,7 +142,7 @@ class StateWrapper(ObservationWrapper):
         logger.info("Resetting StateWrapper")
         # Reset underlying environment first
         self.total_episode_logs = 0
-
+        self.unwrapped.done = False
         self.unwrapped.ac_real_distribution = {logtype: 0 for logtype in self.top_logtypes}
         self.unwrapped.ac_real_distribution['other'] = 0
         self.unwrapped.real_relevant_distribution = {"_".join(logtype): 0 for logtype in self.top_logtypes}
@@ -166,61 +166,6 @@ class StateWrapper(ObservationWrapper):
         
         return new_obs, info
 
-class StateWrapper2(StateWrapper):
-    """Manages log type distributions and state normalization"""
-
-    def __init__(self, env):
-        super().__init__(env)
-        self.observation_space = spaces.Box(
-            low=0,
-            high=1,
-            shape=(len(self.top_logtypes)*2 + self.env.total_steps,),  # +1 for 'other' category
-            dtype=np.float64
-        )
-        
-        
-    def observation(self, obs):
-        """Convert current distributions to normalized state"""
-        # Calculate fake distribution using the latest episode_logs
-        # This happens AFTER action wrapper has updated episode_logs
-        # Update real distribution AFTER action is executed
-        self.update_real_distribution(self.time_manager.action_window.to_tuple())
-
-        # Create state vectors
-        self.unwrapped.real_state = self._get_state_vector(self.unwrapped.real_distribution)
-        real_state = self._normalize(self.unwrapped.real_state)
-        self.real_relevant_distribution = {"_".join(logtype): real_state[self.relevant_logtypes_indices[logtype]] for logtype in self.top_logtypes}
-
-        self.unwrapped.fake_state = self._get_state_vector(self.fake_distribution)
-        fake_state = self._normalize(self.unwrapped.fake_state)
-        self.fake_relevant_distribution = {"_".join(logtype): fake_state[self.relevant_logtypes_indices[logtype]] for logtype in self.top_logtypes}
-        # Create the final state vector
-        state = np.append(real_state, fake_state)
-        # state = np.append(state, min(1, self.total_episode_logs/self._normalize_factor))
-        # fake_total_logs = self.total_episode_logs + sum(self.episode_logs.values())
-        # state = np.append(state, min(1, fake_total_logs/self._normalize_factor))
-        # append to state the step index
-        # state = np.append(state, self.env.step_counter/self.env.total_steps)
-        # add sparse vector for step index
-        sparse_vector = np.zeros(self.env.total_steps)
-        sparse_vector[self.unwrapped.step_counter] = 1
-        state = np.append(state, sparse_vector)
-        # current_datetime = datetime.datetime.strptime(self.env.time_manager.action_window.end, '%m/%d/%Y:%H:%M:%S')
-        # weekday_vector = np.zeros(7)
-        # weekday_vector[current_datetime.weekday()] = 1
-        # hour_vector = np.zeros(24)
-        # hour_vector[current_datetime.hour] = 1
-        # state = np.append(state, weekday_vector)
-        # state = np.append(state, hour_vector)
-        logger.info(f"State: {state}")
-        self.unwrapped.obs = state
-        return state
-    
-    def _normalize(self, state):
-        """Normalize state vector"""
-        return state / self.unwrapped._normalize_factor
-     
-
 class StateWrapper3(StateWrapper):
     """Manages log type distributions and state normalization"""
 
@@ -240,7 +185,8 @@ class StateWrapper3(StateWrapper):
         # Calculate fake distribution using the latest episode_logs
         # This happens AFTER action wrapper has updated episode_logs
         # Update real distribution AFTER action is executed
-        self.update_real_distribution(self.time_manager.action_window.to_tuple())
+        if not self.unwrapped.done:
+            self.update_real_distribution(self.time_manager.action_window.to_tuple())
 
         # Create state vectors
         real_state = self._get_state_vector(self.unwrapped.real_distribution)
@@ -248,8 +194,8 @@ class StateWrapper3(StateWrapper):
         ac_real_state = self._get_state_vector(self.unwrapped.ac_real_distribution)
         self.unwrapped.ac_real_state = self._normalize(ac_real_state)
         self.unwrapped.real_relevant_distribution = {"_".join(logtype): self.unwrapped.ac_real_state[self.relevant_logtypes_indices[logtype]] for logtype in self.top_logtypes}
-
-        self.update_fake_distribution_from_real()
+        if not self.unwrapped.done:
+            self.update_fake_distribution_from_real()
         self.unwrapped.fake_state = self._get_state_vector(self.unwrapped.fake_distribution)
         self.unwrapped.fake_state = self._normalize(self.fake_state)
         ac_fake_state = self._get_state_vector(self.unwrapped.ac_fake_distribution)
