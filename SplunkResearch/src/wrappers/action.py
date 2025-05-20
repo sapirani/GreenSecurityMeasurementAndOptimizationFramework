@@ -68,10 +68,11 @@ class Action(ActionWrapper):
             #     self.ac_fake_distribution['other'] += count
             
         # Normalize fake distribution
-        self.unwrapped.fake_state = np.array([self.fake_distribution[k]/(sum(self.fake_distribution.values())+1e-8) for k in self.top_logtypes if k != 'other'])
-        self.unwrapped.ac_fake_state = np.array([self.ac_fake_distribution[k]/(sum(self.ac_fake_distribution.values())+1e-8) for k in self.top_logtypes if k != 'other'])
-        self.unwrapped.fake_relevant_distribution = {"_".join(logtype): self.fake_state[self.relevant_logtypes_indices[logtype]] for logtype in self.top_logtypes}
-    
+        self.unwrapped.fake_state = np.array([self.unwrapped.fake_distribution[k]/(sum(self.unwrapped.fake_distribution.values())+1e-8) for k in self.top_logtypes if k != 'other'])
+        self.unwrapped.ac_fake_state = np.array([self.unwrapped.ac_fake_distribution[k]/(sum(self.unwrapped.ac_fake_distribution.values())+1e-8) for k in self.top_logtypes if k != 'other'])
+        self.unwrapped.fake_relevant_distribution = {"_".join(logtype): self.unwrapped.ac_fake_state[self.relevant_logtypes_indices[logtype]] for logtype in self.top_logtypes}
+        return
+        
     def action(self, action):
         """Convert raw action to log injection dictionary"""
         # Split action into quota and distribution
@@ -572,7 +573,7 @@ class Action8(Action):
             self.action_space = spaces.Box(
                 low=0,
                 high=1,
-                shape=(len(self.top_logtypes)+ len(self.relevant_logtypes),),
+                shape=(len(self.top_logtypes),),#+ len(self.relevant_logtypes),),
                 dtype=np.float32
             )
             self.diversity_episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
@@ -589,7 +590,7 @@ class Action8(Action):
             # distribution = np.exp(distribution) / np.sum(np.exp(distribution))
             distribution /= (np.sum(distribution) + 1e-8) 
             
-            diversity_list = action[len(self.top_logtypes):]
+            # diversity_list = action[len(self.top_logtypes):]
             num_logs = self.config.additional_percentage * self.current_real_quantity
             self.inserted_logs = 0
             self.current_logs = {}
@@ -609,7 +610,8 @@ class Action8(Action):
                 diversity = 0
                 if log_count > 0:
                     if logtype in self.relevant_logtypes:
-                        diversity = float(diversity_list[self.relevant_logtypes.index(logtype)])
+                        diversity = 0
+                        # diversity = float(diversity_list[self.relevant_logtypes.index(logtype)])
                     is_trigger = int(np.ceil(diversity))
                     key = f"{logtype[0]}_{logtype[1]}_{int(is_trigger)}"
                     logs_to_inject[key] = {

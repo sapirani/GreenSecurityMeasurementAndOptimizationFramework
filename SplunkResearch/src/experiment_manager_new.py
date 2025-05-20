@@ -44,7 +44,7 @@ class ExperimentConfig:
     gamma: float = 0.99
     ent_coef: float = 0.0
     num_episodes: int = 1000
-    
+    is_mock: bool = False
     # Reward components
     use_distribution_reward: bool = True
     use_energy_reward: bool = True
@@ -110,9 +110,9 @@ class ExperimentManager:
         top_logtypes = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
         # include only system and security logs
         top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
-        top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
+        top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:20]
         top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
-        if config.experiment_name == "test_experiment":
+        if "test_experiment" in  config.experiment_name:
             config.env_config.is_test = True
         env = make(
             id=config.env_config.env_id,
@@ -137,29 +137,24 @@ class ExperimentManager:
                 distribution_freq=1
             )
         if config.use_energy_reward:
-            env = BaseRuleExecutionWrapper(env, baseline_dir=self.dirs['baseline'])
+            env = BaseRuleExecutionWrapper(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock)
             
             env = EnergyRewardWrapper(
                 env,
-                alpha=config.alpha_energy
+                alpha=config.alpha_energy,
+                is_mock=config.is_mock,
             )
             
         
         if config.use_alert_reward:
-            if not config.use_energy_reward:
-                env = BaseRuleExecutionWrapper(env, baseline_dir=self.dirs['baseline'], is_mock=True)
-                env = AlertRewardWrapper(
-                    env,
-                    beta=config.beta_alert,
-                    epsilon=1e-3,
-                    is_mock=True
-                )
-            else:
-                env = AlertRewardWrapper(
-                    env,
-                    beta=config.beta_alert,
-                    epsilon=1e-3
-                )
+            env = BaseRuleExecutionWrapper(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock)
+            env = AlertRewardWrapper(
+                env,
+                beta=config.beta_alert,
+                epsilon=1e-3,
+                is_mock=config.is_mock
+            )
+
             # env = AlertRewardWrapper1(
             #     env,
             #     beta=config.beta_alert,
@@ -180,6 +175,7 @@ class ExperimentManager:
             return self._create_new_model(config, env)
         else:
             return self._load_existing_model(config, env)
+        
     def _get_model_class(self, model_type: str):
         """Get model class based on type"""
         if model_type == "ppo":
@@ -211,7 +207,7 @@ class ExperimentManager:
             'policy': config.policy_type,
             'learning_rate': config.learning_rate,
             'gamma': config.gamma,
-            'tensorboard_log': str(self.dirs['tensorboard']),
+            'tensorboard_log': f"{str(self.dirs['tensorboard'])}/{config.experiment_name}",
             'stats_window_size': 5,
             'verbose': 1
         }
@@ -222,8 +218,8 @@ class ExperimentManager:
                 # 'batch_size': config.batch_size,
                 # 'n_epochs': config.n_epochs,
                 'ent_coef': config.ent_coef,
-                'sde_sample_freq': 240,
-                'use_sde': True
+                'sde_sample_freq': 512,
+                'use_sde': False
             })
             
         elif config.model_type in ['sac', 'td3', 'ddpg']:
@@ -252,7 +248,8 @@ class ExperimentManager:
         """Run experiment based on configuration"""
         # Generate experiment ID and name
         experiment_id = self._generate_experiment_id()
-        experiment_name = config.experiment_name or f"{config.mode}_{experiment_id}"
+        experiment_name = f"{config.experiment_name}_{experiment_id}" or f"{config.mode}_{experiment_id}"
+        config.experiment_name = experiment_name
         
         # Setup logging
         self._setup_experiment_logging(experiment_name)
@@ -271,7 +268,7 @@ class ExperimentManager:
             eval_config.env_config.end_time = "04/26/2025:23:59:59"
             self.eval_env = self.create_environment(eval_config)
 
-            if config.experiment_name != "test_experiment" :
+            if "test_experiment" not  in config.experiment_name:
                 # clean and warm up the env
                 clean_env(env.splunk_tools, (env.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
                 env.warmup()
@@ -426,10 +423,21 @@ class ExperimentManager:
     
     def _setup_callbacks(self, config: ExperimentConfig):
         """Setup training/evaluation callbacks"""
+        log_dir = f"{self.dirs['tensorboard']._str}/{config.experiment_name}"
     
-        
+        rules = self.eval_env.splunk_tools.active_saved_searches.keys()
+        event_types = [f"{x[0].lower()}_{x[1]}" for x in self.eval_env.unwrapped.top_logtypes]
+        writers = {
+        rule: SummaryWriter(log_dir=log_dir + f"/{rule}") for rule in rules
+        }
+        writers.update({
+            event_type: SummaryWriter(log_dir=log_dir + f"/{event_type.replace(':','_')}") for event_type in event_types
+        })
+        writers.update({
+            f"{event_type}_{is_trigger}": SummaryWriter(log_dir=log_dir + f"/{event_type.replace(':','_')}_{is_trigger}")   for event_type in event_types  for is_trigger in  [0,1]
+        })
         return [
-            CustomTensorboardCallback(),
+            CustomTensorboardCallback(log_dir=f"{self.dirs['tensorboard']._str}/{config.experiment_name}", rules=rules, event_types=event_types, writers=writers),
             # HParamsCallback(
             #     experiment_kwargs=config,
             #     phase=config.get('phase', 'train')
@@ -438,7 +446,7 @@ class ExperimentManager:
             
             CustomEvalCallback3(
                 eval_env=self.eval_env,
-
+                log_dir=f"{self.dirs['tensorboard']._str}/{config.experiment_name}", rules=rules, event_types=event_types,
                 n_eval_episodes=3,
                 eval_freq=480,
                 best_model_save_path=self.dirs['models'],
@@ -446,7 +454,8 @@ class ExperimentManager:
                 # eval_log_dir=str(self.dirs['tensorboard']/f"eval_{config.experiment_name}"),
                 deterministic=True,
                 render=False,
-                verbose=1
+                verbose=1,
+                writers=writers,
             ), 
             # SplunkLincenceCheckCallback()
             
@@ -480,8 +489,8 @@ if __name__ == "__main__":
         search_window=2880,
         # savedsearches=["rule1", "rule2"],
         logs_per_minute=150,
-        additional_percentage=.5,
-        action_duration=7200*12,
+        additional_percentage=1,
+        action_duration=7200,
         num_of_measurements=1,
         baseline_num_of_measurements=1,
         env_id="splunk_train-v32",
@@ -493,17 +502,18 @@ if __name__ == "__main__":
         policy_type="MlpPolicy",
         learning_rate=1e-4,
         num_episodes=12000,
-        n_steps=256,
+        n_steps=64,
         ent_coef=0,
         gamma=1,
-        gamma_dist=1,#0.4,
-        alpha_energy=0.2,
+        gamma_dist=0.2,#0.4,
+        alpha_energy=0.8,
         beta_alert=0.4,
     
-        experiment_name="test_experiment",
+        # experiment_name="test_experiment",
         use_alert_reward=False,
-        use_energy_reward=False,
+        use_energy_reward=True,
         use_random_agent=False,
+        is_mock=False,
     )
     
     #retrain model
