@@ -4,6 +4,8 @@ from measurements_model.config import TRAIN_SET_PATH, TEST_SET_PATH, FULL_PREPRO
     ProcessColumns
 from measurements_model.dataset_pipeline_executor import DatasetPipelineExecutor
 from measurements_model.dataset_processing.feature_selection.all_features_no_energy_selector import AllFeaturesNoEnergy
+from measurements_model.dataset_processing.feature_selection.process_and_system_no_hardware_feature_selector import \
+    ProcessAndSystemNoHardware
 from measurements_model.dataset_processing.split_data.regular_spliter import RegularDatasetSplitter
 from measurements_model.main_model import MeasurementsModel
 from measurements_model.main_model_configuration import ALL_MEASUREMENTS_DIRS_PATH, NETWORK_SENT_BYTES_COLUMN_NAME, \
@@ -12,7 +14,7 @@ from measurements_model.model_training.utils import calculate_and_print_scores
 
 
 def run_model():
-    feature_selector = AllFeaturesNoEnergy()
+    feature_selector = ProcessAndSystemNoHardware()
     dataset_splitter = RegularDatasetSplitter(TRAIN_SET_PATH, TEST_SET_PATH, FULL_PREPROCESSED_DATASET_PATH)
     dataset_pipeline = DatasetPipelineExecutor(idle_measurement_path=IDLE_DIR_PATH,
                                                all_measurement_path=ALL_MEASUREMENTS_DIRS_PATH,
