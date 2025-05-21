@@ -126,3 +126,11 @@ Next, run in Windows, in the command line the command - `python scanner.py` or i
 * `disable_real_time_protection_during_measurement` = true
 
 Next, run in Windows, in the command line the command - `python scanner.py` or in Linux in the terminal the command - `sudo python3 scanner.py`
+
+# GNS3 
+The research continues with measuring and optimizing distributed task. 
+The network is simulated by a network that is generated using GNS3 Gui. 
+Each node in the network is created using an image, that is built using our code.
+Link to the repository of the GNS configuration code:
+
+https://github.com/sapirani/GreenSecurityGNS
