@@ -36,8 +36,9 @@ class BaseRuleExecutionWrapper(RewardWrapper):
         self.baseline_df = self._load_baseline_table()
         
         self.energy_models = {}
-        for rule in self.splunk_tools.active_saved_searches:
-            self.energy_models[rule] = pickle.load(open(f"/home/shouei/GreenSecurity-FirstExperiment/baseline_splunk_train-v32_2880_cpu_regressor_results/RandomForestRegressor_{rule}_with alert = 0.pkl", "rb"))
+        if is_mock:
+            for rule in self.splunk_tools.active_saved_searches:
+                self.energy_models[rule] = pickle.load(open(f"/home/shouei/GreenSecurity-FirstExperiment/baseline_splunk_train-v32_2880_cpu_regressor_results/RandomForestRegressor_{rule}_with alert = 0.pkl", "rb"))
         
     def _get_baseline_path(self) -> Path:
         """Get path for baseline data based on environment config"""
@@ -236,12 +237,13 @@ class EnergyRewardWrapper(RewardWrapper):
 
             
             energy_reward = (current - baseline) / baseline
-            if energy_reward <= 0.1:
-                energy_reward = 0
+            # if energy_reward <= 0.1:
+            #     energy_reward = 0
             energy_reward = np.clip(energy_reward, 0, 1) # Normalize to [0, 1]
             info['energy_reward'] = energy_reward
             # reward +=  energy_reward
-            reward += self.unwrapped.total_steps*self.alpha*energy_reward
+            reward += self.alpha*energy_reward
+            # reward += self.unwrapped.total_steps*self.alpha*energy_reward
             # reward = energy_reward/(reward + self.epsilon)
             # reward += self.alpha * energy_reward
             
@@ -249,7 +251,7 @@ class EnergyRewardWrapper(RewardWrapper):
 
 class AlertRewardWrapper(RewardWrapper):
     """Wrapper for alert rate rewards"""
-    def __init__(self, env: gym.Env, beta: float = 0.3, epsilon: float = 1e-3, is_mock: bool = False):
+    def __init__(self, env: gym.Env, beta: float = 0.3, epsilon: float = 1e-5, is_mock: bool = False):
         super().__init__(env)
         self.beta = beta
         self.epsilon = epsilon
@@ -296,6 +298,7 @@ class AlertRewardWrapper(RewardWrapper):
                 for rule in self.expected_alerts:
                     info['raw_metrics'][rule]['alert'] = current_alerts[rule]
                     info['raw_baseline_metrics'][rule]['alert'] = baseline_alerts[rule]
+                info['combined_metrics']['alert'] = sum(current_alerts.values()) + sum(baseline_alerts.values())
             
             self._sanity_check(current_alerts, baseline_alerts, diversity_episode_logs)
             
@@ -303,7 +306,8 @@ class AlertRewardWrapper(RewardWrapper):
             
             info['alert_reward'] = alert_reward
             # reward += alert_reward
-            reward +=self.beta * alert_reward
+            reward += self.beta * alert_reward
+            # reward +=self.unwrapped.total_steps*self.beta * alert_reward
 
             # reward /= (alert_reward + self.epsilon)
         return obs, reward, terminated, truncated, info
@@ -360,25 +364,7 @@ class AlertRewardWrapper(RewardWrapper):
         return -np.mean(rewards) / (np.mean(max_rewards) + self.epsilon)
         # return -np.mean(rewards) #/ ((self.env.diversity_factor+1)/self.epsilon)
 
-class AlertRewardWrapper1(AlertRewardWrapper):
-    def __init__(self, env: gym.Env, beta: float = 0.3, epsilon: float = 1e-3):
-        super().__init__(env, beta, epsilon)
-        self.k = 1
-    def _calculate_alert_reward(self, current_alerts: Dict) -> float:
-        rewards = []
-        for rule, expected in self.expected_alerts.items():
-            current = current_alerts.get(rule, 0)
-            gap = max(0, current - expected)
-            reward = (gap) / (expected + self.epsilon)
-            rewards.append(reward)
 
-        if not rewards:
-            return 0
-        for i in range(len(rewards)):
-                rewards[i] = min(rewards[i], self.k) 
-        return np.sum(5*(np.log(self.k + self.epsilon - reward) - np.log(self.k)) for reward in rewards)
-        # return -np.mean(rewards) #/ ((self.env.diversity_factor+1)/self.epsilon)
-        
 class DistributionRewardWrapper(RewardWrapper):
     """Wrapper for distribution similarity rewards"""
     def __init__(self, env: gym.Env, gamma: float = 0.2, epsilon: float = 1e-8, distribution_freq: int = 3):
@@ -406,7 +392,7 @@ class DistributionRewardWrapper(RewardWrapper):
         #     reward += dist_reward
 
                 # reward += self.gamma * dist_reward
-        if info.get('done', True) or True:
+        if info.get('done', True):
             dist_value = self._calculate_distribution_value(
                 self.unwrapped.ac_real_state,
                 self.unwrapped.ac_fake_state
@@ -416,14 +402,7 @@ class DistributionRewardWrapper(RewardWrapper):
             # dist_reward /= 0.6 # NOrmalize the reward
             info['ac_distribution_reward'] = dist_reward
             reward += self.gamma*dist_reward
-            reward += dist_reward
-            if dist_reward == 0:
-                reward = 0
-            else:
-                # reward += 0
-                reward += dist_reward
 
-                reward += self.gamma * dist_reward
         # since this is the last wrapper, we can consider it as final reward
         logger.info(f"Reward: {reward}")  
         return obs, reward, terminated, truncated, info
@@ -437,6 +416,7 @@ class DistributionRewardWrapper(RewardWrapper):
         #     self.gamma *= 0.5
         # return -self.gamma * distribution_value
         return -distribution_value
+        # return -distribution_value/0.26
         # return -(distribution_value*100)*3
         # return np.log(1-distribution_value)
      

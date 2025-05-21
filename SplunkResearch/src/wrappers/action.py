@@ -573,7 +573,7 @@ class Action8(Action):
             self.action_space = spaces.Box(
                 low=0,
                 high=1,
-                shape=(len(self.top_logtypes),),#+ len(self.relevant_logtypes),),
+                shape=(len(self.top_logtypes)+ len(self.relevant_logtypes),),
                 dtype=np.float32
             )
             self.diversity_episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
@@ -587,10 +587,10 @@ class Action8(Action):
             # Split action into quota and distribution
             distribution = action[:len(self.top_logtypes)]
             # softmax normalization
-            # distribution = np.exp(distribution) / np.sum(np.exp(distribution))
-            distribution /= (np.sum(distribution) + 1e-8) 
+            distribution = np.exp(distribution) / np.sum(np.exp(distribution))
+            # distribution /= (np.sum(distribution) + 1e-8) 
             
-            # diversity_list = action[len(self.top_logtypes):]
+            diversity_list = action[len(self.top_logtypes):]
             num_logs = self.config.additional_percentage * self.current_real_quantity
             self.inserted_logs = 0
             self.current_logs = {}
@@ -611,7 +611,7 @@ class Action8(Action):
                 if log_count > 0:
                     if logtype in self.relevant_logtypes:
                         diversity = 0
-                        # diversity = float(diversity_list[self.relevant_logtypes.index(logtype)])
+                        diversity = float(diversity_list[self.relevant_logtypes.index(logtype)])
                     is_trigger = int(np.ceil(diversity))
                     key = f"{logtype[0]}_{logtype[1]}_{int(is_trigger)}"
                     logs_to_inject[key] = {

@@ -92,14 +92,15 @@ class TimeManager:
             # On violation, stay at current window
             return self.current_window
         # clean env in action window
-        if not self.is_test:
+        if not self.is_test and self.rule_frequency < self.window_size:
             clean_env(self.splunk_tools, (self.current_window.start, self.current_window.end))
         current_time = datetime.datetime.strptime(self.current_window.end, '%m/%d/%Y:%H:%M:%S')
         if self.end_time:
             end_datetime = datetime.datetime.strptime(self.end_time, '%m/%d/%Y:%H:%M:%S')
             if current_time >= end_datetime:
-                logger.info("End of times arived, resetting to start time + one hour")
-
+                logger.info("End of times arived, resetting to start time")# + one hour")
+                if not self.is_test:
+                    clean_env(self.splunk_tools, (self.first_start_datetime, self.end_time))
                 
                 # Reset to start time + one hour
                 start_dt = datetime.datetime.strptime(self.first_start_datetime, '%m/%d/%Y:%H:%M:%S')

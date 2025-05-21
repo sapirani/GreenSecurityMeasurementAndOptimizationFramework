@@ -205,12 +205,12 @@ class StateWrapper3(StateWrapper):
         # Create the final state vector
         # state = self.unwrapped.real_state
         state = np.append(self.unwrapped.ac_real_state, self.unwrapped.ac_fake_state)
-        # sparse_vector = np.zeros(self.env.total_steps)
+        # sparse_vector = np.zeros(self.env.total_steps+1)
         # sparse_vector[self.unwrapped.step_counter] = 1
         # state = np.append(state, sparse_vector)
-        # state = np.append(state, self.current_real_quantity/100000) 
-        # fake_total_logs = self.total_episode_logs + sum(self.action_wrapper.episode_logs.values())
-        # state = np.append(state, fake_total_logs/500000)
+        # # state = np.append(state, self.current_real_quantity/100000) 
+        # real_total_logs = self.total_episode_logs
+        # state = np.append(state, real_total_logs/500000)
         # # append to state the step index
         # # state = np.append(state, self.env.step_counter/self.env.total_steps)
         # # add sparse vector for step index
