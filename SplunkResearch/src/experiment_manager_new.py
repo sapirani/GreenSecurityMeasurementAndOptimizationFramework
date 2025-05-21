@@ -142,11 +142,18 @@ class ExperimentManager:
             env = EnergyRewardWrapper(
                 env,
                 alpha=config.alpha_energy,
-                is_mock=config.is_mock,
+               is_mock=config.is_mock,
             )
+            env = AlertRewardWrapper(
+                env,
+                beta=config.beta_alert,
+                epsilon=1e-3,
+                is_mock=config.is_mock
+            )
+
             
         
-        if config.use_alert_reward:
+        if config.use_alert_reward and not config.use_energy_reward:
             env = BaseRuleExecutionWrapper(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock)
             env = AlertRewardWrapper(
                 env,
@@ -188,6 +195,8 @@ class ExperimentManager:
             return SAC
         elif model_type == "recurrent_ppo":
             return RecurrentPPO
+        elif model_type == "td3":
+            return TD3
         else:
             raise ValueError(f"Unknown model type: {model_type}")
     
@@ -195,7 +204,8 @@ class ExperimentManager:
         """Get policy class based on type"""
         if policy_type == "mlp":
             return MlpPolicy
-
+        elif policy_type == "td3_mlp":
+            return TD3.MlpPolicy
         else:
             raise ValueError(f"Unknown policy type: {policy_type}")
     def _create_new_model(self, config: ExperimentConfig, env: gym.Env):
@@ -218,8 +228,8 @@ class ExperimentManager:
                 # 'batch_size': config.batch_size,
                 # 'n_epochs': config.n_epochs,
                 'ent_coef': config.ent_coef,
-                'sde_sample_freq': 512,
-                'use_sde': False
+                'sde_sample_freq': 6,
+                'use_sde': True
             })
             
         elif config.model_type in ['sac', 'td3', 'ddpg']:
@@ -447,8 +457,8 @@ class ExperimentManager:
             CustomEvalCallback3(
                 eval_env=self.eval_env,
                 log_dir=f"{self.dirs['tensorboard']._str}/{config.experiment_name}", rules=rules, event_types=event_types,
-                n_eval_episodes=3,
-                eval_freq=480,
+                n_eval_episodes=2,
+                eval_freq=600,
                 best_model_save_path=self.dirs['models'],
                 log_path=self.dirs['logs'],
                 # eval_log_dir=str(self.dirs['tensorboard']/f"eval_{config.experiment_name}"),
@@ -484,8 +494,8 @@ if __name__ == "__main__":
     retrain_fake_start_datetime = "08/01/2024:00:00:00"
     
     env_config = SplunkConfig(
-        fake_start_datetime=retrain_fake_start_datetime,
-        rule_frequency=60,
+        # fake_start_datetime=retrain_fake_start_datetime,
+        rule_frequency=2880,
         search_window=2880,
         # savedsearches=["rule1", "rule2"],
         logs_per_minute=150,
@@ -494,23 +504,23 @@ if __name__ == "__main__":
         num_of_measurements=1,
         baseline_num_of_measurements=1,
         env_id="splunk_train-v32",
-        end_time="12/31/2024:23:59:59"       
+        end_time="08/31/2024:23:59:59"       
     )
     experiment_config = ExperimentConfig(
         env_config=env_config,
         model_type="ppo",
         policy_type="MlpPolicy",
-        learning_rate=1e-4,
+        learning_rate=1e-3,
         num_episodes=12000,
-        n_steps=64,
+        n_steps=128,
         ent_coef=0,
         gamma=1,
-        gamma_dist=0.2,#0.4,
-        alpha_energy=0.8,
-        beta_alert=0.4,
+        gamma_dist=3,#0.33,
+        alpha_energy=1,
+        beta_alert=1,
     
         # experiment_name="test_experiment",
-        use_alert_reward=False,
+        use_alert_reward=True,
         use_energy_reward=True,
         use_random_agent=False,
         is_mock=False,

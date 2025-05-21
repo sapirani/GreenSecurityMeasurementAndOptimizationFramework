@@ -67,11 +67,11 @@ class LogGenerator:
             },
 
             ('wineventlog:security', '5140'): {  # Network Share Discovery
-                'ComputerName': 'sharehost-{}.lab.internal',
+                'ComputerName': 'user-PC-{}.domain.com',
+                'Security ID': 'S-1-5-21-1234567890-1234567890-1234567890-{}',
                 'Account Name': 'user_{}',
-                'Account Domain': 'LABDOM{}',
-                'Workstation Name': 'CLIENT-{}',
-                'Source Network Address': '10.0.0.{}',
+                'Account Domain': 'DOMAIN_{}',
+                'Share Name': '\\\\user-PC-{}.domain.com\\C$'
             },
 
             ('wineventlog:security', '4624'): {  # Rapid Auth on Multiple Hosts

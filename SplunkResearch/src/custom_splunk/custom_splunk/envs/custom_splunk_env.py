@@ -146,6 +146,35 @@ class SplunkEnv(gym.Env):
         self.ac_fake_distribution['other'] = 0
         self.real_relevant_distribution = {"_".join(logtype): 0 for logtype in self.top_logtypes}
         self.relevant_logtypes_indices = {logtype: i for i, logtype in enumerate(self.top_logtypes) if logtype in self.top_logtypes}
+        self.normal_distribution = {
+                            "wineventlog:security_4624": 0.0749,
+                            "wineventlog:security_4625": 0.017,
+                            "wineventlog:security_4634": 0.0262,
+                            "wineventlog:security_4648": 0.0336,
+                            "wineventlog:security_4662": 0.0913,
+                            "wineventlog:security_4663": 0,
+                            "wineventlog:security_4672": 0.0719,
+                            "wineventlog:security_4702": 0.1829,
+                            "wineventlog:security_4732": 0,
+                            "wineventlog:security_4735": 0.0175,
+                            "wineventlog:security_4769": 0,
+                            "wineventlog:security_4799": 0.0443,
+                            "wineventlog:security_4907": 0.1764,
+                            "wineventlog:security_5140": 0,
+                            "wineventlog:security_5379": 0.1142,
+                            "wineventlog:system_101": 0.0079,
+                            "wineventlog:system_108": 0.008,
+                            "wineventlog:system_1112": 0.0079,
+                            "wineventlog:system_12": 0.0071,
+                            "wineventlog:system_1500": 0.0079,
+                            "wineventlog:system_16": 0.006,
+                            "wineventlog:system_44": 0.0827,
+                            "wineventlog:system_7": 0.0022,
+                            "wineventlog:system_7036": 0.015,
+                            "wineventlog:system_7040": 0.0046,
+                            "wineventlog:system_7045": 0.0003 
+                        }
+        self.normal_distribution = np.array([self.normal_distribution[ "_".join(logtype)] for logtype in self.top_logtypes if  "_".join(logtype) in self.normal_distribution])
         
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
         """Execute environment step."""
