@@ -7,7 +7,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from general_consts import KB, ProcessesColumns
-from results_analyzer.analyzer_constants import AxisInfo, DEFAULT
+from analyze_scanner_results.analyzer_constants import AxisInfo, DEFAULT
 
 
 def design_and_plot(x_info, y_info, graph_name, path_for_graphs):

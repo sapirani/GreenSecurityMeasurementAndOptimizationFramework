@@ -4,8 +4,8 @@ from typing import List
 import pandas as pd
 
 from general_consts import BatteryColumns, CPUColumns, MemoryColumns, DiskIOColumns, ProcessesColumns, KB
-from results_analyzer.analyzer_constants import AxisInfo, Units, DEFAULT, MINIMAL_REQUIRED_RECORDS
-from results_analyzer.graphing_utils import draw_dataframe, draw_subplots, draw_processes_and_total
+from analyze_scanner_results.analyzer_constants import AxisInfo, Units, DEFAULT, MINIMAL_REQUIRED_RECORDS
+from analyze_scanner_results.graphing_utils import draw_dataframe, draw_subplots, draw_processes_and_total
 
 NUM_OF_PATHS = 12
 MAX_PROCESSES_TO_PLOT = 10

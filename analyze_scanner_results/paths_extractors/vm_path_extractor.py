@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import List
 
 from general_consts import MEASUREMENT_NAME_DIR
-from results_analyzer.analyzer_utils import is_results_dir
-from results_analyzer.paths_extractors.abstract_path_extractor import PathExtractor
+from analyze_scanner_results.analyzer_utils import is_results_dir
+from analyze_scanner_results.paths_extractors.abstract_path_extractor import PathExtractor
 
 RESULTS_DIR_PREFIX = "results_"
 NUM_OF_CHARS_RESULT_DIR = len(RESULTS_DIR_PREFIX)
