@@ -18,11 +18,6 @@ antivirus_type = AntivirusType.DEFENDER
 file_type = "pdf"
 directory_type = "Duplicated Files"
 custom_scan_path = r'""'
-#custom_scan_path = r'"C:\Users\sagib\Downloads"'
-# custom_scan_path = r'"C:\Users\sagib\OneDrive\Desktop\sample files\original samples"'
-#custom_scan_path = r'"C:\Users\Administrator\Downloads"'
-#custom_scan_path = fr'"C:\Users\Administrator\Desktop\GreenSecurity-FirstExperiment"'
-#custom_scan_path = fr'"C:\Users\Administrator\Documents\GitHub\GreenSecurity-FirstExperiment\Data{directory_type}\{file_type}"'  # relevant only for custom scans. On other types, must be empty
 
 RUNNING_TIME = 10 * MINUTE # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
@@ -42,9 +37,9 @@ DEFAULT_TIME_BEFORE_SLEEP_MODE = 4
 is_inside_container = True
 
 # ==== Elastic logging configuration
-elastic_url = "http://localhost:9200"
+elastic_url = "http://192.168.140.101:9200"
 elastic_username = "elastic"
-elastic_password = "t2gO98ya"
+elastic_password = "71BPiEiQ"
 
 # ==== ClamAV configurations
 recursive = True
