@@ -15,9 +15,7 @@ from time_manager import TimeManager
 from datetime_manager import MockedDatetimeManager
 
 import tensorflow as tf
-from strategies.action_strategy import ActionStrategy14, ActionStrategy7, ActionStrategy8
 
-from strategies.state_strategy import StateStrategy12, StateStrategy11, StateStrategy6, StateStrategy7, StateStrategy8
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment')
 import os
 from dotenv import load_dotenv
@@ -176,6 +174,9 @@ class SplunkEnv(gym.Env):
                         }
         self.normal_distribution = np.array([self.normal_distribution[ "_".join(logtype)] for logtype in self.top_logtypes if  "_".join(logtype) in self.normal_distribution])
         
+        self.rules_rel_diff_alerts = {rule : 0 for rule in self.relevant_logtypes}
+        self.is_mock = False
+        
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
         """Execute environment step."""
         self.step_counter += 1
@@ -302,7 +303,7 @@ if __name__ == "__main__":
     env = Action(env)
     # Add reward wrappers
     env = DistributionRewardWrapper(env, gamma=0.2)
-    env = BaseRuleExecutionWrapper(env)
+    # env = BaseRuleExecutionWrapper(env)
     env = EnergyRewardWrapper(env, alpha=0.5)
     env = AlertRewardWrapper(env, beta=0.3)
     # env = QuotaViolationWrapper(env)

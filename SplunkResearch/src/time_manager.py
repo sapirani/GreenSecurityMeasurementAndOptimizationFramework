@@ -86,7 +86,7 @@ class TimeManager:
         self.action_window = self._create_action_window(self.get_current_time())        
         return self.action_window
         
-    def advance_window(self, global_step, violation: bool = False) -> TimeWindow:
+    def advance_window(self, global_step, violation: bool = False, is_mock: bool = False) -> TimeWindow:
         """Advance the main time window"""
         if violation:
             # On violation, stay at current window
@@ -94,12 +94,14 @@ class TimeManager:
         # clean env in action window
         if not self.is_test and self.rule_frequency < self.window_size:
             clean_env(self.splunk_tools, (self.current_window.start, self.current_window.end))
-        current_time = datetime.datetime.strptime(self.current_window.end, '%m/%d/%Y:%H:%M:%S')
+        new_start_dt = datetime.datetime.strptime(self.current_window.start, '%m/%d/%Y:%H:%M:%S')
+        new_start_dt += datetime.timedelta(minutes=self.rule_frequency)
         if self.end_time:
             end_datetime = datetime.datetime.strptime(self.end_time, '%m/%d/%Y:%H:%M:%S')
-            if current_time >= end_datetime:
+            if new_start_dt >= end_datetime:
+                logger.info(f"End time {self.end_time} , current time {new_start_dt.strftime('%m/%d/%Y:%H:%M:%S')}")
                 logger.info("End of times arived, resetting to start time")# + one hour")
-                if not self.is_test:
+                if not self.is_test and not is_mock:
                     clean_env(self.splunk_tools, (self.first_start_datetime, self.end_time))
                 
                 # Reset to start time + one hour
@@ -118,11 +120,10 @@ class TimeManager:
             self.current_window = self._create_episode_window(self.first_start_datetime)
             self.action_window = self._create_action_window(self.first_start_datetime)
             return self.current_window
-        start_dt = datetime.datetime.strptime(self.current_window.start, '%m/%d/%Y:%H:%M:%S')
-        start_dt += datetime.timedelta(minutes=self.rule_frequency)
-        self.current_window = self._create_episode_window(start_dt.strftime('%m/%d/%Y:%H:%M:%S'))
+
+        self.current_window = self._create_episode_window(new_start_dt.strftime('%m/%d/%Y:%H:%M:%S'))
         logger.info(f"Advanced window to {self.current_window.start} - {self.current_window.end}")
-        self.action_window = self._create_action_window(start_dt.strftime('%m/%d/%Y:%H:%M:%S'))
+        self.action_window = self._create_action_window(new_start_dt.strftime('%m/%d/%Y:%H:%M:%S'))
         return self.current_window
         
     def get_current_time(self) -> str:

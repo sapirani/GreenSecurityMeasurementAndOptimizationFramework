@@ -284,13 +284,11 @@ class LogGenerator:
     def generate_logs(self, logsource, eventcode, istrigger, time_range, num_logs, diversity=1, max_workers=12):
         """Generate logs with optimized performance using pre-cached templates"""
         # logger.info(f"Generating {num_logs} logs with diversity={diversity}, max_workers={max_workers}")
-        total_start_time = time.time()
         
         # Ensure diversity is at least 1 and no more than num_logs
-        diversity = max(1, min(diversity, num_logs))
+        # diversity = max(1, min(diversity, num_logs))
         
         # Parse time range once
-        time_parsing_start = time.time()
         if isinstance(time_range[0], str):
             start_date = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S')
             end_date = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S')
