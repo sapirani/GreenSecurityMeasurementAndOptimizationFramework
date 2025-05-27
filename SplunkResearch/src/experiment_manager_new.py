@@ -2,6 +2,7 @@ from dataclasses import dataclass, replace
 import inspect
 import ssl
 from typing import Dict, Any, Optional, List
+import stable_baselines3
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 import custom_splunk #dont remove!!!
 from custom_splunk.envs.custom_splunk_env import SplunkConfig
@@ -26,6 +27,8 @@ from callbacks import *
 from time_manager import TimeWrapper
 import smtplib
 from email.message import EmailMessage
+from stable_baselines3.common.logger import configure
+
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -51,6 +54,7 @@ class ExperimentConfig:
     use_alert_reward: bool = True
     use_quota_violation: bool = True
     use_random_agent: bool = False
+    action_type: str = "Action8"  # Action, SingleAction, Action8
     
     
     # Reward parameters
@@ -122,7 +126,10 @@ class ExperimentManager:
         # env = SingleAction2(env)
         # env = Action(env)
         # env = SngleAction(env, config.use_random_agent)
-        env = Action8(env, config.use_random_agent)
+        if config.action_type == "Action8":        
+            env = Action8(env, config.use_random_agent)
+        elif config.action_type == "Action11":
+            env = Action11(env, config.use_random_agent)
         
 
         # if config.use_random_agent:
@@ -136,31 +143,32 @@ class ExperimentManager:
                 epsilon=1e-8,
                 distribution_freq=1
             )
-        if config.use_energy_reward:
-            env = BaseRuleExecutionWrapper(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock)
             
+        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = -1.5, skip_on_low_alert = True, use_energy = config.use_energy_reward)    
+        if config.use_energy_reward:
+                
             env = EnergyRewardWrapper(
                 env,
                 alpha=config.alpha_energy,
-               is_mock=config.is_mock,
+               is_mock=False,
             )
-            env = AlertRewardWrapper(
-                env,
-                beta=config.beta_alert,
-                epsilon=1e-3,
-                is_mock=config.is_mock
-            )
+            # env = AlertRewardWrapper(
+            #     env,
+            #     beta=config.beta_alert,
+            #     epsilon=1e-3,
+            #     is_mock=config.is_mock
+            # )
 
             
         
-        if config.use_alert_reward and not config.use_energy_reward:
-            env = BaseRuleExecutionWrapper(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock)
-            env = AlertRewardWrapper(
-                env,
-                beta=config.beta_alert,
-                epsilon=1e-3,
-                is_mock=config.is_mock
-            )
+        # if config.use_alert_reward and not config.use_energy_reward:
+        #     env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock)
+        #     env = AlertRewardWrapper(
+        #         env,
+        #         beta=config.beta_alert,
+        #         epsilon=1e-3,
+        #         is_mock=config.is_mock
+        #     )
 
             # env = AlertRewardWrapper1(
             #     env,
@@ -211,7 +219,7 @@ class ExperimentManager:
     def _create_new_model(self, config: ExperimentConfig, env: gym.Env):
         """Create new model instance"""
         model_cls = self._get_model_class(config.model_type)
-        
+        # decay learning rate
         model_kwargs = {
             'env': env,
             'policy': config.policy_type,
@@ -229,14 +237,20 @@ class ExperimentManager:
                 # 'n_epochs': config.n_epochs,
                 'ent_coef': config.ent_coef,
                 'sde_sample_freq': 6,
-                'use_sde': True
+                'use_sde': True,
             })
             
         elif config.model_type in ['sac', 'td3', 'ddpg']:
             model_kwargs.update({                "policy_kwargs": {
-                    "net_arch": [256, 256,128,64],
+                    "net_arch": [512,128,128,64],
 
-                }})
+
+                },
+                # "train_freq":(1,'episode'),
+                # 'action_noise':stable_baselines3.common.noise.NormalActionNoise(mean=np.zeros(env.action_space.shape[0]), sigma=0.2 * np.ones(env.action_space.shape[0]))
+                })
+      
+            
         return model_cls(**model_kwargs)
     
     def _generate_experiment_id(self):
@@ -258,7 +272,10 @@ class ExperimentManager:
         """Run experiment based on configuration"""
         # Generate experiment ID and name
         experiment_id = self._generate_experiment_id()
-        experiment_name = f"{config.experiment_name}_{experiment_id}" or f"{config.mode}_{experiment_id}"
+        if config.experiment_name is None:
+            experiment_name = f"{config.mode}_{experiment_id}"
+        else:
+            experiment_name = f"{config.experiment_name}_{experiment_id}"
         config.experiment_name = experiment_name
         
         # Setup logging
@@ -278,13 +295,13 @@ class ExperimentManager:
             eval_config.env_config.end_time = "04/26/2025:23:59:59"
             self.eval_env = self.create_environment(eval_config)
 
-            if "test_experiment" not  in config.experiment_name:
-                # clean and warm up the env
-                clean_env(env.splunk_tools, (env.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
-                env.warmup()
-            else:
-                env.disable_injection()
-                self.eval_env.disable_injection()
+            # if "test_experiment" not  in config.experiment_name:
+            #     # clean and warm up the env
+            #     clean_env(env.splunk_tools, (env.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
+            #     env.warmup()
+            # else:
+            #     env.disable_injection()
+            #     self.eval_env.disable_injection()
             # Setup callbacks
             config.experiment_name = experiment_name
             callbacks = self._setup_callbacks(config)
@@ -293,7 +310,7 @@ class ExperimentManager:
             if config.mode == "train":
                 results = self._run_training(model, env, config, callbacks)
             elif config.mode == "eval":
-                results = self._run_evaluation(model, env, config, callbacks)
+                results = self._run_evaluation(model, self.eval_env, eval_config)
             else:  # retrain
                 results = self._run_retraining(model, env, config, callbacks)
                 
@@ -330,29 +347,47 @@ class ExperimentManager:
             "total_timesteps": total_timesteps
         }
 
-    def _run_evaluation(self, model, env, config, callbacks):
-        """Run evaluation experiment"""
-        episode_rewards = []
-        
-        for episode in range(config.num_episodes):
-            obs = env.reset()
-            done = False
-            episode_reward = 0
-            
-            while not done:
-                action, _ = model.predict(obs, deterministic=True)
-                obs, reward, done, info = env.step(action)
-                episode_reward += reward
-                
-            episode_rewards.append(episode_reward)
-            
-        return {
-            "mean_reward": np.mean(episode_rewards),
-            "std_reward": np.std(episode_rewards),
-            "min_reward": np.min(episode_rewards),
-            "max_reward": np.max(episode_rewards),
-            "episode_rewards": episode_rewards
+    def _run_evaluation(self, model, env, config):
+        """evaluate the model for a specific number of episodes. Create summary writers for the evaluation """
+        model.set_env(env)
+        eval_episodes = config.num_episodes
+        log_dir = f"{self.dirs['tensorboard']._str}/{config.experiment_name}"
+        eval_logger = configure(log_dir, ["stdout", "tensorboard"])
+        model.set_logger(eval_logger)
+        rules = self.eval_env.splunk_tools.active_saved_searches.keys()
+        event_types = [f"{x[0].lower()}_{x[1]}" for x in self.eval_env.unwrapped.top_logtypes]
+        writers = self.create_summary_writers(log_dir, rules, event_types)
+        eval_callback = CustomEvalCallback3(
+            eval_env=self.eval_env,
+            log_dir=f"{self.dirs['tensorboard']._str}/{config.experiment_name}", rules=rules, event_types=event_types,
+            n_eval_episodes=1,
+            eval_freq=1,
+            best_model_save_path=self.dirs['models'],
+            log_path=self.dirs['logs'],
+            # eval_log_dir=str(self.dirs['tensorboard']/f"eval_{config.experiment_name}"),
+            deterministic=True,
+            render=False,
+            verbose=1,
+            writers=writers,
+        ) 
+        eval_callback.model = model
+        for _ in range(eval_episodes):
+            eval_callback.on_step()
+
+    def create_summary_writers(self, log_dir, rules, event_types):
+        writers = {
+        rule: SummaryWriter(log_dir=log_dir + f"/{rule}") for rule in rules
         }
+        writers.update({
+            event_type: SummaryWriter(log_dir=log_dir + f"/{event_type.replace(':','_')}") for event_type in event_types
+        })
+        writers.update({
+            f"{event_type}_{is_trigger}": SummaryWriter(log_dir=log_dir + f"/{event_type.replace(':','_')}_{is_trigger}")   for event_type in event_types  for is_trigger in  [0,1]
+        })
+
+        return writers
+
+
 
     def _load_existing_model(self, config: ExperimentConfig, env: gym.Env):
         """Load model from path"""
@@ -387,6 +422,7 @@ class ExperimentManager:
                                config: ExperimentConfig):
         """Record experiment start in database"""
         serialized_config = config.__dict__.copy()
+        serialized_config['learning_rate'] = serialized_config['learning_rate'](1.0) if callable(serialized_config['learning_rate']) else serialized_config['learning_rate']
         serialized_config['env_config'] = serialized_config['env_config'].__dict__
         new_row = {
             'experiment_id': experiment_id,
@@ -437,15 +473,7 @@ class ExperimentManager:
     
         rules = self.eval_env.splunk_tools.active_saved_searches.keys()
         event_types = [f"{x[0].lower()}_{x[1]}" for x in self.eval_env.unwrapped.top_logtypes]
-        writers = {
-        rule: SummaryWriter(log_dir=log_dir + f"/{rule}") for rule in rules
-        }
-        writers.update({
-            event_type: SummaryWriter(log_dir=log_dir + f"/{event_type.replace(':','_')}") for event_type in event_types
-        })
-        writers.update({
-            f"{event_type}_{is_trigger}": SummaryWriter(log_dir=log_dir + f"/{event_type.replace(':','_')}_{is_trigger}")   for event_type in event_types  for is_trigger in  [0,1]
-        })
+        writers = self.create_summary_writers(log_dir, rules, event_types)
         return [
             CustomTensorboardCallback(log_dir=f"{self.dirs['tensorboard']._str}/{config.experiment_name}", rules=rules, event_types=event_types, writers=writers),
             # HParamsCallback(
@@ -487,12 +515,37 @@ class ExperimentManager:
             smtp.login(my_email, email_password)
             smtp.send_message(msg)
 
+def lr_schedule(initial_value: float, rate: float):
+    """
+    Learning rate schedule:
+        Exponential decay by factors of 10
+
+    :param initial_value: Initial learning rate.
+    :param rate: Exponential rate of decay. High values mean fast early drop in LR
+    :return: schedule that computes
+      current learning rate depending on remaining progress
+    """
+    def func(progress_remaining: float) -> float:
+        """
+        Progress will decrease from 1 (beginning) to 0.
+
+        :param progress_remaining:
+        :return: current learning rate
+        """
+        if progress_remaining <= 0:
+            return 1e-9
+        
+        return initial_value * 10 ** (rate * np.log(progress_remaining))
+
+    return func
     
 # Example usage:
 if __name__ == "__main__":
     # Create experiment config
     retrain_fake_start_datetime = "08/01/2024:00:00:00"
-    
+    num_episodes = 32000
+    action_type = "Action8"
+    lr = 1e-2
     env_config = SplunkConfig(
         # fake_start_datetime=retrain_fake_start_datetime,
         rule_frequency=2880,
@@ -500,25 +553,26 @@ if __name__ == "__main__":
         # savedsearches=["rule1", "rule2"],
         logs_per_minute=150,
         additional_percentage=1,
-        action_duration=7200,
-        num_of_measurements=1,
-        baseline_num_of_measurements=1,
+        action_duration=7200, 
+        num_of_measurements=3,
+        baseline_num_of_measurements=3,
         env_id="splunk_train-v32",
-        end_time="08/31/2024:23:59:59"       
+        end_time="09/01/2024:23:59:59"       
     )
+    sched_LR = lr_schedule(initial_value = 0.01, rate = 3)
     experiment_config = ExperimentConfig(
         env_config=env_config,
-        model_type="ppo",
-        policy_type="MlpPolicy",
-        learning_rate=1e-3,
-        num_episodes=12000,
-        n_steps=128,
-        ent_coef=0,
+        model_type="td3",  # ppo, a2c, dqn, etc.
+        policy_type= "MlpPolicy",
+        learning_rate=0.001, #sched_LR,
+        num_episodes=num_episodes,
+        n_steps=96,
+        ent_coef=0.1,
         gamma=1,
-        gamma_dist=3,#0.33,
+        gamma_dist=1,#0.33,
         alpha_energy=1,
         beta_alert=1,
-    
+        action_type=action_type,
         # experiment_name="test_experiment",
         use_alert_reward=True,
         use_energy_reward=True,
@@ -528,11 +582,9 @@ if __name__ == "__main__":
     
     #retrain model
     experiment_config.mode = "train"
-    
-    # model_path = "/home/shouei/GreenSecurity-FirstExperiment/experiments/models/train_20250320100253_42000_steps.zip"
-    # experiment_config.model_path = model_path
-    
-    
-    # Create manager and run experiment
     manager = ExperimentManager(base_dir="experiments")
     results = manager.run_experiment(experiment_config)
+
+    
+    
+ 

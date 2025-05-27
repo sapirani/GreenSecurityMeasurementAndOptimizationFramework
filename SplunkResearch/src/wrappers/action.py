@@ -1,4 +1,5 @@
 import logging
+from time import sleep
 from gymnasium.core import ActionWrapper
 from gymnasium import make, spaces
 import numpy as np
@@ -21,7 +22,7 @@ class Action(ActionWrapper):
             shape=(1 + len(self.relevant_logtypes)*3,),
             dtype=np.float32
         )
-        
+        self.episodic_logs_to_inject = []
         # Track injected logs
         self.current_logs = {}
         self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.relevant_logtypes for istrigger in [0, 1]}
@@ -114,9 +115,8 @@ class Action(ActionWrapper):
         self._disable_injection = True
         logger.info("Log injection disabled")
         
-    def inject_logs(self, logs_to_inject):
+    def inject_logs(self, logs_to_inject, time_range):
         """Inject logs into environment"""
-        time_range = self.env.time_manager.action_window.to_tuple()
         logger.info(f"Action time range: {time_range}")
         if self._disable_injection:
                 logger.info("Log injection disabled, not injecting logs")
@@ -130,10 +130,22 @@ class Action(ActionWrapper):
                 )
 
             self.splunk_tools.write_logs_to_monitor(fake_logs, logsource)
+            # wait for logs to be written
             logger.info(
                 f"inserted {len(fake_logs)} logs of type {logsource} "
                 f"{eventcode} {is_trigger} with diversity {diversity}"
             )
+        sleep(3)
+
+    def inject_episodic_logs(self):
+        """Inject episodic logs into environment"""
+        if self._disable_injection:
+            logger.info("Log injection disabled, not injecting episodic logs")
+            return
+        for logs_to_inject, time_range in self.episodic_logs_to_inject:
+            logger.info(f"Injecting episodic logs: {logs_to_inject} at time range {time_range}")
+            self.inject_logs(logs_to_inject, time_range)
+        
         
     def step(self, action):
         """Inject logs and step environment"""
@@ -145,8 +157,10 @@ class Action(ActionWrapper):
         logs_to_inject = self.action(action)
         logger.info(f"Action: {logs_to_inject}")
         logger.info(f"Action window: {self.time_manager.action_window.to_tuple()}")
-        self.inject_logs(logs_to_inject)
+        # self.inject_logs(logs_to_inject, self.env.time_manager.action_window.to_tuple())
+        self.episodic_logs_to_inject.append((logs_to_inject, self.time_manager.action_window.to_tuple()))
         self.update_fake_distribution()
+        
         
         info.update(self.get_injection_info())
         
@@ -173,6 +187,7 @@ class Action(ActionWrapper):
         self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.relevant_logtypes for istrigger in [0, 1]}
         self._calculate_quota()
         self.diversity_episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.relevant_logtypes for istrigger in [0, 1]}
+        self.episodic_logs_to_inject = []
 
         # self.remaining_quota = self.quota
         self.info = kwargs["options"]
@@ -570,9 +585,11 @@ class Action8(Action):
         
         def __init__(self, env, test_random=False):
             super().__init__(env, test_random)
+            low_bounds = np.zeros(len(self.top_logtypes) + len(self.relevant_logtypes))
+            # low_bounds[-1] = 0.1
             self.action_space = spaces.Box(
-                low=0,
-                high=1,
+                low=low_bounds,
+                high=np.ones(len(self.top_logtypes) + len(self.relevant_logtypes)),
                 shape=(len(self.top_logtypes)+ len(self.relevant_logtypes),),
                 dtype=np.float32
             )
@@ -585,12 +602,15 @@ class Action8(Action):
         def action(self, action):
             """Convert raw action to log injection dictionary"""
             # Split action into quota and distribution
+            # check zero action 
             distribution = action[:len(self.top_logtypes)]
             # softmax normalization
             distribution = np.exp(distribution) / np.sum(np.exp(distribution))
             # distribution /= (np.sum(distribution) + 1e-8) 
             
             diversity_list = action[len(self.top_logtypes):]
+            # current_quota = action[-1]
+            # num_logs = 0.5 * 10000
             num_logs = self.config.additional_percentage * self.current_real_quantity
             self.inserted_logs = 0
             self.current_logs = {}
@@ -609,23 +629,30 @@ class Action8(Action):
                 self.episodic_inserted_logs += log_count
                 diversity = 0
                 if log_count > 0:
+                    is_trigger = 0
+                    
                     if logtype in self.relevant_logtypes:
-                        diversity = 0
                         diversity = float(diversity_list[self.relevant_logtypes.index(logtype)])
-                    is_trigger = int(np.ceil(diversity))
-                    key = f"{logtype[0]}_{logtype[1]}_{int(is_trigger)}"
+                        is_trigger = int(np.ceil(diversity))
+                        
+                        diversity = int(diversity * self.diversity_factor)
+                    diversity = max(1, min(diversity, log_count))
+                        
+                        
+                    key = f"{logtype[0]}_{logtype[1]}_{is_trigger}"
                     logs_to_inject[key] = {
                         'count': log_count,
-                        'diversity': int(diversity * self.diversity_factor) + 1
+                        'diversity': diversity
                     }
                     
                     # Track logs
+                    
                     self.current_logs[key] = log_count
-    
     
                     self.episode_logs[key] += log_count
                     self.diversity_episode_logs[key] = max(logs_to_inject[key]['diversity'], self.diversity_episode_logs[key])
-
+                    if logtype in self.relevant_logtypes and is_trigger == 1:
+                        self.unwrapped.rules_rel_diff_alerts[logtype] =  self.diversity_episode_logs[key]/ (self.diversity_factor)
             return logs_to_inject
 
     
@@ -848,7 +875,87 @@ class Action10(Action8):
                 self.diversity_episode_logs[key] = max(logs_to_inject[key]['diversity'], self.diversity_episode_logs[key])
 
         return logs_to_inject
-   
+    
+class Action11(Action):
+        """relevant logs = top logtypes"""
+        
+        def __init__(self, env, test_random=False):
+            super().__init__(env, test_random)
+            self.action_space = spaces.Box(
+                low=0,
+                high=1,
+                shape=(len(self.top_logtypes)+ len(self.relevant_logtypes),),
+                dtype=np.float32
+            )
+            self.diversity_episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
+            self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
+            self.diversity_factor = 31
+            self.episodic_inserted_logs = 0
+            self.current_real_quantity = 0
+            
+        def action(self, action):
+            """Convert raw action to log injection dictionary"""
+            # Split action into quota and distribution
+            distribution = action[:len(self.top_logtypes)]
+            # softmax normalization
+            distribution = np.exp(distribution) / np.sum(np.exp(distribution))
+            # distribution /= (np.sum(distribution) + 1e-8) 
+            
+            diversity_list = action[len(self.top_logtypes):]
+            num_logs =  5000
+            # num_logs = self.config.additional_percentage * self.current_real_quantity
+            self.inserted_logs = 0
+            self.current_logs = {}
+            # self.remaining_quota = self.quota - num_logs
+            
+            # Distribute logs among types
+            logs_to_inject = {}
+
+            for i, logtype in enumerate(self.env.top_logtypes):
+
+                log_count = int(distribution[i] * num_logs)
+                # log_count = int(distribution[i] * 0.10 * self.unwrapped._normalize_factor)
+                
+                # log_count = int(distribution[i] * 0.005 * self.unwrapped._normalize_factor)
+                self.inserted_logs += log_count
+                self.episodic_inserted_logs += log_count
+                diversity = 0
+                if log_count > 0:
+                    if logtype in self.relevant_logtypes:
+                        diversity = 0
+                        diversity = float(diversity_list[self.relevant_logtypes.index(logtype)])
+                        
+                    is_trigger = int(np.ceil(diversity))
+                    key = f"{logtype[0]}_{logtype[1]}_{int(is_trigger)}"
+                    logs_to_inject[key] = {
+                        'count': log_count,
+                        'diversity': int(diversity * self.diversity_factor) + 1
+                    }
+                    
+                    # Track logs
+                    self.current_logs[key] = log_count
+    
+    
+                    self.episode_logs[key] += log_count
+                    self.diversity_episode_logs[key] = max(logs_to_inject[key]['diversity'], self.diversity_episode_logs[key])
+                    if logtype in self.relevant_logtypes:
+                        self.unwrapped.rules_rel_diff_alerts[logtype] = self.diversity_episode_logs[key]/ (self.diversity_factor+ 1)
+            return logs_to_inject
+
+    
+        def reset(self, **kwargs):
+            """Reset tracking on environment reset"""
+            self.current_logs = {}
+            self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
+            self._calculate_quota()
+            self.diversity_episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
+
+            # self.remaining_quota = self.quota
+            self.info = kwargs["options"]
+            self.episodic_inserted_logs = 0
+            
+            obs, info = self.env.reset(**kwargs)
+            return obs, info   
 # class RandomAction(Action8):
         
 #     def __init__(self, env, test_random=False):

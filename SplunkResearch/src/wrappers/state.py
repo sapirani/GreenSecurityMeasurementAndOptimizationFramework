@@ -147,13 +147,15 @@ class StateWrapper(ObservationWrapper):
         self.unwrapped.ac_real_distribution['other'] = 0
         self.unwrapped.real_relevant_distribution = {"_".join(logtype): 0 for logtype in self.top_logtypes}
         self.unwrapped.step_counter = 0
-        self.env.time_manager.advance_window(global_step=self.unwrapped.all_steps_counter, violation=False)
+        self.env.time_manager.advance_window(global_step=self.unwrapped.all_steps_counter, violation=False, is_mock=self.unwrapped.is_mock)
         self.unwrapped.fake_distribution = {logtype: 0 for logtype in self.top_logtypes}
         self.unwrapped.fake_distribution['other'] = 0
         self.fake_relevant_distribution = {"_".join(logtype): 0 for logtype in self.top_logtypes}
 
         self.unwrapped.ac_fake_distribution = {logtype: 0 for logtype in self.top_logtypes}
         self.unwrapped.ac_fake_distribution['other'] = 0
+        self.unwrapped.rules_rel_diff_alerts = {rule : 0 for rule in self.unwrapped.relevant_logtypes}
+        
         # reset episode logs which are placed at lower wrapper (action)
         # self.action_wrapper.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
         
@@ -174,7 +176,7 @@ class StateWrapper3(StateWrapper):
         self.observation_space = spaces.Box(
             low=0,
             high=np.inf,
-            shape=(len(self.top_logtypes)*2,),  # +1 for 'other' category
+            shape=(len(self.top_logtypes)*2 + len(self.unwrapped.relevant_logtypes) +31+self.env.total_steps,),  # +1 for 'other' category
             # shape=(len(self.top_logtypes),),  # +1 for 'other' category
             dtype=np.float64
         )
@@ -205,9 +207,11 @@ class StateWrapper3(StateWrapper):
         # Create the final state vector
         # state = self.unwrapped.real_state
         state = np.append(self.unwrapped.ac_real_state, self.unwrapped.ac_fake_state)
-        # sparse_vector = np.zeros(self.env.total_steps+1)
-        # sparse_vector[self.unwrapped.step_counter] = 1
-        # state = np.append(state, sparse_vector)
+        rules_rel_diff_alerts = [value for key, value in self.unwrapped.rules_rel_diff_alerts.items()]
+        state = np.append(state, rules_rel_diff_alerts)
+        sparse_vector = np.zeros(self.env.total_steps)
+        sparse_vector[self.unwrapped.step_counter-1] = 1
+        state = np.append(state, sparse_vector)
         # # state = np.append(state, self.current_real_quantity/100000) 
         # real_total_logs = self.total_episode_logs
         # state = np.append(state, real_total_logs/500000)
@@ -216,13 +220,13 @@ class StateWrapper3(StateWrapper):
         # # add sparse vector for step index
 
         
-        # current_datetime = datetime.datetime.strptime(self.env.time_manager.action_window.end, '%m/%d/%Y:%H:%M:%S')
-        # weekday_vector = np.zeros(7)
-        # weekday_vector[current_datetime.weekday()] = 1
-        # hour_vector = np.zeros(24)
-        # hour_vector[current_datetime.hour] = 1
-        # state = np.append(state, weekday_vector)
-        # state = np.append(state, hour_vector)
+        current_datetime = datetime.datetime.strptime(self.env.time_manager.action_window.end, '%m/%d/%Y:%H:%M:%S')
+        weekday_vector = np.zeros(7)
+        weekday_vector[current_datetime.weekday()] = 1
+        hour_vector = np.zeros(24)
+        hour_vector[current_datetime.hour] = 1
+        state = np.append(state, weekday_vector)
+        state = np.append(state, hour_vector)
         logger.info(f"State: {state}")
         self.unwrapped.obs = state
         return state
