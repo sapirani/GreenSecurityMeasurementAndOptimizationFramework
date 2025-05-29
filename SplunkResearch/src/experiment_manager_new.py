@@ -55,7 +55,7 @@ class ExperimentConfig:
     use_quota_violation: bool = True
     use_random_agent: bool = False
     action_type: str = "Action8"  # Action, SingleAction, Action8
-    
+    model_path: Optional[str] = None  # Path to load model from, if not training
     
     # Reward parameters
     gamma_dist: float = 0.2
@@ -144,7 +144,7 @@ class ExperimentManager:
                 distribution_freq=1
             )
             
-        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = -1.5, skip_on_low_alert = True, use_energy = config.use_energy_reward)    
+        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = -5, skip_on_low_alert = True, use_energy = config.use_energy_reward, is_eval = config.mode == "eval")    
         if config.use_energy_reward:
                 
             env = EnergyRewardWrapper(
@@ -241,12 +241,14 @@ class ExperimentManager:
             })
             
         elif config.model_type in ['sac', 'td3', 'ddpg']:
-            model_kwargs.update({                "policy_kwargs": {
-                    "net_arch": [512,128,128,64],
+            model_kwargs.update({                
+                #     "policy_kwargs": {
+                #     "net_arch": [512,128,128,64],
 
 
-                },
-                # "train_freq":(1,'episode'),
+                # },
+                # "tau": 0.01,
+                # "train_freq":(3),
                 # 'action_noise':stable_baselines3.common.noise.NormalActionNoise(mean=np.zeros(env.action_space.shape[0]), sigma=0.2 * np.ones(env.action_space.shape[0]))
                 })
       
@@ -543,48 +545,52 @@ def lr_schedule(initial_value: float, rate: float):
 if __name__ == "__main__":
     # Create experiment config
     retrain_fake_start_datetime = "08/01/2024:00:00:00"
-    num_episodes = 32000
+    model_path = "/home/shouei/GreenSecurity-FirstExperiment/experiments/models/train_20250527181820_18000_steps.zip"
+    num_episodes = 50000
     action_type = "Action8"
-    lr = 1e-2
-    env_config = SplunkConfig(
-        # fake_start_datetime=retrain_fake_start_datetime,
-        rule_frequency=2880,
-        search_window=2880,
-        # savedsearches=["rule1", "rule2"],
-        logs_per_minute=150,
-        additional_percentage=1,
-        action_duration=7200, 
-        num_of_measurements=3,
-        baseline_num_of_measurements=3,
-        env_id="splunk_train-v32",
-        end_time="09/01/2024:23:59:59"       
-    )
-    sched_LR = lr_schedule(initial_value = 0.01, rate = 3)
-    experiment_config = ExperimentConfig(
-        env_config=env_config,
-        model_type="td3",  # ppo, a2c, dqn, etc.
-        policy_type= "MlpPolicy",
-        learning_rate=0.001, #sched_LR,
-        num_episodes=num_episodes,
-        n_steps=96,
-        ent_coef=0.1,
-        gamma=1,
-        gamma_dist=1,#0.33,
-        alpha_energy=1,
-        beta_alert=1,
-        action_type=action_type,
-        # experiment_name="test_experiment",
-        use_alert_reward=True,
-        use_energy_reward=True,
-        use_random_agent=False,
-        is_mock=False,
-    )
-    
-    #retrain model
-    experiment_config.mode = "train"
-    manager = ExperimentManager(base_dir="experiments")
-    results = manager.run_experiment(experiment_config)
+    for is_random in [ False]:
+        lr = 1e-2
+        env_config = SplunkConfig(
+            # fake_start_datetime=retrain_fake_start_datetime,
+            rule_frequency=2880,
+            search_window=2880,
+            # savedsearches=["rule1", "rule2"],
+            logs_per_minute=150,
+            additional_percentage=1,
+            action_duration=7200, 
+            num_of_measurements=3,
+            baseline_num_of_measurements=3,
+            env_id="splunk_train-v32",
+            end_time="09/01/2024:23:59:59"       
+        )
+        sched_LR = lr_schedule(initial_value = 0.01, rate = 5)
+        experiment_config = ExperimentConfig(
+            env_config=env_config,
+            model_type="ppo",  # ppo, a2c, dqn, etc.
+            policy_type= "MlpPolicy",
+            learning_rate=0.001,#sched_LR,
+            num_episodes=num_episodes,
+            n_steps=96,
+            ent_coef=0.1,
+            gamma=1,
+            gamma_dist=1,#0.33,
+            alpha_energy=1,
+            beta_alert=1,
+            action_type=action_type,
+            # experiment_name="test_experiment",
+            use_alert_reward=True,
+            use_energy_reward=True,
+            use_random_agent=is_random,
+            is_mock=False,
+            model_path=model_path if model_path else None,
+            
+        )
+        
+        #retrain model
+        experiment_config.mode = "train"
+        manager = ExperimentManager(base_dir="experiments")
+        results = manager.run_experiment(experiment_config)
 
-    
+        
     
  
