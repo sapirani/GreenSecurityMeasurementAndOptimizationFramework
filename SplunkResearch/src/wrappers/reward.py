@@ -73,7 +73,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
     
     def __init__(self, env, baseline_dir: str = "baselines", is_mock: bool = False,
                  enable_prediction: bool = True, alert_threshold: float = -0.5,
-                 skip_on_low_alert: bool = True, use_energy: bool = True):
+                 skip_on_low_alert: bool = True, use_energy: bool = True, is_eval: bool = False):
         super().__init__(env)
         self.baseline_dir = Path(baseline_dir)
         self.baseline_dir.mkdir(parents=True, exist_ok=True)
@@ -108,6 +108,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         
         self.alert_predictor = AlertPredictor(self.expected_alerts)
         self.execution_decisions = []
+        self.is_eval = is_eval
         
     def _get_baseline_path(self) -> Path:
         """Get path for baseline data based on environment config"""
@@ -187,7 +188,8 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         # Decide whether to execute
         should_execute = True
         if self.enable_prediction and self.skip_on_low_alert:
-            should_execute = (predicted_reward >= self.alert_threshold) and (distribution_value < self.env.distribution_threshold) and self.use_energy
+            should_execute = ((predicted_reward >= self.alert_threshold) and (distribution_value < self.env.distribution_threshold) and self.use_energy) #or self.is_eval
+            self.unwrapped.should_delete = should_execute
             
         # Log decision
         self.execution_decisions.append({
@@ -317,12 +319,15 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 baseline_alerts = {rule: raw_baseline_metrics[rule]['alert'] for rule in self.expected_alerts}
                 for rule in self.expected_alerts:
                     raw_metrics[rule]['alert'] = current_alerts[rule]
+                    raw_baseline_metrics[rule]['cpu'] = 0
+                    raw_baseline_metrics[rule]['duration'] = 0
                 info['combined_metrics']['alert'] = sum(current_alerts.values()) + sum(baseline_alerts.values())
+
             # Set a penalty reward for skipping
             info['alert_reward'] = predicted_reward
             reward = 1
             if info.get('ac_distribution_value', 0) > self.env.distribution_threshold:
-                    reward = -np.exp(info['ac_distribution_value'] ** 2)
+                    reward = -100*(info['ac_distribution_value'] ** 2)
                     if predicted_reward < self.alert_threshold:
                         reward += predicted_reward
             else:
@@ -335,6 +340,12 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # Store in info for other wrappers to use
             info['raw_metrics'] = raw_metrics
             info['raw_baseline_metrics'] = raw_baseline_metrics
+        # else:
+        #     if info.get('ac_distribution_value', 0) > self.env.distribution_threshold:
+        #             reward = -1000*(info['ac_distribution_value'] ** 2)
+        #             # self.unwrapped.done = True
+        #             truncated = True
+        #             # info['done'] = True
             
         return obs, reward, terminated, truncated, info
     
@@ -363,11 +374,9 @@ class EnergyRewardWrapper(RewardWrapper):
     def step(self, action):
         """Override step to properly handle info updates"""
         obs, reward, terminated, truncated, info = self.env.step(action)
-        step = info.get('step', 0)
-        if info.get('done', True) and info.get('distribution_reward') == 0:
-            reward = 0
 
-        if info.get('done', True):
+
+        if info.get('done', True) and not self.unwrapped.is_mock:
             # if self.unwrapped.is_mock:                                           
             #     cpu_dict = self.estimate_energy_consumption()
             #     for rule in self.splunk_tools.active_saved_searches:
@@ -425,9 +434,6 @@ class AlertRewardWrapper(RewardWrapper):
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)
         step = info.get('step', 0)
-        
-        if info.get('done', True) and info.get('distribution_reward') == 0:
-            reward = 0
 
         if info.get('done', True):
             diversity_episode_logs = info['diversity_episode_logs']
@@ -527,7 +533,7 @@ class DistributionRewardWrapper(RewardWrapper):
         self.gamma = gamma
         self.epsilon = epsilon
         self.distribution_reward_freq = distribution_freq
-        self.distribution_threshold = 0.22
+        self.distribution_threshold = 0.2
         
         
     def step(self, action):
@@ -548,26 +554,26 @@ class DistributionRewardWrapper(RewardWrapper):
         #     reward += dist_reward
 
                 # reward += self.gamma * dist_reward
-        if info.get('done', True):
-            dist_value = self._calculate_distribution_value(
-                self.unwrapped.ac_real_state,
-                self.unwrapped.ac_fake_state
-            )
-            info['ac_distribution_value'] = dist_value
-            dist_reward = self._calculate_distribution_reward(dist_value)
+        # if info.get('done', True):
+        dist_value = self._calculate_distribution_value(
+            self.unwrapped.ac_real_state,
+            self.unwrapped.ac_fake_state
+        )
+        info['ac_distribution_value'] = dist_value
+            # dist_reward = self._calculate_distribution_reward(dist_value)
             # dist_reward /= 0.6 # NOrmalize the reward
-            info['ac_distribution_reward'] = dist_reward
-            # reward += self.gamma*dist_reward
-            if reward < -1:
-                return obs, reward, terminated, truncated, info
-            if dist_value > self.distribution_threshold:
-                reward = -dist_value*100
-                reward = dist_reward
-            else:
-                reward = dist_reward
+        #     info['ac_distribution_reward'] = dist_reward
+        #     # reward += self.gamma*dist_reward
+        #     if reward < -1:
+        #         return obs, reward, terminated, truncated, info
+        #     if dist_value > self.distribution_threshold:
+        #         reward = -dist_value*100
+        #         reward = dist_reward
+        #     else:
+        #         reward = dist_reward
 
-        # since this is the last wrapper, we can consider it as final reward
-        logger.info(f"Reward: {reward}")  
+        # # since this is the last wrapper, we can consider it as final reward
+        # logger.info(f"Reward: {reward}")  
         return obs, reward, terminated, truncated, info
     
     def _calculate_distribution_reward(self, distribution_value: float) -> float:

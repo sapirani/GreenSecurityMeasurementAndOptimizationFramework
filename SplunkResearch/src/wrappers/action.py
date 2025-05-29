@@ -605,8 +605,8 @@ class Action8(Action):
             # check zero action 
             distribution = action[:len(self.top_logtypes)]
             # softmax normalization
-            distribution = np.exp(distribution) / np.sum(np.exp(distribution))
-            # distribution /= (np.sum(distribution) + 1e-8) 
+            # distribution = np.exp(distribution) / np.sum(np.exp(distribution))
+            distribution /= (np.sum(distribution) + 1e-8) 
             
             diversity_list = action[len(self.top_logtypes):]
             # current_quota = action[-1]
@@ -662,6 +662,7 @@ class Action8(Action):
             self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
             self._calculate_quota()
             self.diversity_episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
+            self.episodic_logs_to_inject = []
 
             # self.remaining_quota = self.quota
             self.info = kwargs["options"]

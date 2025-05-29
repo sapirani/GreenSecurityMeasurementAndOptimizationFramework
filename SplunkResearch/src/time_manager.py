@@ -53,6 +53,7 @@ class TimeManager:
         self._validate_configuration()
         self.splunk_tools = SplunkTools()
         self.is_test = is_test
+        self.is_delete = False
         
     def _validate_configuration(self):
         """Validate time configuration"""
@@ -86,8 +87,9 @@ class TimeManager:
         self.action_window = self._create_action_window(self.get_current_time())        
         return self.action_window
         
-    def advance_window(self, global_step, violation: bool = False, is_mock: bool = False) -> TimeWindow:
+    def advance_window(self, global_step, violation: bool = False, should_delete: bool = False) -> TimeWindow:
         """Advance the main time window"""
+        self.is_delete = False
         if violation:
             # On violation, stay at current window
             return self.current_window
@@ -101,8 +103,11 @@ class TimeManager:
             if new_start_dt >= end_datetime:
                 logger.info(f"End time {self.end_time} , current time {new_start_dt.strftime('%m/%d/%Y:%H:%M:%S')}")
                 logger.info("End of times arived, resetting to start time")# + one hour")
-                if not self.is_test and not is_mock:
+                if not self.is_test and should_delete:
                     clean_env(self.splunk_tools, (self.first_start_datetime, self.end_time))
+                    if should_delete:
+                        self.is_delete = True
+                        
                 
                 # Reset to start time + one hour
                 start_dt = datetime.datetime.strptime(self.first_start_datetime, '%m/%d/%Y:%H:%M:%S')
