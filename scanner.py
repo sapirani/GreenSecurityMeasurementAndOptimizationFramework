@@ -248,7 +248,9 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_data_per_process, 
                     }
                 )
 
-        except (psutil.NoSuchProcess, ChildProcessError):
+        # Note, we are just ignoring access denied and other exceptions and do not handle them.
+        # There will be no results for those processes
+        except (psutil.NoSuchProcess, psutil.AccessDenied, ChildProcessError):
             pass
 
     return prev_data_per_process
