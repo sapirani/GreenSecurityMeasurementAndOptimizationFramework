@@ -50,7 +50,7 @@ class ProcessNetworkMonitor:
         """
         while not self._stop_sniffing:
             sniff(prn=self._process_packet, iface=self._interfaces,
-                  store=False, timeout=5, stop_filter=lambda _: self._stop_sniffing)
+                  store=False, timeout=3, stop_filter=lambda _: self._stop_sniffing)
 
     def _is_outgoing_packet(self, captured_packet):
         return captured_packet.src in self.device_mac_addresses or captured_packet.src in self.all_ips

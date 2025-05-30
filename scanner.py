@@ -248,7 +248,7 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_data_per_process, 
                     }
                 )
 
-        except psutil.NoSuchProcess:
+        except (psutil.NoSuchProcess, ChildProcessError):
             pass
 
     return prev_data_per_process
