@@ -48,9 +48,12 @@ class ProcessNetworkMonitor:
         (since the stop_filter is examined upon receiving a packet)
         Hence, we force timeout to ensure that self._stop_sniffing is still False.
         """
-        while not self._stop_sniffing:
-            sniff(prn=self._process_packet, iface=self._interfaces,
-                  store=False, timeout=5, stop_filter=lambda _: self._stop_sniffing)
+        try:
+            while not self._stop_sniffing:
+                sniff(prn=self._process_packet, iface=self._interfaces,
+                      store=False, timeout=3, stop_filter=lambda _: self._stop_sniffing)
+        except PermissionError:
+            print("warning! per-process network measurements require elevations")
 
     def _is_outgoing_packet(self, captured_packet):
         return captured_packet.src in self.device_mac_addresses or captured_packet.src in self.all_ips

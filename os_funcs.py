@@ -441,7 +441,7 @@ class LinuxOS(OSFuncsInterface):
                              capture_output=True, shell=True)
 
         if res.returncode != 0 and psutil.pid_exists(psutil_process.pid):
-            raise Exception(f'An error occurred while getting process {psutil_process.pid} page faults', res.stderr)
+            raise ChildProcessError(f'An error occurred while getting process {psutil_process.pid} page faults', res.stderr)
 
         output_lines = res.stdout.decode("utf-8").strip().split("\n")
 

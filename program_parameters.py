@@ -7,7 +7,7 @@ background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Pe
 kill_background_process_when_main_finished = True
 summary_version = SummaryVersion.OTHER
 
-scanner_version = ScannerVersion.FULL
+scanner_version = ScannerVersion.WITHOUT_BATTERY
 
 power_plan = PowerPlan.BALANCED
 scan_option = ScanMode.ONE_SCAN
