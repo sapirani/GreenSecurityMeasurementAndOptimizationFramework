@@ -295,15 +295,16 @@ def save_current_total_cpu():
     """
     This function saves the total cpu usage of the system
     """
-    total_cpu = psutil.cpu_percent(percpu=True)
-    cpu_df.loc[len(cpu_df.index)] = [scanner_imp.calc_time_interval(starting_time), mean(total_cpu)] + total_cpu
+    total_cpu_per_core = psutil.cpu_percent(percpu=True)
+    total_cpu = running_os.get_total_cpu_usage(total_cpu_per_core)
+    cpu_df.loc[len(cpu_df.index)] = [scanner_imp.calc_time_interval(starting_time), total_cpu] + total_cpu_per_core
 
     logger.info(
         "Total CPU measurements",
         extra={
-            "mean_across_cores_percent": mean(total_cpu),
-            "number_of_cores": len(total_cpu),
-            **{f"core{i}_percent": total_cpu[i] for i in range(len(total_cpu))}
+            "mean_across_cores_percent": mean(total_cpu_per_core),
+            "number_of_cores": len(total_cpu_per_core),
+            **{f"core{i}_percent": total_cpu_per_core[i] for i in range(len(total_cpu_per_core))}
         }
     )
 

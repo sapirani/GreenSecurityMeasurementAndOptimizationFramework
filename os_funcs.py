@@ -2,6 +2,7 @@ import ctypes
 import platform
 import subprocess
 from abc import ABC, abstractmethod
+from statistics import mean
 from time import sleep
 from typing import List
 
@@ -16,7 +17,8 @@ from general_consts import (GB, MINUTE, NEVER_GO_TO_SLEEP_MODE,
                             physical_memory_types)
 from general_functions import get_powershell_result_list_format
 from program_parameters import (DEFAULT_SCREEN_TURNS_OFF_TIME,
-                                DEFAULT_TIME_BEFORE_SLEEP_MODE, power_plan)
+                                DEFAULT_TIME_BEFORE_SLEEP_MODE, power_plan, is_inside_container)
+from resources_measurement.linux_resources.total_cpu_usage import get_container_cpu_usage
 
 
 class OSFuncsInterface:
@@ -141,6 +143,10 @@ class OSFuncsInterface:
         pass
 
     def is_posix(self):
+        pass
+
+    @abstractmethod
+    def get_total_cpu_usage(self, total_cpu_per_core: list[float]):
         pass
 
 
@@ -337,6 +343,12 @@ class WindowsOS(OSFuncsInterface):
     def is_posix(self):
         return False
 
+    def get_total_cpu_usage(self, total_cpu_per_core: list[float]) -> float:
+        if is_inside_container:
+            raise Exception("Not implemented total cpu for windows container")
+        return mean(total_cpu_per_core)
+
+
 
 class LinuxOS(OSFuncsInterface):
     @staticmethod
@@ -476,3 +488,11 @@ class LinuxOS(OSFuncsInterface):
 
     def is_posix(self):
         return True
+
+
+    def get_total_cpu_usage(self, total_cpu_per_core: list[float]) -> float:
+        if is_inside_container:
+            return mean(total_cpu_per_core)
+
+        else:
+            return get_container_cpu_usage()
