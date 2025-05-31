@@ -2,7 +2,7 @@ import datetime
 import logging
 import os
 
-from os_funcs import OSFuncsInterface
+from operating_systems.abstract_operating_system import AbstractOSFuncs
 from program_parameters import elastic_username, elastic_url, elastic_password
 from elasticsearch import Elasticsearch
 
@@ -25,7 +25,7 @@ class ElasticSearchLogHandler(logging.Handler):
             "timestamp": datetime.datetime.utcnow().isoformat(),
             "level": record.levelname,
             "message": record.getMessage(),
-            "hostname": OSFuncsInterface.get_hostname(),
+            "hostname": AbstractOSFuncs.get_hostname(),
             "session_id": self.session_id
         }
 
