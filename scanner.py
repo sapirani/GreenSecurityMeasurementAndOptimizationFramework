@@ -315,6 +315,7 @@ def continuously_measure():
     """
     This function runs in a different thread. It accounts for measuring the full resource consumption of the system
     """
+    global done_scanning
     running_os.init_thread()
 
     # init prev_disk_io by first disk io measurements (before scan)
@@ -328,16 +329,19 @@ def continuously_measure():
     process_network_monitor = ProcessNetworkMonitor(interfaces_for_packets_capturing)
 
     # TODO: think if total tables should be printed only once
-    while should_scan():
-        # Create a delay
-        scanner_imp.scan_sleep(0.5)
+    try:
+        while should_scan():
+            # Create a delay
+            scanner_imp.scan_sleep(0.5)
 
-        scanner_imp.save_battery_stat(battery_df, scanner_imp.calc_time_interval(starting_time))
-        prev_data_per_process = save_current_processes_statistics(prev_data_per_process, process_network_monitor)
-        save_current_total_cpu()
-        save_current_total_memory()
-        prev_disk_io = save_current_disk_io(prev_disk_io)
-        prev_network_io = save_current_network_io(prev_network_io)
+            scanner_imp.save_battery_stat(battery_df, scanner_imp.calc_time_interval(starting_time))
+            prev_data_per_process = save_current_processes_statistics(prev_data_per_process, process_network_monitor)
+            save_current_total_cpu()
+            save_current_total_memory()
+            prev_disk_io = save_current_disk_io(prev_disk_io)
+            prev_network_io = save_current_network_io(prev_network_io)
+    except NotImplementedError:
+        done_scanning = True
 
     process_network_monitor.stop()
 
