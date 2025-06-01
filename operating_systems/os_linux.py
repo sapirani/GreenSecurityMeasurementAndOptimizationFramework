@@ -150,9 +150,5 @@ class LinuxOS(AbstractOSFuncs):
         return True
 
 
-    def get_total_cpu_usage(self, is_inside_container: bool, total_cpu_per_core: list[float]) -> float:
-        if is_inside_container:
-            return mean(total_cpu_per_core)
-
-        else:
-            return get_container_cpu_usage()
+    def _get_os_total_cpu(self) -> float:
+        return get_container_cpu_usage()

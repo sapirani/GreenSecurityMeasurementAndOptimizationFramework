@@ -1,6 +1,7 @@
 import shlex
 import subprocess
 from abc import abstractmethod
+from statistics import mean
 
 import psutil
 
@@ -132,5 +133,11 @@ class AbstractOSFuncs:
         pass
 
     @abstractmethod
-    def get_total_cpu_usage(self, is_inside_container: bool, total_cpu_per_core: list[float]):
+    def _get_os_total_cpu(self):
         pass
+
+    def get_total_cpu_usage(self, is_inside_container: bool, total_cpu_per_core: list[float]):
+        if is_inside_container:
+            return self._get_os_total_cpu()
+        else:
+            return mean(total_cpu_per_core)
