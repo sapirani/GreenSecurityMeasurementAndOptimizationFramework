@@ -306,7 +306,7 @@ def save_current_total_cpu():
         extra={
             "mean_across_cores_percent": mean(total_cpu_per_core),
             "number_of_cores": len(total_cpu_per_core),
-            **{f"core{i}_percent": total_cpu_per_core[i] for i in range(len(total_cpu_per_core))}
+            **{f"core{core_index}_percent": core_cpu_usage for core_index, core_cpu_usage in enumerate(total_cpu_per_core)}
         }
     )
 
