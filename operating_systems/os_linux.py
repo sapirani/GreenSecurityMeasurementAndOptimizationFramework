@@ -153,5 +153,5 @@ class LinuxOS(AbstractOSFuncs):
         return True
 
 
-    def _get_container_total_cpu(self) -> float:
+    def get_container_total_cpu_usage(self) -> float:
         return self.__container_cpu_usage_reader.get_cpu_percent()

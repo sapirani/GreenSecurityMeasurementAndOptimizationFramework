@@ -297,8 +297,12 @@ def save_current_total_cpu():
     This function saves the total cpu usage of the system
     """
     total_cpu_per_core = psutil.cpu_percent(percpu=True)
-    total_cpu = running_os.get_total_cpu_usage(is_inside_container=is_inside_container,
-                                               total_cpu_per_core=total_cpu_per_core)
+    total_cpu = 0
+    if is_inside_container:
+        total_cpu = running_os.get_container_total_cpu_usage()
+    elif total_cpu_per_core is not None and len(total_cpu_per_core) > 0:
+        total_cpu = mean(total_cpu_per_core)
+
     cpu_df.loc[len(cpu_df.index)] = [scanner_imp.calc_time_interval(starting_time), total_cpu] + total_cpu_per_core
 
     logger.info(
@@ -766,6 +770,7 @@ def can_proceed_towards_measurements():
 
 
 def before_scanning_operations():
+    global done_scanning
     scanner_imp.check_if_battery_plugged()
 
     if disable_real_time_protection_during_measurement and running_os.is_tamper_protection_enabled():
@@ -787,9 +792,12 @@ def before_scanning_operations():
         import screen_brightness_control as sbc
         sbc.set_brightness(screen_brightness_level)
 
-    cpu_per_core = psutil.cpu_percent(percpu=True)  # first call is meaningless
-    running_os.get_total_cpu_usage(is_inside_container=is_inside_container,
-                                   total_cpu_per_core=cpu_per_core) # first call is meaningless
+    psutil.cpu_percent(percpu=True)  # first call is meaningless
+    try:
+        running_os.get_container_total_cpu_usage() # first call is meaningless
+    except NotImplementedError as e:
+        print(f"Error occurred: {str(e)}")
+        done_scanning = True
 
     Path(GRAPHS_DIR).mkdir(parents=True, exist_ok=True)  # create empty results dirs
 
