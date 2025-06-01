@@ -2,6 +2,8 @@ import os
 import time
 from typing import Optional
 
+DEFAULT_NUMBER_OF_CPUS = 1
+
 # A cgroup is a feature that allows you to allocate, limit, and monitor system resources among user-defined groups of processes.
 # Enables control over resource distribution, ensuring that no single group can monopolize the system resources.
 SYS_FS_CGROUP_PATH = r"/sys/fs/cgroup/"
@@ -131,8 +133,9 @@ class LinuxContainerCPUReader:
             except:
                 return None
 
-    def __get_num_cpus_allowed(self) -> Optional[int]:
+    def __get_num_cpus_allowed(self) -> int:
         if self.__quota_period is None:
-            return os.cpu_count()
+            cpu_count = os.cpu_count()
+            return cpu_count if cpu_count is not None else DEFAULT_NUMBER_OF_CPUS
         quota, period = self.__quota_period
         return int(quota / period)
