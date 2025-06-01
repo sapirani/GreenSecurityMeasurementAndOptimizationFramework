@@ -787,7 +787,9 @@ def before_scanning_operations():
         import screen_brightness_control as sbc
         sbc.set_brightness(screen_brightness_level)
 
-    psutil.cpu_percent()  # first call is meaningless
+    cpu_per_core = psutil.cpu_percent(percpu=True)  # first call is meaningless
+    running_os.get_total_cpu_usage(is_inside_container=is_inside_container,
+                                   total_cpu_per_core=cpu_per_core) # first call is meaningless
 
     Path(GRAPHS_DIR).mkdir(parents=True, exist_ok=True)  # create empty results dirs
 

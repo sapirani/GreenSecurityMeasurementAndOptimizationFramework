@@ -133,11 +133,13 @@ class AbstractOSFuncs:
         pass
 
     @abstractmethod
-    def _get_os_total_cpu(self):
+    def _get_container_total_cpu(self):
         pass
 
     def get_total_cpu_usage(self, is_inside_container: bool, total_cpu_per_core: list[float]):
         if is_inside_container:
-            return self._get_os_total_cpu()
+            return self._get_container_total_cpu()
+        elif total_cpu_per_core is None or len(total_cpu_per_core) == 0:
+            return 0
         else:
             return mean(total_cpu_per_core)

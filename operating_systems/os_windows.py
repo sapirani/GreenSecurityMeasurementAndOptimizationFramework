@@ -202,5 +202,5 @@ class WindowsOS(AbstractOSFuncs):
     def is_posix(self):
         return False
 
-    def _get_os_total_cpu(self) -> float:
+    def _get_container_total_cpu(self) -> float:
         raise NotImplementedError("Not implemented total cpu for windows container")

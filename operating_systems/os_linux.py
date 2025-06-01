@@ -7,10 +7,13 @@ import psutil
 from general_consts import MINUTE, NEVER_GO_TO_SLEEP_MODE, YES_BUTTON, NO_BUTTON, PowerPlan
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from program_parameters import DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFORE_SLEEP_MODE, power_plan
-from resources_measurement.linux_resources.total_cpu_usage import get_container_cpu_usage
+from resources_measurement.linux_resources.total_cpu_usage import LinuxContainerCPUReader
 
 
 class LinuxOS(AbstractOSFuncs):
+    def __init__(self):
+        self.__container_cpu_usage_reader = LinuxContainerCPUReader()
+
     @staticmethod
     def get_value_of_terminal_res(res):
         res_lst = res.stdout.decode("utf-8").strip().split("\n")
@@ -150,5 +153,5 @@ class LinuxOS(AbstractOSFuncs):
         return True
 
 
-    def _get_os_total_cpu(self) -> float:
-        return get_container_cpu_usage()
+    def _get_container_total_cpu(self) -> float:
+        return self.__container_cpu_usage_reader.get_cpu_percent()
