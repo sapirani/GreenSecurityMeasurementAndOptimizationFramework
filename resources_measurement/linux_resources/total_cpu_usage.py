@@ -2,16 +2,23 @@ import os
 import time
 from typing import Optional
 
+# A cgroup is a feature that allows you to allocate, limit, and monitor system resources among user-defined groups of processes.
+# Enables control over resource distribution, ensuring that no single group can monopolize the system resources.
 SYS_FS_CGROUP_PATH = r"/sys/fs/cgroup/"
 
 # Lists the available controllers (e.g., cpu, memory) that can be enabled in the current cgroup.
 # The format of the file is a single line with space-separated controller names.
+# E.g. cpu io memory
 # Presence of this file indicates that the system is using cgroup v2.
 CGROUP_CONTROLLERS_FILE_NAME = r"cgroup.controllers"
 CGROUP_CONTROLLERS_FILE_PATH = os.path.join(SYS_FS_CGROUP_PATH, CGROUP_CONTROLLERS_FILE_NAME)
 
 # Provides CPU usage statistics for the cgroup.
 # The format of the file is key-value pairs, one per line.
+# E.g.
+#   usage_usec 123456789
+#   user_usec 12345678
+#   system_usec 11111111
 # The interesting key is usage_usec, its value is the total CPU time consumed by all tasks in the cgroup, in microseconds.
 CPU_STATS_FILE_NAME = r"cpu.stat"
 CPU_STATS_FILE_PATH = os.path.join(SYS_FS_CGROUP_PATH, CPU_STATS_FILE_NAME)
@@ -26,6 +33,7 @@ CPU_ACCT_USAGE_FILE_PATH = os.path.join(SYS_FS_CGROUP_PATH, CPU_ACCT_USAGE_FILE_
 # <max>: Maximum CPU time (in microseconds) that the cgroup can use in each period.
 # <period>: Length of each period in microseconds.
 # If <max> is set to max, there is no CPU limit.
+# E.g. 50000 100000 - means that we limit the cgroup to 50ms of CPU time every 100ms.
 CPU_MAX_FILE_NAME = r"cpu.max"
 CPU_MAX_FILE_PATH = os.path.join(SYS_FS_CGROUP_PATH, CPU_MAX_FILE_NAME)
 
