@@ -329,19 +329,23 @@ def continuously_measure():
     process_network_monitor = ProcessNetworkMonitor(interfaces_for_packets_capturing)
 
     # TODO: think if total tables should be printed only once
-    try:
-        while should_scan():
+    while should_scan():
             # Create a delay
-            scanner_imp.scan_sleep(0.5)
+        scanner_imp.scan_sleep(0.5)
 
-            scanner_imp.save_battery_stat(battery_df, scanner_imp.calc_time_interval(starting_time))
-            prev_data_per_process = save_current_processes_statistics(prev_data_per_process, process_network_monitor)
+        scanner_imp.save_battery_stat(battery_df, scanner_imp.calc_time_interval(starting_time))
+        prev_data_per_process = save_current_processes_statistics(prev_data_per_process, process_network_monitor)
+
+        try: # in case of measuring cpu in a windows container
             save_current_total_cpu()
-            save_current_total_memory()
-            prev_disk_io = save_current_disk_io(prev_disk_io)
-            prev_network_io = save_current_network_io(prev_network_io)
-    except NotImplementedError:
-        done_scanning = True
+        except NotImplementedError as e:
+            print(f"Error occurred: {str(e)}")
+            done_scanning = True
+
+        save_current_total_memory()
+        prev_disk_io = save_current_disk_io(prev_disk_io)
+        prev_network_io = save_current_network_io(prev_network_io)
+
 
     process_network_monitor.stop()
 
