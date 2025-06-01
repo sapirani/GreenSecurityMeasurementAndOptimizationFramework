@@ -1,23 +1,43 @@
 import os
 import time
+from typing import Optional
 
 SYS_FS_CGROUP_PATH = r"/sys/fs/cgroup/"
 
+# Lists the available controllers (e.g., cpu, memory) that can be enabled in the current cgroup.
+# The format of the file is a single line with space-separated controller names.
+# Presence of this file indicates that the system is using cgroup v2.
 CGROUP_CONTROLLERS_FILE_NAME = r"cgroup.controllers"
 CGROUP_CONTROLLERS_FILE_PATH = os.path.join(SYS_FS_CGROUP_PATH, CGROUP_CONTROLLERS_FILE_NAME)
 
+# Provides CPU usage statistics for the cgroup.
+# The format of the file is key-value pairs, one per line.
+# The interesting key is usage_usec, its value is the total CPU time consumed by all tasks in the cgroup, in microseconds.
 CPU_STATS_FILE_NAME = r"cpu.stat"
 CPU_STATS_FILE_PATH = os.path.join(SYS_FS_CGROUP_PATH, CPU_STATS_FILE_NAME)
 
+# Reports the total CPU time consumed by tasks in the cgroup. - relevant for cgroup V1
+# The format of the file is a single integer value representing nanoseconds.
 CPU_ACCT_USAGE_FILE_NAME = r"cpuacct/cpuacct.usage"
 CPU_ACCT_USAGE_FILE_PATH = os.path.join(SYS_FS_CGROUP_PATH, CPU_ACCT_USAGE_FILE_NAME)
 
+# Sets CPU usage limits for the cgroup. - relevant for cgroup V2
+# The format of the file is two values separated by a space: <max> <period>
+# <max>: Maximum CPU time (in microseconds) that the cgroup can use in each period.
+# <period>: Length of each period in microseconds.
+# If <max> is set to max, there is no CPU limit.
 CPU_MAX_FILE_NAME = r"cpu.max"
 CPU_MAX_FILE_PATH = os.path.join(SYS_FS_CGROUP_PATH, CPU_MAX_FILE_NAME)
 
+# Specifies the total available run-time within a period for tasks in the cgroup. - relevant for cgroup V1
+# A quota sets the maximum amount of CPU time that a cgroup can consume during each period.
+# The format of the file is a single integer value in microseconds (-1 indicates no limit).
 CPU_CF_QUOTA_FILE_NAME = r"cpu/cpu.cfs_quota_us"
 CPU_CF_QUOTA_FILE_PATH = os.path.join(SYS_FS_CGROUP_PATH, CPU_CF_QUOTA_FILE_NAME)
 
+# Defines the length of the period for enforcing CPU quotas. - relevant for cgroup V1
+# Within each period, the cgroup's CPU usage is limited according to its quota.
+# The format of the file is a single integer value in microseconds.
 CPU_CF_PERIOD_FILE_NAME = r"cpu/cpu.cfs_period_us"
 CPU_CF_PERIOD_FILE_PATH = os.path.join(SYS_FS_CGROUP_PATH, CPU_CF_PERIOD_FILE_NAME)
 
@@ -37,7 +57,7 @@ class LinuxContainerCPUReader:
         self._last_usage_ns = None
         self._last_time = None
 
-    def get_cpu_percent(self):
+    def get_cpu_percent(self) -> float:
         current_usage_ns = self.__read_cpu_usage_ns()
         current_time = time.time()
 
@@ -65,7 +85,7 @@ class LinuxContainerCPUReader:
         cpu_percent = (usage_delta_ns / total_possible_ns) * 100
         return cpu_percent
 
-    def __read_cpu_usage_ns(self):
+    def __read_cpu_usage_ns(self) -> Optional[int]:
         if self.__version == FileKeywords.V2:
             with open(CPU_STATS_FILE_PATH) as f:
                 for line in f:
@@ -75,13 +95,13 @@ class LinuxContainerCPUReader:
             with open(CPU_ACCT_USAGE_FILE_PATH) as f:
                 return int(f.read().strip())
 
-    def __detect_cgroup_version(self):
+    def __detect_cgroup_version(self) -> str:
         if os.path.exists(CGROUP_CONTROLLERS_FILE_PATH):
             return FileKeywords.V2
         else:
             return FileKeywords.V1
 
-    def __read_cpu_limit(self):
+    def __read_cpu_limit(self) -> Optional[tuple[int, int]]:
         if self.__version == FileKeywords.V2:
             try:
                 with open(CPU_MAX_FILE_PATH) as f:
@@ -103,8 +123,8 @@ class LinuxContainerCPUReader:
             except:
                 return None
 
-    def __get_num_cpus_allowed(self):
+    def __get_num_cpus_allowed(self) -> Optional[int]:
         if self.__quota_period is None:
             return os.cpu_count()
         quota, period = self.__quota_period
-        return quota / period
+        return int(quota / period)
