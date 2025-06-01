@@ -310,7 +310,8 @@ def save_current_total_cpu():
         extra={
             "mean_across_cores_percent": mean(total_cpu_per_core),
             "number_of_cores": len(total_cpu_per_core),
-            **{f"core{core_index}_percent": core_cpu_usage for core_index, core_cpu_usage in enumerate(total_cpu_per_core)}
+            **{f"core{core_index}_percent": core_cpu_usage for core_index, core_cpu_usage in
+               enumerate(total_cpu_per_core)}
         }
     )
 
@@ -334,13 +335,13 @@ def continuously_measure():
 
     # TODO: think if total tables should be printed only once
     while should_scan():
-            # Create a delay
+        # Create a delay
         scanner_imp.scan_sleep(0.5)
 
         scanner_imp.save_battery_stat(battery_df, scanner_imp.calc_time_interval(starting_time))
         prev_data_per_process = save_current_processes_statistics(prev_data_per_process, process_network_monitor)
 
-        try: # in case of measuring cpu in a windows container
+        try:  # in case of measuring cpu in a windows container
             save_current_total_cpu()
         except NotImplementedError as e:
             print(f"Error occurred: {str(e)}")
@@ -349,7 +350,6 @@ def continuously_measure():
         save_current_total_memory()
         prev_disk_io = save_current_disk_io(prev_disk_io)
         prev_network_io = save_current_network_io(prev_network_io)
-
 
     process_network_monitor.stop()
 
@@ -769,8 +769,18 @@ def can_proceed_towards_measurements():
         return True
 
 
-def before_scanning_operations():
+def initialize_total_cpu():
     global done_scanning
+    psutil.cpu_percent(percpu=True)  # first call to psutil with cpu is meaningless
+    try:
+        if is_inside_container:
+            running_os.get_container_total_cpu_usage()  # first call is meaningless
+    except NotImplementedError as e:
+        print(f"Error occurred: {str(e)}")
+        done_scanning = True
+
+
+def before_scanning_operations():
     scanner_imp.check_if_battery_plugged()
 
     if disable_real_time_protection_during_measurement and running_os.is_tamper_protection_enabled():
@@ -792,12 +802,7 @@ def before_scanning_operations():
         import screen_brightness_control as sbc
         sbc.set_brightness(screen_brightness_level)
 
-    psutil.cpu_percent(percpu=True)  # first call is meaningless
-    try:
-        running_os.get_container_total_cpu_usage() # first call is meaningless
-    except NotImplementedError as e:
-        print(f"Error occurred: {str(e)}")
-        done_scanning = True
+    initialize_total_cpu()
 
     Path(GRAPHS_DIR).mkdir(parents=True, exist_ok=True)  # create empty results dirs
 
