@@ -9,16 +9,16 @@ from datetime import datetime, timedelta
 from functools import lru_cache
 import logging
 logger = logging.getLogger(__name__)
+PREFIX_PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/'
 
 
 class LogGenerator:
     
-    def __init__(self, logtypes, splunk_tools_instance, big_replacement_dicts=None, cache_dir='./template_cache'):
+    def __init__(self, logtypes, big_replacement_dicts=None, cache_dir='./template_cache'):
         logger.info("Initializing OptimizedLogGenerator")
         start_time = time.time()
         
         self.big_replacement_dicts = big_replacement_dicts
-        self.splunk_tools = splunk_tools_instance
         self.cache_dir = cache_dir
         
         # Create cache directory if it doesn't exist
@@ -106,7 +106,27 @@ class LogGenerator:
                 'Service File Name': 'c:\\Users\\Public\\clop_{}.exe'
             }
         }
-
+                   
+    def load_logs_to_duplicate_dict(self, logtypes):
+        dir_name = 'logs_resource'
+        # load the logs to duplicate from disk
+        logs_to_duplicate_dict = {f"{logtype[0].lower()}_{logtype[1]}_{istrigger}": [] for istrigger,_ in enumerate(['notrigger', 'trigger']) for logtype in logtypes}
+        for logtype in logtypes:
+            source = logtype[0].lower()
+            eventcode = logtype[1]
+            for istrigger, istrigger_string in enumerate(['notrigger', 'trigger']):
+                path = f'{PREFIX_PATH}{dir_name}/{source.replace("/", "__")}_{eventcode}_{istrigger_string}.txt'
+                if not os.path.exists(path):
+                    continue
+                with open(path, 'r') as f:
+                    text = f.read()
+                    results = text.split('\n[EOF]\n')
+                    # results = self.split_logs(source, text)   
+                    for log in results:
+                         if log != '':
+                             logs_to_duplicate_dict[f"{logtype[0].lower()}_{logtype[1]}_{istrigger}"].append(log)
+        return logs_to_duplicate_dict   
+     
     def _get_template(self, logsource, eventcode, istrigger):
         """Lazy-loading templates to avoid loading everything at once"""
         key = f"{logsource.lower()}_{eventcode}_{istrigger}"
@@ -115,7 +135,7 @@ class LogGenerator:
             # Load just this template
             logger.info(f"Loading template for {key}")
             start_time = time.time()
-            templates = self.splunk_tools.load_logs_to_duplicate_dict([(logsource, eventcode, istrigger)])
+            templates = self.load_logs_to_duplicate_dict([(logsource, eventcode, istrigger)])
             self.logs_to_duplicate_dict.update(templates)
             # logger.info(f"Template loading for {key} completed in {time.time() - start_time:.3f} seconds")
         
@@ -410,7 +430,7 @@ class LogGenerator:
             # Load just this template
             logger.info(f"Loading template for {key}")
             start_time = time.time()
-            templates = self.splunk_tools.load_logs_to_duplicate_dict([(logsource, eventcode, istrigger)])
+            templates = self.load_logs_to_duplicate_dict([(logsource, eventcode, istrigger)])
             self.logs_to_duplicate_dict.update(templates)
             # logger.info(f"Template loading for {key} completed in {time.time() - start_time:.3f} seconds")
         

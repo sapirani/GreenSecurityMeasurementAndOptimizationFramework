@@ -144,7 +144,7 @@ class ExperimentManager:
                 distribution_freq=1
             )
             
-        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = -5, skip_on_low_alert = True, use_energy = config.use_energy_reward, is_eval = config.mode == "eval")    
+        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = -6, skip_on_low_alert = True, use_energy = config.use_energy_reward, is_eval = config.mode == "eval")    
         if config.use_energy_reward:
                 
             env = EnergyRewardWrapper(
@@ -297,13 +297,13 @@ class ExperimentManager:
             eval_config.env_config.end_time = "04/26/2025:23:59:59"
             self.eval_env = self.create_environment(eval_config)
 
-            # if "test_experiment" not  in config.experiment_name:
-            #     # clean and warm up the env
-            #     clean_env(env.splunk_tools, (env.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
-            #     env.warmup()
-            # else:
-            #     env.disable_injection()
-            #     self.eval_env.disable_injection()
+            if "test_experiment" not  in config.experiment_name:
+                # clean and warm up the env
+                clean_env(env.splunk_tools, (env.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
+                env.warmup()
+            else:
+                env.disable_injection()
+                self.eval_env.disable_injection()
             # Setup callbacks
             config.experiment_name = experiment_name
             callbacks = self._setup_callbacks(config)
@@ -367,7 +367,7 @@ class ExperimentManager:
             best_model_save_path=self.dirs['models'],
             log_path=self.dirs['logs'],
             # eval_log_dir=str(self.dirs['tensorboard']/f"eval_{config.experiment_name}"),
-            deterministic=True,
+            deterministic=False,
             render=False,
             verbose=1,
             writers=writers,
@@ -545,8 +545,8 @@ def lr_schedule(initial_value: float, rate: float):
 if __name__ == "__main__":
     # Create experiment config
     retrain_fake_start_datetime = "08/01/2024:00:00:00"
-    model_path = "/home/shouei/GreenSecurity-FirstExperiment/experiments/models/train_20250527181820_18000_steps.zip"
-    num_episodes = 50000
+    model_path = "/home/shouei/GreenSecurity-FirstExperiment/experiments/models/train_20250529093916_20000_steps.zip"
+    num_episodes = 300000
     action_type = "Action8"
     for is_random in [ False]:
         lr = 1e-2
@@ -568,7 +568,7 @@ if __name__ == "__main__":
             env_config=env_config,
             model_type="ppo",  # ppo, a2c, dqn, etc.
             policy_type= "MlpPolicy",
-            learning_rate=0.001,#sched_LR,
+            learning_rate=0.0001,#sched_LR,
             num_episodes=num_episodes,
             n_steps=96,
             ent_coef=0.1,
