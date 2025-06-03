@@ -1,9 +1,8 @@
 import os
 import time
 
-from resources_measurement.linux_resources.cgroup_utils import detect_cgroup_version, extract_cgroup_relative_path
-from resources_measurement.linux_resources.config import SYSTEM_CGROUP_FILE_PATH, FileKeywords, \
-    CGROUP_IN_CONTAINER_PATH, ProcCgroupFileConsts
+from resources_measurement.linux_resources.cgroup_utils import extract_cgroup_relative_path
+from resources_measurement.linux_resources.config import SYSTEM_CGROUP_FILE_PATH, FileKeywords
 from resources_measurement.linux_resources.total_resource_usage import LinuxContainerResourceReader
 
 DEFAULT_NUMBER_OF_CPUS = 1
