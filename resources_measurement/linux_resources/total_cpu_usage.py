@@ -62,31 +62,31 @@ class FileKeywords:
 class LinuxContainerCPUReader:
     def __init__(self):
         self.__version = self.__detect_cgroup_version()
-        self.__quota_period = self.__read_cpu_limit()
+        # self.__quota_period = self.__read_cpu_limit()
         self.__allowed_cpus = self.__get_num_cpus_allowed()
-        self._last_usage_ns = None
-        self._last_time = None
+        self.__last_usage_ns = None
+        self.__last_time = None
 
     def get_cpu_percent(self) -> float:
         current_usage_ns = self.__read_cpu_usage_ns()
         current_time = time.time()
 
-        if self._last_usage_ns is None or self._last_time is None:
+        if self.__last_usage_ns is None or self.__last_time is None:
             # First call, initialize tracking variables
-            self._last_usage_ns = current_usage_ns
-            self._last_time = current_time
+            self.__last_usage_ns = current_usage_ns
+            self.__last_time = current_time
             return 0.0  # Meaningless value, as per psutil behavior
 
         # Calculate deltas
-        usage_delta_ns = current_usage_ns - self._last_usage_ns
-        time_delta_s = current_time - self._last_time
+        usage_delta_ns = current_usage_ns - self.__last_usage_ns
+        time_delta_s = current_time - self.__last_time
 
         if time_delta_s <= 0:
             return 0.0  # Avoid division by zero or negative time intervals
 
         # Update tracking variables
-        self._last_usage_ns = current_usage_ns
-        self._last_time = current_time
+        self.__last_usage_ns = current_usage_ns
+        self.__last_time = current_time
 
         # Calculate total possible CPU time in nanoseconds
         total_possible_ns = time_delta_s * 1e9 * self.__allowed_cpus
@@ -111,31 +111,33 @@ class LinuxContainerCPUReader:
         else:
             return FileKeywords.V1
 
-    def __read_cpu_limit(self) -> Optional[tuple[int, int]]:
-        if self.__version == FileKeywords.V2:
-            try:
-                with open(CPU_MAX_FILE_PATH) as f:
-                    quota_str, period_str = f.read().strip().split()
-                    if quota_str == FileKeywords.MAX:
-                        return None  # no limit
-                    return int(quota_str), int(period_str)
-            except:
-                return None
-        else:
-            try:
-                with open(CPU_CF_QUOTA_FILE_PATH) as f:
-                    quota = int(f.read().strip())
-                with open(CPU_CF_PERIOD_FILE_PATH) as f:
-                    period = int(f.read().strip())
-                if quota == -1:
-                    return None
-                return quota, period
-            except:
-                return None
+    # def __read_cpu_limit(self) -> Optional[tuple[int, int]]:
+    #     if self.__version == FileKeywords.V2:
+    #         try:
+    #             with open(CPU_MAX_FILE_PATH) as f:
+    #                 quota_str, period_str = f.read().strip().split()
+    #                 if quota_str == FileKeywords.MAX:
+    #                     return None  # no limit
+    #                 return int(quota_str), int(period_str)
+    #         except:
+    #             return None
+    #     else:
+    #         try:
+    #             with open(CPU_CF_QUOTA_FILE_PATH) as f:
+    #                 quota = int(f.read().strip())
+    #             with open(CPU_CF_PERIOD_FILE_PATH) as f:
+    #                 period = int(f.read().strip())
+    #             if quota == -1:
+    #                 return None
+    #             return quota, period
+    #         except:
+    #             return None
 
     def __get_num_cpus_allowed(self) -> int:
-        if self.__quota_period is None:
-            cpu_count = os.cpu_count()
-            return cpu_count if cpu_count is not None else DEFAULT_NUMBER_OF_CPUS
-        quota, period = self.__quota_period
-        return int(quota / period)
+        cpu_count = os.cpu_count()
+        return cpu_count if cpu_count is not None else DEFAULT_NUMBER_OF_CPUS
+        # if self.__quota_period is None:
+        #     cpu_count = os.cpu_count()
+        #     return cpu_count if cpu_count is not None else DEFAULT_NUMBER_OF_CPUS
+        # quota, period = self.__quota_period
+        # return int(quota / period)
