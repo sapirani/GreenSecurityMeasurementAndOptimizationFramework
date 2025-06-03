@@ -1,19 +1,12 @@
 import os
 import time
 
+from resources_measurement.linux_resources.cgroup_utils import detect_cgroup_version, extract_cgroup_relative_path
+from resources_measurement.linux_resources.config import SYSTEM_CGROUP_FILE_PATH, FileKeywords, \
+    CGROUP_IN_CONTAINER_PATH, ProcCgroupFileConsts
 
 DEFAULT_NUMBER_OF_CPUS = 1
 
-# A cgroup is a feature that allows you to allocate, limit, and monitor system resources among user-defined groups of processes.
-# Enables control over resource distribution, ensuring that no single group can monopolize the system resources.
-SYSTEM_CGROUP_FILE_PATH = r"/sys/fs/cgroup/"
-
-# Lists the available controllers (e.g., cpu, memory) that can be enabled in the current cgroup.
-# The format of the file is a single line with space-separated controller names.
-# E.g. cpu io memory
-# Presence of this file indicates that the system is using cgroup v2.
-CGROUP_CONTROLLERS_FILE_NAME = r"cgroup.controllers"
-CGROUP_CONTROLLERS_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CGROUP_CONTROLLERS_FILE_NAME)
 
 # Provides CPU usage statistics for the cgroup.
 # The format of the file is key-value pairs, one per line.
@@ -49,14 +42,6 @@ CPU_CFS_QUOTA_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPU_CFS_QUOTA_FI
 CPU_CFS_PERIOD_FILE_NAME = r"cpu/cpu.cfs_period_us"
 CPU_CFS_PERIOD_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPU_CFS_PERIOD_FILE_NAME)
 
-# Contains details on the cgroup of the container.
-# The file format is the single line:
-# hierarchy-ID : controllers : cgroup-path -> WHERE:
-# Hierarchy ID can be 0 (for cgroup v2), or 2, 3, etc. in v1
-# Controller(s)	can be cpu,cpuacct or empty string ("") for v2
-# Path to cgroup can be /docker/<container-id> or /
-CGROUP_IN_CONTAINER_PATH = r"/proc/self/cgroup"
-
 # The file contains the indices of the cpus that the container can use.
 # The file format is a line seperated with commas - each element can be either a single number or a range of cpu indices.
 # For example: "0-3,5,7-8"
@@ -64,27 +49,13 @@ CPUSET_CPUS_FILE_NAME = r"cpuset.cpus"
 CPUSET_CPUS_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPUSET_CPUS_FILE_NAME)
 
 
-class ProcCgroupFileConsts:
-    NUMBER_OF_ELEMENTS = 3
-    HIERARCHY_INDEX = 0
-    CONTROLLERS_INDEX = 1
-    CGROUP_PATH_INDEX = 2
 
-
-class FileKeywords:
-    V1 = "v1"
-    V2 = "v2"
-    USAGE_USEC = "usage_usec"
-    MAX = "max"
-
-    CGROUP_V1_IDENTIFIER = "cpu,cpuacct"
-    CGROUP_V2_IDENTIFIER = "0"
 
 
 class LinuxContainerCPUReader:
     def __init__(self):
-        self.__version = self.__detect_cgroup_version()
-        self.__cpu_stats_path = self.__get_cpu_file_path(self.__version)
+        self.__version = detect_cgroup_version()
+        self.__cpu_stats_path = self.__get_cpu_usage_file_path(self.__version)
         self.__allowed_cpus = self.__get_num_cpus_allowed()
         self.__last_usage_ns = None
         self.__last_time = None
@@ -134,28 +105,8 @@ class LinuxContainerCPUReader:
             print(f"Error when accessing {self.__cpu_stats_path}: {e}")
             return 0
 
-    def __detect_cgroup_version(self) -> str:
-        return FileKeywords.V2 if os.path.exists(CGROUP_CONTROLLERS_FILE_PATH) else FileKeywords.V1
-
-    def __extract_cgroup_cpu_relative_path(self, version: str) -> str:
-        with open(CGROUP_IN_CONTAINER_PATH, "r") as f:
-            for line in f:
-                proc_cgroup_parts = line.strip().split(":")
-                if len(proc_cgroup_parts) != ProcCgroupFileConsts.NUMBER_OF_ELEMENTS:
-                    continue
-                else:
-                    hierarchy = proc_cgroup_parts[ProcCgroupFileConsts.HIERARCHY_INDEX]
-                    controllers = proc_cgroup_parts[ProcCgroupFileConsts.CONTROLLERS_INDEX]
-                    cgroup_path = proc_cgroup_parts[ProcCgroupFileConsts.CGROUP_PATH_INDEX].lstrip("/")
-
-                    if (version == FileKeywords.V2 and hierarchy == FileKeywords.CGROUP_V2_IDENTIFIER) or \
-                            (version == FileKeywords.V1 and controllers == FileKeywords.CGROUP_V1_IDENTIFIER):
-                        return os.path.join(SYSTEM_CGROUP_FILE_PATH, cgroup_path)
-
-        return SYSTEM_CGROUP_FILE_PATH
-
-    def __get_cpu_file_path(self, version: str) -> str:
-        path_to_cgroup_dir = self.__extract_cgroup_cpu_relative_path(version)
+    def __get_cpu_usage_file_path(self, version: str) -> str:
+        path_to_cgroup_dir = extract_cgroup_relative_path(version, FileKeywords.CGROUP_V1_CPU_IDENTIFIER)
         if version == FileKeywords.V2:
             return os.path.join(path_to_cgroup_dir, CPU_STATS_FILE_NAME)
         else:
