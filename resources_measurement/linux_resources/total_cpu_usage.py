@@ -27,7 +27,9 @@ CPU_STATS_FILE_PATH = os.path.join(SYS_FS_CGROUP_PATH, CPU_STATS_FILE_NAME)
 
 # Reports the total CPU time consumed by tasks in the cgroup. - relevant for cgroup V1
 # The format of the file is a single integer value representing nanoseconds.
-CPU_ACCT_USAGE_FILE_NAME = r"cpuacct/cpuacct.usage"
+CPU_ACCT_USAGE_FILE_NAME = r"cpuacct.usage"
+
+#CPU_ACCT_USAGE_FILE_NAME = r"cpuacct/cpuacct.usage"
 CPU_ACCT_USAGE_FILE_PATH = os.path.join(SYS_FS_CGROUP_PATH, CPU_ACCT_USAGE_FILE_NAME)
 
 # Sets CPU usage limits for the cgroup. - relevant for cgroup V2
@@ -52,6 +54,18 @@ CPU_CF_PERIOD_FILE_NAME = r"cpu/cpu.cfs_period_us"
 CPU_CF_PERIOD_FILE_PATH = os.path.join(SYS_FS_CGROUP_PATH, CPU_CF_PERIOD_FILE_NAME)
 
 
+# Contains details on the cgroup of the container.
+# The file format is the single line:
+# hierarchy-ID : controllers : cgroup-path -> WHERE:
+# Hierarchy ID can be 0 (for cgroup v2), or 2, 3, etc. in v1
+# Controller(s)	can be cpu,cpuacct or empty string ("") for v2
+# Path to cgroup can be /docker/<container-id> or /
+CGROUP_IN_CONTAINER_PATH = r"/proc/self/cgroup"
+SYSTEM_CGROUP_FILE_PATH = r"/sys/fs/cgroup/"
+
+NEEDED_OPERATIONS = "cpu,cpuacct"
+
+
 class FileKeywords:
     V1 = "v1"
     V2 = "v2"
@@ -62,6 +76,10 @@ class FileKeywords:
 class LinuxContainerCPUReader:
     def __init__(self):
         self.__version = self.__detect_cgroup_version()
+        self._cgroup_path = self.__get_actual_cgroup_cpu_path(self.__version)
+        self._cpu_stat_path = os.path.join(self._cgroup_path, CPU_STATS_FILE_NAME)
+        self._cpuacct_usage_path = os.path.join(self._cgroup_path, CPU_ACCT_USAGE_FILE_NAME)
+
         # self.__quota_period = self.__read_cpu_limit()
         self.__allowed_cpus = self.__get_num_cpus_allowed()
         self.__last_usage_ns = None
@@ -97,12 +115,12 @@ class LinuxContainerCPUReader:
 
     def __read_cpu_usage_ns(self) -> Optional[int]:
         if self.__version == FileKeywords.V2:
-            with open(CPU_STATS_FILE_PATH) as f:
+            with open(self._cpu_stat_path) as f:
                 for line in f:
                     if line.startswith(FileKeywords.USAGE_USEC):
                         return int(line.split()[1]) * 1000  # convert to nanoseconds
         else:
-            with open(CPU_ACCT_USAGE_FILE_PATH) as f:
+            with open(self._cpuacct_usage_path) as f:
                 return int(f.read().strip())
 
     def __detect_cgroup_version(self) -> str:
@@ -110,6 +128,19 @@ class LinuxContainerCPUReader:
             return FileKeywords.V2
         else:
             return FileKeywords.V1
+
+    def __get_actual_cgroup_cpu_path(self, version: str) -> str:
+        with open(CGROUP_IN_CONTAINER_PATH, "r") as f:
+            for line in f:
+                parts = line.strip().split(":")
+                if version == FileKeywords.V2:
+                    if len(parts) == 3 and parts[0] == "0":
+                        return os.path.join(SYSTEM_CGROUP_FILE_PATH, parts[2].lstrip("/"))
+                else:
+                    if len(parts) == 3 and parts[1] == NEEDED_OPERATIONS:
+                        return os.path.join(SYSTEM_CGROUP_FILE_PATH, parts[2].lstrip("/"))
+        return SYSTEM_CGROUP_FILE_PATH  # fallback (might be incorrect)
+
 
     # def __read_cpu_limit(self) -> Optional[tuple[int, int]]:
     #     if self.__version == FileKeywords.V2:
