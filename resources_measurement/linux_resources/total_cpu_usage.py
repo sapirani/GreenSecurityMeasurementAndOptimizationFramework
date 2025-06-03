@@ -179,5 +179,5 @@ class LinuxContainerCPUReader:
             with open(CPUSET_CPUS_FILE_PATH) as f:
                 return self.__count_cpus_in_range(f.read().strip())
         except Exception as e:
-            print(f"Error when accessing {self.__cpu_stats_path}: {e}, Using default cpu's count")
+            print(f"Error when accessing {CPUSET_CPUS_FILE_PATH}: {e}, Using default cpu's count")
             return os.cpu_count() or DEFAULT_NUMBER_OF_CPUS
