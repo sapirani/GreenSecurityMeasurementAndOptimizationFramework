@@ -4,9 +4,9 @@ import time
 from resources_measurement.linux_resources.cgroup_utils import detect_cgroup_version, extract_cgroup_relative_path
 from resources_measurement.linux_resources.config import SYSTEM_CGROUP_FILE_PATH, FileKeywords, \
     CGROUP_IN_CONTAINER_PATH, ProcCgroupFileConsts
+from resources_measurement.linux_resources.total_resource_usage import LinuxContainerResourceReader
 
 DEFAULT_NUMBER_OF_CPUS = 1
-
 
 # Provides CPU usage statistics for the cgroup.
 # The format of the file is key-value pairs, one per line.
@@ -49,13 +49,9 @@ CPUSET_CPUS_FILE_NAME = r"cpuset.cpus"
 CPUSET_CPUS_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPUSET_CPUS_FILE_NAME)
 
 
-
-
-
-class LinuxContainerCPUReader:
+class LinuxContainerCPUReader(LinuxContainerResourceReader):
     def __init__(self):
-        self.__version = detect_cgroup_version()
-        self.__cpu_stats_path = self.__get_cpu_usage_file_path(self.__version)
+        super().__init__()
         self.__allowed_cpus = self.__get_num_cpus_allowed()
         self.__last_usage_ns = None
         self.__last_time = None
@@ -91,21 +87,21 @@ class LinuxContainerCPUReader:
     def __read_cpu_usage_ns(self) -> int:
         current_cpu_usage = 0
         try:
-            if self.__version == FileKeywords.V2:
-                with open(self.__cpu_stats_path) as f:
+            if self._version == FileKeywords.V2:
+                with open(self._resource_usage_path) as f:
                     for line in f:
                         if line.startswith(FileKeywords.USAGE_USEC):
                             current_cpu_usage = int(line.split()[1]) * 1000  # convert to nanoseconds 143512538
                             break
             else:
-                with open(self.__cpu_stats_path) as f:
+                with open(self._resource_usage_path) as f:
                     current_cpu_usage = int(f.read().strip())
             return current_cpu_usage
         except Exception as e:
-            print(f"Error when accessing {self.__cpu_stats_path}: {e}")
+            print(f"Error when accessing {self._resource_usage_path}: {e}")
             return 0
 
-    def __get_cpu_usage_file_path(self, version: str) -> str:
+    def _get_resource_file_path(self, version: str) -> str:
         path_to_cgroup_dir = extract_cgroup_relative_path(version, FileKeywords.CGROUP_V1_CPU_IDENTIFIER)
         if version == FileKeywords.V2:
             return os.path.join(path_to_cgroup_dir, CPU_STATS_FILE_NAME)
@@ -130,5 +126,5 @@ class LinuxContainerCPUReader:
             with open(CPUSET_CPUS_FILE_PATH) as f:
                 return self.__count_cpus_in_range(f.read().strip())
         except Exception as e:
-            print(f"Error when accessing {self.__cpu_stats_path}: {e}, Using default cpu's count")
+            print(f"Error when accessing {CPUSET_CPUS_FILE_PATH}: {e}, Using default cpu's count")
             return os.cpu_count() or DEFAULT_NUMBER_OF_CPUS
