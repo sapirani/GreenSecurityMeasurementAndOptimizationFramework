@@ -8,11 +8,13 @@ from general_consts import MINUTE, NEVER_GO_TO_SLEEP_MODE, YES_BUTTON, NO_BUTTON
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from program_parameters import DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFORE_SLEEP_MODE, power_plan
 from resources_measurement.linux_resources.total_cpu_usage import LinuxContainerCPUReader
+from resources_measurement.linux_resources.total_memory_usage import LinuxContainerMemoryReader
 
 
 class LinuxOS(AbstractOSFuncs):
     def __init__(self):
         self.__container_cpu_usage_reader = LinuxContainerCPUReader()
+        self.__container_memory_usage_reader = LinuxContainerMemoryReader()
 
     @staticmethod
     def get_value_of_terminal_res(res):
@@ -155,3 +157,8 @@ class LinuxOS(AbstractOSFuncs):
 
     def get_container_total_cpu_usage(self) -> float:
         return self.__container_cpu_usage_reader.get_cpu_percent()
+
+    def get_container_total_memory_usage(self) -> tuple[float, float]:
+        usage_in_bytes = self.__container_memory_usage_reader.get_memory_usage_bytes()
+        usage_percent = self.__container_memory_usage_reader.get_memory_usage_percent()
+        return usage_in_bytes, usage_percent
