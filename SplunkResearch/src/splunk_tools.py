@@ -790,27 +790,7 @@ class SplunkTools(object):
             for log in logs:
                 f.write(f'{log}\n[EOF]\n')
         logger.info(f'Saved {len(logs)} logs to {path}/{log_source}_{eventcode}.txt')
-                   
-    def load_logs_to_duplicate_dict(self, logtypes):
-        dir_name = 'logs_resource'
-        # load the logs to duplicate from disk
-        logs_to_duplicate_dict = {f"{logtype[0].lower()}_{logtype[1]}_{istrigger}": [] for istrigger,_ in enumerate(['notrigger', 'trigger']) for logtype in logtypes}
-        for logtype in logtypes:
-            source = logtype[0].lower()
-            eventcode = logtype[1]
-            for istrigger, istrigger_string in enumerate(['notrigger', 'trigger']):
-                path = f'{PREFIX_PATH}{dir_name}/{source.replace("/", "__")}_{eventcode}_{istrigger_string}.txt'
-                if not os.path.exists(path):
-                    continue
-                with open(path, 'r') as f:
-                    text = f.read()
-                    results = text.split('\n[EOF]\n')
-                    # results = self.split_logs(source, text)   
-                    for log in results:
-                         if log != '':
-                             logs_to_duplicate_dict[f"{logtype[0].lower()}_{logtype[1]}_{istrigger}"].append(log)
-        return logs_to_duplicate_dict   
-     
+
                 
     def get_time(self, y, m, d, h, mi, s):
         return datetime(y, m, d, h, mi, s).timestamp()

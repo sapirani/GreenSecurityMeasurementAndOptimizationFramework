@@ -115,7 +115,7 @@ class SplunkEnv(gym.Env):
         
         self.savedsearches = savedsearches
         # Initialize tools and strategies
-        self.log_generator = LogGenerator(self.top_logtypes, self.splunk_tools)
+        self.log_generator = LogGenerator(self.top_logtypes)
         # self.log_generator = LogGenerator(self.relevant_logtypes, self.splunk_tools)
         self._normalize_factor = 300000
         

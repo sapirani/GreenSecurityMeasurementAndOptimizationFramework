@@ -188,7 +188,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         # Decide whether to execute
         should_execute = True
         if self.enable_prediction and self.skip_on_low_alert:
-            should_execute = ((predicted_reward >= self.alert_threshold) and (distribution_value < self.env.distribution_threshold) and self.use_energy) #or self.is_eval
+            should_execute = ((predicted_reward >= self.alert_threshold) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval
             self.unwrapped.should_delete = should_execute
             
         # Log decision
@@ -390,13 +390,13 @@ class EnergyRewardWrapper(RewardWrapper):
             energy_reward = (current  - baseline) / baseline
             # if energy_reward <= 0.1:
             #     energy_reward = 0
-            energy_reward = np.clip(energy_reward, 0, 1) # Normalize to [0, 1]
+            # energy_reward = np.clip(energy_reward, 0, 1) # Normalize to [0, 1]
             info['energy_reward'] = energy_reward
             # reward +=  energy_reward
             # reward += self.alpha*energy_reward
             if reward != 1:
                 return obs, reward, terminated, truncated, info
-            reward = energy_reward * 10
+            reward = energy_reward * 100
             # reward += self.unwrapped.total_steps*self.alpha*energy_reward
             # reward = energy_reward/(reward + self.epsilon)
             # reward += self.alpha * energy_reward
@@ -533,7 +533,7 @@ class DistributionRewardWrapper(RewardWrapper):
         self.gamma = gamma
         self.epsilon = epsilon
         self.distribution_reward_freq = distribution_freq
-        self.distribution_threshold = 0.2
+        self.distribution_threshold = 0.22
         
         
     def step(self, action):
