@@ -66,14 +66,11 @@ def handle_sigint(signum, frame):
 def save_current_total_memory():
     """_summary_: take memory information and append it to a dataframe
     """
-
     if is_inside_container:
         memory_used_bytes, memory_used_percent = running_os.get_container_total_memory_usage()
     else:
         vm = psutil.virtual_memory()
         memory_used_bytes, memory_used_percent = vm.used, vm.percent
-
-
 
     logger.info(
         "Total memory measurement",
