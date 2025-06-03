@@ -1,6 +1,6 @@
 import os
 import time
-from typing import Optional
+
 
 DEFAULT_NUMBER_OF_CPUS = 1
 
@@ -49,7 +49,6 @@ CPU_CFS_QUOTA_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPU_CFS_QUOTA_FI
 CPU_CFS_PERIOD_FILE_NAME = r"cpu/cpu.cfs_period_us"
 CPU_CFS_PERIOD_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPU_CFS_PERIOD_FILE_NAME)
 
-
 # Contains details on the cgroup of the container.
 # The file format is the single line:
 # hierarchy-ID : controllers : cgroup-path -> WHERE:
@@ -58,10 +57,18 @@ CPU_CFS_PERIOD_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPU_CFS_PERIOD_
 # Path to cgroup can be /docker/<container-id> or /
 CGROUP_IN_CONTAINER_PATH = r"/proc/self/cgroup"
 
+# The file contains the indices of the cpus that the container can use.
+# The file format is a line seperated with commas - each element can be either a single number or a range of cpu indices.
+# For example: "0-3,5,7-8"
 CPUSET_CPUS_FILE_NAME = r"cpuset.cpus"
 CPUSET_CPUS_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPUSET_CPUS_FILE_NAME)
 
-NEEDED_OPERATIONS = "cpu,cpuacct"
+
+class ProcCgroupFileConsts:
+    NUMBER_OF_ELEMENTS = 3
+    HIERARCHY_INDEX = 0
+    CONTROLLERS_INDEX = 1
+    CGROUP_PATH_INDEX = 2
 
 
 class FileKeywords:
@@ -110,16 +117,22 @@ class LinuxContainerCPUReader:
         cpu_percent = (usage_delta_ns / total_possible_ns) * 100
         return cpu_percent
 
-    def __read_cpu_usage_ns(self) -> Optional[int]:
-        if self.__version == FileKeywords.V2:
-            with open(self.__cpu_stats_path) as f:
-                for line in f:
-                    if line.startswith(FileKeywords.USAGE_USEC):
-                        return int(line.split()[1]) * 1000  # convert to nanoseconds 143512538
-        else:
-            with open(self.__cpu_stats_path) as f:
-                return int(f.read().strip())
-
+    def __read_cpu_usage_ns(self) -> int:
+        current_cpu_usage = 0
+        try:
+            if self.__version == FileKeywords.V2:
+                with open(self.__cpu_stats_path) as f:
+                    for line in f:
+                        if line.startswith(FileKeywords.USAGE_USEC):
+                            current_cpu_usage = int(line.split()[1]) * 1000  # convert to nanoseconds 143512538
+                            break
+            else:
+                with open(self.__cpu_stats_path) as f:
+                    current_cpu_usage = int(f.read().strip())
+            return current_cpu_usage
+        except Exception as e:
+            print(f"Error when accessing {self.__cpu_stats_path}: {e}")
+            return 0
 
     def __detect_cgroup_version(self) -> str:
         return FileKeywords.V2 if os.path.exists(CGROUP_CONTROLLERS_FILE_PATH) else FileKeywords.V1
@@ -127,12 +140,19 @@ class LinuxContainerCPUReader:
     def __extract_cgroup_cpu_relative_path(self, version: str) -> str:
         with open(CGROUP_IN_CONTAINER_PATH, "r") as f:
             for line in f:
-                parts = line.strip().split(":")
-                if version == FileKeywords.V2 and len(parts) == 3 and parts[0] == FileKeywords.CGROUP_V2_IDENTIFIER:
-                    return os.path.join(SYSTEM_CGROUP_FILE_PATH, parts[2].lstrip("/"))
-                elif version == FileKeywords.V1 and len(parts) == 3 and parts[1] == FileKeywords.CGROUP_V1_IDENTIFIER:
-                    return os.path.join(SYSTEM_CGROUP_FILE_PATH, parts[2].lstrip("/"))
-        return SYSTEM_CGROUP_FILE_PATH  # fallback (might be incorrect)
+                proc_cgroup_parts = line.strip().split(":")
+                if len(proc_cgroup_parts) != ProcCgroupFileConsts.NUMBER_OF_ELEMENTS:
+                    continue
+                else:
+                    hierarchy = proc_cgroup_parts[ProcCgroupFileConsts.HIERARCHY_INDEX]
+                    controllers = proc_cgroup_parts[ProcCgroupFileConsts.CONTROLLERS_INDEX]
+                    cgroup_path = proc_cgroup_parts[ProcCgroupFileConsts.CGROUP_PATH_INDEX].lstrip("/")
+
+                    if (version == FileKeywords.V2 and hierarchy == FileKeywords.CGROUP_V2_IDENTIFIER) or \
+                            (version == FileKeywords.V1 and controllers == FileKeywords.CGROUP_V1_IDENTIFIER):
+                        return os.path.join(SYSTEM_CGROUP_FILE_PATH, cgroup_path)
+
+        return SYSTEM_CGROUP_FILE_PATH
 
     def __get_cpu_file_path(self, version: str) -> str:
         path_to_cgroup_dir = self.__extract_cgroup_cpu_relative_path(version)
@@ -141,45 +161,23 @@ class LinuxContainerCPUReader:
         else:
             return os.path.join(path_to_cgroup_dir, CPU_ACCT_USAGE_FILE_NAME)
 
-    def __parse_cpuset_cpus(self, cpus_string: str) -> int:
-        # Example format: "0-3,5,7-8"
-        count = 0
-        for part in cpus_string.split(','):
-            if '-' in part:
-                start, end = map(int, part.split('-'))
-                count += end - start + 1
-            else:
-                count += 1
-        return count
+    def __count_cpus_in_range(self, cpus_string: str) -> int:
+        number_of_cpus = 0
+        if cpus_string.strip() == "":
+            raise Exception("The content of the cpus_string should not be empty")
 
+        for cpus_range in cpus_string.split(','):
+            if '-' in cpus_range:  # If it is a range of cpu indices
+                start, end = map(int, cpus_range.split('-'))
+                number_of_cpus += end - start + 1
+            else:  # If it's a single index
+                number_of_cpus += 1
+        return number_of_cpus
 
     def __get_num_cpus_allowed(self) -> int:
         try:
             with open(CPUSET_CPUS_FILE_PATH) as f:
-                return self.__parse_cpuset_cpus(f.read().strip())
-        except Exception:
+                return self.__count_cpus_in_range(f.read().strip())
+        except Exception as e:
+            print(f"Error when accessing {self.__cpu_stats_path}: {e}, Using default cpu's count")
             return os.cpu_count() or DEFAULT_NUMBER_OF_CPUS
-
-
-
-    # def __get_num_cpus_allowed(self) -> int:
-    #     host_cpu_count = os.cpu_count()
-    #     default_return_value = host_cpu_count if host_cpu_count is not None else DEFAULT_NUMBER_OF_CPUS
-    #     try:
-    #         if self.__version == FileKeywords.V2:
-    #             with open(CPU_MAX_FILE_PATH) as f:
-    #                 quota_str, period_str = f.read().strip().split()
-    #                 if quota_str == FileKeywords.MAX:
-    #                     return default_return_value
-    #                 return int(int(quota_str) / int(period_str))
-    #
-    #         else:
-    #             with open(CPU_CFS_QUOTA_FILE_PATH) as f:
-    #                 quota = int(f.read().strip())
-    #             with open(CPU_CFS_PERIOD_FILE_PATH) as f:
-    #                 period = int(f.read().strip())
-    #             if quota == -1:
-    #                 return default_return_value
-    #             return int(quota / period)
-    #     except Exception as e:
-    #         return default_return_value
