@@ -8,6 +8,7 @@ import sys
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
 # config logging to file
 import logging
+import subprocess
 
 logging.basicConfig(filename='/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/energy_profile_final.log',
                     level=logging.INFO,
@@ -48,11 +49,11 @@ if __name__ == "__main__":
     # concat top_logtypes and relevant_logtypes, while removing duplicates and keeping order
     top_logtypes = sorted(list(dict.fromkeys(relevant_logtypes + top_logtypes)))       
     log_generator = LogGenerator(top_logtypes)
-    wait_time = [10,30, 240]
+    wait_time = [10, 15,30,120, 90]
     # quantities = [100, 200]
-    quantities = [1000, 100000, 1000000]
+    quantities = [1000, 50000, 100000, 500000, 1000000]
     # diversities = [0, 1]
-    diversities = [0, 1, 5]
+    diversities = [0, 0.5, 1, 5, 10]
     time_range = ("08/11/2024:09:00:00", "08/13/2024:09:00:00")
     logging.info(clean_env(splunk_tools, time_range))
     for rule in savedsearches:
@@ -71,12 +72,46 @@ if __name__ == "__main__":
                                                    num_logs=quantity_to_add,
                                                    diversity=int(diversity*31 + 1),
                                                    time_range=time_range)
+                scanner_id = f"{rule}_{log_source}_{eventcode}_{int(diversity*31 + 1)}_{quantity}_{datetime.now()}"
+                logging.info(f'Scanner id: {scanner_id}')
+                # To run with high privilege and provide the password, you can use the 'stdin' parameter to pass the password to sudo.
+                # WARNING: Hardcoding passwords is insecure. This is for demonstration only.
+                # This will prompt for password in terminal
+                process = subprocess.Popen(["sudo", "-S", "-E", "env", "PATH=$PATH", "/home/shouei/anaconda3/envs/py38/bin/python3", "../scanner.py", scanner_id],
+                                        stdin=subprocess.PIPE,
+                                        stdout=subprocess.PIPE, 
+                                        stderr=subprocess.PIPE,
+                                        text=True,
+                                        start_new_session=True)  # This makes the process run in a new session
+
+                # Send the password to sudo without waiting for completion
+                process.stdin.write(' \n')
+                process.stdin.flush()
+
+                sleep(3)
+                logging.info(process.pid)
+                logging.info(process.stdout)
+                logging.info(process.stderr)
                 write_logs_to_monitor(logs, log_source) # send to splunk
                 # wait for 1 minute before executing rules
-                logging.info(f'Waiting for 2 minute before executing rules for {rule}')
+                logging.info(f'Waiting for {wait_time[i]} seconds before executing rules for {rule}')
                 sleep(wait_time[i])  # wait for 1 minute for every 1000 logs
                 logging.info('Running saved searches')
                 results, _ = asyncio.run(splunk_tools.run_saved_searches(time_range, num_measurements=3))
+                logging.info('Terminating scanner')
+                try:
+                    # Use sudo to kill the process
+                    kill_process = subprocess.Popen(['sudo', 'kill', str(process.pid)],
+                                                  stdin=subprocess.PIPE,
+                                                  stdout=subprocess.PIPE,
+                                                  stderr=subprocess.PIPE,
+                                                  text=True)
+                    kill_process.stdin.write(' \n')
+                    kill_process.stdin.flush()
+                    logging.info(f'Terminated process {process.pid}')
+                except Exception as e:
+                    logging.error(f'Error terminating process: {str(e)}')
+                
                 logging.info(results)
             # clean env
             logging.info('Cleaning environment')
