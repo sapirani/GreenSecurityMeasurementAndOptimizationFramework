@@ -85,6 +85,7 @@ class LinuxContainerCPUReader:
     def __init__(self):
         self.__version = self.__detect_cgroup_version()
         self.__cpu_stats_path = self.__get_cpu_file_path(self.__version)
+        self.__cpu_limit = self.__get_cpu_limit()
         self.__allowed_cpus = self.__get_num_cpus_allowed()
         self.__last_usage_ns = None
         self.__last_time = None
@@ -160,6 +161,34 @@ class LinuxContainerCPUReader:
             return os.path.join(path_to_cgroup_dir, CPU_STATS_FILE_NAME)
         else:
             return os.path.join(path_to_cgroup_dir, CPU_ACCT_USAGE_FILE_NAME)
+
+    def __get_cpu_limit(self) -> float:
+        cpu_quota, cpu_period = self.__read_cpu_quota_and_period()
+        if cpu_quota is not None and cpu_period is not None:
+            cpu_limit = cpu_quota / cpu_period
+        else:
+            cpu_limit = self.__allowed_cpus
+        return cpu_limit
+
+    def __read_cpu_quota_and_period(self):
+        try:
+            if self.__version == FileKeywords.V2:
+                with open(CPU_MAX_FILE_PATH) as f:
+                    quota_str, period_str = f.read().strip().split()
+                    if quota_str == FileKeywords.MAX:
+                        return None, None
+                    return int(quota_str), int(period_str)
+            else:
+                with open(CPU_CFS_QUOTA_FILE_PATH) as f:
+                    quota = int(f.read().strip())
+                with open(CPU_CFS_PERIOD_FILE_PATH) as f:
+                    period = int(f.read().strip())
+                if quota == -1:
+                    return None, None
+                return quota, period
+        except Exception as e:
+            print(f"Error reading CPU quota/period: {e}")
+            return None, None
 
     def __count_cpus_in_range(self, cpus_string: str) -> int:
         number_of_cpus = 0
