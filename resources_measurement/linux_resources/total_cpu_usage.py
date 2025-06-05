@@ -86,7 +86,6 @@ class LinuxContainerCPUReader:
         self.__version = self.__detect_cgroup_version()
         self.__cpu_stats_path = self.__get_cpu_file_path(self.__version)
         self.__cpu_limit = self.__get_cpu_limit()
-        self.__allowed_cpus = self.__get_num_cpus_allowed()
         self.__last_usage_ns = None
         self.__last_time = None
 
@@ -112,7 +111,7 @@ class LinuxContainerCPUReader:
         self.__last_time = current_time
 
         # Calculate total possible CPU time in nanoseconds
-        total_possible_ns = time_delta_s * 1e9 * self.__allowed_cpus
+        total_possible_ns = time_delta_s * 1e9 * self.__cpu_limit
 
         # Compute CPU usage percentage
         cpu_percent = (usage_delta_ns / total_possible_ns) * 100
@@ -167,7 +166,7 @@ class LinuxContainerCPUReader:
         if cpu_quota is not None and cpu_period is not None:
             cpu_limit = cpu_quota / cpu_period
         else:
-            cpu_limit = self.__allowed_cpus
+            cpu_limit = self.__get_num_cpus_allowed()
         return cpu_limit
 
     def __read_cpu_quota_and_period(self):
