@@ -5,7 +5,7 @@ from typing import Union
 
 import psutil
 
-from os_funcs import OSFuncsInterface
+from operating_systems.abstract_operating_system import AbstractOSFuncs
 from tasks.program_classes.abstract_program import ProgramInterface
 
 
@@ -27,7 +27,7 @@ class SplunkProgram(ProgramInterface):
     #         children = None
     #         # time.sleep(40)
     #         p.wait()
-    #         result = OSFuncsInterface.run("splunk status", self.should_use_powershell(), is_posix=is_posix)
+    #         result = AbstractOSFuncs.run("splunk status", self.should_use_powershell(), is_posix=is_posix)
     #         print(result)
 
     #         stdout = result.stdout.decode('utf-8')
