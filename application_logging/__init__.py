@@ -6,16 +6,16 @@ from application_logging.handlers.elastic_handler import ElasticSearchLogHandler
 
 _logger = None
 _logger_lock = threading.Lock()
-_measurement_session_id: Optional[str] = None
+_measurement_session_id: str = ""
 
 
-def set_measurement_session_id(measurement_session_id: str) -> None:
+def set_measurement_session_id_into_logger(measurement_session_id: str) -> None:
     global _measurement_session_id
     _measurement_session_id = measurement_session_id
 
 
 def get_measurement_logger() -> logging.Logger:
-    if _measurement_session_id is None:
+    if not _measurement_session_id:
         raise ValueError("measurement session id must be set before calling the logger retrieval function")
 
     global _logger

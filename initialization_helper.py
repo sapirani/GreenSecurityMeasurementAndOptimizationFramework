@@ -110,7 +110,7 @@ program = program_to_scan_factory(main_program_to_scan)
 background_programs = [program_to_scan_factory(background_program) for background_program in background_programs_types]
 
 
-def calc_base_dir():
+def construct_base_dir_path():
     """
     :return: A string represents the directory hierarchy of the results
     """
@@ -124,7 +124,7 @@ def calc_base_dir():
         return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name, 'Continuous Scan', program.path_adjustments())
 
 
-base_dir = calc_base_dir()
+base_dir = os.path.abspath(construct_base_dir_path())
 
 
 def calc_measurement_number(is_scanner=True):

@@ -11,7 +11,7 @@ from prettytable import PrettyTable
 from threading import Thread, Timer
 import pandas as pd
 
-from application_logging import get_measurement_logger, set_measurement_session_id
+from application_logging import get_measurement_logger, set_measurement_session_id_into_logger
 from initialization_helper import *
 from datetime import date
 from pathlib import Path
@@ -33,6 +33,7 @@ main_process_id = None
 max_timeout_reached = False
 main_process = None
 logger = None
+session_id: str = ""
 
 # include main programs and background
 processes_ids = []
@@ -399,6 +400,8 @@ def save_general_information_before_scanning():
     """
     with open(GENERAL_INFORMATION_FILE, 'w') as f:
         # dd/mm/YY
+        f.write(f"Session_id: {session_id}\n")
+        f.write(f"Hostname: {running_os.get_hostname()}\n")
         f.write(f'Date: {date.today().strftime("%d/%m/%Y")}\n')
         f.write(f'Scanner Version: {get_scanner_version_name(scanner_version)}\n\n')
 
@@ -508,7 +511,7 @@ def save_results_to_files():
     save_general_information_after_scanning()
     ignore_last_results()
 
-    print(f"Results are save to {base_dir}")
+    print(f"Results are saved to {base_dir}")
 
     processes_df.to_csv(PROCESSES_CSV, index=False)
     memory_df.to_csv(TOTAL_MEMORY_EACH_MOMENT_CSV, index=False)
@@ -806,6 +809,7 @@ def after_scanning_operations(should_save_results=True):
 
 def main():
     print("======== Process Monitor ========")
+    print("Session id:", session_id)
 
     signal.signal(signal.SIGINT, handle_sigint)
 
@@ -831,7 +835,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    set_measurement_session_id(args.measurement_session_id)
+    session_id = args.measurement_session_id
+
+    set_measurement_session_id_into_logger(session_id)
     logger = get_measurement_logger()
 
     main()
