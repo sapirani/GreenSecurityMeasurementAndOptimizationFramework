@@ -34,7 +34,7 @@ def send_timestamp_to_elastic(trigger_message: str,  session_id: str):
     elastic_logger.info(
         "Sending a trigger",
         extra={
-            f"{trigger_message}_timestamp": datetime.now().timestamp(),
+            f"{trigger_message}_timestamp": datetime.utcnow().isoformat(),
         }
     )
 
