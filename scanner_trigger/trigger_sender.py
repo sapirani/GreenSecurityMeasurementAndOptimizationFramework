@@ -63,7 +63,7 @@ Example: 1.1.1.1:80,2.2.2.2:90,3.3.3.3:100""",
     parser.add_argument('-i', '--session_id',
                         type=str,
                         help="""Control the session id sent to the scanner""",
-                        default=generate_id())
+                        default=generate_id(word_count=3))
 
     args = parser.parse_args()
 
