@@ -1,6 +1,5 @@
 import logging
 import threading
-from typing import Optional
 
 from application_logging.handlers.elastic_handler import ElasticSearchLogHandler
 

@@ -43,7 +43,7 @@ def send_timestamp_to_elastic(trigger_message: str, receivers_addresses: List[Tu
 def main(trigger_message: str, receivers_addresses: List[Tuple[str, int]], session_id: str) -> None:
     logging.info("Sending trigger to the following addresses:\n" + decorate_addresses(receivers_addresses))
 
-    send_timestamp_to_elastic(trigger_message, session_id)
+    send_timestamp_to_elastic(trigger_message, receivers_addresses, session_id)
 
     for receiver_address in receivers_addresses:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
