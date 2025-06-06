@@ -9,6 +9,7 @@ from elasticsearch import Elasticsearch
 INDEX_NAME = os.getenv("ELASTIC_INDEX_NAME", "scanner")
 
 
+# TODO: remove the program_parameters dependency and start relying on parameters passed to the constructor
 class ElasticSearchLogHandler(logging.Handler):
     def __init__(self, session_id: str, es_host: str = elastic_url, index_name: str = INDEX_NAME):
         super().__init__()
