@@ -28,14 +28,13 @@ def decorate_addresses(addresses: List[Tuple[str, int]]) -> str:
     return "\n".join([f"Host: {host}, Port: {port}" for host, port in addresses])
 
 
-def send_timestamp_to_elastic(trigger_message: str, receivers_addresses: List[Tuple[str, int]],  session_id: str):
+def send_timestamp_to_elastic(trigger_message: str,  session_id: str):
     elastic_logger = get_elastic_logger(session_id)
 
     elastic_logger.info(
         "Sending a trigger",
         extra={
             f"{trigger_message}_timestamp": datetime.now().timestamp(),
-            "receivers": receivers_addresses
         }
     )
 
@@ -43,7 +42,7 @@ def send_timestamp_to_elastic(trigger_message: str, receivers_addresses: List[Tu
 def main(trigger_message: str, receivers_addresses: List[Tuple[str, int]], session_id: str) -> None:
     logging.info("Sending trigger to the following addresses:\n" + decorate_addresses(receivers_addresses))
 
-    send_timestamp_to_elastic(trigger_message, receivers_addresses, session_id)
+    send_timestamp_to_elastic(trigger_message, session_id)
 
     for receiver_address in receivers_addresses:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
