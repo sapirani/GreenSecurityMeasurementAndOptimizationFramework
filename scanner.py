@@ -11,9 +11,9 @@ from prettytable import PrettyTable
 from threading import Thread, Timer
 import pandas as pd
 
-from application_logging import get_measurement_logger, set_measurement_session_id
+from application_logging import get_measurement_logger, set_measurement_session_id_into_logger
 from initialization_helper import *
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
 from process_connections import ProcessNetworkMonitor
@@ -33,6 +33,7 @@ main_process_id = None
 max_timeout_reached = False
 main_process = None
 logger = None
+session_id: str = ""
 
 # include main programs and background
 processes_ids = []
@@ -327,7 +328,7 @@ def continuously_measure():
     # TODO: think if total tables should be printed only once
     while should_scan():
         # Create a delay
-        scanner_imp.scan_sleep(0.5)
+        scanner_imp.scan_sleep(SLEEP_BETWEEN_ITERATIONS_SECONDS)
 
         scanner_imp.save_battery_stat(battery_df, scanner_imp.calc_time_interval(starting_time))
         prev_data_per_process = save_current_processes_statistics(prev_data_per_process, process_network_monitor)
@@ -399,6 +400,8 @@ def save_general_information_before_scanning():
     """
     with open(GENERAL_INFORMATION_FILE, 'w') as f:
         # dd/mm/YY
+        f.write(f"Session_id: {session_id}\n")
+        f.write(f"Hostname: {running_os.get_hostname()}\n")
         f.write(f'Date: {date.today().strftime("%d/%m/%Y")}\n')
         f.write(f'Scanner Version: {get_scanner_version_name(scanner_version)}\n\n')
 
@@ -508,7 +511,7 @@ def save_results_to_files():
     save_general_information_after_scanning()
     ignore_last_results()
 
-    print(f"Results are save to {base_dir}")
+    print(f"Results are saved to {base_dir}")
 
     processes_df.to_csv(PROCESSES_CSV, index=False)
     memory_df.to_csv(TOTAL_MEMORY_EACH_MOMENT_CSV, index=False)
@@ -806,6 +809,7 @@ def after_scanning_operations(should_save_results=True):
 
 def main():
     print("======== Process Monitor ========")
+    print("Session id:", session_id)
 
     signal.signal(signal.SIGINT, handle_sigint)
 
@@ -814,6 +818,8 @@ def main():
     scan_and_measure()
 
     after_scanning_operations()
+
+    logger.info("The scanner has finished measuring")
 
     print("Finished scanning")
 
@@ -826,12 +832,16 @@ if __name__ == '__main__':
 
     parser.add_argument("--measurement_session_id",
                         type=str,
-                        default=generate_id(),
+                        default=generate_id(word_count=3),
                         help="ip address to listen on")
 
     args = parser.parse_args()
 
-    set_measurement_session_id(args.measurement_session_id)
+    session_id = args.measurement_session_id
+
+    set_measurement_session_id_into_logger(session_id)
     logger = get_measurement_logger()
+
+    logger.info("The scanner is starting the measurement")
 
     main()

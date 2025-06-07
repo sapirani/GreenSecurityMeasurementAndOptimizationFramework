@@ -9,12 +9,14 @@ from elasticsearch import Elasticsearch
 INDEX_NAME = os.getenv("ELASTIC_INDEX_NAME", "scanner")
 
 
+# TODO: remove the program_parameters dependency and start relying on parameters passed to the constructor
 class ElasticSearchLogHandler(logging.Handler):
     def __init__(self, session_id: str, es_host: str = elastic_url, index_name: str = INDEX_NAME):
         super().__init__()
         self.es = Elasticsearch(es_host, basic_auth=(elastic_username, elastic_password))
         self.index_name = index_name
         self.session_id = session_id
+        self.start_date = datetime.datetime.utcnow().isoformat()
 
         if not self.es.ping():
             print("Cannot connect to Elastic")
@@ -26,7 +28,9 @@ class ElasticSearchLogHandler(logging.Handler):
             "level": record.levelname,
             "message": record.getMessage(),
             "hostname": OSFuncsInterface.get_hostname(),
-            "session_id": self.session_id
+            "session_id": self.session_id,
+            # TODO: try to find a way to avoid sending start_date inside each log
+            "start_date": self.start_date
         }
 
         # Emit extra log data

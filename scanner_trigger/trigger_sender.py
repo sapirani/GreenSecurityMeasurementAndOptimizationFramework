@@ -1,11 +1,14 @@
 import argparse
 import logging
 import socket
+from datetime import datetime
 from typing import List, Tuple
 
 from scanner_trigger import logging_configuration
 
 from human_id import generate_id
+
+from scanner_trigger.logging_configuration import get_elastic_logger
 
 DEFAULT_TRIGGER_RECEIVER_HOST = "127.0.0.1"
 DEFAULT_TRIGGER_RECEIVER_PORT = 65432
@@ -25,8 +28,21 @@ def decorate_addresses(addresses: List[Tuple[str, int]]) -> str:
     return "\n".join([f"Host: {host}, Port: {port}" for host, port in addresses])
 
 
-def main(trigger_message: str, receivers_addresses: List[Tuple[str, int]]) -> None:
+def send_timestamp_to_elastic(trigger_message: str,  session_id: str):
+    elastic_logger = get_elastic_logger(session_id)
+
+    elastic_logger.info(
+        "Sending a trigger",
+        extra={
+            f"{trigger_message}_timestamp": datetime.utcnow().isoformat(),
+        }
+    )
+
+
+def main(trigger_message: str, receivers_addresses: List[Tuple[str, int]], session_id: str) -> None:
     logging.info("Sending trigger to the following addresses:\n" + decorate_addresses(receivers_addresses))
+
+    send_timestamp_to_elastic(trigger_message, session_id)
 
     for receiver_address in receivers_addresses:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -37,7 +53,7 @@ def main(trigger_message: str, receivers_addresses: List[Tuple[str, int]]) -> No
                 logging.warning(f"Connect timout ({CONNECT_TIMEOUT} seconds). Address: {receiver_address}, ")
                 continue
             logging.info(f"Connected to {receiver_address}, Sending:{trigger_message}")
-            full_message = f"{trigger_message} --measurement_session_id {generate_id()}"
+            full_message = f"{trigger_message} --measurement_session_id {session_id}"
             s.sendall(full_message.encode())
 
 
@@ -60,6 +76,11 @@ Note: this script is synchronous and could be further improved by sending trigge
 Example: 1.1.1.1:80,2.2.2.2:90,3.3.3.3:100""",
                         default=[(DEFAULT_TRIGGER_RECEIVER_HOST, DEFAULT_TRIGGER_RECEIVER_PORT)])
 
+    parser.add_argument('-i', '--session_id',
+                        type=str,
+                        help="""Control the session id sent to the scanner""",
+                        default=generate_id(word_count=3))
+
     args = parser.parse_args()
 
-    main(args.trigger_message, args.receivers_addresses)
+    main(args.trigger_message, args.receivers_addresses, args.session_id)
