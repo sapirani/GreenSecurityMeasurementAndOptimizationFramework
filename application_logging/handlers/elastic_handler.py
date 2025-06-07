@@ -29,6 +29,7 @@ class ElasticSearchLogHandler(logging.Handler):
             "message": record.getMessage(),
             "hostname": OSFuncsInterface.get_hostname(),
             "session_id": self.session_id,
+            # TODO: try to find a way to avoid sending start_date inside each log
             "start_date": self.start_date
         }
 
