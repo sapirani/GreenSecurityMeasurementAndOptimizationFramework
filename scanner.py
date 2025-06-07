@@ -819,12 +819,7 @@ def main():
 
     after_scanning_operations()
 
-    logger.info(
-        "The scanner has finished measuring",
-        extra={
-            f"scanner_end_timestamp": datetime.utcnow().isoformat(),
-        }
-    )
+    logger.info("The scanner has finished measuring")
 
     print("Finished scanning")
 
@@ -847,11 +842,6 @@ if __name__ == '__main__':
     set_measurement_session_id_into_logger(session_id)
     logger = get_measurement_logger()
 
-    logger.info(
-        "The scanner is starting the measurement",
-        extra={
-            f"scanner_start_timestamp": datetime.utcnow().isoformat(),
-        }
-    )
+    logger.info("The scanner is starting the measurement")
 
     main()
