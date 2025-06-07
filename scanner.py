@@ -13,7 +13,7 @@ import pandas as pd
 
 from application_logging import get_measurement_logger, set_measurement_session_id_into_logger
 from initialization_helper import *
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
 from process_connections import ProcessNetworkMonitor
@@ -328,7 +328,7 @@ def continuously_measure():
     # TODO: think if total tables should be printed only once
     while should_scan():
         # Create a delay
-        scanner_imp.scan_sleep(0.5)
+        scanner_imp.scan_sleep(SLEEP_BETWEEN_ITERATIONS_SECONDS)
 
         scanner_imp.save_battery_stat(battery_df, scanner_imp.calc_time_interval(starting_time))
         prev_data_per_process = save_current_processes_statistics(prev_data_per_process, process_network_monitor)
@@ -819,6 +819,13 @@ def main():
 
     after_scanning_operations()
 
+    logger.info(
+        "The scanner has finished measuring",
+        extra={
+            f"scanner_end_timestamp": datetime.utcnow().isoformat(),
+        }
+    )
+
     print("Finished scanning")
 
 
@@ -830,7 +837,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--measurement_session_id",
                         type=str,
-                        default=generate_id(),
+                        default=generate_id(word_count=3),
                         help="ip address to listen on")
 
     args = parser.parse_args()
@@ -839,5 +846,12 @@ if __name__ == '__main__':
 
     set_measurement_session_id_into_logger(session_id)
     logger = get_measurement_logger()
+
+    logger.info(
+        "The scanner is starting the measurement",
+        extra={
+            f"scanner_start_timestamp": datetime.utcnow().isoformat(),
+        }
+    )
 
     main()

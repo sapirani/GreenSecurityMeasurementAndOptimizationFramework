@@ -16,6 +16,7 @@ class ElasticSearchLogHandler(logging.Handler):
         self.es = Elasticsearch(es_host, basic_auth=(elastic_username, elastic_password))
         self.index_name = index_name
         self.session_id = session_id
+        self.start_date = datetime.datetime.utcnow().isoformat()
 
         if not self.es.ping():
             print("Cannot connect to Elastic")
@@ -27,7 +28,8 @@ class ElasticSearchLogHandler(logging.Handler):
             "level": record.levelname,
             "message": record.getMessage(),
             "hostname": OSFuncsInterface.get_hostname(),
-            "session_id": self.session_id
+            "session_id": self.session_id,
+            "start_date": self.start_date
         }
 
         # Emit extra log data
