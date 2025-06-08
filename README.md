@@ -114,7 +114,9 @@ if (doc.containsKey('timestamp') && doc.containsKey('start_date')
     emit((ts - start) / 1000); // return in seconds
 }
 ```
-7. Create a graph such that the new `seconds_from_scanner_start` field is the x-axis 
+7. Create a graph such that the new `seconds_from_scanner_start` field is the x-axis.
+8. To observe graphs resulting from different measurements onto each other, tap the "Break down by" and choose the session_id.
+9. You may add control (inside the dashboard screen) based on the session_id field, to compare specific measurement sessions of your choice.
 
 #### Supporting Additional Programs:
 1. in `general_consts.py` file - add your program in the enum called *ProgramToScan*
