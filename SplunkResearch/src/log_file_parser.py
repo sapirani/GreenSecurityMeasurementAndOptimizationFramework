@@ -19,53 +19,54 @@ def parse_log_datetime(log_line):
 
 
 import re
+import re
 
 def parse_iterations(log_path):
     iterations = []
     current_start_line = None
-    current_end_line = None
     rule = quantity = diversity = None
+    capture_params_next = False
+    prev_line = None
 
     with open(log_path, 'r') as f:
         for line in f:
             line = line.strip()
 
             if 'Start time:' in line:
-                # Close previous iteration
                 if current_start_line:
                     iterations.append({
                         "start": current_start_line,
-                        "end": current_end_line or "EOF",
+                        "end": prev_line,  # use line before this one
                         "rule": rule,
                         "quantity": quantity,
                         "diversity": diversity
                     })
-
                 current_start_line = line
-                current_end_line = None
                 rule = quantity = diversity = None
+                capture_params_next = True
 
-            elif 'Generating logs for rule:' in line and current_start_line:
-                match = re.search(
-                    r"rule:\s*(.*?),\s*quantity:\s*(\d+),\s*diversity:\s*(\d+)", line)
+            elif capture_params_next:
+                match = re.search(r"rule:\s*(.*?),\s*quantity:\s*(\d+),\s*diversity:\s*(\d+)", line)
                 if match:
                     rule = match.group(1)
                     quantity = int(match.group(2))
                     diversity = int(match.group(3))
+                capture_params_next = False
 
-            elif 'Cleaning environment' in line:
+            elif line.startswith("Cleaning environment") or line.startswith("[QueryMetrics("):
                 if current_start_line:
-                    current_end_line = line
                     iterations.append({
                         "start": current_start_line,
-                        "end": current_end_line,
+                        "end": prev_line,
                         "rule": rule,
                         "quantity": quantity,
                         "diversity": diversity
                     })
                     current_start_line = None
-                    current_end_line = None
                     rule = quantity = diversity = None
+                    capture_params_next = False
+
+            prev_line = line  # always track the previous line
 
     # Final open iteration
     if current_start_line:
@@ -78,6 +79,7 @@ def parse_iterations(log_path):
         })
 
     return iterations
+
 
 
 
@@ -107,8 +109,6 @@ def aggregate_cpu_usage(iterations, cpu_csv_path):
             cpu_integral = 0.0
 
         results.append({
-            "start_time": it["start"],
-            "end_time": it["end"],
             "rule": it["rule"],
             "quantity": it["quantity"],
             "diversity": it["diversity"],
