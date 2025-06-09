@@ -1,9 +1,6 @@
 import os
 import time
 
-
-DEFAULT_NUMBER_OF_CPUS = 1
-
 # A cgroup is a feature that allows you to allocate, limit, and monitor system resources among user-defined groups of processes.
 # Enables control over resource distribution, ensuring that no single group can monopolize the system resources.
 SYSTEM_CGROUP_FILE_PATH = r"/sys/fs/cgroup/"
@@ -28,27 +25,6 @@ CPU_STATS_FILE_NAME = r"cpu.stat"
 # The format of the file is a single integer value representing nanoseconds.
 CPU_ACCT_USAGE_FILE_NAME = r"cpuacct.usage"
 
-# Sets CPU usage limits for the cgroup. - relevant for cgroup V2
-# The format of the file is two values separated by a space: <max> <period>
-# <max>: Maximum CPU time (in microseconds) that the cgroup can use in each period.
-# <period>: Length of each period in microseconds.
-# If <max> is set to max, there is no CPU limit.
-# E.g. 50000 100000 - means that we limit the cgroup to 50ms of CPU time every 100ms.
-CPU_MAX_FILE_NAME = r"cpu.max"
-CPU_MAX_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPU_MAX_FILE_NAME)
-
-# Specifies the total available run-time within a period for tasks in the cgroup. - relevant for cgroup V1
-# A quota sets the maximum amount of CPU time that a cgroup can consume during each period.
-# The format of the file is a single integer value in microseconds (-1 indicates no limit).
-CPU_CFS_QUOTA_FILE_NAME = r"cpu/cpu.cfs_quota_us"
-CPU_CFS_QUOTA_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPU_CFS_QUOTA_FILE_NAME)
-
-# Defines the length of the period for enforcing CPU quotas. - relevant for cgroup V1
-# Within each period, the cgroup's CPU usage is limited according to its quota.
-# The format of the file is a single integer value in microseconds.
-CPU_CFS_PERIOD_FILE_NAME = r"cpu/cpu.cfs_period_us"
-CPU_CFS_PERIOD_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPU_CFS_PERIOD_FILE_NAME)
-
 # Contains details on the cgroup of the container.
 # The file format is the single line:
 # hierarchy-ID : controllers : cgroup-path -> WHERE:
@@ -56,12 +32,6 @@ CPU_CFS_PERIOD_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPU_CFS_PERIOD_
 # Controller(s)	can be cpu,cpuacct or empty string ("") for v2
 # Path to cgroup can be /docker/<container-id> or /
 CGROUP_IN_CONTAINER_PATH = r"/proc/self/cgroup"
-
-# The file contains the indices of the cpus that the container can use.
-# The file format is a line seperated with commas - each element can be either a single number or a range of cpu indices.
-# For example: "0-3,5,7-8"
-CPUSET_CPUS_FILE_NAME = r"cpuset.cpus"
-CPUSET_CPUS_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPUSET_CPUS_FILE_NAME)
 
 
 class ProcCgroupFileConsts:
@@ -75,7 +45,6 @@ class FileKeywords:
     V1 = "v1"
     V2 = "v2"
     USAGE_USEC = "usage_usec"
-    MAX = "max"
 
     CGROUP_V1_IDENTIFIER = "cpu,cpuacct"
     CGROUP_V2_IDENTIFIER = "0"
@@ -85,7 +54,6 @@ class LinuxContainerCPUReader:
     def __init__(self):
         self.__version = self.__detect_cgroup_version()
         self.__cpu_stats_path = self.__get_cpu_file_path(self.__version)
-        self.__cpu_limit = self.__get_cpu_limit()
         self.__last_usage_ns = None
         self.__last_time = None
 
@@ -111,7 +79,7 @@ class LinuxContainerCPUReader:
         self.__last_time = current_time
 
         # Calculate total possible CPU time in nanoseconds
-        total_possible_ns = time_delta_s * 1e9 #* self.__cpu_limit
+        total_possible_ns = time_delta_s * 1e9
 
         # Compute CPU usage percentage
         cpu_percent = (usage_delta_ns / total_possible_ns) * 100
@@ -160,52 +128,3 @@ class LinuxContainerCPUReader:
             return os.path.join(path_to_cgroup_dir, CPU_STATS_FILE_NAME)
         else:
             return os.path.join(path_to_cgroup_dir, CPU_ACCT_USAGE_FILE_NAME)
-
-    def __get_cpu_limit(self) -> float:
-        cpu_quota, cpu_period = self.__read_cpu_quota_and_period()
-        if cpu_quota is not None and cpu_period is not None:
-            cpu_limit = cpu_quota / cpu_period
-        else:
-            cpu_limit = self.__get_num_cpus_allowed()
-        return cpu_limit
-
-    def __read_cpu_quota_and_period(self):
-        try:
-            if self.__version == FileKeywords.V2:
-                with open(CPU_MAX_FILE_PATH) as f:
-                    quota_str, period_str = f.read().strip().split()
-                    if quota_str == FileKeywords.MAX:
-                        return None, None
-                    return int(quota_str), int(period_str)
-            else:
-                with open(CPU_CFS_QUOTA_FILE_PATH) as f:
-                    quota = int(f.read().strip())
-                with open(CPU_CFS_PERIOD_FILE_PATH) as f:
-                    period = int(f.read().strip())
-                if quota == -1:
-                    return None, None
-                return quota, period
-        except Exception as e:
-            print(f"Error reading CPU quota/period: {e}")
-            return None, None
-
-    def __count_cpus_in_range(self, cpus_string: str) -> int:
-        number_of_cpus = 0
-        if cpus_string.strip() == "":
-            raise Exception("The content of the cpus_string should not be empty")
-
-        for cpus_range in cpus_string.split(','):
-            if '-' in cpus_range:  # If it is a range of cpu indices
-                start, end = map(int, cpus_range.split('-'))
-                number_of_cpus += end - start + 1
-            else:  # If it's a single index
-                number_of_cpus += 1
-        return number_of_cpus
-
-    def __get_num_cpus_allowed(self) -> int:
-        try:
-            with open(CPUSET_CPUS_FILE_PATH) as f:
-                return self.__count_cpus_in_range(f.read().strip())
-        except Exception as e:
-            print(f"Error when accessing {CPUSET_CPUS_FILE_PATH}: {e}, Using default cpu's count")
-            return os.cpu_count() or DEFAULT_NUMBER_OF_CPUS
