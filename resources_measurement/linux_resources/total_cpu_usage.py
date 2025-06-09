@@ -111,7 +111,7 @@ class LinuxContainerCPUReader:
         self.__last_time = current_time
 
         # Calculate total possible CPU time in nanoseconds
-        total_possible_ns = time_delta_s * 1e9 * self.__cpu_limit
+        total_possible_ns = time_delta_s * 1e9 #* self.__cpu_limit
 
         # Compute CPU usage percentage
         cpu_percent = (usage_delta_ns / total_possible_ns) * 100
