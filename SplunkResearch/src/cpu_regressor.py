@@ -169,15 +169,18 @@ def main():
                     print(f"Rule: {rule}")
                     print(f"Mean Squared Error: {mean_squared_error(y_test, y_pred)}")
                     print(f"R2 Score: {regr.score(X_test, y_test)}")
-                    
+                    # dump the model
+                    import pickle
+                    with open(f"{results_dir}/{regr.__class__.__name__}_{rule}_with alert = {with_alert}.pkl", 'wb') as f:
+                        pickle.dump(regr, f)
                     # # Get top 10 feature importance form mlp regressor
                     # # sample
-                    sample = X_train.sample(200)
-                    explainer = shap.KernelExplainer(regr.predict, sample)
-                    shap_values = explainer.shap_values(sample)
-                    plot = shap.summary_plot(shap_values, sample, feature_names=list_top_logtypes, plot_type='bar')
+                    # sample = X_train.sample(200)
+                    # explainer = shap.KernelExplainer(regr.predict, sample)
+                    # shap_values = explainer.shap_values(sample)
+                    # plot = shap.summary_plot(shap_values, sample, feature_names=list_top_logtypes, plot_type='bar')
                     
-                    plt.savefig(f"{regr.__class__.__name__}_shap_bar_{rule}.png")
+                    # plt.savefig(f"{regr.__class__.__name__}_shap_bar_{rule}.png")
                     # plot results
                     # plt.scatter(y_test, y_pred)
                     # plt.xlabel("True CPU")
