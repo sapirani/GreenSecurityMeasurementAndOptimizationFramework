@@ -350,9 +350,7 @@ class SplunkTools(object):
                     task = asyncio.create_task(self.run_saved_search(
                         search_name, time_range))
                     all_tasks.append(task)
-                
-            # FIX 10: This is already correct - gather runs tasks in parallel
-            # The key was making execute_query truly async
+
             results = await asyncio.gather(*all_tasks)
             
             # Filter out any failed measurements
@@ -363,7 +361,13 @@ class SplunkTools(object):
             
             if len(valid_results) < len(results):
                 logger.warning(f"Some measurements failed: {len(results) - len(valid_results)} failures")
-                
+            # log each res in line
+            for result in valid_results:
+                logger.info(f"Search: {result.search_name}, "
+                          f"Results: {result.results_count}, "
+                          f"Execution Time: {result.execution_time:.2f}s, "
+                          f"CPU: {result.cpu:.2f}s, ")
+                        #   f"IO Metrics: {result.io_metrics}")
             return valid_results, self.total_cpu_time
             
         finally:

@@ -401,6 +401,7 @@ class EnergyRewardWrapper(RewardWrapper):
             # reward = energy_reward/(reward + self.epsilon)
             # reward += self.alpha * energy_reward
             
+            
         return obs, reward, terminated, truncated, info
 
 class AlertRewardWrapper(RewardWrapper):

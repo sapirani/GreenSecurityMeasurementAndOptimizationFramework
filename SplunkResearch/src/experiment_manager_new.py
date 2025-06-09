@@ -442,6 +442,7 @@ class ExperimentManager:
         ], ignore_index=True)
         
         self._save_experiments_db()
+        
 
     def _record_experiment_end(self, experiment_id: str, status: str, 
                              metrics: Dict[str, Any]):
