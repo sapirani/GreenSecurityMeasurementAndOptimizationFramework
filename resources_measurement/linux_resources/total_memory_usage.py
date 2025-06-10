@@ -1,30 +1,17 @@
-import os
-
 import psutil
 
-from resources_measurement.linux_resources.cgroup_utils import extract_cgroup_relative_path, detect_cgroup_version
-from resources_measurement.linux_resources.config import FileKeywords
 from resources_measurement.linux_resources.total_resource_usage import LinuxContainerResourceReader
-
-# Constants for paths and identifiers
-MEMORY_USAGE_FILE_NAME_V2 = "memory.current"
-MEMORY_USAGE_FILE_NAME_V1 = "memory/memory.usage_in_bytes"
-
-MEMORY_MAX_FILE_NAME_V2 = "memory.max"
-MEMORY_MAX_FILE_NAME_V1 = "memory/memory.limit_in_bytes"
-
-HOST_PROC_MEMORY_LIMIT_FILE = r"/proc/meminfo"
-MEM_TOTAL_PREFIX = "MemTotal:"
 
 
 class LinuxContainerMemoryReader(LinuxContainerResourceReader):
     def __init__(self):
         super().__init__()
         self.__memory_limit = self.__get_memory_limit_bytes(self._version)
+        self.__memory_usage_path = self._version.get_memory_usage_path()
 
     def get_memory_usage_bytes(self) -> int:
         try:
-            with open(self._resource_usage_path) as f:
+            with open(self.__memory_usage_path) as f:
                 return int(f.read().strip())
         except Exception as e:
             print(f"Error reading memory usage: {e}")
@@ -36,20 +23,6 @@ class LinuxContainerMemoryReader(LinuxContainerResourceReader):
             return 0.0  # TODO: check if this is the right value
         return (usage / self.__memory_limit) * 100
 
-    def _get_resource_file_path(self, version: str) -> str:
-        cgroup_dir = extract_cgroup_relative_path(version, FileKeywords.CGROUP_V1_MEMORY_IDENTIFIER)
-        if version == FileKeywords.V2:
-            return os.path.join(cgroup_dir, MEMORY_USAGE_FILE_NAME_V2)
-        else:
-            return os.path.join(cgroup_dir, MEMORY_USAGE_FILE_NAME_V1)
-
-    def __get_memory_limit_file(self, version: str) -> str:
-        cgroup_dir = extract_cgroup_relative_path(version, FileKeywords.CGROUP_V1_MEMORY_IDENTIFIER)
-        if version == FileKeywords.V2:
-            return os.path.join(cgroup_dir, MEMORY_MAX_FILE_NAME_V2)
-        else:
-            return os.path.join(cgroup_dir, MEMORY_MAX_FILE_NAME_V1)
-
     def __get_host_memory_limit(self) -> int:
         try:
             return psutil.virtual_memory().total
@@ -58,12 +31,11 @@ class LinuxContainerMemoryReader(LinuxContainerResourceReader):
         return 1  # Avoid division by zero
 
     def __get_memory_limit_bytes(self, version: str) -> int:
-        max_memory_file_path = self.__get_memory_limit_file(version)
+        max_memory_file_path = self._version.get_memory_limit_path()
         try:
             with open(max_memory_file_path) as max_memory_file:
                 max_val = max_memory_file.read().strip()
                 if max_val == "max":
-                    # No limit in cgroup v2, fallback to host total memory
                     limit = self.__get_host_memory_limit()
                 else:
                     limit = int(max_val)
