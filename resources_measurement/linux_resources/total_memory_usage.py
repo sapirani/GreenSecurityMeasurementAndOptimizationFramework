@@ -31,9 +31,8 @@ class LinuxContainerMemoryReader(LinuxContainerResourceReader):
     def get_memory_usage_percent(self) -> float:
         usage = self.get_memory_usage_bytes()
         if self.__memory_limit <= 0:
-            return 0.0 # TODO: check if this is the right value
+            return 0.0  # TODO: check if this is the right value
         return (usage / self.__memory_limit) * 100
-
 
     def _get_resource_file_path(self, version: str) -> str:
         cgroup_dir = extract_cgroup_relative_path(version, FileKeywords.CGROUP_V1_MEMORY_IDENTIFIER)
@@ -41,7 +40,6 @@ class LinuxContainerMemoryReader(LinuxContainerResourceReader):
             return os.path.join(cgroup_dir, MEMORY_USAGE_FILE_NAME_V2)
         else:
             return os.path.join(cgroup_dir, MEMORY_USAGE_FILE_NAME_V1)
-
 
     def __extract_memory_limit_file(self, version: str) -> str:
         cgroup_dir = extract_cgroup_relative_path(version, FileKeywords.CGROUP_V1_MEMORY_IDENTIFIER)
@@ -74,4 +72,3 @@ class LinuxContainerMemoryReader(LinuxContainerResourceReader):
         except ValueError as e:
             print(f"Unexpected format in memory limit file in path {max_memory_file_path}: {max_val}")
             return self.__get_host_memory_limit()
-

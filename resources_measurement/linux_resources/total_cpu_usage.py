@@ -5,7 +5,6 @@ from resources_measurement.linux_resources.cgroup_utils import extract_cgroup_re
 from resources_measurement.linux_resources.config import SYSTEM_CGROUP_FILE_PATH, FileKeywords
 from resources_measurement.linux_resources.total_resource_usage import LinuxContainerResourceReader
 
-
 # Provides CPU usage statistics for the cgroup.
 # The format of the file is key-value pairs, one per line.
 # E.g.
@@ -18,33 +17,6 @@ CPU_STATS_FILE_NAME = r"cpu.stat"
 # Reports the total CPU time consumed by tasks in the cgroup. - relevant for cgroup V1
 # The format of the file is a single integer value representing nanoseconds.
 CPU_ACCT_USAGE_FILE_NAME = r"cpuacct.usage"
-
-# Sets CPU usage limits for the cgroup. - relevant for cgroup V2
-# The format of the file is two values separated by a space: <max> <period>
-# <max>: Maximum CPU time (in microseconds) that the cgroup can use in each period.
-# <period>: Length of each period in microseconds.
-# If <max> is set to max, there is no CPU limit.
-# E.g. 50000 100000 - means that we limit the cgroup to 50ms of CPU time every 100ms.
-CPU_MAX_FILE_NAME = r"cpu.max"
-CPU_MAX_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPU_MAX_FILE_NAME)
-
-# Specifies the total available run-time within a period for tasks in the cgroup. - relevant for cgroup V1
-# A quota sets the maximum amount of CPU time that a cgroup can consume during each period.
-# The format of the file is a single integer value in microseconds (-1 indicates no limit).
-CPU_CFS_QUOTA_FILE_NAME = r"cpu/cpu.cfs_quota_us"
-CPU_CFS_QUOTA_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPU_CFS_QUOTA_FILE_NAME)
-
-# Defines the length of the period for enforcing CPU quotas. - relevant for cgroup V1
-# Within each period, the cgroup's CPU usage is limited according to its quota.
-# The format of the file is a single integer value in microseconds.
-CPU_CFS_PERIOD_FILE_NAME = r"cpu/cpu.cfs_period_us"
-CPU_CFS_PERIOD_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPU_CFS_PERIOD_FILE_NAME)
-
-# The file contains the indices of the cpus that the container can use.
-# The file format is a line seperated with commas - each element can be either a single number or a range of cpu indices.
-# For example: "0-3,5,7-8"
-CPUSET_CPUS_FILE_NAME = r"cpuset.cpus"
-CPUSET_CPUS_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPUSET_CPUS_FILE_NAME)
 
 
 class LinuxContainerCPUReader(LinuxContainerResourceReader):
