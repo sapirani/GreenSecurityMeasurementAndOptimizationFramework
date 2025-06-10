@@ -5,7 +5,6 @@ from resources_measurement.linux_resources.cgroup_utils import extract_cgroup_re
 from resources_measurement.linux_resources.config import SYSTEM_CGROUP_FILE_PATH, FileKeywords
 from resources_measurement.linux_resources.total_resource_usage import LinuxContainerResourceReader
 
-DEFAULT_NUMBER_OF_CPUS = 1
 
 # Provides CPU usage statistics for the cgroup.
 # The format of the file is key-value pairs, one per line.
@@ -51,7 +50,6 @@ CPUSET_CPUS_FILE_PATH = os.path.join(SYSTEM_CGROUP_FILE_PATH, CPUSET_CPUS_FILE_N
 class LinuxContainerCPUReader(LinuxContainerResourceReader):
     def __init__(self):
         super().__init__()
-        self.__allowed_cpus = self.__get_num_cpus_allowed()
         self.__last_usage_ns = None
         self.__last_time = None
 
@@ -77,7 +75,7 @@ class LinuxContainerCPUReader(LinuxContainerResourceReader):
         self.__last_time = current_time
 
         # Calculate total possible CPU time in nanoseconds
-        total_possible_ns = time_delta_s * 1e9 * self.__allowed_cpus
+        total_possible_ns = time_delta_s * 1e9
 
         # Compute CPU usage percentage
         cpu_percent = (usage_delta_ns / total_possible_ns) * 100
@@ -106,24 +104,3 @@ class LinuxContainerCPUReader(LinuxContainerResourceReader):
             return os.path.join(path_to_cgroup_dir, CPU_STATS_FILE_NAME)
         else:
             return os.path.join(path_to_cgroup_dir, CPU_ACCT_USAGE_FILE_NAME)
-
-    def __count_cpus_in_range(self, cpus_string: str) -> int:
-        number_of_cpus = 0
-        if cpus_string.strip() == "":
-            raise Exception("The content of the cpus_string should not be empty")
-
-        for cpus_range in cpus_string.split(','):
-            if '-' in cpus_range:  # If it is a range of cpu indices
-                start, end = map(int, cpus_range.split('-'))
-                number_of_cpus += end - start + 1
-            else:  # If it's a single index
-                number_of_cpus += 1
-        return number_of_cpus
-
-    def __get_num_cpus_allowed(self) -> int:
-        try:
-            with open(CPUSET_CPUS_FILE_PATH) as f:
-                return self.__count_cpus_in_range(f.read().strip())
-        except Exception as e:
-            print(f"Error when accessing {CPUSET_CPUS_FILE_PATH}: {e}, Using default cpu's count")
-            return os.cpu_count() or DEFAULT_NUMBER_OF_CPUS
