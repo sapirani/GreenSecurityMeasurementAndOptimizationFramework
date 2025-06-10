@@ -1,5 +1,7 @@
 import os
 
+import psutil
+
 from resources_measurement.linux_resources.cgroup_utils import extract_cgroup_relative_path, detect_cgroup_version
 from resources_measurement.linux_resources.config import FileKeywords
 from resources_measurement.linux_resources.total_resource_usage import LinuxContainerResourceReader
@@ -41,7 +43,7 @@ class LinuxContainerMemoryReader(LinuxContainerResourceReader):
         else:
             return os.path.join(cgroup_dir, MEMORY_USAGE_FILE_NAME_V1)
 
-    def __extract_memory_limit_file(self, version: str) -> str:
+    def __get_memory_limit_file(self, version: str) -> str:
         cgroup_dir = extract_cgroup_relative_path(version, FileKeywords.CGROUP_V1_MEMORY_IDENTIFIER)
         if version == FileKeywords.V2:
             return os.path.join(cgroup_dir, MEMORY_MAX_FILE_NAME_V2)
@@ -50,25 +52,26 @@ class LinuxContainerMemoryReader(LinuxContainerResourceReader):
 
     def __get_host_memory_limit(self) -> int:
         try:
-            with open(HOST_PROC_MEMORY_LIMIT_FILE) as f:
-                for line in f:
-                    if line.startswith(MEM_TOTAL_PREFIX):
-                        return int(line.split()[1]) * 1024  # kB to bytes
+            return psutil.virtual_memory().total
         except Exception as e:
             print(f"Error reading host memory from /proc/meminfo: {e}")
         return 1  # Avoid division by zero
 
     def __get_memory_limit_bytes(self, version: str) -> int:
-        max_memory_file_path = self.__extract_memory_limit_file(version)
-
+        max_memory_file_path = self.__get_memory_limit_file(version)
         try:
             with open(max_memory_file_path) as max_memory_file:
                 max_val = max_memory_file.read().strip()
                 if max_val == "max":
                     # No limit in cgroup v2, fallback to host total memory
-                    return self.__get_host_memory_limit()
+                    limit = self.__get_host_memory_limit()
                 else:
-                    return int(max_val)
+                    limit = int(max_val)
+
+            if limit >= 2 ** 60:
+                limit = self.__get_host_memory_limit()
+
+            return limit
         except ValueError as e:
             print(f"Unexpected format in memory limit file in path {max_memory_file_path}: {max_val}")
             return self.__get_host_memory_limit()
