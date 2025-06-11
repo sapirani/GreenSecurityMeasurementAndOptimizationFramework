@@ -1,22 +1,52 @@
 import os
-from abc import ABC, abstractmethod
+from abc import ABC
 
-from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import detect_cgroup_version, \
-    CgroupVersion
-from resources_measurement.linux_resources.cgroup_versions.cgroup_v1 import CgroupV1
+from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupVersion
+from resources_measurement.linux_resources.cgroup_versions.cgroup_v1 import CgroupV1, CGROUP_V1_NAME
 from resources_measurement.linux_resources.cgroup_versions.cgroup_v2 import CgroupV2
-from resources_measurement.linux_resources.config import CGROUP_CONTROLLERS_FILE_PATH
+
+
+SYSTEM_CGROUP_DIR_PATH = r"/sys/fs/cgroup/"
+
+# Contains details on the cgroup of the container.
+# The file format is the single line:
+# hierarchy-ID : controllers : cgroup-path -> WHERE:
+# Hierarchy ID can be 0 (for cgroup v2), or 2, 3, etc. in v1
+# Controller(s)	can be cpu,cpuacct or empty string ("") for v2
+# Path to cgroup can be /docker/<container-id> or /
+CGROUP_IN_CONTAINER_PATH = r"/proc/self/cgroup"
+
+# Lists the available controllers (e.g., cpu, memory) that can be enabled in the current cgroup.
+# The format of the file is a single line with space-separated controller names.
+# E.g. cpu io memory
+# Presence of this file indicates that the system is using cgroup v2.
+CGROUP_CONTROLLERS_FILE_NAME = r"cgroup.controllers"
+CGROUP_CONTROLLERS_FILE_PATH = os.path.join(SYSTEM_CGROUP_DIR_PATH, CGROUP_CONTROLLERS_FILE_NAME)
+
+
+
+class V1Controllers:
+    CGROUP_V1_CPU_CONTROLLERS = "cpu,cpuacct"
+    CGROUP_V1_MEMORY_CONTROLLERS = "memory"
+
+
+class ProcCgroupFileConsts:
+    NUMBER_OF_ELEMENTS = 3
+    HIERARCHY_INDEX = 0
+    CONTROLLERS_INDEX = 1
+    CGROUP_PATH_INDEX = 2
 
 
 class LinuxContainerResourceReader(ABC):
     def __init__(self):
-        self._version = detect_cgroup_version()
-        # self._resource_usage_path = self._get_resource_file_path(self._version)
+        self._version = self.__detect_cgroup_version()
 
-    def detect_cgroup_version(self) -> CgroupVersion:
-        return CgroupV2() if os.path.exists(CGROUP_CONTROLLERS_FILE_PATH) else CgroupV1()
+    def __detect_cgroup_version(self) -> CgroupVersion:
+        cgroup_dir = self.__extract_cgroup_relative_path(self._version.get_version())
+        return CgroupV2(cgroup_dir=cgroup_dir) if os.path.exists(CGROUP_CONTROLLERS_FILE_PATH) else CgroupV1(
+            cgroup_dir=cgroup_dir)
 
-    def extract_cgroup_relative_path(self, version: str, v1_controllers: str) -> str:
+    def __extract_cgroup_relative_path(self, version: str) -> str:
         with open(CGROUP_IN_CONTAINER_PATH, "r") as f:
             for line in f:
                 proc_cgroup_parts = line.strip().split(":")
@@ -27,8 +57,10 @@ class LinuxContainerResourceReader(ABC):
                     controllers = proc_cgroup_parts[ProcCgroupFileConsts.CONTROLLERS_INDEX]
                     cgroup_path = proc_cgroup_parts[ProcCgroupFileConsts.CGROUP_PATH_INDEX].lstrip("/")
 
-                    if (version == FileKeywords.V2 and hierarchy == FileKeywords.CGROUP_V2_IDENTIFIER) or \
-                            (version == FileKeywords.V1 and controllers == v1_controllers):
-                        return os.path.join(SYSTEM_CGROUP_FILE_PATH, cgroup_path)
+                    if (version == CGROUP_V2_NAME and hierarchy == FileKeywords.CGROUP_V2_IDENTIFIER) or \
+                            (version == CGROUP_V1_NAME and
+                             (controllers == V1Controllers.CGROUP_V1_MEMORY_CONTROLLERS or
+                              controllers == V1Controllers.CGROUP_V1_CPU_CONTROLLERS)):
+                        return os.path.join(SYSTEM_CGROUP_DIR_PATH, cgroup_path)
 
-        return SYSTEM_CGROUP_FILE_PATH
+        return SYSTEM_CGROUP_DIR_PATH

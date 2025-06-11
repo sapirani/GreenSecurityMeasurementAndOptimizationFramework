@@ -2,11 +2,12 @@ import psutil
 
 from resources_measurement.linux_resources.total_resource_usage import LinuxContainerResourceReader
 
+NO_MEMORY_LIMIT = "max"
 
 class LinuxContainerMemoryReader(LinuxContainerResourceReader):
     def __init__(self):
         super().__init__()
-        self.__memory_limit = self.__get_memory_limit_bytes(self._version)
+        self.__memory_limit = self.__get_memory_limit_bytes()
         self.__memory_usage_path = self._version.get_memory_usage_path()
 
     def get_memory_usage_bytes(self) -> int:
@@ -27,15 +28,15 @@ class LinuxContainerMemoryReader(LinuxContainerResourceReader):
         try:
             return psutil.virtual_memory().total
         except Exception as e:
-            print(f"Error reading host memory from /proc/meminfo: {e}")
+            print(f"Error reading host memory: {e}")
         return 1  # Avoid division by zero
 
-    def __get_memory_limit_bytes(self, version: str) -> int:
+    def __get_memory_limit_bytes(self) -> int:
         max_memory_file_path = self._version.get_memory_limit_path()
         try:
             with open(max_memory_file_path) as max_memory_file:
                 max_val = max_memory_file.read().strip()
-                if max_val == "max":
+                if max_val == NO_MEMORY_LIMIT:
                     limit = self.__get_host_memory_limit()
                 else:
                     limit = int(max_val)
