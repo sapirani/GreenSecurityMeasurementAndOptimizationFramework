@@ -3,9 +3,10 @@ from abc import ABC
 
 from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupVersion
 from resources_measurement.linux_resources.cgroup_versions.cgroup_v1 import CgroupV1, CGROUP_V1_NAME
-from resources_measurement.linux_resources.cgroup_versions.cgroup_v2 import CgroupV2
+from resources_measurement.linux_resources.cgroup_versions.cgroup_v2 import CgroupV2, CGROUP_V2_NAME
 
-
+# A cgroup is a feature that allows you to allocate, limit, and monitor system resources among user-defined groups of processes.
+# Enables control over resource distribution, ensuring that no single group can monopolize the system resources.
 SYSTEM_CGROUP_DIR_PATH = r"/sys/fs/cgroup/"
 
 # Contains details on the cgroup of the container.
@@ -24,10 +25,11 @@ CGROUP_CONTROLLERS_FILE_NAME = r"cgroup.controllers"
 CGROUP_CONTROLLERS_FILE_PATH = os.path.join(SYSTEM_CGROUP_DIR_PATH, CGROUP_CONTROLLERS_FILE_NAME)
 
 
-
-class V1Controllers:
+class CgroupIdentifiers:
     CGROUP_V1_CPU_CONTROLLERS = "cpu,cpuacct"
     CGROUP_V1_MEMORY_CONTROLLERS = "memory"
+
+    CGROUP_V2_IDENTIFIER = "0"
 
 
 class ProcCgroupFileConsts:
@@ -57,10 +59,10 @@ class LinuxContainerResourceReader(ABC):
                     controllers = proc_cgroup_parts[ProcCgroupFileConsts.CONTROLLERS_INDEX]
                     cgroup_path = proc_cgroup_parts[ProcCgroupFileConsts.CGROUP_PATH_INDEX].lstrip("/")
 
-                    if (version == CGROUP_V2_NAME and hierarchy == FileKeywords.CGROUP_V2_IDENTIFIER) or \
+                    if (version == CGROUP_V2_NAME and hierarchy == CgroupIdentifiers.CGROUP_V2_IDENTIFIER) or \
                             (version == CGROUP_V1_NAME and
-                             (controllers == V1Controllers.CGROUP_V1_MEMORY_CONTROLLERS or
-                              controllers == V1Controllers.CGROUP_V1_CPU_CONTROLLERS)):
+                             (controllers == CgroupIdentifiers.CGROUP_V1_MEMORY_CONTROLLERS or
+                              controllers == CgroupIdentifiers.CGROUP_V1_CPU_CONTROLLERS)):
                         return os.path.join(SYSTEM_CGROUP_DIR_PATH, cgroup_path)
 
         return SYSTEM_CGROUP_DIR_PATH

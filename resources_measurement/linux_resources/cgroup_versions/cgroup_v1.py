@@ -6,6 +6,9 @@ from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_versi
 class FilePathsV1:
     MEMORY_USAGE_FILE_NAME = "memory/memory.usage_in_bytes"
     MEMORY_MAX_FILE_NAME = "memory/memory.limit_in_bytes"
+
+    # Reports the total CPU time consumed by tasks in the cgroup.
+    # The format of the file is a single integer value representing nanoseconds.
     CPU_ACCT_USAGE_FILE_NAME = r"cpuacct.usage"
 
 

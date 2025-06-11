@@ -9,6 +9,12 @@ class CgroupV2Keywords:
 
 class FilePathsV2:
     MEMORY_USAGE_FILE_NAME = "memory.current"
+
+    # Sets CPU usage limits for the cgroup.
+    # The format of the file is two values separated by a space: <max> <period>
+    # <max>: Maximum CPU time (in microseconds) that the cgroup can use in each period.
+    # <period>: Length of each period in microseconds.
+    # If <max> is set to max, there is no CPU limit.
     MEMORY_MAX_FILE_NAME = "memory.max"
 
     # Provides CPU usage statistics for the cgroup.
@@ -21,6 +27,8 @@ class FilePathsV2:
     CPU_STATS_FILE_NAME = "cpu.stat"
 
 
+# Provides CPU usage statistics for the cgroup.
+# The format of the file is key-value pairs, one per line.
 CGROUP_V2_NAME = "V2"
 
 
