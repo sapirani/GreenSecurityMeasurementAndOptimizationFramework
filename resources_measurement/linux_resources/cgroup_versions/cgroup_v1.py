@@ -8,6 +8,8 @@ class FilePathsV1:
     MEMORY_MAX_FILE_NAME = "memory/memory.limit_in_bytes"
 
     # Reports the total CPU time consumed by tasks in the cgroup.
+    # "acct" stands for "accounting" and refers to the mechanism for tracking resource usage.
+    # Therefore, cpuacct.usage provides a report on the total CPU time used by all processes managed by the cgroup.
     # The format of the file is a single integer value representing nanoseconds.
     CPU_ACCT_USAGE_FILE_NAME = r"cpuacct.usage"
 
