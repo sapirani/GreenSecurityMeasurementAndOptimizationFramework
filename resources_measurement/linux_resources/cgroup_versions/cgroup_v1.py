@@ -3,14 +3,23 @@ import os
 from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupVersion
 from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
 
-CGROUP_V1_CPU_CONTROLLERS = "cpu,cpuacct"
-CGROUP_V1_MEMORY_CONTROLLERS = "memory"
+
 
 CGROUP_V1_NAME = "V1"
 
 
 class CgroupV1(CgroupVersion):
+    __CGROUP_V1_CPU_CONTROLLERS = "cpu,cpuacct"
+    __CGROUP_V1_MEMORY_CONTROLLERS = "memory"
+
+    # Reports the current memory usage in the cgroup, in bytes.
+    # Includes memory used by all descendant cgroups.
+    # The format of this file is a single integer value in bytes.
     __MEMORY_USAGE_FILE_NAME_V1 = "memory/memory.usage_in_bytes"
+
+    # Shows the memory limit set for the cgroup in bytes.
+    # If set to a very large number (e.g., 9223372036854771712), it means no limit.
+    # The format of this file is a single integer value in bytes.
     __MEMORY_MAX_FILE_NAME_V1 = "memory/memory.limit_in_bytes"
 
     # Reports the total CPU time consumed by tasks in the cgroup.
@@ -23,7 +32,8 @@ class CgroupV1(CgroupVersion):
         return CGROUP_V1_NAME
 
     def _is_cgroup_dir(self, cgroup_entry: CgroupEntry) -> bool:
-        return (cgroup_entry.subsystems == CGROUP_V1_MEMORY_CONTROLLERS) or (cgroup_entry.subsystems == CGROUP_V1_CPU_CONTROLLERS)
+        return ((cgroup_entry.subsystems == self.__CGROUP_V1_MEMORY_CONTROLLERS) or
+                (cgroup_entry.subsystems == self.__CGROUP_V1_CPU_CONTROLLERS))
 
     def read_cpu_usage_ns(self, cpu_usage_file_path: str) -> int:
         try:

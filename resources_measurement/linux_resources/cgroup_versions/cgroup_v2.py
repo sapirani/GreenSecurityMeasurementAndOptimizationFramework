@@ -3,22 +3,25 @@ import os
 from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupVersion
 from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
 
-CGROUP_V2_IDENTIFIER = "0"
 CGROUP_V2_NAME = "V2"
 
-NO_MEMORY_LIMIT = "max"
 
 
 class CgroupV2(CgroupVersion):
     __USAGE_USEC_V2 = "usage_usec"
+    __NO_MEMORY_LIMIT = "max"
 
+    __CGROUP_V2_IDENTIFIER = "0"
+
+    # Reports the current memory usage of the cgroup in bytes,
+    # including memory used by all processes in the cgroup and its descendants.
+    # The file format is a single integer representing bytes of memory currently used.
     __MEMORY_USAGE_FILE_NAME_V2 = "memory.current"
 
-    # Sets CPU usage limits for the cgroup.
-    # The format of the file is two values separated by a space: <max> <period>
-    # <max>: Maximum CPU time (in microseconds) that the cgroup can use in each period.
-    # <period>: Length of each period in microseconds.
-    # If <max> is set to max, there is no CPU limit.
+    # Sets Memory usage limits for the cgroup.
+    # The format of the file is either a single integer (in bytes) or the string max.
+    # <max>: Maximum memory bytes that the cgroup can use.
+    # If <max> is set to max, there is no memory limit.
     __MEMORY_MAX_FILE_NAME_V2 = "memory.max"
 
     # Provides CPU usage statistics for the cgroup.
@@ -34,7 +37,7 @@ class CgroupV2(CgroupVersion):
         return CGROUP_V2_NAME
 
     def _is_cgroup_dir(self, cgroup_entry: CgroupEntry) -> bool:
-        return cgroup_entry.hierarchy_id == CGROUP_V2_IDENTIFIER
+        return cgroup_entry.hierarchy_id == self.__CGROUP_V2_IDENTIFIER
 
     def read_cpu_usage_ns(self, cpu_usage_file_path: str) -> int:
         try:
@@ -57,4 +60,4 @@ class CgroupV2(CgroupVersion):
         return os.path.join(self._base_cgroup_dir, self.__MEMORY_MAX_FILE_NAME_V2)
 
     def should_get_host_memory_limit(self, limit: str) -> bool:
-        return limit == NO_MEMORY_LIMIT
+        return limit == self.__NO_MEMORY_LIMIT

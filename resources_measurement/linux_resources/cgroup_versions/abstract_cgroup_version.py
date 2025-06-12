@@ -5,12 +5,12 @@ from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import C
 from resources_measurement.linux_resources.cgroup_versions.common_paths import SYSTEM_CGROUP_DIR_PATH
 
 # Contains details on the cgroup of the container.
-# The file format is the single line:
+# The file format is one or more lines, where each line indicates a hierarchy, its controllers, and the cgroup path for the process:
 # hierarchy-ID : controllers : cgroup-path -> WHERE:
 # Hierarchy ID can be 0 (for cgroup v2), or 2, 3, etc. in v1
-# Controller(s)	can be cpu,cpuacct or empty string ("") for v2
+# Controller(s)	can be cpu,cpuacct or memory for v1 or empty string ("") for v2
 # Path to cgroup can be /docker/<container-id> or /
-CGROUP_IN_CONTAINER_PATH = r"/proc/self/cgroup"
+CGROUP_TYPE_PATH = r"/proc/self/cgroup"
 
 
 class ProcCgroupFileConsts:
@@ -37,9 +37,9 @@ class CgroupVersion(ABC):
         pass
 
     def _get_cgroup_base_dir(self) -> str:
-        with open(CGROUP_IN_CONTAINER_PATH, "r") as f:
-            entries = [CgroupEntry.from_line(line) for line in f]
-            for cgroup_entry in entries:
+        with open(CGROUP_TYPE_PATH, "r") as f:
+            for line in f:
+                cgroup_entry = CgroupEntry.from_line(line)
                 if self._is_cgroup_dir(cgroup_entry):
                     return os.path.join(SYSTEM_CGROUP_DIR_PATH, cgroup_entry.cgroup_path)
 

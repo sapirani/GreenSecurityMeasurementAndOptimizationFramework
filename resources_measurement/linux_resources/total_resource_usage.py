@@ -2,10 +2,8 @@ import os
 from abc import ABC
 
 from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupVersion
-from resources_measurement.linux_resources.cgroup_versions.cgroup_v1 import CgroupV1, CGROUP_V1_NAME, \
-    CGROUP_V1_MEMORY_CONTROLLERS, CGROUP_V1_CPU_CONTROLLERS
-from resources_measurement.linux_resources.cgroup_versions.cgroup_v2 import CgroupV2, CGROUP_V2_NAME, \
-    CGROUP_V2_IDENTIFIER
+from resources_measurement.linux_resources.cgroup_versions.cgroup_v1 import CgroupV1
+from resources_measurement.linux_resources.cgroup_versions.cgroup_v2 import CgroupV2
 from resources_measurement.linux_resources.cgroup_versions.common_paths import SYSTEM_CGROUP_DIR_PATH
 
 # Lists the available controllers (e.g., cpu, memory) that can be enabled in the current cgroup.
