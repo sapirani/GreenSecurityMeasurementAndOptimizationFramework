@@ -1,5 +1,5 @@
 import logging
-from typing import Protocol, Dict, Any
+from typing import Protocol, Dict, Any, Optional
 
 from application_logging.handlers.elastic_handler import ElasticSearchLogHandler
 
@@ -9,7 +9,11 @@ class AdapterFactoryProtocol(Protocol):
     def __call__(self, logger: logging.Logger) -> logging.LoggerAdapter: ...
 
 
-def get_measurement_logger(adapter_factory: AdapterFactoryProtocol) -> logging.LoggerAdapter:
+def get_measurement_logger(
+        adapter_factory: AdapterFactoryProtocol,
+        logger_handler: Optional[logging.Handler]
+) -> logging.LoggerAdapter:
+
     if "session_id" not in adapter_factory.keywords.get('extra', {}):
         raise ValueError("'session_id must' be inserted into the adapter_factory before calling this function")
 
@@ -17,14 +21,10 @@ def get_measurement_logger(adapter_factory: AdapterFactoryProtocol) -> logging.L
     _logger.setLevel(logging.INFO)
 
     if not _logger.handlers:
-        try:
-            handler = ElasticSearchLogHandler()
-        except ConnectionError:
-            handler = logging.NullHandler()
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s %(message)s')
-    handler.setFormatter(formatter)
+        handler = logger_handler if logger_handler else logging.NullHandler()
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s %(message)s')
+        handler.setFormatter(formatter)
+        _logger.addHandler(handler)
 
-    _logger.addHandler(handler)
     adapter = adapter_factory(_logger)
-
     return adapter
