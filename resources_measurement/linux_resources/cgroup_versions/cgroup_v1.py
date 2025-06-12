@@ -3,18 +3,20 @@ import os
 from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupVersion
 
 
-class FilePathsV1:
-    MEMORY_USAGE_FILE_NAME = "memory/memory.usage_in_bytes"
-    MEMORY_MAX_FILE_NAME = "memory/memory.limit_in_bytes"
+MEMORY_USAGE_FILE_NAME_V1 = "memory/memory.usage_in_bytes"
+MEMORY_MAX_FILE_NAME_V1 = "memory/memory.limit_in_bytes"
 
-    # Reports the total CPU time consumed by tasks in the cgroup.
-    # "acct" stands for "accounting" and refers to the mechanism for tracking resource usage.
-    # Therefore, cpuacct.usage provides a report on the total CPU time used by all processes managed by the cgroup.
-    # The format of the file is a single integer value representing nanoseconds.
-    CPU_ACCT_USAGE_FILE_NAME = r"cpuacct.usage"
+# Reports the total CPU time consumed by tasks in the cgroup.
+# "acct" stands for "accounting" and refers to the mechanism for tracking resource usage.
+# Therefore, cpuacct.usage provides a report on the total CPU time used by all processes managed by the cgroup.
+# The format of the file is a single integer value representing nanoseconds.
+CPU_ACCT_USAGE_FILE_NAME_V1 = r"cpuacct.usage"
 
 
 CGROUP_V1_NAME = "V1"
+
+CGROUP_V1_CPU_CONTROLLERS = "cpu,cpuacct"
+CGROUP_V1_MEMORY_CONTROLLERS = "memory"
 
 
 class CgroupV1(CgroupVersion):
@@ -29,10 +31,10 @@ class CgroupV1(CgroupVersion):
             raise ValueError(f"The file {cpu_usage_file_path} does not exist or is not readable in Cgroup V1.")
 
     def get_cpu_usage_path(self) -> str:
-        return os.path.join(self.__base_cgroup_dir, FilePathsV1.CPU_ACCT_USAGE_FILE_NAME)
+        return os.path.join(self.__base_cgroup_dir, CPU_ACCT_USAGE_FILE_NAME_V1)
 
     def get_memory_usage_path(self) -> str:
-        return os.path.join(self.__base_cgroup_dir, FilePathsV1.MEMORY_USAGE_FILE_NAME)
+        return os.path.join(self.__base_cgroup_dir, MEMORY_USAGE_FILE_NAME_V1)
 
     def get_memory_limit_path(self) -> str:
-        return os.path.join(self.__base_cgroup_dir, FilePathsV1.MEMORY_MAX_FILE_NAME)
+        return os.path.join(self.__base_cgroup_dir, MEMORY_MAX_FILE_NAME_V1)
