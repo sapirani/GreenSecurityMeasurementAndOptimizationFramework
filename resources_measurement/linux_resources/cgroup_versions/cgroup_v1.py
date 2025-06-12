@@ -1,6 +1,7 @@
 import os
 
 from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupVersion
+from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
 
 CGROUP_V1_CPU_CONTROLLERS = "cpu,cpuacct"
 CGROUP_V1_MEMORY_CONTROLLERS = "memory"
@@ -21,8 +22,8 @@ class CgroupV1(CgroupVersion):
     def get_version(self) -> str:
         return CGROUP_V1_NAME
 
-    def _is_cgroup_dir(self, hierarchy: str, controllers: str, cgroup_path: str) -> bool:
-        return (controllers == CGROUP_V1_MEMORY_CONTROLLERS) or (controllers == CGROUP_V1_CPU_CONTROLLERS)
+    def _is_cgroup_dir(self, cgroup_entry: CgroupEntry) -> bool:
+        return (cgroup_entry.subsystems == CGROUP_V1_MEMORY_CONTROLLERS) or (cgroup_entry.subsystems == CGROUP_V1_CPU_CONTROLLERS)
 
     def read_cpu_usage_ns(self, cpu_usage_file_path: str) -> int:
         try:

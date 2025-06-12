@@ -1,6 +1,7 @@
 import os
 from abc import ABC, abstractmethod
 
+from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
 from resources_measurement.linux_resources.cgroup_versions.common_paths import SYSTEM_CGROUP_DIR_PATH
 
 # Contains details on the cgroup of the container.
@@ -28,22 +29,15 @@ class CgroupVersion(ABC):
         pass
 
     @abstractmethod
-    def _is_cgroup_dir(self, hierarchy: str, controllers: str, cgroup_path: str) -> bool:
+    def _is_cgroup_dir(self, cgroup_entry: CgroupEntry) -> bool:
         pass
 
     def _get_cgroup_base_dir(self) -> str:
         with open(CGROUP_IN_CONTAINER_PATH, "r") as f:
-            for line in f:
-                proc_cgroup_parts = line.strip().split(":")
-                if len(proc_cgroup_parts) != ProcCgroupFileConsts.NUMBER_OF_ELEMENTS:
-                    continue
-                else:
-                    hierarchy = proc_cgroup_parts[ProcCgroupFileConsts.HIERARCHY_INDEX]
-                    controllers = proc_cgroup_parts[ProcCgroupFileConsts.CONTROLLERS_INDEX]
-                    cgroup_path = proc_cgroup_parts[ProcCgroupFileConsts.CGROUP_PATH_INDEX].lstrip("/")
-
-                    if self._is_cgroup_dir(hierarchy, controllers, cgroup_path):
-                        return os.path.join(SYSTEM_CGROUP_DIR_PATH, cgroup_path)
+            entries = [CgroupEntry.from_line(line) for line in f]
+            for cgroup_entry in entries:
+                if self._is_cgroup_dir(cgroup_entry):
+                    return os.path.join(SYSTEM_CGROUP_DIR_PATH, cgroup_entry.cgroup_path)
 
         return SYSTEM_CGROUP_DIR_PATH
 

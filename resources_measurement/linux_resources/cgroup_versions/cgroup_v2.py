@@ -1,6 +1,7 @@
 import os
 
 from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupVersion
+from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
 
 CGROUP_V2_IDENTIFIER = "0"
 CGROUP_V2_NAME = "V2"
@@ -30,8 +31,8 @@ class CgroupV2(CgroupVersion):
     def get_version(self) -> str:
         return CGROUP_V2_NAME
 
-    def _is_cgroup_dir(self, hierarchy: str, controllers: str, cgroup_path: str) -> bool:
-        return hierarchy == CGROUP_V2_IDENTIFIER
+    def _is_cgroup_dir(self, cgroup_entry: CgroupEntry) -> bool:
+        return cgroup_entry.hierarchy_id == CGROUP_V2_IDENTIFIER
 
     def read_cpu_usage_ns(self, cpu_usage_file_path: str) -> int:
         try:
