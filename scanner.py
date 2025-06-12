@@ -1,8 +1,11 @@
 import argparse
+import json
 import shutil
 import signal
 import time
 import warnings
+from functools import partial
+from logging import LoggerAdapter
 
 from statistics import mean
 
@@ -11,9 +14,9 @@ from prettytable import PrettyTable
 from threading import Thread, Timer
 import pandas as pd
 
-from application_logging import get_measurement_logger, set_measurement_session_id_into_logger
+from application_logging import get_measurement_logger
 from initialization_helper import *
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
 from process_connections import ProcessNetworkMonitor
@@ -835,12 +838,25 @@ if __name__ == '__main__':
                         default=generate_id(word_count=3),
                         help="ip address to listen on")
 
+    parser.add_argument("--logging_constant_extras",
+                        type=json.loads,
+                        default={},
+                        help="User-defined extras (as JSON) to insert into every log")
+
     args = parser.parse_args()
 
     session_id = args.measurement_session_id
 
-    set_measurement_session_id_into_logger(session_id)
-    logger = get_measurement_logger()
+    logger_adapter = partial(
+        LoggerAdapter,
+        extra={
+            "session_id": session_id,
+            "hostname": OSFuncsInterface.get_hostname(),
+            **args.logging_constant_extras
+        }
+    )
+
+    logger = get_measurement_logger(logger_adapter)
 
     logger.info("The scanner is starting the measurement")
 

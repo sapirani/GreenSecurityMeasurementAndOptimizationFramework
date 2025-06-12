@@ -1,7 +1,5 @@
 import logging
 
-from application_logging import ElasticSearchLogHandler
-
 
 def setup_logging() -> None:
     # Create a handler for printing to console
@@ -18,13 +16,3 @@ def setup_logging() -> None:
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)  # Capture all log levels
     logger.addHandler(console_handler)
-
-
-def get_elastic_logger(measurement_session_id: str) -> logging.Logger:
-    elastic_logger = logging.getLogger("elastic_logger")
-    elastic_logger.setLevel(logging.INFO)
-
-    elastic_handler = ElasticSearchLogHandler(measurement_session_id)
-    elastic_logger.addHandler(elastic_handler)
-
-    return elastic_logger

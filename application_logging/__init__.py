@@ -1,36 +1,30 @@
 import logging
-import threading
+from typing import Protocol, Dict, Any
 
 from application_logging.handlers.elastic_handler import ElasticSearchLogHandler
 
-_logger = None
-_logger_lock = threading.Lock()
-_measurement_session_id: str = ""
+
+class AdapterFactoryProtocol(Protocol):
+    keywords: Dict[str, Any]
+    def __call__(self, logger: logging.Logger) -> logging.LoggerAdapter: ...
 
 
-def set_measurement_session_id_into_logger(measurement_session_id: str) -> None:
-    global _measurement_session_id
-    _measurement_session_id = measurement_session_id
+def get_measurement_logger(adapter_factory: AdapterFactoryProtocol) -> logging.LoggerAdapter:
+    if "session_id" not in adapter_factory.keywords.get('extra', {}):
+        raise ValueError("'session_id must' be inserted into the adapter_factory before calling this function")
 
+    _logger = logging.getLogger("measurements_logger")
+    _logger.setLevel(logging.INFO)
 
-def get_measurement_logger() -> logging.Logger:
-    if not _measurement_session_id:
-        raise ValueError("measurement session id must be set before calling the logger retrieval function")
-
-    global _logger
-    with _logger_lock:
-        if _logger is None:
-            _logger = logging.getLogger("measurements_logger")
-            _logger.setLevel(logging.INFO)
-
+    if not _logger.handlers:
+        try:
+            handler = ElasticSearchLogHandler()
+        except ConnectionError:
             handler = logging.NullHandler()
-            try:
-                handler = ElasticSearchLogHandler(_measurement_session_id)
-            except ConnectionError:
-                pass
-            formatter = logging.Formatter('%(asctime)s - %(levelname)s %(message)s')
-            handler.setFormatter(formatter)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s %(message)s')
+    handler.setFormatter(formatter)
 
-            _logger.addHandler(handler)
+    _logger.addHandler(handler)
+    adapter = adapter_factory(_logger)
 
-    return _logger
+    return adapter
