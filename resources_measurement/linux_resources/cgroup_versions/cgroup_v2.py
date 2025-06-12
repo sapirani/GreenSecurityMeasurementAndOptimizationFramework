@@ -3,6 +3,7 @@ import os
 from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupVersion
 
 CGROUP_V2_IDENTIFIER = "0"
+CGROUP_V2_NAME = "V2"
 
 
 class CgroupV2(CgroupVersion):
@@ -26,12 +27,8 @@ class CgroupV2(CgroupVersion):
     # The interesting key is usage_usec, its value is the total CPU time consumed by all tasks in the cgroup, in microseconds.
     __CPU_STATS_FILE_NAME_V2 = "cpu.stat"
 
-    # Provides CPU usage statistics for the cgroup.
-    # The format of the file is key-value pairs, one per line.
-    __CGROUP_V2_NAME = "V2"
-
     def __init__(self, cgroup_dir: str):
-        super().__init__(version=self.__CGROUP_V2_NAME, base_cgroup_dir=cgroup_dir)
+        super().__init__(version=CGROUP_V2_NAME, base_cgroup_dir=cgroup_dir)
 
     def read_cpu_usage_ns(self, cpu_usage_file_path: str) -> int:
         try:

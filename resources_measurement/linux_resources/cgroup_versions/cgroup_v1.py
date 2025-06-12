@@ -5,6 +5,8 @@ from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_versi
 CGROUP_V1_CPU_CONTROLLERS = "cpu,cpuacct"
 CGROUP_V1_MEMORY_CONTROLLERS = "memory"
 
+CGROUP_V1_NAME = "V1"
+
 
 class CgroupV1(CgroupVersion):
     __MEMORY_USAGE_FILE_NAME_V1 = "memory/memory.usage_in_bytes"
@@ -16,10 +18,9 @@ class CgroupV1(CgroupVersion):
     # The format of the file is a single integer value representing nanoseconds.
     __CPU_ACCT_USAGE_FILE_NAME_V1 = r"cpuacct.usage"
 
-    __CGROUP_V1_NAME = "V1"
 
     def __init__(self, cgroup_dir: str):
-        super().__init__(version=self.__CGROUP_V1_NAME, base_cgroup_dir=cgroup_dir)
+        super().__init__(version=CGROUP_V1_NAME, base_cgroup_dir=cgroup_dir)
 
     def read_cpu_usage_ns(self, cpu_usage_file_path: str) -> int:
         try:
