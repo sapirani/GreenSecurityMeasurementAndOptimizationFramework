@@ -18,9 +18,11 @@ class CgroupV1(CgroupVersion):
     # The format of the file is a single integer value representing nanoseconds.
     __CPU_ACCT_USAGE_FILE_NAME_V1 = r"cpuacct.usage"
 
+    def get_version(self) -> str:
+        return CGROUP_V1_NAME
 
-    def __init__(self, cgroup_dir: str):
-        super().__init__(version=CGROUP_V1_NAME, base_cgroup_dir=cgroup_dir)
+    def _is_cgroup_dir(self, hierarchy: str, controllers: str, cgroup_path: str) -> bool:
+        return (controllers == CGROUP_V1_MEMORY_CONTROLLERS) or (controllers == CGROUP_V1_CPU_CONTROLLERS)
 
     def read_cpu_usage_ns(self, cpu_usage_file_path: str) -> int:
         try:
@@ -30,10 +32,10 @@ class CgroupV1(CgroupVersion):
             raise ValueError(f"The file {cpu_usage_file_path} does not exist or is not readable in Cgroup V1.")
 
     def get_cpu_usage_path(self) -> str:
-        return os.path.join(self.__base_cgroup_dir, self.__CPU_ACCT_USAGE_FILE_NAME_V1)
+        return os.path.join(self._base_cgroup_dir, self.__CPU_ACCT_USAGE_FILE_NAME_V1)
 
     def get_memory_usage_path(self) -> str:
-        return os.path.join(self.__base_cgroup_dir, self.__MEMORY_USAGE_FILE_NAME_V1)
+        return os.path.join(self._base_cgroup_dir, self.__MEMORY_USAGE_FILE_NAME_V1)
 
     def get_memory_limit_path(self) -> str:
-        return os.path.join(self.__base_cgroup_dir, self.__MEMORY_MAX_FILE_NAME_V1)
+        return os.path.join(self._base_cgroup_dir, self.__MEMORY_MAX_FILE_NAME_V1)

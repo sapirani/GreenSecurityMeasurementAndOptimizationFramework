@@ -27,8 +27,11 @@ class CgroupV2(CgroupVersion):
     # The interesting key is usage_usec, its value is the total CPU time consumed by all tasks in the cgroup, in microseconds.
     __CPU_STATS_FILE_NAME_V2 = "cpu.stat"
 
-    def __init__(self, cgroup_dir: str):
-        super().__init__(version=CGROUP_V2_NAME, base_cgroup_dir=cgroup_dir)
+    def get_version(self) -> str:
+        return CGROUP_V2_NAME
+
+    def _is_cgroup_dir(self, hierarchy: str, controllers: str, cgroup_path: str) -> bool:
+        return hierarchy == CGROUP_V2_IDENTIFIER
 
     def read_cpu_usage_ns(self, cpu_usage_file_path: str) -> int:
         try:
@@ -42,10 +45,10 @@ class CgroupV2(CgroupVersion):
             raise ValueError(f"The file {cpu_usage_file_path} does not exist or is not readable in Cgroup V1.")
 
     def get_cpu_usage_path(self) -> str:
-        return os.path.join(self.__base_cgroup_dir, self.__CPU_STATS_FILE_NAME_V2)
+        return os.path.join(self._base_cgroup_dir, self.__CPU_STATS_FILE_NAME_V2)
 
     def get_memory_usage_path(self) -> str:
-        return os.path.join(self.__base_cgroup_dir, self.__MEMORY_USAGE_FILE_NAME_V2)
+        return os.path.join(self._base_cgroup_dir, self.__MEMORY_USAGE_FILE_NAME_V2)
 
     def get_memory_limit_path(self) -> str:
-        return os.path.join(self.__base_cgroup_dir, self.__MEMORY_MAX_FILE_NAME_V2)
+        return os.path.join(self._base_cgroup_dir, self.__MEMORY_MAX_FILE_NAME_V2)
