@@ -6,6 +6,8 @@ from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import C
 CGROUP_V2_IDENTIFIER = "0"
 CGROUP_V2_NAME = "V2"
 
+NO_MEMORY_LIMIT = "max"
+
 
 class CgroupV2(CgroupVersion):
     __USAGE_USEC_V2 = "usage_usec"
@@ -53,3 +55,6 @@ class CgroupV2(CgroupVersion):
 
     def get_memory_limit_path(self) -> str:
         return os.path.join(self._base_cgroup_dir, self.__MEMORY_MAX_FILE_NAME_V2)
+
+    def should_get_host_memory_limit(self, limit: str) -> bool:
+        return limit == NO_MEMORY_LIMIT

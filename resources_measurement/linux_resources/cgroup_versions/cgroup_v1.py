@@ -40,3 +40,7 @@ class CgroupV1(CgroupVersion):
 
     def get_memory_limit_path(self) -> str:
         return os.path.join(self._base_cgroup_dir, self.__MEMORY_MAX_FILE_NAME_V1)
+
+    def should_get_host_memory_limit(self, limit: str) -> bool:
+        limit_number = int(limit)
+        return limit_number >= 2 ** 60

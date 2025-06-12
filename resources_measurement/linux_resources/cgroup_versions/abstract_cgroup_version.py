@@ -32,6 +32,10 @@ class CgroupVersion(ABC):
     def _is_cgroup_dir(self, cgroup_entry: CgroupEntry) -> bool:
         pass
 
+    @abstractmethod
+    def should_get_host_memory_limit(self, limit: str) -> bool:
+        pass
+
     def _get_cgroup_base_dir(self) -> str:
         with open(CGROUP_IN_CONTAINER_PATH, "r") as f:
             entries = [CgroupEntry.from_line(line) for line in f]

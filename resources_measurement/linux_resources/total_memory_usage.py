@@ -2,7 +2,6 @@ import psutil
 
 from resources_measurement.linux_resources.total_resource_usage import LinuxContainerResourceReader
 
-NO_MEMORY_LIMIT = "max"
 
 class LinuxContainerMemoryReader(LinuxContainerResourceReader):
     def __init__(self):
@@ -36,15 +35,11 @@ class LinuxContainerMemoryReader(LinuxContainerResourceReader):
         try:
             with open(max_memory_file_path) as max_memory_file:
                 max_val = max_memory_file.read().strip()
-                if max_val == NO_MEMORY_LIMIT:
-                    limit = self.__get_host_memory_limit()
-                else:
-                    limit = int(max_val)
+                if self._version.should_get_host_memory_limit():
+                    return self.__get_host_memory_limit()
+                return int(max_val)
 
-            if limit >= 2 ** 60:
-                limit = self.__get_host_memory_limit()
 
-            return limit
         except ValueError as e:
             print(f"Unexpected format in memory limit file in path {max_memory_file_path}: {max_val}")
             return self.__get_host_memory_limit()
