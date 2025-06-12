@@ -118,8 +118,14 @@ if (doc.containsKey('timestamp') && doc.containsKey('start_date')
 8. To observe graphs resulting from different measurements onto each other, tap the "Break down by" and choose the session_id.
 9. You may add control (inside the dashboard screen) based on the session_id field, to compare specific measurement sessions of your choice.
 
+#### Control Custome Logging Extras
+When logging into elastic, we allow additional, user-defined extras that will be attached to any log produced by the scanner.
+Example usage (extras should be given as JSON):
+
+`python scanner.py --logging_constant_extras '{"key_1":"value_1","key_2":"value_2"}'`
+
 #### Supporting Additional Programs:
-1. in `general_consts.py` file - add your program in the enum called *ProgramToScan*
+1. in `general_consts.py` file - add your program in the enum called **
 2. in `program_parameters` file - add all the parameters that the user can configure in your program
 3. in `program class` file - add a class that represents your program and inherits from *ProgramInterface*. You ***MUST*** implement the funtions:  *get_program_name* and *get_command*. The function *get_command* returns a string which is the shell command that runs your program. You can implement any other function of *ProgramInterface*. Note that if you want to run your command in powershell (for Windows programs), implement the function *should_use_powershell* and return True.
 4. in `initialization_helper.py` file - add your program in the function called *program_to_scan_factory*
