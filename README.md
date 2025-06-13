@@ -125,7 +125,7 @@ Example usage (extras should be given as JSON):
 `python scanner.py --logging_constant_extras '{"key_1":"value_1","key_2":"value_2"}'`
 
 #### Supporting Additional Programs:
-1. in `general_consts.py` file - add your program in the enum called **
+1. in `general_consts.py` file - add your program in the enum called *ProgramToScan*
 2. in `program_parameters` file - add all the parameters that the user can configure in your program
 3. in `program class` file - add a class that represents your program and inherits from *ProgramInterface*. You ***MUST*** implement the funtions:  *get_program_name* and *get_command*. The function *get_command* returns a string which is the shell command that runs your program. You can implement any other function of *ProgramInterface*. Note that if you want to run your command in powershell (for Windows programs), implement the function *should_use_powershell* and return True.
 4. in `initialization_helper.py` file - add your program in the function called *program_to_scan_factory*
