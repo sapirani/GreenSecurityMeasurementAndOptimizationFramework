@@ -795,16 +795,24 @@ def before_scanning_operations():
         print("Exiting program")
         return
 
-    if not is_inside_container:
-        running_os.change_power_plan(chosen_power_plan_name, running_os.get_chosen_power_plan_identifier())
+    try:
+        if not is_inside_container:
+            running_os.change_power_plan(chosen_power_plan_name, running_os.get_chosen_power_plan_identifier())
 
-    if disable_real_time_protection_during_measurement:
-        running_os.change_real_time_protection()
+        if disable_real_time_protection_during_measurement:
+            running_os.change_real_time_protection()
 
-    if not is_inside_container:
-        running_os.change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
-        import screen_brightness_control as sbc
-        sbc.set_brightness(screen_brightness_level)
+        if not is_inside_container:
+            running_os.change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
+            import screen_brightness_control as sbc
+            sbc.set_brightness(screen_brightness_level)
+
+    # Assuming that if one of the operations is failed, the rest will probably fail too
+    except Exception as e:
+        print(f"Warning! {e}")
+        print("Warning! Ensure that the parameter is_inside_container is set to True if you run inside container")
+        print("Warning! Skipping before measurement operations (such as changing the screen's brightness)")
+        print("Warning! If you run inside WSL, these operations may not be supported")
 
     initialize_total_cpu()
 
@@ -821,14 +829,22 @@ def after_scanning_operations(should_save_results=True):
     if should_save_results:
         save_results_to_files()
 
-    if not is_inside_container:
-        running_os.change_power_plan(running_os.get_default_power_plan_name(),
-                                     running_os.get_default_power_plan_identifier())  # return to default power plan
+    try:
+        if not is_inside_container:
+            running_os.change_power_plan(running_os.get_default_power_plan_name(),
+                                         running_os.get_default_power_plan_identifier())  # return to default power plan
 
-        running_os.change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
+            running_os.change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
 
-    if disable_real_time_protection_during_measurement:
-        running_os.change_real_time_protection(should_disable=False)
+        if disable_real_time_protection_during_measurement:
+            running_os.change_real_time_protection(should_disable=False)
+
+    # Assuming that if one of the operations is failed, the rest will probably fail too
+    except Exception as e:
+        print(f"Warning! {e}")
+        print("Warning! Ensure that the parameter is_inside_container is set to True if you run inside container")
+        print("Warning! Skipping after measurement operations (such as changing the screen's brightness)")
+        print("Warning! If you run inside WSL, these operations may not be supported")
 
     if max_timeout_reached:
         print("Scanned program reached the maximum time so we terminated it")
