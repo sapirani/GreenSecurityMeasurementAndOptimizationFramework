@@ -3,6 +3,7 @@ import json
 import platform
 import shutil
 import signal
+import threading
 import time
 import warnings
 from functools import partial
@@ -31,7 +32,7 @@ base_dir, GRAPHS_DIR, STDOUT_FILES_DIR, STDERR_FILES_DIR, PROCESSES_CSV, TOTAL_M
 program.set_results_dir(base_dir)
 
 # ======= Program Global Parameters =======
-done_scanning = False
+done_scanning_event = threading.Event()
 starting_time = 0
 main_process_id = None
 max_timeout_reached = False
@@ -60,11 +61,10 @@ finished_scanning_time = []
 
 
 def handle_sigint(signum, frame):
-    global done_scanning
     print("Got signal, writing results and terminating")
     if main_process:
         program.kill_process(main_process, running_os.is_posix())  # killing the main process
-    done_scanning = True
+    done_scanning_event.set()
 
 
 def save_current_total_memory():
@@ -292,11 +292,11 @@ def should_scan():
         return False
 
     if main_program_to_scan == ProgramToScan.NO_SCAN:
-        return not scan_time_passed() and not done_scanning
+        return not scan_time_passed() and not done_scanning_event.is_set()
     elif scan_option == ScanMode.ONE_SCAN:
-        return not done_scanning
+        return not done_scanning_event.is_set()
     elif scan_option == ScanMode.CONTINUOUS_SCAN:
-        return not (scan_time_passed() and is_delta_capacity_achieved()) and not done_scanning
+        return not (scan_time_passed() and is_delta_capacity_achieved()) and not done_scanning_event.is_set()
         # return not scan_time_passed() and not is_delta_capacity_achieved()
 
 
@@ -328,7 +328,6 @@ def continuously_measure():
     """
     This function runs in a different thread. It accounts for measuring the full resource consumption of the system
     """
-    global done_scanning
     running_os.init_thread()
 
     # init prev_disk_io by first disk io measurements (before scan)
@@ -353,7 +352,7 @@ def continuously_measure():
             save_current_total_cpu()
         except NotImplementedError as e:
             print(f"Error occurred: {str(e)}")
-            done_scanning = True
+            done_scanning_event.set()
 
         save_current_total_memory()
         prev_disk_io = save_current_disk_io(prev_disk_io)
@@ -618,8 +617,7 @@ def terminate_due_to_exception(background_processes, program_name, err):
     :param program_name: the name of the program that had an error
     :param err: explanation about the error occurred
     """
-    global done_scanning
-    done_scanning = True
+    done_scanning_event.set()
 
     # terminate the main process if it still exists
     try:
@@ -718,7 +716,6 @@ def scan_and_measure():
     background programs defined by the user (so the thread will measure them also)
     """
     global main_process
-    global done_scanning
     global starting_time
     global main_process_id
     global max_timeout_reached
@@ -727,7 +724,7 @@ def scan_and_measure():
     measurements_thread = Thread(target=continuously_measure, args=())
     measurements_thread.start()
 
-    while not main_program_to_scan == ProgramToScan.NO_SCAN and not done_scanning:
+    while not main_program_to_scan == ProgramToScan.NO_SCAN and not done_scanning_event.is_set():
         main_process, main_process_id = start_process(program)
         timeout_timer = start_timeout(main_process, running_os.is_posix())
         background_processes = start_background_processes()
@@ -743,7 +740,7 @@ def scan_and_measure():
         # check whether another iteration of scan is needed or not
         if scan_option == ScanMode.ONE_SCAN or (scan_time_passed() and is_delta_capacity_achieved()):
             # if there is no need in another iteration, exit this while and signal the measurement thread to stop
-            done_scanning = True
+            done_scanning_event.set()
         if result and max_timeout_reached is False:
             print(result)
             print(main_process)
@@ -753,8 +750,8 @@ def scan_and_measure():
             # warnings.warn(f"An error occurred while scanning: {errs}", RuntimeWarning)
             warnings.warn(f"errors encountered while scanning, see stderr directory", RuntimeWarning)
 
-    # wait for measurement
-    measurements_thread.join()
+    running_os.wait_for_measurement_termination(measurements_thread, done_scanning_event)
+
     if main_program_to_scan == ProgramToScan.NO_SCAN:
         finished_scanning_time.append(scanner_imp.calc_time_interval(starting_time))
 
@@ -780,14 +777,13 @@ def can_proceed_towards_measurements():
 
 
 def initialize_total_cpu():
-    global done_scanning
     psutil.cpu_percent(percpu=True)  # first call to psutil with cpu is meaningless
     try:
         if is_inside_container:
             running_os.get_container_total_cpu_usage()  # first call is meaningless
     except NotImplementedError as e:
         print(f"Error occurred: {str(e)}")
-        done_scanning = True
+        done_scanning_event.set()
 
 
 def print_warnings_system_adjustments(exception: Exception):

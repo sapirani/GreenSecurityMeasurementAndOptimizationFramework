@@ -1,7 +1,8 @@
 import shlex
 import subprocess
+import threading
 from abc import abstractmethod
-from statistics import mean
+from threading import Thread
 
 import psutil
 
@@ -109,6 +110,9 @@ class AbstractOSFuncs:
             else:
                 raise e
 
+    def wait_for_measurement_termination(self, measurement_thread: Thread, done_scanning_event: threading.Event):
+        measurement_thread.join()
+
     @abstractmethod
     # TODO: make balance the default
     def change_power_plan(self, name, identifier):
@@ -131,7 +135,6 @@ class AbstractOSFuncs:
 
     def is_posix(self):
         pass
-
 
     @abstractmethod
     def get_container_total_cpu_usage(self) -> float:
