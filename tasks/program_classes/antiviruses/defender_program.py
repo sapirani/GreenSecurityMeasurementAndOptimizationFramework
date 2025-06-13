@@ -23,7 +23,7 @@ class DefenderProgram(AntivirusProgram):
         # return '"C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.2210.6-0\\MpCmdRun.exe" -Scan -ScanType 1'
 
     def save_av_version(self, f):
-        from os_funcs import WindowsOS
+        from operating_systems.os_windows import WindowsOS
         WindowsOS.save_antivirus_version(f, self.get_program_name())
 
     def find_child_id(self, p, is_posix):
