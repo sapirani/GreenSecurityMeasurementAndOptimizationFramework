@@ -21,6 +21,8 @@ custom_scan_path = r'""'
 
 RUNNING_TIME = 10 * MINUTE # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
+SLEEP_BETWEEN_ITERATIONS_SECONDS = 2
+
 MINIMUM_DELTA_CAPACITY = 200     # in mWh
 
 measurement_number = NEW_MEASUREMENT    # write number between 1->inf or type NEW_MEASUREMENT

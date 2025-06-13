@@ -96,6 +96,34 @@ This project currently supports the following programs (it is very easy to add a
 * use "git update-index --skip-worktree program_parameters.py" command to ignore changes in this file.
 * use "git update-index --no-skip-worktree program_parameters.py" command to resume tracking changes
 
+#### Using Elastic to Analyze Results:
+Make sure your elastic details are written inside the program_parameters.py file.
+
+To compare graphs across multiple measurement sessions, you should create a runtime field.
+1. Go to "Stack management" -> Kibana -> Data Views.
+2. Choose the scanner data view.
+3. Click on create field, insert `seconds_from_scanner_start` as the name of the field.
+4. Choose 'long' as the field's type.
+5. Toggle the "Set value".
+6. Insert the following script:
+```
+if (doc.containsKey('timestamp') && doc.containsKey('start_date')
+    && !doc['timestamp'].empty && !doc['start_date'].empty) {
+    long ts = doc['timestamp'].value.toInstant().toEpochMilli();
+    long start = doc['start_date'].value.toInstant().toEpochMilli();    
+    emit((ts - start) / 1000); // return in seconds
+}
+```
+7. Create a graph such that the new `seconds_from_scanner_start` field is the x-axis.
+8. To observe graphs resulting from different measurements onto each other, tap the "Break down by" and choose the session_id.
+9. You may add control (inside the dashboard screen) based on the session_id field, to compare specific measurement sessions of your choice.
+
+#### Control Custome Logging Extras
+When logging into elastic, we allow additional, user-defined extras that will be attached to any log produced by the scanner.
+Example usage (extras should be given as JSON):
+
+`python scanner.py --logging_constant_extras '{"key_1":"value_1","key_2":"value_2"}'`
+
 #### Supporting Additional Programs:
 1. in `general_consts.py` file - add your program in the enum called *ProgramToScan*
 2. in `program_parameters` file - add all the parameters that the user can configure in your program

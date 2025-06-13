@@ -1,20 +1,23 @@
-import datetime
+from datetime import datetime, timezone
 import logging
 import os
-
-from operating_systems.abstract_operating_system import AbstractOSFuncs
-from program_parameters import elastic_username, elastic_url, elastic_password
 from elasticsearch import Elasticsearch
 
 INDEX_NAME = os.getenv("ELASTIC_INDEX_NAME", "scanner")
 
 
 class ElasticSearchLogHandler(logging.Handler):
-    def __init__(self, session_id: str, es_host: str = elastic_url, index_name: str = INDEX_NAME):
+    def __init__(
+            self,
+            elastic_username: str,
+            elastic_password: str,
+            elastic_url: str,
+            index_name: str = INDEX_NAME
+    ):
         super().__init__()
-        self.es = Elasticsearch(es_host, basic_auth=(elastic_username, elastic_password))
+        self.es = Elasticsearch(elastic_url, basic_auth=(elastic_username, elastic_password))
         self.index_name = index_name
-        self.session_id = session_id
+        self.start_date = datetime.now(timezone.utc).isoformat()
 
         if not self.es.ping():
             print("Cannot connect to Elastic")
@@ -22,11 +25,11 @@ class ElasticSearchLogHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         doc = {
-            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "message": record.getMessage(),
-            "hostname": AbstractOSFuncs.get_hostname(),
-            "session_id": self.session_id
+            # TODO: try to find a way to avoid sending start_date inside each log
+            "start_date": self.start_date
         }
 
         # Emit extra log data

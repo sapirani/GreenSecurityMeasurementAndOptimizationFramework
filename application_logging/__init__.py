@@ -1,37 +1,36 @@
+from logging import Handler, LoggerAdapter, Logger
 import logging
-import threading
-from typing import Optional
+from typing import Protocol, Dict, Any, Optional
 
 from application_logging.handlers.elastic_handler import ElasticSearchLogHandler
 
-_logger = None
-_logger_lock = threading.Lock()
-_measurement_session_id: Optional[str] = None
+
+def get_elastic_logging_handler(elastic_username: str, elastic_password: str, elastic_url: str) -> Optional[Handler]:
+    try:
+        return ElasticSearchLogHandler(elastic_username, elastic_password, elastic_url)
+    except ConnectionError:
+        return None
 
 
-def set_measurement_session_id(measurement_session_id: str) -> None:
-    global _measurement_session_id
-    _measurement_session_id = measurement_session_id
+class AdapterFactoryProtocol(Protocol):
+    keywords: Dict[str, Any]
+    def __call__(self, logger: Logger) -> LoggerAdapter: ...
 
 
-def get_measurement_logger() -> logging.Logger:
-    if _measurement_session_id is None:
-        raise ValueError("measurement session id must be set before calling the logger retrieval function")
+def get_measurement_logger(
+        adapter_factory: AdapterFactoryProtocol, logger_handler: Optional[Handler]) -> LoggerAdapter:
 
-    global _logger
-    with _logger_lock:
-        if _logger is None:
-            _logger = logging.getLogger("measurements_logger")
-            _logger.setLevel(logging.INFO)
+    if "session_id" not in adapter_factory.keywords.get('extra', {}):
+        raise ValueError("'session_id must' be inserted into the adapter_factory before calling this function")
 
-            handler = logging.NullHandler()
-            try:
-                handler = ElasticSearchLogHandler(_measurement_session_id)
-            except ConnectionError:
-                pass
-            formatter = logging.Formatter('%(asctime)s - %(levelname)s %(message)s')
-            handler.setFormatter(formatter)
+    _logger = logging.getLogger("measurements_logger")
+    _logger.setLevel(logging.INFO)
 
-            _logger.addHandler(handler)
+    if not _logger.handlers:
+        handler = logger_handler if logger_handler else logging.NullHandler()
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s %(message)s')
+        handler.setFormatter(formatter)
+        _logger.addHandler(handler)
 
-    return _logger
+    adapter = adapter_factory(_logger)
+    return adapter
