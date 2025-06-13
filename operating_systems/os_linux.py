@@ -12,9 +12,10 @@ from resources_measurement.linux_resources.total_memory_usage import LinuxContai
 
 
 class LinuxOS(AbstractOSFuncs):
-    def __init__(self):
-        self.__container_cpu_usage_reader = LinuxContainerCPUReader()
-        self.__container_memory_usage_reader = LinuxContainerMemoryReader()
+    def __init__(self, is_inside_container: bool):
+        self.__container_cpu_usage_reader = LinuxContainerCPUReader() if is_inside_container else None
+        self.__container_memory_usage_reader = LinuxContainerMemoryReader() if is_inside_container else None
+
 
     @staticmethod
     def get_value_of_terminal_res(res):
@@ -156,9 +157,13 @@ class LinuxOS(AbstractOSFuncs):
 
 
     def get_container_total_cpu_usage(self) -> float:
+        if self.__container_cpu_usage_reader is None:
+            raise ValueError("Can't call this method when not inside container")
         return self.__container_cpu_usage_reader.get_cpu_percent()
 
     def get_container_total_memory_usage(self) -> tuple[float, float]:
+        if self.__container_memory_usage_reader is None:
+            raise ValueError("Can't call this method when not inside container")
         usage_in_bytes = self.__container_memory_usage_reader.get_memory_usage_bytes()
         usage_percent = self.__container_memory_usage_reader.get_memory_usage_percent()
         return usage_in_bytes, usage_percent
