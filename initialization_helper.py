@@ -27,7 +27,7 @@ from tasks.program_classes.user_activity_program import UserActivityProgram
 # ======= Get Operating System Type =======
 running_os = None
 if platform.system() == "Linux":
-    running_os = LinuxOS()
+    running_os = LinuxOS(is_inside_container=is_inside_container)
 elif platform.system() == "Windows":
     running_os = WindowsOS()
 

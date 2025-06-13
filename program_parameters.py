@@ -34,7 +34,7 @@ screen_brightness_level = 75    # A number between 0 and 100
 DEFAULT_SCREEN_TURNS_OFF_TIME = 4
 DEFAULT_TIME_BEFORE_SLEEP_MODE = 4
 
-is_inside_container = True
+is_inside_container = False
 
 # ==== Elastic logging configuration
 elastic_url = "http://192.168.140.101:9200"
