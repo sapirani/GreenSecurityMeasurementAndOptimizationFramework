@@ -34,12 +34,12 @@ class LinuxContainerMemoryReader(LinuxContainerResourceReader):
         max_memory_file_path = self._version.get_memory_limit_path()
         try:
             with open(max_memory_file_path) as max_memory_file:
-                max_val = max_memory_file.read().strip()
-                if self._version.should_get_host_memory_limit():
+                memory_limit = max_memory_file.read().strip()
+                if self._version.is_container_memory_limited(memory_limit):
                     return self.__get_host_memory_limit()
-                return int(max_val)
+                return int(memory_limit)
 
 
         except ValueError as e:
-            print(f"Unexpected format in memory limit file in path {max_memory_file_path}: {max_val}")
+            print(f"Unexpected format in memory limit file in path {max_memory_file_path}: {memory_limit}")
             return self.__get_host_memory_limit()

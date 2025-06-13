@@ -8,10 +8,9 @@ class LinuxContainerCPUReader(LinuxContainerResourceReader):
         super().__init__()
         self.__last_usage_ns = None
         self.__last_time = None
-        self.__cpu_usage_path = self._version.get_cpu_usage_path()
 
     def get_cpu_percent(self) -> float:
-        current_usage_ns = self._version.read_cpu_usage_ns(self.__cpu_usage_path)
+        current_usage_ns = self._version.read_cpu_usage_ns()
         current_time = time.time()
 
         if self.__last_usage_ns is None or self.__last_time is None:

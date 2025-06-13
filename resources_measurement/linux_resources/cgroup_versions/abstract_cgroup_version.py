@@ -23,6 +23,7 @@ class ProcCgroupFileConsts:
 class CgroupVersion(ABC):
     def __init__(self):
         self._base_cgroup_dir = self._get_cgroup_base_dir()
+        self._cpu_usage_file_path = self._get_cpu_usage_path()
 
     @abstractmethod
     def get_version(self) -> str:
@@ -33,7 +34,7 @@ class CgroupVersion(ABC):
         pass
 
     @abstractmethod
-    def should_get_host_memory_limit(self, limit: str) -> bool:
+    def is_container_memory_limited(self, limit: str) -> bool:
         pass
 
     def _get_cgroup_base_dir(self) -> str:
@@ -46,11 +47,11 @@ class CgroupVersion(ABC):
         return SYSTEM_CGROUP_DIR_PATH
 
     @abstractmethod
-    def read_cpu_usage_ns(self, cpu_usage_file_path: str) -> int:
+    def read_cpu_usage_ns(self) -> int:
         pass
 
     @abstractmethod
-    def get_cpu_usage_path(self) -> str:
+    def _get_cpu_usage_path(self) -> str:
         pass
 
     @abstractmethod

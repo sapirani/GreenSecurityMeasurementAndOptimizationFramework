@@ -32,17 +32,17 @@ class CgroupV1(CgroupVersion):
         return CGROUP_V1_NAME
 
     def _is_cgroup_dir(self, cgroup_entry: CgroupEntry) -> bool:
-        return ((cgroup_entry.subsystems == self.__CGROUP_V1_MEMORY_CONTROLLERS) or
-                (cgroup_entry.subsystems == self.__CGROUP_V1_CPU_CONTROLLERS))
+        return cgroup_entry.subsystems == self.__CGROUP_V1_MEMORY_CONTROLLERS or \
+                cgroup_entry.subsystems == self.__CGROUP_V1_CPU_CONTROLLERS
 
-    def read_cpu_usage_ns(self, cpu_usage_file_path: str) -> int:
+    def read_cpu_usage_ns(self) -> int:
         try:
-            with open(cpu_usage_file_path) as f:
+            with open(self._cpu_usage_file_path) as f:
                 return int(f.read().strip())
         except Exception as e:
-            raise ValueError(f"The file {cpu_usage_file_path} does not exist or is not readable in Cgroup V1.")
+            raise ValueError(f"The file {self._cpu_usage_file_path} does not exist or is not readable in Cgroup V1.")
 
-    def get_cpu_usage_path(self) -> str:
+    def _get_cpu_usage_path(self) -> str:
         return os.path.join(self._base_cgroup_dir, self.__CPU_ACCT_USAGE_FILE_NAME_V1)
 
     def get_memory_usage_path(self) -> str:
@@ -51,6 +51,6 @@ class CgroupV1(CgroupVersion):
     def get_memory_limit_path(self) -> str:
         return os.path.join(self._base_cgroup_dir, self.__MEMORY_MAX_FILE_NAME_V1)
 
-    def should_get_host_memory_limit(self, limit: str) -> bool:
+    def is_container_memory_limited(self, limit: str) -> bool:
         limit_number = int(limit)
         return limit_number >= 2 ** 60

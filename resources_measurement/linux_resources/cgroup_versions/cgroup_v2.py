@@ -39,18 +39,18 @@ class CgroupV2(CgroupVersion):
     def _is_cgroup_dir(self, cgroup_entry: CgroupEntry) -> bool:
         return cgroup_entry.hierarchy_id == self.__CGROUP_V2_IDENTIFIER
 
-    def read_cpu_usage_ns(self, cpu_usage_file_path: str) -> int:
+    def read_cpu_usage_ns(self) -> int:
         try:
-            with open(cpu_usage_file_path) as f:
+            with open(self._cpu_usage_file_path) as f:
                 for line in f:
                     if line.startswith(self.__USAGE_USEC_V2):
                         return int(line.split()[1]) * 1000  # convert to nanoseconds 143512538
 
             return 0
         except Exception as e:
-            raise ValueError(f"The file {cpu_usage_file_path} does not exist or is not readable in Cgroup V1.")
+            raise ValueError(f"The file {self._cpu_usage_file_path} does not exist or is not readable in Cgroup V1.")
 
-    def get_cpu_usage_path(self) -> str:
+    def _get_cpu_usage_path(self) -> str:
         return os.path.join(self._base_cgroup_dir, self.__CPU_STATS_FILE_NAME_V2)
 
     def get_memory_usage_path(self) -> str:
@@ -59,5 +59,5 @@ class CgroupV2(CgroupVersion):
     def get_memory_limit_path(self) -> str:
         return os.path.join(self._base_cgroup_dir, self.__MEMORY_MAX_FILE_NAME_V2)
 
-    def should_get_host_memory_limit(self, limit: str) -> bool:
+    def is_container_memory_limited(self, limit: str) -> bool:
         return limit == self.__NO_MEMORY_LIMIT
