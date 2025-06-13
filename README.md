@@ -118,6 +118,12 @@ if (doc.containsKey('timestamp') && doc.containsKey('start_date')
 8. To observe graphs resulting from different measurements onto each other, tap the "Break down by" and choose the session_id.
 9. You may add control (inside the dashboard screen) based on the session_id field, to compare specific measurement sessions of your choice.
 
+#### Control Custome Logging Extras
+When logging into elastic, we allow additional, user-defined extras that will be attached to any log produced by the scanner.
+Example usage (extras should be given as JSON):
+
+`python scanner.py --logging_constant_extras '{"key_1":"value_1","key_2":"value_2"}'`
+
 #### Supporting Additional Programs:
 1. in `general_consts.py` file - add your program in the enum called *ProgramToScan*
 2. in `program_parameters` file - add all the parameters that the user can configure in your program
