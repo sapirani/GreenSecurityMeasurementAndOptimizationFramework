@@ -4,6 +4,8 @@ import subprocess
 import threading
 from threading import Thread
 
+from typing_extensions import override
+
 from general_consts import PowerPlan, pc_types, GB, physical_memory_types, disk_types
 from general_functions import get_powershell_result_list_format
 from operating_systems.abstract_operating_system import AbstractOSFuncs
@@ -209,6 +211,7 @@ class WindowsOS(AbstractOSFuncs):
     def get_container_total_memory_usage(self) -> tuple[float, float]:
         raise NotImplementedError("Not implemented total memory for windows container")
 
+    @override
     def wait_for_measurement_termination(self, measurement_thread: Thread, done_scanning_event: threading.Event):
         """
         Since signal handling in windows cannot be interrupted, while waiting to the measurement thread we cannot
