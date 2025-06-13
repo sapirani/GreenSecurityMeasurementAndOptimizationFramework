@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timezone
 import logging
 import os
 from elasticsearch import Elasticsearch
@@ -18,7 +18,7 @@ class ElasticSearchLogHandler(logging.Handler):
         super().__init__()
         self.es = Elasticsearch(elastic_url, basic_auth=(elastic_username, elastic_password))
         self.index_name = index_name
-        self.start_date = datetime.datetime.utcnow().isoformat()
+        self.start_date = datetime.now(timezone.utc).isoformat()
 
         if not self.es.ping():
             print("Cannot connect to Elastic")
@@ -26,7 +26,7 @@ class ElasticSearchLogHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         doc = {
-            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "message": record.getMessage(),
             # TODO: try to find a way to avoid sending start_date inside each log

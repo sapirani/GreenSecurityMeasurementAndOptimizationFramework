@@ -14,7 +14,7 @@ from prettytable import PrettyTable
 from threading import Thread, Timer
 import pandas as pd
 
-from application_logging import get_measurement_logger, ElasticSearchLogHandler
+from application_logging import get_measurement_logger, ElasticSearchLogHandler, get_elastic_logging_handler
 from initialization_helper import *
 from datetime import date
 from pathlib import Path
@@ -856,13 +856,10 @@ if __name__ == '__main__':
         }
     )
 
-    logger_handler = None
-    try:
-        logger_handler = ElasticSearchLogHandler(elastic_username, elastic_password, elastic_url)
-    except ConnectionError:
-        pass
-
-    logger = get_measurement_logger(logger_adapter, logger_handler)
+    logger = get_measurement_logger(
+        logger_adapter,
+        get_elastic_logging_handler(elastic_username, elastic_password, elastic_url)
+    )
 
     logger.info("The scanner is starting the measurement")
 
