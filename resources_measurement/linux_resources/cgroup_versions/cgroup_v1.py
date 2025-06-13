@@ -1,6 +1,6 @@
 import os
 
-from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupVersion
+from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupMetricReader
 from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
 
 
@@ -8,7 +8,7 @@ from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import C
 CGROUP_V1_NAME = "V1"
 
 
-class CgroupV1(CgroupVersion):
+class CgroupMetricReaderV1(CgroupMetricReader):
     __CGROUP_V1_CPU_CONTROLLERS = "cpu,cpuacct"
     __CGROUP_V1_MEMORY_CONTROLLERS = "memory"
 

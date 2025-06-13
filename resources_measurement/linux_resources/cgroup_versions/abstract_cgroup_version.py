@@ -20,7 +20,7 @@ class ProcCgroupFileConsts:
     CGROUP_PATH_INDEX = 2
 
 
-class CgroupVersion(ABC):
+class CgroupMetricReader(ABC):
     def __init__(self):
         self._base_cgroup_dir = self._get_cgroup_base_dir()
         self._cpu_usage_file_path = self._get_cpu_usage_path()

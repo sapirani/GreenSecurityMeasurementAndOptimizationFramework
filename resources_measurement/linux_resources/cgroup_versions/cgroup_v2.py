@@ -1,13 +1,13 @@
 import os
 
-from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupVersion
+from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupMetricReader
 from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
 
 CGROUP_V2_NAME = "V2"
 
 
 
-class CgroupV2(CgroupVersion):
+class CgroupMetricReaderV2(CgroupMetricReader):
     __USAGE_USEC_V2 = "usage_usec"
     __NO_MEMORY_LIMIT = "max"
 

@@ -10,7 +10,7 @@ class LinuxContainerCPUReader(LinuxContainerResourceReader):
         self.__last_time = None
 
     def get_cpu_percent(self) -> float:
-        current_usage_ns = self._version.read_cpu_usage_ns()
+        current_usage_ns = self._cgroup_metrics_reader.read_cpu_usage_ns()
         current_time = time.time()
 
         if self.__last_usage_ns is None or self.__last_time is None:

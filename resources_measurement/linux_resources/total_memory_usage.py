@@ -7,7 +7,7 @@ class LinuxContainerMemoryReader(LinuxContainerResourceReader):
     def __init__(self):
         super().__init__()
         self.__memory_limit = self.__get_memory_limit_bytes()
-        self.__memory_usage_path = self._version.get_memory_usage_path()
+        self.__memory_usage_path = self._cgroup_metrics_reader.get_memory_usage_path()
 
     def get_memory_usage_bytes(self) -> int:
         try:
@@ -31,11 +31,11 @@ class LinuxContainerMemoryReader(LinuxContainerResourceReader):
         return 1  # Avoid division by zero
 
     def __get_memory_limit_bytes(self) -> int:
-        max_memory_file_path = self._version.get_memory_limit_path()
+        max_memory_file_path = self._cgroup_metrics_reader.get_memory_limit_path()
         try:
             with open(max_memory_file_path) as max_memory_file:
                 memory_limit = max_memory_file.read().strip()
-                if self._version.is_container_memory_limited(memory_limit):
+                if self._cgroup_metrics_reader.is_container_memory_limited(memory_limit):
                     return self.__get_host_memory_limit()
                 return int(memory_limit)
 
