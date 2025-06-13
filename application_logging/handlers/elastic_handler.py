@@ -7,7 +7,6 @@ INDEX_NAME = os.getenv("ELASTIC_INDEX_NAME", "scanner")
 
 
 class ElasticSearchLogHandler(logging.Handler):
-
     def __init__(
             self,
             elastic_username: str,

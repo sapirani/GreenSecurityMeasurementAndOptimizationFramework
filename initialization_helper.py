@@ -1,8 +1,10 @@
 import os.path
+import platform
 
 import SummaryVersionImp
+from operating_systems.os_linux import LinuxOS
+from operating_systems.os_windows import WindowsOS
 from program_parameters import *
-from os_funcs import *
 from scanner_versions_imp import FullScanner, LiteScanner, WithoutBatteryScanner
 from tasks.program_classes.antiviruses.clam_av_program import ClamAVProgram
 from tasks.program_classes.antiviruses.defender_program import DefenderProgram

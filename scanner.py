@@ -1,5 +1,6 @@
 import argparse
 import json
+import platform
 import shutil
 import signal
 import time
@@ -13,19 +14,19 @@ from human_id import generate_id
 from prettytable import PrettyTable
 from threading import Thread, Timer
 import pandas as pd
+from scapy.interfaces import get_working_ifaces
 
 from application_logging import get_measurement_logger, ElasticSearchLogHandler, get_elastic_logging_handler
 from initialization_helper import *
 from datetime import date
 from pathlib import Path
 from general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
+from operating_systems.abstract_operating_system import AbstractOSFuncs
 from process_connections import ProcessNetworkMonitor
 
-
-
 base_dir, GRAPHS_DIR, STDOUT_FILES_DIR, STDERR_FILES_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, \
-DISK_IO_EACH_MOMENT, NETWORK_IO_EACH_MOMENT, BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, \
-SUMMARY_CSV = result_paths()
+    DISK_IO_EACH_MOMENT, NETWORK_IO_EACH_MOMENT, BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, \
+    SUMMARY_CSV = result_paths()
 
 program.set_results_dir(base_dir)
 
@@ -62,24 +63,28 @@ def handle_sigint(signum, frame):
     global done_scanning
     print("Got signal, writing results and terminating")
     if main_process:
-        program.kill_process(main_process, running_os.is_posix()) # killing the main process
+        program.kill_process(main_process, running_os.is_posix())  # killing the main process
     done_scanning = True
 
 
 def save_current_total_memory():
     """_summary_: take memory information and append it to a dataframe
     """
-    vm = psutil.virtual_memory()
+    if is_inside_container:
+        memory_used_bytes, memory_used_percent = running_os.get_container_total_memory_usage()
+    else:
+        vm = psutil.virtual_memory()
+        memory_used_bytes, memory_used_percent = vm.used, vm.percent
 
     logger.info(
         "Total memory measurement",
-        extra={"total_memory_gb": vm.used / GB, "total_memory_percent": vm.percent}
+        extra={"total_memory_gb": memory_used_bytes / GB, "total_memory_percent": memory_used_percent}
     )
 
     memory_df.loc[len(memory_df.index)] = [
         scanner_imp.calc_time_interval(starting_time),
-        f'{vm.used / GB:.3f}',
-        vm.percent
+        f'{memory_used_bytes / GB:.3f}',
+        memory_used_percent
     ]
 
 
@@ -117,7 +122,7 @@ def save_current_disk_io(previous_disk_io):
         "Total disk measurements",
         extra={
             "disk_read_count": disk_io_stat.read_count - previous_disk_io.read_count,
-            "disk_write_count":  disk_io_stat.write_count - previous_disk_io.write_count,
+            "disk_write_count": disk_io_stat.write_count - previous_disk_io.write_count,
             "disk_read_bytes": (disk_io_stat.read_bytes - previous_disk_io.read_bytes) / KB,
             "disk_write_bytes": (disk_io_stat.write_bytes - previous_disk_io.write_bytes) / KB,
             "disk_read_time": disk_io_stat.read_time - previous_disk_io.read_time,
@@ -299,15 +304,22 @@ def save_current_total_cpu():
     """
     This function saves the total cpu usage of the system
     """
-    total_cpu = psutil.cpu_percent(percpu=True)
-    cpu_df.loc[len(cpu_df.index)] = [scanner_imp.calc_time_interval(starting_time), mean(total_cpu)] + total_cpu
+    total_cpu_per_core = psutil.cpu_percent(percpu=True)
+    total_cpu = 0
+    if is_inside_container:
+        total_cpu = running_os.get_container_total_cpu_usage()
+    elif total_cpu_per_core is not None and len(total_cpu_per_core) > 0:
+        total_cpu = mean(total_cpu_per_core)
+
+    cpu_df.loc[len(cpu_df.index)] = [scanner_imp.calc_time_interval(starting_time), total_cpu] + total_cpu_per_core
 
     logger.info(
         "Total CPU measurements",
         extra={
-            "mean_across_cores_percent": mean(total_cpu),
-            "number_of_cores": len(total_cpu),
-            **{f"core{i}_percent": total_cpu[i] for i in range(len(total_cpu))}
+            "mean_across_cores_percent": mean(total_cpu_per_core),
+            "number_of_cores": len(total_cpu_per_core),
+            **{f"core{core_index}_percent": core_cpu_usage for core_index, core_cpu_usage in
+               enumerate(total_cpu_per_core)}
         }
     )
 
@@ -316,6 +328,7 @@ def continuously_measure():
     """
     This function runs in a different thread. It accounts for measuring the full resource consumption of the system
     """
+    global done_scanning
     running_os.init_thread()
 
     # init prev_disk_io by first disk io measurements (before scan)
@@ -335,7 +348,13 @@ def continuously_measure():
 
         scanner_imp.save_battery_stat(battery_df, scanner_imp.calc_time_interval(starting_time))
         prev_data_per_process = save_current_processes_statistics(prev_data_per_process, process_network_monitor)
-        save_current_total_cpu()
+
+        try:  # in case of measuring cpu in a windows container
+            save_current_total_cpu()
+        except NotImplementedError as e:
+            print(f"Error occurred: {str(e)}")
+            done_scanning = True
+
         save_current_total_memory()
         prev_disk_io = save_current_disk_io(prev_disk_io)
         prev_network_io = save_current_network_io(prev_network_io)
@@ -554,9 +573,9 @@ def start_process(program_to_scan):
     with open(f"{os.path.join(STDERR_FILES_DIR, f'{program_to_scan.get_program_name()} Stderr.txt')}", "a") as f_stderr:
         with open(f"{os.path.join(STDOUT_FILES_DIR, f'{program_to_scan.get_program_name()} Stdout.txt')}",
                   "a") as f_stdout:
-            shell_process, pid = OSFuncsInterface.popen(program_to_scan.get_command(), program_to_scan.find_child_id,
-                                                        program_to_scan.should_use_powershell(), running_os.is_posix(),
-                                                        program_to_scan.should_find_child_id(), f_stdout, f_stderr)
+            shell_process, pid = AbstractOSFuncs.popen(program_to_scan.get_command(), program_to_scan.find_child_id,
+                                                       program_to_scan.should_use_powershell(), running_os.is_posix(),
+                                                       program_to_scan.should_find_child_id(), f_stdout, f_stderr)
 
             f_stdout.write(f"Process ID: {pid}\n\n")
             f_stderr.write(f"Process ID: {pid}\n\n")
@@ -760,6 +779,17 @@ def can_proceed_towards_measurements():
         return True
 
 
+def initialize_total_cpu():
+    global done_scanning
+    psutil.cpu_percent(percpu=True)  # first call to psutil with cpu is meaningless
+    try:
+        if is_inside_container:
+            running_os.get_container_total_cpu_usage()  # first call is meaningless
+    except NotImplementedError as e:
+        print(f"Error occurred: {str(e)}")
+        done_scanning = True
+
+
 def before_scanning_operations():
     scanner_imp.check_if_battery_plugged()
 
@@ -782,7 +812,7 @@ def before_scanning_operations():
         import screen_brightness_control as sbc
         sbc.set_brightness(screen_brightness_level)
 
-    psutil.cpu_percent()  # first call is meaningless
+    initialize_total_cpu()
 
     Path(GRAPHS_DIR).mkdir(parents=True, exist_ok=True)  # create empty results dirs
 
@@ -851,7 +881,7 @@ if __name__ == '__main__':
         LoggerAdapter,
         extra={
             "session_id": session_id,
-            "hostname": OSFuncsInterface.get_hostname(),
+            "hostname": AbstractOSFuncs.get_hostname(),
             **args.logging_constant_extras
         }
     )
