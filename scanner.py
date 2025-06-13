@@ -784,6 +784,13 @@ def initialize_total_cpu():
         done_scanning = True
 
 
+def print_warnings_system_adjustments(exception: Exception):
+    print(f"Warning! {exception}")
+    print("Warning! Ensure that the parameter is_inside_container is set to True if you run inside container")
+    print("Warning! Skipping system adjustments (e.g., brightness, power settings")
+    print("Warning! If you run inside WSL, these operations may not be supported")
+
+
 def before_scanning_operations():
     scanner_imp.check_if_battery_plugged()
 
@@ -809,10 +816,7 @@ def before_scanning_operations():
 
     # Assuming that if one of the operations is failed, the rest will probably fail too
     except Exception as e:
-        print(f"Warning! {e}")
-        print("Warning! Ensure that the parameter is_inside_container is set to True if you run inside container")
-        print("Warning! Skipping before measurement operations (such as changing the screen's brightness)")
-        print("Warning! If you run inside WSL, these operations may not be supported")
+        print_warnings_system_adjustments(e)
 
     initialize_total_cpu()
 
@@ -841,10 +845,7 @@ def after_scanning_operations(should_save_results=True):
 
     # Assuming that if one of the operations is failed, the rest will probably fail too
     except Exception as e:
-        print(f"Warning! {e}")
-        print("Warning! Ensure that the parameter is_inside_container is set to True if you run inside container")
-        print("Warning! Skipping after measurement operations (such as changing the screen's brightness)")
-        print("Warning! If you run inside WSL, these operations may not be supported")
+        print_warnings_system_adjustments(e)
 
     if max_timeout_reached:
         print("Scanned program reached the maximum time so we terminated it")
