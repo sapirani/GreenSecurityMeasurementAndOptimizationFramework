@@ -48,7 +48,7 @@ class WindowsOS(AbstractOSFuncs):
 
         hardware_info = f"{wmi_system.Manufacturer} {wmi_system.SystemFamily} {wmi_system.Model}"
 
-        return f"{hardware_info} {platform.system()} {platform.release()}"
+        return f"results_{hardware_info}_{platform.system()}_{platform.release()}"
 
     def is_tamper_protection_enabled(self):
         """_summary_: tamper protection should be disabled for the program to work properly

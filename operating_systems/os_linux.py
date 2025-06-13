@@ -30,11 +30,14 @@ class LinuxOS(AbstractOSFuncs):
                                            capture_output=True, shell=True)
 
         if hardware_info_res.returncode != 0:
-            raise Exception(f'An error occurred while getting computer info', hardware_info_res.stderr)
+            print(f"Warning! An error occurred while getting computer manufacturer: {hardware_info_res.stderr}")
+            print("Warning! Ensure that the parameter is_inside_container is set to True if you run inside container")
 
         manufacturer, = LinuxOS.get_value_of_terminal_res(hardware_info_res)
 
-        return f"{manufacturer} {platform.system()} {platform.release()}"
+        if manufacturer:
+            return f"results_{manufacturer}_{platform.system()}_{platform.release()}"
+        return f"results_{platform.system()}_{platform.release()}"
 
     def change_sleep_and_turning_screen_off_settings(self, screen_time=DEFAULT_SCREEN_TURNS_OFF_TIME,
                                                      sleep_time=DEFAULT_TIME_BEFORE_SLEEP_MODE):
@@ -154,7 +157,6 @@ class LinuxOS(AbstractOSFuncs):
 
     def is_posix(self):
         return True
-
 
     def get_container_total_cpu_usage(self) -> float:
         if self.__container_cpu_usage_reader is None:
