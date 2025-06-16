@@ -38,7 +38,7 @@ def get_messages_and_security_alg(messages_file: str, encryption_algorithm: int)
         raise FileNotFoundError("Messages file not found.")
 
     if len(messages) == 0:
-        raise Exception("No messages to encrypt. Must be at least one message.")
+        raise Exception("No messages found. Must be at least one message.")
 
     encryption_class = EncryptionAlgorithmFactory.create_security_algorithm(encryption_algorithm_type)
     return messages, encryption_class

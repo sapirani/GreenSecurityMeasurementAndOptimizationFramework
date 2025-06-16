@@ -2,11 +2,6 @@ import sys
 
 from tasks.confidential_computing_tasks.algorithm_utils import get_messages_and_security_alg, extract_arguments
 
-NUMBER_OF_ARGUMENTS = 4
-MESSAGES_FILE_INDEX = 1
-ALGORITHM_INDEX = 2
-ALGORITHM_KEY_INDEX = 3
-
 
 def decrypt_messages(messages_file: str, decryption_algorithm: int, decryption_key_file: str) -> list[int]:
     messages_to_decrypt, decryption_class = get_messages_and_security_alg(messages_file, decryption_algorithm)
