@@ -3,27 +3,16 @@ import random
 from typing import Tuple, Optional
 from dataclasses import dataclass
 
+from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.paillier_encryption.utils import \
+    generate_random_prime
+
 # Constants
 PRIME_MIN_VAL = 50
 PRIME_MAX_VAL = 80
 DEFAULT_GROUP_GENERATOR = 2
 SCHNORR_PRIME = 11835969984353354216691437291006245763846242542829548494585386007353171784095072175673343062339173975526279362680161974682108208645413677644629654572794703
 
-def generate_random_prime(min_val: int = 50, max_val: int = 100) -> int:
-    """Generate a random prime number in given range"""
-    while True:
-        candidate = random.randint(min_val, max_val)
-        if is_prime(candidate):
-            return candidate
 
-def is_prime(n: int) -> bool:
-    """Check if a number is prime"""
-    if n < 2:
-        return False
-    for i in range(2, int(math.sqrt(n)) + 1):
-        if n % i == 0:
-            return False
-    return True
 
 @dataclass
 class PaillierKeyPair:
@@ -34,14 +23,25 @@ class PaillierKeyPair:
 class PaillierContext:
     """Paillier cryptosystem context"""
 
-    def __init__(self):
+    def __init__(self, p: Optional[int], q: Optional[int]) -> None:
         """Generate prime numbers and initialize context"""
-        self.p = generate_random_prime(PRIME_MIN_VAL, PRIME_MAX_VAL)
-        self.q = generate_random_prime(PRIME_MIN_VAL, PRIME_MAX_VAL)
+        if p == q and p is not None:
+            raise ValueError("Wrong p,q values. p and q values must be different")
 
-        # Ensure p != q
-        while self.p == self.q:
+        if p is None and q is None:
+            self.p = generate_random_prime(PRIME_MIN_VAL, PRIME_MAX_VAL)
             self.q = generate_random_prime(PRIME_MIN_VAL, PRIME_MAX_VAL)
+
+            # Ensure p != q
+            while self.p == self.q:
+                self.q = generate_random_prime(PRIME_MIN_VAL, PRIME_MAX_VAL)
+
+        elif p is not None and q is not None:
+            self.p = p
+            self.q = q
+        else:
+            raise ValueError("p and q values must be both None or both not None")
+
 
         self.n = self.p * self.q
         self.phi = (self.p - 1) * (self.q - 1)

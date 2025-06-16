@@ -2,7 +2,7 @@ from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.paillier_en
     PaillierContext
 
 if __name__ == '__main__':
-    paillier_he = PaillierContext()
+    paillier_he = PaillierContext(p=None, q=None)
     my_key = paillier_he.get_key_pair()
 
     g, n = my_key.public_key

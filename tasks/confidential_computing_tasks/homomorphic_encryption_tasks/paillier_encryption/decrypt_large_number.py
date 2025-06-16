@@ -8,25 +8,21 @@ MSG_PARAM_INDEX = 1
 P_PARAM_INDEX = 2
 Q_PARAM_INDEX = 3
 
-def encrypt_large_number(msg: int, p: int, q: int) -> int:
+def decrypt_large_number(encrypted_msg: int, p: int, q: int) -> int:
     paillier_he = PaillierContext(p=p, q=q)
 
-    public_key = paillier_he.get_key_pair().public_key
-    g, n = public_key
+    return paillier_he.decrypt(encrypted_msg)
 
-    r = paillier_he.get_r_for_encryption(n)
-
-    return paillier_he.encrypt(msg, public_key, r)
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
         raise Exception("Usage: python encrypt_large_number.py <message> <p> <q>")
 
-    msg_to_encrypt = int(sys.argv[MSG_PARAM_INDEX])
+    msg_to_decrypt = int(sys.argv[MSG_PARAM_INDEX])
     p = int(sys.argv[P_PARAM_INDEX])
     q = int(sys.argv[Q_PARAM_INDEX])
-    c = encrypt_large_number(msg_to_encrypt, p, q)
+    msg = decrypt_large_number(msg_to_decrypt, p, q)
 
-    print("Real message: {}".format(msg_to_encrypt))
-    print("Encrypted message: {}".format(c))
+    print("Encrypted message: {}".format(msg_to_decrypt))
+    print("Decrypted message: {}".format(msg))
