@@ -57,6 +57,13 @@ class PaillierContext:
         private_key = (self.p, self.q, self.lmbda, self.mu)
         return PaillierKeyPair(public_key, private_key)
 
+    def get_r_for_encryption(self, n) -> int:
+        """Return random r for encryption"""
+        r = random.randint(1, n - 1)
+        while math.gcd(r, n) != 1:
+            r = random.randint(1, n - 1)
+        return r
+
     def decrypt(self, c: int) -> int:
         """Decrypt ciphertext c"""
         cl = pow(c, self.lmbda, self.n * self.n)
@@ -69,12 +76,8 @@ class PaillierContext:
 
         return p
 
-    def encrypt(self, message: int, public_key: Tuple[int, int]) -> Tuple[int, int]:
-        """Encrypt vote using given public key, return ciphertext and random r"""
+    def encrypt(self, message: int, public_key: Tuple[int, int], r: int) -> int:
+        """Encrypt message using given public key and r, return ciphertext"""
         g, n = public_key
-        r = random.randint(1, n - 1)
-        while math.gcd(r, n) != 1:
-            r = random.randint(1, n - 1)
-
         encrypted_message = (pow(g, message, n * n) * pow(r, n, n * n)) % (n * n)
-        return encrypted_message, r
+        return encrypted_message
