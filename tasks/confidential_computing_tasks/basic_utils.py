@@ -1,8 +1,6 @@
 import math
 import random
 
-from tasks.confidential_computing_tasks.encryption_type import EncryptionType
-
 
 def generate_random_prime(min_val: int = 50, max_val: int = 100) -> int:
     """Generate a random prime number in given range"""
@@ -21,9 +19,3 @@ def is_prime(n: int) -> bool:
     return True
 
 
-def convert_str_to_alg_type(encryption_algorithm: int) -> EncryptionType:
-    try:
-        encryption_type = EncryptionType(encryption_algorithm)
-        return encryption_type
-    except ValueError:
-        raise Exception("Unsupported encryption algorithm.")
