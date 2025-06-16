@@ -63,8 +63,9 @@ class ProgramToScan(Enum):
     PythonServer = 12
     NetworkReceiver = 13
     NetworkSender = 14
-    PaillierEncryptor = 15
-    PaillierDecryptor = 16
+    MessageEncryptor = 15
+    MessageDecryptor = 16
+    HomomorphicExecutor = 17
 
 
 class ScanMode(Enum):
