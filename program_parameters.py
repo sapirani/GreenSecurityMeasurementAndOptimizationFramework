@@ -1,7 +1,7 @@
 from general_consts import *
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.NO_SCAN
+main_program_to_scan = ProgramToScan.PaillierEncryptor
 background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = True
@@ -70,3 +70,9 @@ consumption_speed = 10 * MB / SECOND
 
 # For Network Sender
 time_interval = 0.2
+
+# ***** Parameters for Confidential Computing ***** #
+# For Paillier Encryption
+p_paillier_encryptor = 61
+q_paillier_encryptor = 53
+msg_to_encrypt_paillier = 88
