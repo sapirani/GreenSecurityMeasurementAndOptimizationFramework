@@ -28,4 +28,11 @@ if __name__ == '__main__':
     mul_en = (m2 * m1) % n
 
     print(paillier_he.decrypt(en_pow) == mul_en)
+
+    # validate that d(e(m1)^k) == k * m1 mod n
+    k = 23
+    en_pow = pow(c1, k, n * n)
+    mul_en = (k * m1) % n
+
+    print(paillier_he.decrypt(en_pow) == mul_en)
     print("Success")
