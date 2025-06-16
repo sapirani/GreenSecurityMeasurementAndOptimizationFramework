@@ -1,19 +1,35 @@
+import argparse
+
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.encryption_algorithm_factory import EncryptionAlgorithmFactory
 from tasks.confidential_computing_tasks.encryption_type import EncryptionType
 
-NUMBER_OF_ARGUMENTS = 4
-MESSAGES_FILE_INDEX = 1
-ALGORITHM_INDEX = 2
-ALGORITHM_KEY_INDEX = 3
 
-def extract_arguments(arguments: list[str], task_name: str) -> tuple[str, int, str]:
-    if len(arguments) < NUMBER_OF_ARGUMENTS:
-        raise Exception(f"Usage: python {task_name}.py <messages_file> <encryption_algorithm> <key_file>")
+def extract_arguments() -> tuple[str, int, str]:
+    parser = argparse.ArgumentParser(
+        description="This program encrypts or decrypts messages using a security algorithm."
+    )
 
-    messages_file = arguments[MESSAGES_FILE_INDEX]
-    encryption_algorithm = int(arguments[ALGORITHM_INDEX])
-    encryption_key_file = arguments[ALGORITHM_KEY_INDEX]
+    parser.add_argument("-m", "--messages_file",
+                        type=str,
+                        required=True,
+                        help="path to messages file")
+
+    parser.add_argument("-a", "--algorithm",
+                        type=int,
+                        required=True,
+                        help="type of encryption algorithm")
+
+    parser.add_argument("-k", "--key_file",
+                        type=str,
+                        required=True,
+                        help="path to key file")
+
+    args = parser.parse_args()
+
+    messages_file = args.messages_file
+    encryption_algorithm = args.algorithm
+    encryption_key_file = args.key_file
 
     print("Messages File: {}".format(messages_file))
     print("Encryption Algorithm: {}".format(encryption_algorithm))
@@ -28,7 +44,8 @@ def convert_str_to_alg_type(encryption_algorithm: int) -> EncryptionType:
         raise Exception("Unsupported encryption algorithm.")
 
 
-def get_messages_and_security_alg(messages_file: str, encryption_algorithm: int) -> tuple[list[int], SecurityAlgorithm]:
+def get_messages_and_security_alg(messages_file: str, encryption_algorithm: int, encryption_key_file: str) -> tuple[
+    list[int], SecurityAlgorithm]:
     encryption_algorithm_type = convert_str_to_alg_type(encryption_algorithm)
 
     try:
@@ -40,5 +57,6 @@ def get_messages_and_security_alg(messages_file: str, encryption_algorithm: int)
     if len(messages) == 0:
         raise Exception("No messages found. Must be at least one message.")
 
-    encryption_class = EncryptionAlgorithmFactory.create_security_algorithm(encryption_algorithm_type)
-    return messages, encryption_class
+    encryption_instance = EncryptionAlgorithmFactory.create_security_algorithm(encryption_algorithm_type)
+    encryption_instance.extract_key(encryption_key_file)
+    return messages, encryption_instance

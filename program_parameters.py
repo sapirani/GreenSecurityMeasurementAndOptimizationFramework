@@ -2,7 +2,7 @@ from general_consts import *
 from tasks.confidential_computing_tasks.encryption_type import EncryptionType
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.HomomorphicExecutor
+main_program_to_scan = ProgramToScan.MessageEncryptor
 background_programs_types = []  # [ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = True
@@ -40,7 +40,7 @@ DEFAULT_TIME_BEFORE_SLEEP_MODE = 4
 is_inside_container = False
 
 # ==== Elastic logging configuration
-elastic_url = "http://192.168.140.101:9200"
+elastic_url = "http://127.0.0.1:9200"
 elastic_username = "elastic"
 elastic_password = "71BPiEiQ"
 

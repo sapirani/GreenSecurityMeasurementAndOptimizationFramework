@@ -4,8 +4,8 @@ from tasks.confidential_computing_tasks.abstract_seurity_algorithm import Securi
 from tasks.confidential_computing_tasks.basic_utils import generate_random_prime
 from tasks.confidential_computing_tasks.key_details import KeyDetails
 
-PRIME_MIN_VAL = 50
-PRIME_MAX_VAL = 80
+PRIME_MIN_VAL = 2 ** 1023 - 1
+PRIME_MAX_VAL = 2 ** 1024 - 1
 
 
 class PaillierKeyConsts:
@@ -46,9 +46,11 @@ class PaillierSecurityAlgorithm(SecurityAlgorithm):
             self.p = generate_random_prime(PRIME_MIN_VAL, PRIME_MAX_VAL)
             self.q = generate_random_prime(PRIME_MIN_VAL, PRIME_MAX_VAL)
             self.__save_key(key_file)
+            print("Generated p, q randomly.")
         else:
             self.p = int(key_lines[PaillierKeyConsts.P_INDEX_IN_FILE].strip())
             self.q = int(key_lines[PaillierKeyConsts.Q_INDEX_IN_FILE].strip())
+            print(f"Extracted p, q from {key_file}.")
 
         self.n = self.p * self.q
         self.phi = (self.p - 1) * (self.q - 1)

@@ -17,4 +17,4 @@ class HomomorphicEncryptionExecutor(ProgramInterface):
         return "Homomorphic Encryption Pipeline"
 
     def get_command(self) -> str:
-        return fr"python {os.path.join(CONFIDENTIAL_COMPUTING_TASKS_DIR, HOMOMORPHIC_ENCRYPTION_PIPELINE)} {self.__messages_file} {self.__security_algorithm} {self.__key_file}"
+        return fr"python {os.path.join(CONFIDENTIAL_COMPUTING_TASKS_DIR, HOMOMORPHIC_ENCRYPTION_PIPELINE)} -m {self.__messages_file} -a {self.__security_algorithm} -k {self.__key_file}"

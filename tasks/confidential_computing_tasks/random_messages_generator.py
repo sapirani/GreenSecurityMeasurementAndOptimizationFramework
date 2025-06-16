@@ -1,6 +1,6 @@
 import random
 
-DEFAULT_MESSAGES_FILENAME = 'random_messages.txt'
+DEFAULT_MESSAGES_FILENAME = r"C:\Users\sapir\Desktop\messages.txt"
 MIN_VALUE = 5000
 MAX_VALUE = 100000
 
@@ -22,4 +22,4 @@ def generate_and_write_numbers(n, filename=DEFAULT_MESSAGES_FILENAME, min_value=
 
 
 # Example usage:
-generate_and_write_numbers(100)  # Generates 10 numbers and writes to random_numbers.txt
+generate_and_write_numbers(10000)  # Generates 10000 numbers and writes to random_numbers.txt
