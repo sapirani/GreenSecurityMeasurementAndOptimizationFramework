@@ -20,7 +20,7 @@ def decrypt_messages(messages_file: str, decryption_algorithm: int, decryption_k
 
 
 if __name__ == "__main__":
-    messages_file, decryption_algorithm, decryption_key_file = extract_arguments(sys.argv)
+    messages_file, decryption_algorithm, decryption_key_file = extract_arguments(sys.argv, "decrypt_messages")
 
     decrypt_messages = decrypt_messages(messages_file, decryption_algorithm, decryption_key_file)
     print("Num of Decrypted Messages: {}".format(len(decrypt_messages)))

@@ -16,7 +16,7 @@ def use_homomorphic_encryption(messages_file: str, encryption_algorithm: int, en
 
 
 if __name__ == "__main__":
-    messages_file, encryption_algorithm, encryption_key_file = extract_arguments(sys.argv)
+    messages_file, encryption_algorithm, encryption_key_file = extract_arguments(sys.argv, "homomorphic_pipeline")
 
     valid_messages = use_homomorphic_encryption(messages_file, encryption_algorithm, encryption_key_file)
     print("Num of Valid Messages: {}".format(len(valid_messages)))

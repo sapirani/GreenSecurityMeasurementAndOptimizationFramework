@@ -20,7 +20,7 @@ def encrypt_messages(messages_file: str, encryption_algorithm: int, encryption_k
 
 
 if __name__ == "__main__":
-    messages_file, encryption_algorithm, encryption_key_file = extract_arguments(sys.argv)
+    messages_file, encryption_algorithm, encryption_key_file = extract_arguments(sys.argv, "encrypt_messages")
 
     encrypt_messages = encrypt_messages(messages_file, encryption_algorithm, encryption_key_file)
     print("Num of Encrypted Messages: {}".format(len(encrypt_messages)))

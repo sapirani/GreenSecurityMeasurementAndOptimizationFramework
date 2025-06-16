@@ -7,9 +7,9 @@ MESSAGES_FILE_INDEX = 1
 ALGORITHM_INDEX = 2
 ALGORITHM_KEY_INDEX = 3
 
-def extract_arguments(arguments: list[str]) -> tuple[str, int, str]:
+def extract_arguments(arguments: list[str], task_name: str) -> tuple[str, int, str]:
     if len(arguments) < NUMBER_OF_ARGUMENTS:
-        raise Exception("Usage: python encrypt_messages.py <messages_file> <encryption_algorithm> <key_file>")
+        raise Exception(f"Usage: python {task_name}.py <messages_file> <encryption_algorithm> <key_file>")
 
     messages_file = arguments[MESSAGES_FILE_INDEX]
     encryption_algorithm = int(arguments[ALGORITHM_INDEX])
