@@ -64,6 +64,7 @@ class ProgramToScan(Enum):
     NetworkReceiver = 13
     NetworkSender = 14
     PaillierEncryptor = 15
+    PaillierDecryptor = 16
 
 
 class ScanMode(Enum):

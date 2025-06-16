@@ -1,7 +1,7 @@
 from general_consts import *
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.PaillierEncryptor
+main_program_to_scan = ProgramToScan.PaillierDecryptor
 background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = True
@@ -76,3 +76,8 @@ time_interval = 0.2
 p_paillier_encryptor = 61
 q_paillier_encryptor = 53
 msg_to_encrypt_paillier = 88
+
+# For Paillier Decryption
+p_paillier_decryptor = p_paillier_encryptor
+q_paillier_decryptor = q_paillier_encryptor
+msg_to_decrypt_paillier = 798372

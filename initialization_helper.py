@@ -10,6 +10,8 @@ from tasks.program_classes.antiviruses.clam_av_program import ClamAVProgram
 from tasks.program_classes.antiviruses.defender_program import DefenderProgram
 from tasks.program_classes.antiviruses.dummy_antivirus_program import DummyAntivirusProgram
 from tasks.program_classes.antiviruses.sophos_av_program import SophosAVProgram
+from tasks.program_classes.confidential_computing.homomorphic_encryption.paillier.paillier_decryptor import \
+    PaillierDecryptor
 from tasks.program_classes.confidential_computing.homomorphic_encryption.paillier.paillier_encryptor import \
     PaillierEncryptor
 from tasks.program_classes.dummy_cpu_consumer_program import CPUConsumer
@@ -105,6 +107,8 @@ def program_to_scan_factory(program_type):
         return NetworkSender(time_interval=time_interval, running_time=RUNNING_TIME)
     if program_type == ProgramToScan.PaillierEncryptor:
         return PaillierEncryptor(p=p_paillier_encryptor, q=q_paillier_encryptor, msg_to_encrypt=msg_to_encrypt_paillier)
+    if program_type == ProgramToScan.PaillierDecryptor:
+        return PaillierDecryptor(p=p_paillier_decryptor, q=q_paillier_decryptor, msg_to_decrypt=msg_to_decrypt_paillier)
 
     raise Exception("choose program to scan from ProgramToScan enum")
 
