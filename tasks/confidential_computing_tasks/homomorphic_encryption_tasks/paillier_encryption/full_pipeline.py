@@ -1,4 +1,4 @@
-from tasks.program_classes.confidential_computing.homomorphic_encryption.paillier_encryption.paillier_context import \
+from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.paillier_encryption.paillier_context import \
     PaillierContext
 
 if __name__ == '__main__':
