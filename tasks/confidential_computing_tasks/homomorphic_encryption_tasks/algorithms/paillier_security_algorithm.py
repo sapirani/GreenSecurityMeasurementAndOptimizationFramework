@@ -1,6 +1,5 @@
 import math
 import random
-from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.basic_utils import generate_random_prime
 from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.homomorphic_security_algorithm import \
     HomomorphicSecurityAlgorithm

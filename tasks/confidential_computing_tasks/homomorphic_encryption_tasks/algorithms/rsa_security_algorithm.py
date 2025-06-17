@@ -82,6 +82,9 @@ class RSASecurityAlgorithm(HomomorphicSecurityAlgorithm):
         if self.n is None:
             raise RuntimeError("Key is not initialized. Call extract_key first.")
 
+        if msg >= self.n:
+            raise ValueError(f"Message {msg} is too large for RSA modulus n={self.n}")
+
         encrypted_message = pow(msg, self.e, self.n)
         return encrypted_message
 
