@@ -1,6 +1,3 @@
-import math
-import random
-from tasks.confidential_computing_tasks.basic_utils import generate_random_prime
 from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.homomorphic_security_algorithm import \
     HomomorphicSecurityAlgorithm
 from tasks.confidential_computing_tasks.key_details import KeyDetails, PRIME_MIN_VAL, PRIME_MAX_VAL
@@ -16,6 +13,8 @@ class RSAKeyConsts:
     P_PRIVATE_KEY = "p"
     Q_PRIVATE_KEY = "q"
     D_PRIVATE_KEY = "d"
+
+    NUM_OF_KEY_PARTS = 2
 
 
 class RSASecurityAlgorithm(HomomorphicSecurityAlgorithm):
@@ -33,20 +32,7 @@ class RSASecurityAlgorithm(HomomorphicSecurityAlgorithm):
         if self.p is not None and self.q is not None:
             raise RuntimeError("Key is already initialized")
 
-        try:
-            with open(key_file, "r") as f:
-                key_lines = f.readlines()
-        except FileNotFoundError:
-            key_lines = []
-
-        if len(key_lines) != 2:
-            self.p, self.q = self.__generate_initial_primes(key_file)
-            print("Generated p, q randomly.")
-        else:
-            self.p = int(key_lines[RSAKeyConsts.P_INDEX_IN_FILE].strip())
-            self.q = int(key_lines[RSAKeyConsts.Q_INDEX_IN_FILE].strip())
-            print(f"Extracted p, q from {key_file}.")
-
+        self.p, self.q = self._extract_random_prime_p_and_q(key_file, RSAKeyConsts.NUM_OF_KEY_PARTS)
         self.n = self.p * self.q
         self.phi = (self.p - 1) * (self.q - 1)
 
@@ -60,22 +46,6 @@ class RSASecurityAlgorithm(HomomorphicSecurityAlgorithm):
                        RSAKeyConsts.Q_PRIVATE_KEY: self.q,
                        RSAKeyConsts.D_PRIVATE_KEY: self.d}
         return KeyDetails(public_key=public_key, private_key=private_key)
-
-    def __generate_initial_primes(self, key_file: str) -> tuple[int, int]:
-        min_prime_number = math.isqrt(self._min_key_val)
-        max_prime_number = math.isqrt(self._max_key_val)
-        self.p = generate_random_prime(min_prime_number, max_prime_number)
-        self.q = generate_random_prime(min_prime_number, max_prime_number)
-
-        while self.p == self.q:
-            self.q = generate_random_prime(min_prime_number, max_prime_number)
-
-        self.__save_key(key_file)
-        return self.p, self.q
-
-    def __save_key(self, key_file: str):
-        with open(key_file, "w") as f:
-            f.write(f"{self.p}\n{self.q}")
 
     def encrypt_message(self, msg: int) -> int:
         """ Encrypt the message """
