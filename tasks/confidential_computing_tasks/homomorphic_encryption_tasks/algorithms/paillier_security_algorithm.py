@@ -4,9 +4,9 @@ from tasks.confidential_computing_tasks.abstract_seurity_algorithm import Securi
 from tasks.confidential_computing_tasks.basic_utils import generate_random_prime
 from tasks.confidential_computing_tasks.key_details import KeyDetails
 
+
 PRIME_MIN_VAL = 2 ** 1023 - 1
 PRIME_MAX_VAL = 2 ** 1024 - 1
-
 
 class PaillierKeyConsts:
     P_INDEX_IN_FILE = 0
@@ -22,7 +22,7 @@ class PaillierKeyConsts:
 
 
 class PaillierSecurityAlgorithm(SecurityAlgorithm):
-    def __init__(self):
+    def __init__(self, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
         self.p = None
         self.q = None
         self.n = None
@@ -30,6 +30,8 @@ class PaillierSecurityAlgorithm(SecurityAlgorithm):
         self.g = None
         self.lmbda = None
         self.mu = None
+        self.__min_key_val = min_key_val
+        self.__max_key_val = max_key_val
 
     def extract_key(self, key_file: str) -> KeyDetails:
         """ Initialize the public and private key """
@@ -43,8 +45,8 @@ class PaillierSecurityAlgorithm(SecurityAlgorithm):
             key_lines = []
 
         if len(key_lines) != 2:
-            self.p = generate_random_prime(PRIME_MIN_VAL, PRIME_MAX_VAL)
-            self.q = generate_random_prime(PRIME_MIN_VAL, PRIME_MAX_VAL)
+            self.p = generate_random_prime(self.__min_key_val, self.__max_key_val)
+            self.q = generate_random_prime(self.__min_key_val, self.__max_key_val)
             self.__save_key(key_file)
             print("Generated p, q randomly.")
         else:
