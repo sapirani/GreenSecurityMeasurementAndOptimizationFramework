@@ -2,6 +2,8 @@ import math
 import random
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.basic_utils import generate_random_prime
+from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.homomorphic_security_algorithm import \
+    HomomorphicSecurityAlgorithm
 from tasks.confidential_computing_tasks.key_details import KeyDetails, PRIME_MIN_VAL, PRIME_MAX_VAL
 
 
@@ -18,7 +20,7 @@ class PaillierKeyConsts:
     MU_PRIVATE_KEY = "mu"
 
 
-class PaillierSecurityAlgorithm(SecurityAlgorithm):
+class PaillierSecurityAlgorithm(HomomorphicSecurityAlgorithm):
     def __init__(self, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
         super().__init__(min_key_val, max_key_val)
         self.p = None
@@ -101,3 +103,10 @@ class PaillierSecurityAlgorithm(SecurityAlgorithm):
             decrypted_msg = decrypted_msg - self.n
 
         return decrypted_msg
+
+    def add_messages(self, msg1: int, msg2: int) -> int:
+        return msg1 + msg2
+
+    def multiply_messages(self, msg1: int, msg2: int) -> int:
+        raise NotImplementedError("Paillier Homomorphic Encryption does not support multiplying messages.")
+
