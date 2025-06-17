@@ -2,7 +2,7 @@ from general_consts import *
 from tasks.confidential_computing_tasks.encryption_type import EncryptionType
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.MessageEncryptor
+main_program_to_scan = ProgramToScan.HomomorphicExecutor
 background_programs_types = []  # [ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = True
@@ -76,3 +76,6 @@ messages_to_decrypt_file = r"C:\Users\sapir\Desktop\messages.txt"
 messages_to_encrypt_file = r"C:\Users\sapir\Desktop\messages.txt"
 security_algorithm_type = EncryptionType.PaillierEncryption
 algorithm_key_file = r"C:\Users\sapir\Desktop\key_paillier.txt"
+
+min_key_value = 50
+max_key_value = 80

@@ -2,11 +2,8 @@ import math
 import random
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.basic_utils import generate_random_prime
-from tasks.confidential_computing_tasks.key_details import KeyDetails
+from tasks.confidential_computing_tasks.key_details import KeyDetails, PRIME_MIN_VAL, PRIME_MAX_VAL
 
-
-PRIME_MIN_VAL = 2 ** 1023 - 1
-PRIME_MAX_VAL = 2 ** 1024 - 1
 
 class PaillierKeyConsts:
     P_INDEX_IN_FILE = 0
@@ -23,6 +20,7 @@ class PaillierKeyConsts:
 
 class PaillierSecurityAlgorithm(SecurityAlgorithm):
     def __init__(self, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
+        super().__init__(min_key_val, max_key_val)
         self.p = None
         self.q = None
         self.n = None
@@ -30,8 +28,6 @@ class PaillierSecurityAlgorithm(SecurityAlgorithm):
         self.g = None
         self.lmbda = None
         self.mu = None
-        self.__min_key_val = min_key_val
-        self.__max_key_val = max_key_val
 
     def extract_key(self, key_file: str) -> KeyDetails:
         """ Initialize the public and private key """
@@ -39,14 +35,14 @@ class PaillierSecurityAlgorithm(SecurityAlgorithm):
             raise RuntimeError("Key is already initialized")
 
         try:
-            with open(key_file, "r") as key_file:
-                key_lines = key_file.readlines()
+            with open(key_file, "r") as f:
+                key_lines = f.readlines()
         except FileNotFoundError:
             key_lines = []
 
         if len(key_lines) != 2:
-            self.p = generate_random_prime(self.__min_key_val, self.__max_key_val)
-            self.q = generate_random_prime(self.__min_key_val, self.__max_key_val)
+            self.p = generate_random_prime(self._min_key_val, self._max_key_val)
+            self.q = generate_random_prime(self._min_key_val, self._max_key_val)
             self.__save_key(key_file)
             print("Generated p, q randomly.")
         else:
@@ -71,8 +67,8 @@ class PaillierSecurityAlgorithm(SecurityAlgorithm):
         return KeyDetails(public_key=public_key, private_key=private_key)
 
     def __save_key(self, key_file: str):
-        with open(key_file, "w") as key_file:
-            key_file.write(f"{self.p}\n{self.q}")
+        with open(key_file, "w") as f:
+            f.write(f"{self.p}\n{self.q}")
 
     def encrypt_message(self, msg: int) -> int:
         """ Encrypt the message """
