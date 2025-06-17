@@ -24,9 +24,9 @@ class HomomorphicSecurityAlgorithm(SecurityAlgorithm, ABC):
         pass
 
     @abstractmethod
-    def add_messages(self, msg1: int, msg2: int) -> int:
+    def add_messages(self, c1: int, c2: int) -> int:
         pass
 
     @abstractmethod
-    def multiply_messages(self, msg1: int, msg2: int) -> int:
+    def multiply_messages(self, c1: int, c2: int) -> int:
         pass
