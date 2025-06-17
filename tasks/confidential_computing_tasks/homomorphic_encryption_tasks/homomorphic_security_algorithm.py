@@ -64,9 +64,9 @@ class HomomorphicSecurityAlgorithm(SecurityAlgorithm, ABC):
         while p == q:
             q = generate_random_prime(min_prime_number, max_prime_number)
 
-        self.__save_key(key_file, p, q)
+        self.__save_p_q_key(key_file, p, q)
         return p, q
 
-    def __save_key(self, key_file: str, p: int, q: int):
+    def __save_p_q_key(self, key_file: str, p: int, q: int):
         with open(key_file, "w") as f:
             f.write(f"{p}\n{q}")
