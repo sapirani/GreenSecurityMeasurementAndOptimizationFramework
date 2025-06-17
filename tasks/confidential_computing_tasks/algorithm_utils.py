@@ -26,11 +26,11 @@ def extract_arguments() -> tuple[str, int, str, int, int]:
                         required=True,
                         help="path to key file")
 
-    parser.add_argument("--min",
+    parser.add_argument("--min_key_val",
                         type=int,
                         default=PRIME_MIN_VAL,
                         help="minimal key value")
-    parser.add_argument("--max",
+    parser.add_argument("--max_key_val",
                         type=int,
                         default=PRIME_MAX_VAL,
                         help="maximal key value")
@@ -40,10 +40,12 @@ def extract_arguments() -> tuple[str, int, str, int, int]:
     messages_file = args.messages_file
     encryption_algorithm = args.algorithm
     encryption_key_file = args.key_file
+    min_key_val = args.min_key_val
+    max_key_val = args.max_key_val
 
     print("Messages File: {}".format(messages_file))
     print("Encryption Algorithm: {}".format(encryption_algorithm))
-    return messages_file, encryption_algorithm, encryption_key_file, args.min, args.max
+    return messages_file, encryption_algorithm, encryption_key_file, min_key_val, max_key_val
 
 
 def convert_str_to_alg_type(encryption_algorithm: int) -> EncryptionType:

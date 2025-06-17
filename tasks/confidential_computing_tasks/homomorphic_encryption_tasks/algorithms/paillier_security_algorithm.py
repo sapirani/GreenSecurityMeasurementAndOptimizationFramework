@@ -43,8 +43,10 @@ class PaillierSecurityAlgorithm(HomomorphicSecurityAlgorithm):
             key_lines = []
 
         if len(key_lines) != 2:
-            self.p = generate_random_prime(self._min_key_val, self._max_key_val)
-            self.q = generate_random_prime(self._min_key_val, self._max_key_val)
+            min_prime_number = math.isqrt(self._min_key_val)
+            max_prime_number = math.isqrt(self._max_key_val)
+            self.p = generate_random_prime(min_prime_number, max_prime_number)
+            self.q = generate_random_prime(min_prime_number, max_prime_number)
             self.__save_key(key_file)
             print("Generated p, q randomly.")
         else:
@@ -105,7 +107,11 @@ class PaillierSecurityAlgorithm(HomomorphicSecurityAlgorithm):
         return decrypted_msg
 
     def add_messages(self, msg1: int, msg2: int) -> int:
-        return msg1 + msg2
+        c1 = self.encrypt_message(msg1)
+        c2 = self.decrypt_message(msg2)
+        sum_encrypted = c1 + c2
+        sum_decrypted = self.decrypt_message(sum_encrypted)
+        return sum_decrypted
 
     def multiply_messages(self, msg1: int, msg2: int) -> int:
         raise NotImplementedError("Paillier Homomorphic Encryption does not support multiplying messages.")

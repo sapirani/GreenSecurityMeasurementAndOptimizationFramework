@@ -26,5 +26,5 @@ class EncryptionProgram(ProgramInterface, ABC):
     def get_command(self) -> str:
         command = fr"python {os.path.join(CONFIDENTIAL_COMPUTING_TASKS_DIR, self.__encryption_task_path)} -m {self.__messages_file} -a {self.__security_algorithm} -k {self.__key_file}"
         if self.__min_key_value is not None and self.__max_key_value is not None:
-            command += f" --min {self.__min_key_value} --max {self.__max_key_value}"
+            command += f" --min_key_val {self.__min_key_value} --max_key_val {self.__max_key_value}"
         return command
