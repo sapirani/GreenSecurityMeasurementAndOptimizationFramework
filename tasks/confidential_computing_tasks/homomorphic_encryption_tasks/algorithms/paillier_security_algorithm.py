@@ -106,13 +106,8 @@ class PaillierSecurityAlgorithm(HomomorphicSecurityAlgorithm):
 
         return decrypted_msg
 
-    def add_messages(self, msg1: int, msg2: int) -> int:
-        c1 = self.encrypt_message(msg1)
-        c2 = self.decrypt_message(msg2)
-        sum_encrypted = c1 + c2
-        sum_decrypted = self.decrypt_message(sum_encrypted)
-        return sum_decrypted
+    def add_messages(self, c1: int, c2: int) -> int:
+        return (c1 * c2) % (self.n * self.n)
 
     def multiply_messages(self, msg1: int, msg2: int) -> int:
         raise NotImplementedError("Paillier Homomorphic Encryption does not support multiplying messages.")
-
