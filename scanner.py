@@ -876,7 +876,7 @@ if __name__ == '__main__':
                     "It supports CPU, RAN, DISK and NETWORK measurements"
     )
 
-    parser.add_argument("--measurement_session_id",
+    parser.add_argument("-i" ,"--measurement_session_id",
                         type=str,
                         default=generate_id(word_count=3),
                         help="ip address to listen on")

@@ -10,6 +10,10 @@ from tasks.program_classes.antiviruses.clam_av_program import ClamAVProgram
 from tasks.program_classes.antiviruses.defender_program import DefenderProgram
 from tasks.program_classes.antiviruses.dummy_antivirus_program import DummyAntivirusProgram
 from tasks.program_classes.antiviruses.sophos_av_program import SophosAVProgram
+from tasks.program_classes.confidential_computing.homomorphic_encryption.homomorphic_encryption_executor import \
+    HomomorphicEncryptionExecutor
+from tasks.program_classes.confidential_computing.message_decryptor import MessageDecryptor
+from tasks.program_classes.confidential_computing.message_encryptor import MessageEncryptor
 from tasks.program_classes.dummy_cpu_consumer_program import CPUConsumer
 from tasks.program_classes.dummy_io_writer_consumer_program import IOWriteConsumer
 from tasks.program_classes.dummy_memory_consumer_program import MemoryConsumer
@@ -101,6 +105,16 @@ def program_to_scan_factory(program_type):
         return NetworkReceiver()
     if program_type == ProgramToScan.NetworkSender:
         return NetworkSender(time_interval=time_interval, running_time=RUNNING_TIME)
+    if program_type == ProgramToScan.MessageEncryptor:
+        return MessageEncryptor(messages_file=messages_to_encrypt_file, security_algorithm=security_algorithm_type,
+                                key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
+    if program_type == ProgramToScan.MessageDecryptor:
+        return MessageDecryptor(messages_file=messages_to_decrypt_file, security_algorithm=security_algorithm_type,
+                                key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
+    if program_type == ProgramToScan.HomomorphicExecutor:
+        return HomomorphicEncryptionExecutor(messages_file=messages_to_encrypt_file,
+                                             security_algorithm=security_algorithm_type, key_file=algorithm_key_file,
+                                             min_key_value=min_key_value, max_key_value=max_key_value)
 
     raise Exception("choose program to scan from ProgramToScan enum")
 
@@ -121,9 +135,11 @@ def construct_base_dir_path():
     if main_program_to_scan == ProgramToScan.NO_SCAN:
         return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name)
     elif scan_option == ScanMode.ONE_SCAN:
-        return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name, 'One Scan', program.path_adjustments())
+        return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name, 'One Scan',
+                            program.path_adjustments())
     else:
-        return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name, 'Continuous Scan', program.path_adjustments())
+        return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name, 'Continuous Scan',
+                            program.path_adjustments())
 
 
 base_dir = os.path.abspath(construct_base_dir_path())
@@ -195,7 +211,6 @@ if (scan_option == ScanMode.CONTINUOUS_SCAN or main_program_to_scan == ProgramTo
     raise Exception("MAXIMUM_SCAN_TIME is allowed to be None  only when performing running a regular main program"
                     " in ONE_SCAN mode - the meaning of None is to wait until the main process ends")
 
-
 if is_inside_container and scanner_version == ScannerVersion.FULL:
     raise Exception("Measurement of energy consumption inside container is not supported")
 
@@ -218,7 +233,8 @@ network_io_columns_list = [NetworkIOColumns.TIME, NetworkIOColumns.PACKETS_SENT,
 processes_columns_list = [
     ProcessesColumns.TIME, ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME, ProcessesColumns.CPU_CONSUMPTION,
     ProcessesColumns.NUMBER_OF_THREADS, ProcessesColumns.USED_MEMORY, ProcessesColumns.MEMORY_PERCENT,
-    ProcessesColumns.READ_COUNT, ProcessesColumns.WRITE_COUNT, ProcessesColumns.READ_BYTES, ProcessesColumns.WRITE_BYTES,
+    ProcessesColumns.READ_COUNT, ProcessesColumns.WRITE_COUNT, ProcessesColumns.READ_BYTES,
+    ProcessesColumns.WRITE_BYTES,
     ProcessesColumns.PAGE_FAULTS,
     ProcessesColumns.BYTES_SENT, ProcessesColumns.PACKETS_SENT,
     ProcessesColumns.BYTES_RECEIVED, ProcessesColumns.PACKETS_RECEIVED
