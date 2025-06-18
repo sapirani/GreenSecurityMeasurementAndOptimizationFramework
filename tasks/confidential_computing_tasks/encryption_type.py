@@ -1,5 +1,15 @@
 from enum import Enum
 
 class EncryptionType(Enum):
-    PaillierEncryption = 1
-    RSAEncryption = 2
+    Paillier = 1
+    RSA = 2
+    LightPheRSA = 3
+    LightPheElGamal = 4
+    LightPheExponentialElGamal = 5
+    LightPhePaillier = 6
+    LightPheDamgardJurik = 7
+    LightPheOkamotoUchiyama = 8
+    LightPheBenaloh = 9
+    LightPheNaccacheStern = 10
+    LightPheGoldwasserMicali = 11
+    LightPheEllipticCurveElGamal = 12

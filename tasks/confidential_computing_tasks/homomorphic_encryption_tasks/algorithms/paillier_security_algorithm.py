@@ -20,7 +20,7 @@ class PaillierKeyConsts:
     NUM_OF_KEY_PARTS = 2
 
 
-class PaillierSecurityAlgorithm(HomomorphicSecurityAlgorithm):
+class PaillierSecurityAlgorithm(HomomorphicSecurityAlgorithm[int]):
     def __init__(self, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
         super().__init__(min_key_val, max_key_val)
         self.p = None
@@ -90,3 +90,6 @@ class PaillierSecurityAlgorithm(HomomorphicSecurityAlgorithm):
 
     def multiply_messages(self, c1: int, c2: int) -> int:
         raise NotImplementedError("Paillier Homomorphic Encryption does not support multiplying messages.")
+
+    def scalar_and_message_multiplication(self, c: int, scalar: int) -> int:
+        return c * scalar
