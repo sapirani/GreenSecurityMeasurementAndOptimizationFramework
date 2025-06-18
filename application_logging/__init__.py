@@ -2,6 +2,7 @@ from logging import Handler, LoggerAdapter, Logger
 import logging
 from typing import Protocol, Dict, Any, Optional
 
+from application_logging.adapters.scanner_logger_adapter import ScannerLoggerAdapter
 from application_logging.handlers.elastic_handler import ElasticSearchLogHandler
 
 
@@ -14,15 +15,14 @@ def get_elastic_logging_handler(elastic_username: str, elastic_password: str, el
 
 class AdapterFactoryProtocol(Protocol):
     keywords: Dict[str, Any]
-    def __call__(self, logger: Logger) -> LoggerAdapter: ...
+    def __call__(self, logger: Logger) -> ScannerLoggerAdapter: ...
 
 
-def get_measurement_logger(
-        adapter_factory: AdapterFactoryProtocol, logger_handler: Optional[Handler]) -> LoggerAdapter:
-
-    if "session_id" not in adapter_factory.keywords.get('extra', {}):
-        raise ValueError("'session_id must' be inserted into the adapter_factory before calling this function")
-
+def get_measurement_logger(adapter_factory: AdapterFactoryProtocol, logger_handler: Optional[Handler]) -> LoggerAdapter:
+    """
+    :param adapter_factory: receives a logger and returns a LoggerAdapter. Other parameters to that adapter are assumed
+    to be initialized in advance (using the partial function)
+    """
     _logger = logging.getLogger("measurements_logger")
     _logger.setLevel(logging.INFO)
 
