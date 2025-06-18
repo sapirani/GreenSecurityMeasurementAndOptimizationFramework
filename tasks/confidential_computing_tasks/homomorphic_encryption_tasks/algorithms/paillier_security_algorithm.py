@@ -20,7 +20,7 @@ class PaillierKeyConsts:
     NUM_OF_KEY_PARTS = 2
 
 
-class PaillierSecurityAlgorithm(HomomorphicSecurityAlgorithm):
+class PaillierSecurityAlgorithm(HomomorphicSecurityAlgorithm[int]):
     def __init__(self, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
         super().__init__(min_key_val, max_key_val)
         self.p = None
