@@ -38,6 +38,10 @@ class HomomorphicSecurityAlgorithm(SecurityAlgorithm[T], ABC):
     def multiply_messages(self, c1: T, c2: T) -> T:
         pass
 
+    @abstractmethod
+    def scalar_and_message_multiplication(self, c: T, scalar: int) -> T:
+        pass
+
     def _extract_random_prime_p_and_q(self, key_file: str, num_of_key_parts: int = KeyConsts.DEFAULT_KEY_PARTS) -> \
             tuple[int, int]:
         try:

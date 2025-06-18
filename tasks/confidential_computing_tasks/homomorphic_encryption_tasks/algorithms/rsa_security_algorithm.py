@@ -71,3 +71,6 @@ class RSASecurityAlgorithm(HomomorphicSecurityAlgorithm[int]):
 
     def multiply_messages(self, c1: int, c2: int) -> int:
         return (c1 * c2) % self.n
+
+    def scalar_and_message_multiplication(self, c: int, scalar: int) -> int:
+        raise NotImplementedError("RSA Homomorphic Encryption does not support multiplying message with scalar.")

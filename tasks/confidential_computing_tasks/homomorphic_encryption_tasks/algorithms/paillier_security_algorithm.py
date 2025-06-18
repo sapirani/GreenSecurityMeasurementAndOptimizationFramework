@@ -90,3 +90,6 @@ class PaillierSecurityAlgorithm(HomomorphicSecurityAlgorithm[int]):
 
     def multiply_messages(self, c1: int, c2: int) -> int:
         raise NotImplementedError("Paillier Homomorphic Encryption does not support multiplying messages.")
+
+    def scalar_and_message_multiplication(self, c: int, scalar: int) -> int:
+        return c * scalar
