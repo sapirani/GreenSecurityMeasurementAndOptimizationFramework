@@ -17,7 +17,7 @@ class RSAKeyConsts:
     NUM_OF_KEY_PARTS = 2
 
 
-class RSASecurityAlgorithm(HomomorphicSecurityAlgorithm):
+class RSASecurityAlgorithm(HomomorphicSecurityAlgorithm[int]):
     def __init__(self, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
         super().__init__(min_key_val, max_key_val)
         self.p = None
@@ -71,3 +71,6 @@ class RSASecurityAlgorithm(HomomorphicSecurityAlgorithm):
 
     def multiply_messages(self, c1: int, c2: int) -> int:
         return (c1 * c2) % self.n
+
+    def scalar_and_message_multiplication(self, c: int, scalar: int) -> int:
+        raise NotImplementedError("RSA Homomorphic Encryption does not support multiplying message with scalar.")
