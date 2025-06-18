@@ -11,7 +11,7 @@ class LinuxContainerCPUReader(LinuxContainerResourceReader):
         super().__init__()
         self.__last_usage_ns = None
         self.__last_time = None
-        self.__number_of_cores = self._cgroup_metrics_reader.get_number_of_cores()
+        self.__number_of_cores = self._cgroup_metrics_reader.get_container_vcores()
 
     def get_cpu_percent(self) -> float:
         current_usage_ns = self._cgroup_metrics_reader.read_cpu_usage_ns()

@@ -62,7 +62,7 @@ class CgroupMetricReaderV2(CgroupMetricReader):
     def _get_cpu_usage_path(self) -> str:
         return os.path.join(self._base_cgroup_dir, self.__CPU_STATS_FILE_NAME_V2)
 
-    def get_number_of_cores(self) -> float:
+    def get_container_vcores(self) -> float:
         try:
             with open(os.path.join(self._base_cgroup_dir, self.__CPU_MAX_FILE_NAME)) as f:
                 quota_str, period_str = f.read().strip().split()
@@ -70,6 +70,7 @@ class CgroupMetricReaderV2(CgroupMetricReader):
                     return os.cpu_count()  # no limit
                 return int(float(quota_str) / float(period_str))
         except Exception as e:
+            print(f"Warning: Cannot get number of containers due to error: {e}, Using cpu_count()")
             return os.cpu_count()
 
     def get_memory_usage_path(self) -> str:

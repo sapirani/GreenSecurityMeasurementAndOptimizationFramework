@@ -55,7 +55,7 @@ class CgroupMetricReader(ABC):
         pass
 
     @abstractmethod
-    def get_number_of_cores(self) -> float:
+    def get_container_vcores(self) -> float:
         pass
 
     @abstractmethod
