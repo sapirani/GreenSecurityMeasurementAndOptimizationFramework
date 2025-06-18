@@ -163,7 +163,7 @@ class LinuxOS(AbstractOSFuncs):
             raise ValueError("Can't call this method when not inside container")
         return self.__container_cpu_usage_reader.get_cpu_percent()
 
-    def get_container_number_of_cores(self) -> int:
+    def get_container_number_of_cores(self) -> float:
         if self.__container_cpu_usage_reader is None:
             raise ValueError("Can't call this method when not inside container")
         return self.__container_cpu_usage_reader.get_number_of_cpu_cores()

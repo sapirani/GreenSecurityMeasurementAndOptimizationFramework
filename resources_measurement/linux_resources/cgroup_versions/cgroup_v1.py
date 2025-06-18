@@ -3,8 +3,6 @@ import os
 from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupMetricReader, \
     CGROUP_TYPE_PATH
 from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
-from resources_measurement.linux_resources.cgroup_versions.common_paths import CPUSET_CPUS_FILE_NAME, \
-    SYSTEM_CGROUP_DIR_PATH
 
 CGROUP_V1_NAME = "V1"
 
@@ -29,14 +27,24 @@ class CgroupMetricReaderV1(CgroupMetricReader):
     # The format of the file is a single integer value representing nanoseconds.
     __CPU_ACCT_USAGE_FILE_NAME_V1 = r"cpuacct.usage"
 
-    __CPUSET_CGROUP_SUBSYSTEM = "cpuset"
+    # Specifies the total available run-time within a period for tasks in the cgroup. - relevant for cgroup V1
+    # A quota sets the maximum amount of CPU time that a cgroup can consume during each period.
+    # The format of the file is a single integer value in microseconds (-1 indicates no limit).
+    __CPU_CF_QUOTA_FILE_NAME = r"cpu/cpu.cfs_quota_us"
+
+    # Defines the length of the period for enforcing CPU quotas. - relevant for cgroup V1
+    # Within each period, the cgroup's CPU usage is limited according to its quota.
+    # The format of the file is a single integer value in microseconds.
+    __CPU_CF_PERIOD_FILE_NAME = r"cpu/cpu.cfs_period_us"
+
+    __NO_QUOTA_LIMIT = -1
 
     def get_version(self) -> str:
         return CGROUP_V1_NAME
 
     def _is_cgroup_dir(self, cgroup_entry: CgroupEntry) -> bool:
         return cgroup_entry.subsystems == self.__CGROUP_V1_MEMORY_CONTROLLERS or \
-                cgroup_entry.subsystems == self.__CGROUP_V1_CPU_CONTROLLERS
+            cgroup_entry.subsystems == self.__CGROUP_V1_CPU_CONTROLLERS
 
     def read_cpu_usage_ns(self) -> int:
         try:
@@ -48,15 +56,17 @@ class CgroupMetricReaderV1(CgroupMetricReader):
     def _get_cpu_usage_path(self) -> str:
         return os.path.join(self._base_cgroup_dir, self.__CPU_ACCT_USAGE_FILE_NAME_V1)
 
-    def get_cpu_cores_path(self) -> str:
-        cpuset_path = self.__get_cpuset_cgroup_path()
-        return os.path.join(SYSTEM_CGROUP_DIR_PATH, self.__CPUSET_CGROUP_SUBSYSTEM, cpuset_path, CPUSET_CPUS_FILE_NAME)
-
-    def __get_cpuset_cgroup_path(self) -> str:
-        for entry in self._get_all_cgroup_entries():
-            if self.__CPUSET_CGROUP_SUBSYSTEM in entry.subsystems.split(','):
-                return entry.cgroup_path.lstrip('/')
-        return ""
+    def get_number_of_cores(self) -> float:
+        try:
+            with open(os.path.join(self._base_cgroup_dir, self.__CPU_CF_QUOTA_FILE_NAME)) as f:
+                quota = int(f.read().strip())
+            with open(os.path.join(self._base_cgroup_dir, self.__CPU_CF_PERIOD_FILE_NAME)) as f:
+                period = int(f.read().strip())
+            if quota == self.__NO_QUOTA_LIMIT:
+                return os.cpu_count()
+            return quota / period
+        except Exception as e:
+            return os.cpu_count()
 
     def get_memory_usage_path(self) -> str:
         return os.path.join(self._base_cgroup_dir, self.__MEMORY_USAGE_FILE_NAME_V1)

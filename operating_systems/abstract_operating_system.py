@@ -141,7 +141,7 @@ class AbstractOSFuncs:
         pass
 
     @abstractmethod
-    def get_container_number_of_cores(self) -> int:
+    def get_container_number_of_cores(self) -> float:
         pass
 
     @abstractmethod

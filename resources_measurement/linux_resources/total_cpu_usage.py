@@ -5,12 +5,13 @@ from resources_measurement.linux_resources.total_resource_usage import LinuxCont
 
 DEFAULT_NUMBER_OF_CORES = 1
 
+
 class LinuxContainerCPUReader(LinuxContainerResourceReader):
     def __init__(self):
         super().__init__()
         self.__last_usage_ns = None
         self.__last_time = None
-        self.__number_of_cores = self.__extract_number_of_cores()
+        self.__number_of_cores = self._cgroup_metrics_reader.get_number_of_cores()
 
     def get_cpu_percent(self) -> float:
         current_usage_ns = self._cgroup_metrics_reader.read_cpu_usage_ns()
@@ -40,24 +41,5 @@ class LinuxContainerCPUReader(LinuxContainerResourceReader):
         cpu_percent = (usage_delta_ns / total_possible_ns) * 100
         return cpu_percent
 
-    def get_number_of_cpu_cores(self) -> int:
+    def get_number_of_cpu_cores(self) -> float:
         return self.__number_of_cores
-
-
-    def __parse_cpuset_cpus(self, cpus_string: str) -> int:
-        # Example format: "0-3,5,7-8"
-        count = 0
-        for part in cpus_string.split(','):
-            if '-' in part:
-                start, end = map(int, part.split('-'))
-                count += end - start + 1
-            else:
-                count += 1
-        return count
-
-    def __extract_number_of_cores(self) -> int:
-        try:
-            with open(self._cgroup_metrics_reader.get_cpu_cores_path()) as f:
-                return self.__parse_cpuset_cpus(f.read().strip())
-        except Exception:
-            return os.cpu_count() or DEFAULT_NUMBER_OF_CORES
