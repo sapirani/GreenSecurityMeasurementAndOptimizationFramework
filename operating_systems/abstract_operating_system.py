@@ -137,7 +137,11 @@ class AbstractOSFuncs:
         pass
 
     @abstractmethod
-    def get_container_total_cpu_usage(self) -> tuple[float, float]:
+    def get_container_total_cpu_usage(self) -> float:
+        pass
+
+    @abstractmethod
+    def get_container_number_of_cores(self) -> int:
         pass
 
     @abstractmethod

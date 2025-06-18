@@ -37,12 +37,19 @@ class CgroupMetricReader(ABC):
     def is_container_memory_limited(self, limit: str) -> bool:
         pass
 
-    def _get_cgroup_base_dir(self) -> str:
+    def _get_all_cgroup_entries(self) -> list[CgroupEntry]:
+        entries = []
         with open(CGROUP_TYPE_PATH, "r") as f:
             for line in f:
-                cgroup_entry = CgroupEntry.from_line(line)
-                if self._is_cgroup_dir(cgroup_entry):
-                    return os.path.join(SYSTEM_CGROUP_DIR_PATH, cgroup_entry.cgroup_path)
+                entry = CgroupEntry.from_line(line)
+                if entry:
+                    entries.append(entry)
+        return entries
+
+    def _get_cgroup_base_dir(self) -> str:
+        for entry in self._get_all_cgroup_entries():
+            if self._is_cgroup_dir(entry):
+                return os.path.join(SYSTEM_CGROUP_DIR_PATH, entry.cgroup_path)
 
         return SYSTEM_CGROUP_DIR_PATH
 
@@ -52,6 +59,10 @@ class CgroupMetricReader(ABC):
 
     @abstractmethod
     def _get_cpu_usage_path(self) -> str:
+        pass
+
+    @abstractmethod
+    def get_cpu_cores_path(self) -> str:
         pass
 
     @abstractmethod

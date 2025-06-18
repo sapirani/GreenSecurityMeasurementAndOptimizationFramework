@@ -2,6 +2,7 @@ import os
 
 from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupMetricReader
 from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
+from resources_measurement.linux_resources.cgroup_versions.common_paths import CPUSET_CPUS_FILE_NAME
 
 CGROUP_V2_NAME = "V2"
 
@@ -52,6 +53,9 @@ class CgroupMetricReaderV2(CgroupMetricReader):
 
     def _get_cpu_usage_path(self) -> str:
         return os.path.join(self._base_cgroup_dir, self.__CPU_STATS_FILE_NAME_V2)
+
+    def get_cpu_cores_path(self) -> str:
+        return os.path.join(self._base_cgroup_dir, CPUSET_CPUS_FILE_NAME)
 
     def get_memory_usage_path(self) -> str:
         return os.path.join(self._base_cgroup_dir, self.__MEMORY_USAGE_FILE_NAME_V2)
