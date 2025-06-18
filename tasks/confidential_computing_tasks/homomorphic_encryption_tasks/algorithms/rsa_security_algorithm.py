@@ -70,4 +70,4 @@ class RSASecurityAlgorithm(HomomorphicSecurityAlgorithm):
         raise NotImplementedError("RSA Homomorphic Encryption does not support addition of messages.")
 
     def multiply_messages(self, c1: int, c2: int) -> int:
-        return c1 * c2
+        return (c1 * c2) % self.n
