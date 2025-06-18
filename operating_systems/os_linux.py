@@ -158,7 +158,7 @@ class LinuxOS(AbstractOSFuncs):
     def is_posix(self):
         return True
 
-    def get_container_total_cpu_usage(self) -> float:
+    def get_container_total_cpu_usage(self) -> tuple[float, float]:
         if self.__container_cpu_usage_reader is None:
             raise ValueError("Can't call this method when not inside container")
         return self.__container_cpu_usage_reader.get_cpu_percent()

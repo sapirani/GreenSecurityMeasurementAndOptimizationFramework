@@ -205,7 +205,7 @@ class WindowsOS(AbstractOSFuncs):
     def is_posix(self):
         return False
 
-    def get_container_total_cpu_usage(self) -> float:
+    def get_container_total_cpu_usage(self) -> tuple[float, float]:
         raise NotImplementedError("Not implemented total cpu for windows container")
 
     def get_container_total_memory_usage(self) -> tuple[float, float]:
