@@ -106,10 +106,10 @@ def program_to_scan_factory(program_type):
     if program_type == ProgramToScan.NetworkSender:
         return NetworkSender(time_interval=time_interval, running_time=RUNNING_TIME)
     if program_type == ProgramToScan.MessageEncryptor:
-        return MessageEncryptor(messages_file=messages_to_encrypt_file, security_algorithm=security_algorithm_type,
+        return MessageEncryptor(messages_file=messages_to_encrypt_file, results_file=results_file_for_encryption, security_algorithm=security_algorithm_type,
                                 key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
     if program_type == ProgramToScan.MessageDecryptor:
-        return MessageDecryptor(messages_file=messages_to_decrypt_file, security_algorithm=security_algorithm_type,
+        return MessageDecryptor(messages_file=messages_to_decrypt_file, results_file=results_file_for_decryption, security_algorithm=security_algorithm_type,
                                 key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
     if program_type == ProgramToScan.HomomorphicExecutor:
         return HomomorphicEncryptionExecutor(messages_file=messages_to_encrypt_file,

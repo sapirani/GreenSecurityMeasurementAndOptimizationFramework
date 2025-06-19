@@ -6,7 +6,7 @@ from tasks.confidential_computing_tasks.encryption_type import EncryptionType
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL
 
 
-def extract_arguments() -> tuple[str, int, str, int, int]:
+def extract_arguments() -> tuple[str, str, int, str, int, int]:
     parser = argparse.ArgumentParser(
         description="This program encrypts or decrypts messages using a security algorithm."
     )
@@ -15,6 +15,11 @@ def extract_arguments() -> tuple[str, int, str, int, int]:
                         type=str,
                         required=True,
                         help="path to messages file")
+
+    parser.add_argument("-r", "--results_messages_file",
+                        type=str,
+                        required=True,
+                        help="path to file for saving results")
 
     parser.add_argument("-a", "--algorithm",
                         type=int,
@@ -38,6 +43,7 @@ def extract_arguments() -> tuple[str, int, str, int, int]:
     args = parser.parse_args()
 
     messages_file = args.messages_file
+    result_messages_file = args.result_messages_file
     encryption_algorithm = args.algorithm
     encryption_key_file = args.key_file
     min_key_val = args.min_key_val
@@ -45,7 +51,7 @@ def extract_arguments() -> tuple[str, int, str, int, int]:
 
     print("Messages File: {}".format(messages_file))
     print("Encryption Algorithm: {}".format(encryption_algorithm))
-    return messages_file, encryption_algorithm, encryption_key_file, min_key_val, max_key_val
+    return messages_file, result_messages_file, encryption_algorithm, encryption_key_file, min_key_val, max_key_val
 
 
 def convert_str_to_alg_type(encryption_algorithm: int) -> EncryptionType:
@@ -54,20 +60,6 @@ def convert_str_to_alg_type(encryption_algorithm: int) -> EncryptionType:
         return encryption_type
     except ValueError:
         raise Exception("Unsupported encryption algorithm.")
-
-
-def extract_messages_from_file(messages_file: str) -> list[int]:
-    messages = []
-    try:
-        with open(messages_file, "r") as messages_file:
-            messages = [int(msg.strip()) for msg in messages_file.readlines()]
-    except FileNotFoundError:
-        raise FileNotFoundError("Messages file not found.")
-
-    if len(messages) == 0:
-        raise Exception("No messages found. Must be at least one message.")
-
-    return messages
 
 
 def get_updated_message(msg: int, action_type: ActionType, encryption_alg: SecurityAlgorithm) -> int:
