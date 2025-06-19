@@ -1,0 +1,68 @@
+import tenseal as ts
+from tenseal import Context, CKKSVector
+
+from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.algorithms.tenseal_algorithms.tenseal_he_security_algorithm import \
+    TensealSecurityAlgorithm
+
+
+class CKKSTensealSecurityAlgorithm(TensealSecurityAlgorithm[CKKSVector]):
+
+    def _create_context_with_schema(self) -> Context:
+        context = ts.context(ts.SCHEME_TYPE.CKKS,
+                             poly_modulus_degree=8192,
+                             coeff_mod_bit_sizes=[60, 40, 40, 60]
+                             )
+        context.global_scale = 2 ** 40
+
+        # Enable encryption of data
+        context.generate_galois_keys()
+        return context
+
+    def encrypt_message(self, msg: int) -> CKKSVector:
+        """
+        Encrypt the message
+        Supporting only encrypting single message
+        """
+        data = [msg]
+        return ts.ckks_vector(self._context, data)
+
+    def decrypt_message(self, msg: CKKSVector) -> int:
+        """
+        Decrypt the message
+        Supporting only decrypting single message
+        """
+        return int(msg.decrypt()[0])
+
+    def add_messages(self, c1: CKKSVector, c2: CKKSVector) -> CKKSVector:
+        try:
+            return c1 + c2
+        except Exception as e:
+            raise NotImplementedError(f"tenseal with CKKS schema does not support adding messages.")
+
+    def multiply_messages(self, c1: CKKSVector, c2: CKKSVector) -> CKKSVector:
+        try:
+            return c1 * c2
+        except Exception as e:
+            raise NotImplementedError(f"tenseal with CKKS schema does not support multiplying messages.")
+
+    def scalar_and_message_multiplication(self, c: CKKSVector, scalar: int) -> CKKSVector:
+        try:
+            return scalar * c
+        except Exception as e:
+            raise NotImplementedError(f"tenseal with CKKS schema does not support multiplying message with scalar.")
+
+if __name__ == '__main__':
+    m1 = 56
+    m2 = 84
+    ten = CKKSTensealSecurityAlgorithm()
+
+    e1_vec = ten.encrypt_message(m1)
+    e2_vec = ten.encrypt_message(m2)
+
+    enc_result = ten.add_messages(e1_vec, e2_vec)
+    enc_result = ten.scalar_and_message_multiplication(enc_result, 3)
+    enc_result = ten.multiply_messages(enc_result, e2_vec)
+
+    # Decrypt and print result
+    decrypted = ten.decrypt_message(enc_result)
+    print("Decrypted result:", decrypted)
