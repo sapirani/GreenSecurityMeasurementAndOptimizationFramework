@@ -9,11 +9,12 @@ from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_
 class BFVTensealSecurityAlgorithm(TensealSecurityAlgorithm[BFVVector]):
     def __init__(self, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
         self.__plain_modulus = 65537
+        self.__poly_modulus_degree = 8192
         super().__init__(min_key_val, max_key_val)
 
     def _create_context_with_schema(self) -> Context:
         return ts.context(ts.SCHEME_TYPE.BFV,
-                          poly_modulus_degree=8192,  # Higher degree → more security & depth
+                          poly_modulus_degree=self.__poly_modulus_degree,  # Higher degree → more security & depth
                           plain_modulus=self.__plain_modulus # Prime modulus > max value in plaintext data
                           )
 
