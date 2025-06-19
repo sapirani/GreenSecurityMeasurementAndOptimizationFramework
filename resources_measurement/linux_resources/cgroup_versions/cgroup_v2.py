@@ -2,6 +2,7 @@ import os
 
 from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupMetricReader
 from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
+from resources_measurement.linux_resources.cgroup_versions.common_paths import SYSTEM_CGROUP_DIR_PATH
 
 CGROUP_V2_NAME = "V2"
 
@@ -33,11 +34,17 @@ class CgroupMetricReaderV2(CgroupMetricReader):
     # The interesting key is usage_usec, its value is the total CPU time consumed by all tasks in the cgroup, in microseconds.
     __CPU_STATS_FILE_NAME_V2 = "cpu.stat"
 
+    # Sets CPU usage limits for the cgroup. - relevant for cgroup V2
+    # The format of the file is two values separated by a space: <max> <period>
+    # <max>: Maximum CPU time (in microseconds) that the cgroup can use in each period.
+    # <period>: Length of each period in microseconds.
+    # If <max> is set to max, there is no CPU limit.
+    __CPU_MAX_FILE_NAME = r"cpu.max"
+
+    __NO_QUOTA_LIMIT = "max"
+
     def get_version(self) -> str:
         return CGROUP_V2_NAME
-
-    def _is_cgroup_dir(self, cgroup_entry: CgroupEntry) -> bool:
-        return cgroup_entry.hierarchy_id == self.__CGROUP_V2_IDENTIFIER
 
     def read_cpu_usage_ns(self) -> int:
         try:
@@ -48,10 +55,21 @@ class CgroupMetricReaderV2(CgroupMetricReader):
 
             return 0
         except Exception as e:
-            raise ValueError(f"The file {self._cpu_usage_file_path} does not exist or is not readable in Cgroup V1.")
+            raise ValueError(f"The file {self._cpu_usage_file_path} does not exist or is not readable in Cgroup V2.")
 
     def _get_cpu_usage_path(self) -> str:
         return os.path.join(self._base_cgroup_dir, self.__CPU_STATS_FILE_NAME_V2)
+
+    def get_container_vcores(self) -> float:
+        try:
+            with open(os.path.join(self._base_cgroup_dir, self.__CPU_MAX_FILE_NAME)) as f:
+                quota_str, period_str = f.read().strip().split()
+                if quota_str == self.__NO_QUOTA_LIMIT:
+                    return os.cpu_count()  # no limit
+                return int(float(quota_str) / float(period_str))
+        except Exception as e:
+            print(f"Warning: Cannot get number of containers due to error: {e}, Using cpu_count()")
+            return os.cpu_count()
 
     def get_memory_usage_path(self) -> str:
         return os.path.join(self._base_cgroup_dir, self.__MEMORY_USAGE_FILE_NAME_V2)
