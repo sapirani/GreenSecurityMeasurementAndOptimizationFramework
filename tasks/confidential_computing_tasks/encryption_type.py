@@ -13,3 +13,5 @@ class EncryptionType(Enum):
     LightPheNaccacheStern = 10
     LightPheGoldwasserMicali = 11
     LightPheEllipticCurveElGamal = 12
+    CKKSTenseal = 13
+    BFVTenseal = 14

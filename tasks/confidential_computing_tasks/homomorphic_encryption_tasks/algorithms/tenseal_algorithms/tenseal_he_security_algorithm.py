@@ -28,21 +28,3 @@ class TensealSecurityAlgorithm(HomomorphicSecurityAlgorithm[T], ABC):
         """ Initialize the public and private key """
         print("Key extraction method is not implemented for tenseal library.")
         return KeyDetails({}, {})
-
-
-
-# if __name__ == '__main__':
-#     m1 = 1
-#     m2 = 2
-#     ten = TensealSecurityAlgorithm(TensealSchemas.CKKS)
-#
-#     e1_vec = ten.encrypt_message(m1)
-#     e2_vec = ten.encrypt_message(m2)
-#
-#     enc_result = ten.add_messages(e1_vec, e2_vec)
-#     enc_result = ten.scalar_and_message_multiplication(enc_result, 3)
-#     enc_result = ten.multiply_messages(enc_result, e2_vec)
-#
-#     # Decrypt and print result
-#     decrypted = ten.decrypt_message(enc_result)
-#     print("Decrypted result:", decrypted)

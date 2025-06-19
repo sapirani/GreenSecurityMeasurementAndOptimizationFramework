@@ -6,6 +6,10 @@ from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.algorithms.
     PaillierSecurityAlgorithm
 from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.algorithms.rsa_security_algorithm import \
     RSASecurityAlgorithm
+from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.algorithms.tenseal_algorithms.bfv_tenseal_he_security_algorithm import \
+    BFVTensealSecurityAlgorithm
+from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.algorithms.tenseal_algorithms.ckks_tenseal_he_security_algorithm import \
+    CKKSTensealSecurityAlgorithm
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL
 
 
@@ -36,5 +40,9 @@ class EncryptionAlgorithmFactory:
             return LightPHESecurityAlgorithm(LightPHEAlgorithms.DAMGARD_JURIK, min_key_val, max_key_val)
         elif encryption_algorithm == EncryptionType.LightPheExponentialElGamal:
             return LightPHESecurityAlgorithm(LightPHEAlgorithms.EXPONENTIAL_ELGAMAL, min_key_val, max_key_val)
+        elif encryption_algorithm == EncryptionType.CKKSTenseal:
+            return CKKSTensealSecurityAlgorithm(min_key_val, max_key_val)
+        elif encryption_algorithm == EncryptionType.BFVTenseal:
+            return BFVTensealSecurityAlgorithm(min_key_val, max_key_val)
         else:
             raise ValueError("Unknown encryption algorithm")
