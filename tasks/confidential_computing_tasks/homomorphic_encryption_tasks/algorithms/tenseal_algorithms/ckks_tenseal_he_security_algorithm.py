@@ -56,19 +56,3 @@ class CKKSTensealSecurityAlgorithm(TensealSecurityAlgorithm[CKKSVector]):
             return scalar * c
         except Exception as e:
             raise NotImplementedError(f"tenseal with CKKS schema does not support multiplying message with scalar.")
-
-if __name__ == '__main__':
-    m1 = 56
-    m2 = 84
-    ten = CKKSTensealSecurityAlgorithm()
-
-    e1_vec = ten.encrypt_message(m1)
-    e2_vec = ten.encrypt_message(m2)
-
-    enc_result = ten.add_messages(e1_vec, e2_vec)
-    enc_result = ten.scalar_and_message_multiplication(enc_result, 3)
-    enc_result = ten.multiply_messages(enc_result, e2_vec)
-
-    # Decrypt and print result
-    decrypted = ten.decrypt_message(enc_result)
-    print("Decrypted result:", decrypted)

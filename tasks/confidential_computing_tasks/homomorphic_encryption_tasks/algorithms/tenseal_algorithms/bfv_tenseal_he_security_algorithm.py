@@ -15,7 +15,7 @@ class BFVTensealSecurityAlgorithm(TensealSecurityAlgorithm[BFVVector]):
     def _create_context_with_schema(self) -> Context:
         return ts.context(ts.SCHEME_TYPE.BFV,
                           poly_modulus_degree=self.__poly_modulus_degree,  # Higher degree → more security & depth
-                          plain_modulus=self.__plain_modulus # Prime modulus > max value in plaintext data
+                          plain_modulus=self.__plain_modulus  # Prime modulus > max value in plaintext data
                           )
 
     def encrypt_message(self, msg: int) -> BFVVector:
@@ -54,19 +54,3 @@ class BFVTensealSecurityAlgorithm(TensealSecurityAlgorithm[BFVVector]):
             return scalar * c
         except Exception as e:
             raise NotImplementedError(f"tenseal with CKKS schema does not support multiplying message with scalar.")
-
-if __name__ == '__main__':
-    m1 = 56
-    m2 = 84
-    ten = BFVTensealSecurityAlgorithm()
-
-    e1_vec = ten.encrypt_message(m1)
-    e2_vec = ten.encrypt_message(m2)
-
-    enc_result = ten.add_messages(e1_vec, e2_vec)
-    enc_result = ten.scalar_and_message_multiplication(enc_result, 3)
-    enc_result = ten.multiply_messages(enc_result, e2_vec)
-
-    # Decrypt and print result
-    decrypted = ten.decrypt_message(enc_result)
-    print("Decrypted result:", decrypted)
