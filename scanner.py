@@ -18,6 +18,7 @@ import pandas as pd
 from scapy.interfaces import get_working_ifaces
 
 from application_logging import get_measurement_logger, ElasticSearchLogHandler, get_elastic_logging_handler
+from application_logging.adapters.scanner_logger_adapter import ScannerLoggerAdapter
 from initialization_helper import *
 from datetime import date
 from pathlib import Path
@@ -897,12 +898,10 @@ if __name__ == '__main__':
     session_id = args.measurement_session_id
 
     logger_adapter = partial(
-        LoggerAdapter,
-        extra={
-            "session_id": session_id,
-            "hostname": AbstractOSFuncs.get_hostname(),
-            **args.logging_constant_extras
-        }
+        ScannerLoggerAdapter,
+        session_id=session_id,
+        hostname=AbstractOSFuncs.get_hostname(),
+        user_defined_extras=args.logging_constant_extras
     )
 
     logger = get_measurement_logger(

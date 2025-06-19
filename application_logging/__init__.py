@@ -17,12 +17,12 @@ class AdapterFactoryProtocol(Protocol):
     def __call__(self, logger: Logger) -> LoggerAdapter: ...
 
 
-def get_measurement_logger(
-        adapter_factory: AdapterFactoryProtocol, logger_handler: Optional[Handler]) -> LoggerAdapter:
-
-    if "session_id" not in adapter_factory.keywords.get('extra', {}):
-        raise ValueError("'session_id must' be inserted into the adapter_factory before calling this function")
-
+def get_measurement_logger(adapter_factory: AdapterFactoryProtocol, logger_handler: Optional[Handler]) -> LoggerAdapter:
+    """
+    :param adapter_factory: receives a logger and returns a LoggerAdapter. Other parameters to that adapter are assumed
+    to be initialized in advance (using the partial function)
+    :param logger_handler: a handler to attach to the returned adapter (for example, ElasticSearchLogHandler)
+    """
     _logger = logging.getLogger("measurements_logger")
     _logger.setLevel(logging.INFO)
 
