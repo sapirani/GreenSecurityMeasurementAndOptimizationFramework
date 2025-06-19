@@ -30,21 +30,12 @@ class CgroupMetricReader(ABC):
         pass
 
     @abstractmethod
-    def _is_cgroup_dir(self, cgroup_entry: CgroupEntry) -> bool:
-        pass
-
-    @abstractmethod
     def is_container_memory_limited(self, limit: str) -> bool:
         pass
 
+    @abstractmethod
     def _get_cgroup_base_dir(self) -> str:
-        with open(CGROUP_TYPE_PATH, "r") as f:
-            for line in f:
-                entry = CgroupEntry.from_line(line)
-                if self._is_cgroup_dir(entry):
-                    return os.path.join(SYSTEM_CGROUP_DIR_PATH, entry.cgroup_path)
-        return SYSTEM_CGROUP_DIR_PATH
-
+        pass
 
     @abstractmethod
     def read_cpu_usage_ns(self) -> int:

@@ -2,6 +2,7 @@ import os
 
 from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupMetricReader
 from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
+from resources_measurement.linux_resources.cgroup_versions.common_paths import SYSTEM_CGROUP_DIR_PATH
 
 CGROUP_V2_NAME = "V2"
 
@@ -45,8 +46,8 @@ class CgroupMetricReaderV2(CgroupMetricReader):
     def get_version(self) -> str:
         return CGROUP_V2_NAME
 
-    def _is_cgroup_dir(self, cgroup_entry: CgroupEntry) -> bool:
-        return cgroup_entry.hierarchy_id == self.__CGROUP_V2_IDENTIFIER
+    def _get_cgroup_base_dir(self) -> str:
+        return SYSTEM_CGROUP_DIR_PATH
 
     def read_cpu_usage_ns(self) -> int:
         try:

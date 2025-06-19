@@ -3,6 +3,7 @@ import os
 from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupMetricReader, \
     CGROUP_TYPE_PATH
 from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
+from resources_measurement.linux_resources.cgroup_versions.common_paths import SYSTEM_CGROUP_DIR_PATH
 
 CGROUP_V1_NAME = "V1"
 
@@ -42,9 +43,18 @@ class CgroupMetricReaderV1(CgroupMetricReader):
     def get_version(self) -> str:
         return CGROUP_V1_NAME
 
-    def _is_cgroup_dir(self, cgroup_entry: CgroupEntry) -> bool:
+    def __is_cgroup_dir(self, cgroup_entry: CgroupEntry) -> bool:
         return cgroup_entry.subsystems == self.__CGROUP_V1_MEMORY_CONTROLLERS or \
             cgroup_entry.subsystems == self.__CGROUP_V1_CPU_CONTROLLERS
+
+
+    def _get_cgroup_base_dir(self) -> str:
+        with open(CGROUP_TYPE_PATH, "r") as f:
+            for line in f:
+                entry = CgroupEntry.from_line(line)
+                if self.__is_cgroup_dir(entry):
+                    return os.path.join(SYSTEM_CGROUP_DIR_PATH, entry.subsystems, entry.cgroup_path)
+        return SYSTEM_CGROUP_DIR_PATH
 
     def read_cpu_usage_ns(self) -> int:
         try:
