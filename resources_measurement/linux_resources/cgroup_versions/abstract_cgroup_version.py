@@ -22,7 +22,7 @@ class ProcCgroupFileConsts:
 
 class CgroupMetricReader(ABC):
     def __init__(self):
-        self._base_cgroup_dir = self._get_cgroup_base_dir()
+        self._base_cgroup_dir = self.__get_cgroup_base_dir()
         self._cpu_usage_file_path = self._get_cpu_usage_path()
 
     @abstractmethod
@@ -33,9 +33,8 @@ class CgroupMetricReader(ABC):
     def is_container_memory_limited(self, limit: str) -> bool:
         pass
 
-    @abstractmethod
-    def _get_cgroup_base_dir(self) -> str:
-        pass
+    def __get_cgroup_base_dir(self) -> str:
+        return SYSTEM_CGROUP_DIR_PATH
 
     @abstractmethod
     def read_cpu_usage_ns(self) -> int:

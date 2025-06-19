@@ -26,7 +26,7 @@ class CgroupMetricReaderV1(CgroupMetricReader):
     # "acct" stands for "accounting" and refers to the mechanism for tracking resource usage.
     # Therefore, cpuacct.usage provides a report on the total CPU time used by all processes managed by the cgroup.
     # The format of the file is a single integer value representing nanoseconds.
-    __CPU_ACCT_USAGE_FILE_NAME_V1 = r"cpuacct.usage"
+    __CPU_ACCT_USAGE_FILE_NAME_V1 = r"cpuacct/cpuacct.usage"
 
     # Specifies the total available run-time within a period for tasks in the cgroup. - relevant for cgroup V1
     # A quota sets the maximum amount of CPU time that a cgroup can consume during each period.
@@ -42,19 +42,6 @@ class CgroupMetricReaderV1(CgroupMetricReader):
 
     def get_version(self) -> str:
         return CGROUP_V1_NAME
-
-    def __is_cgroup_dir(self, cgroup_entry: CgroupEntry) -> bool:
-        return cgroup_entry.subsystems == self.__CGROUP_V1_MEMORY_CONTROLLERS or \
-            cgroup_entry.subsystems == self.__CGROUP_V1_CPU_CONTROLLERS
-
-
-    def _get_cgroup_base_dir(self) -> str:
-        with open(CGROUP_TYPE_PATH, "r") as f:
-            for line in f:
-                entry = CgroupEntry.from_line(line)
-                if self.__is_cgroup_dir(entry):
-                    return os.path.join(SYSTEM_CGROUP_DIR_PATH, entry.subsystems, entry.cgroup_path)
-        return SYSTEM_CGROUP_DIR_PATH
 
     def read_cpu_usage_ns(self) -> int:
         try:

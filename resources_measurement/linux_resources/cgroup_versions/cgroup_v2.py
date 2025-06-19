@@ -46,9 +46,6 @@ class CgroupMetricReaderV2(CgroupMetricReader):
     def get_version(self) -> str:
         return CGROUP_V2_NAME
 
-    def _get_cgroup_base_dir(self) -> str:
-        return SYSTEM_CGROUP_DIR_PATH
-
     def read_cpu_usage_ns(self) -> int:
         try:
             with open(self._cpu_usage_file_path) as f:
@@ -58,7 +55,7 @@ class CgroupMetricReaderV2(CgroupMetricReader):
 
             return 0
         except Exception as e:
-            raise ValueError(f"The file {self._cpu_usage_file_path} does not exist or is not readable in Cgroup V1.")
+            raise ValueError(f"The file {self._cpu_usage_file_path} does not exist or is not readable in Cgroup V2.")
 
     def _get_cpu_usage_path(self) -> str:
         return os.path.join(self._base_cgroup_dir, self.__CPU_STATS_FILE_NAME_V2)
