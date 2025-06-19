@@ -1,3 +1,5 @@
+from tenseal import CKKSVector, BFVVector
+
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.encryption_type import EncryptionType
 from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.algorithms.light_phe_security_algorithm import \
@@ -6,16 +8,15 @@ from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.algorithms.
     PaillierSecurityAlgorithm
 from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.algorithms.rsa_security_algorithm import \
     RSASecurityAlgorithm
-from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.algorithms.tenseal_algorithms.bfv_tenseal_he_security_algorithm import \
-    BFVTensealSecurityAlgorithm
-from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.algorithms.tenseal_algorithms.ckks_tenseal_he_security_algorithm import \
-    CKKSTensealSecurityAlgorithm
+from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.algorithms.tenseal_he_security_algorithm import \
+    TensealSecurityAlgorithm, TensealSchemas
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL
 
 
 class EncryptionAlgorithmFactory:
     @staticmethod
-    def create_security_algorithm(encryption_algorithm: EncryptionType, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL) -> SecurityAlgorithm:
+    def create_security_algorithm(encryption_algorithm: EncryptionType, min_key_val: int = PRIME_MIN_VAL,
+                                  max_key_val: int = PRIME_MAX_VAL) -> SecurityAlgorithm:
         if encryption_algorithm == EncryptionType.Paillier:
             return PaillierSecurityAlgorithm(min_key_val, max_key_val)
         elif encryption_algorithm == EncryptionType.RSA:
@@ -41,8 +42,8 @@ class EncryptionAlgorithmFactory:
         elif encryption_algorithm == EncryptionType.LightPheExponentialElGamal:
             return LightPHESecurityAlgorithm(LightPHEAlgorithms.EXPONENTIAL_ELGAMAL, min_key_val, max_key_val)
         elif encryption_algorithm == EncryptionType.CKKSTenseal:
-            return CKKSTensealSecurityAlgorithm(min_key_val, max_key_val)
+            return TensealSecurityAlgorithm[CKKSVector](TensealSchemas.CKKS, min_key_val, max_key_val)
         elif encryption_algorithm == EncryptionType.BFVTenseal:
-            return BFVTensealSecurityAlgorithm(min_key_val, max_key_val)
+            return TensealSecurityAlgorithm[BFVVector](TensealSchemas.BFV, min_key_val, max_key_val)
         else:
             raise ValueError("Unknown encryption algorithm")
