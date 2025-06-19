@@ -1,4 +1,5 @@
 import argparse
+import math
 
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.action_type import ActionType
@@ -43,7 +44,7 @@ def extract_arguments() -> tuple[str, str, int, str, int, int]:
     args = parser.parse_args()
 
     messages_file = args.messages_file
-    result_messages_file = args.result_messages_file
+    result_messages_file = args.results_messages_file
     encryption_algorithm = args.algorithm
     encryption_key_file = args.key_file
     min_key_val = args.min_key_val
@@ -72,7 +73,7 @@ def get_updated_message(msg: int, action_type: ActionType, encryption_alg: Secur
     elif action_type == ActionType.FullPipeline:
         encrypted_message = encryption_alg.encrypt_message(msg)
         decrypted_message = encryption_alg.decrypt_message(encrypted_message)
-        updated_msg = int(decrypted_message == msg)
+        updated_msg = int(math.isclose(msg, decrypted_message, abs_tol=0.001))
     else:
         raise Exception("Unsupported action type.")
     return updated_msg

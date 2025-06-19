@@ -17,6 +17,7 @@ def extract_messages_from_file(messages_file: str) -> list[int]:
 
     return messages
 
+
 def write_messages_to_file(messages_file: str, messages: list[int]) -> None:
     try:
         with open(messages_file, 'w') as f:
@@ -24,29 +25,3 @@ def write_messages_to_file(messages_file: str, messages: list[int]) -> None:
                 f.write(str(msg) + '\n')
     except FileNotFoundError:
         raise FileNotFoundError("Messages file not found.")
-
-def save_encrypted_messages(encrypted_messages: list[Any], file_name: str):
-    try:
-        with open(file_name, 'rb') as messages_file:
-            pickle.dump(encrypted_messages, messages_file)
-    except FileNotFoundError:
-        print("Something went wrong with saving the encrypted messages")
-
-def load_encrypted_messages(file_name: str) ->  list:
-    try:
-        with open(file_name, 'rb') as messages_file:
-            encrypted_messages = pickle.load(messages_file)
-            return encrypted_messages
-    except FileNotFoundError:
-        print("Something went wrong with loading the encrypted messages")
-        return []
-
-def save_messages_after_action(updated_messages: list[Any], result_messages_file: str, action_type: ActionType):
-    # If encryption, save encrypted messages to result file
-    if action_type == ActionType.Encryption:
-        save_encrypted_messages(updated_messages, result_messages_file)
-    # If decryption or full pipeline, optionally save decrypted ints as text
-    elif action_type in (ActionType.Decryption, ActionType.FullPipeline):
-        write_messages_to_file(result_messages_file, updated_messages)
-    else:
-        raise Exception("Unknown action type.")

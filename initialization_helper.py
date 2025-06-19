@@ -112,7 +112,7 @@ def program_to_scan_factory(program_type):
         return MessageDecryptor(messages_file=messages_to_decrypt_file, results_file=results_file_for_decryption, security_algorithm=security_algorithm_type,
                                 key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
     if program_type == ProgramToScan.HomomorphicExecutor:
-        return HomomorphicEncryptionExecutor(messages_file=messages_to_encrypt_file,
+        return HomomorphicEncryptionExecutor(messages_file=messages_to_encrypt_file,  results_file=results_file_for_decryption,
                                              security_algorithm=security_algorithm_type, key_file=algorithm_key_file,
                                              min_key_value=min_key_value, max_key_value=max_key_value)
 

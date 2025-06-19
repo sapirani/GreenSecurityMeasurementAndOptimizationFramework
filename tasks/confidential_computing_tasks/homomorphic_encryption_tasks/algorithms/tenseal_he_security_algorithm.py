@@ -22,7 +22,7 @@ class TensealSecurityAlgorithm(HomomorphicSecurityAlgorithm[T]):
         self.__plain_modulus_deg = 8192
         self.__coeff_mod_bit_sizes = [60, 40, 40, 60]
         self.__global_scale = 2 ** 40
-        self._context = self._create_context_with_schema()
+        self.__context = self._create_context_with_schema()
 
     def _create_context_with_schema(self) -> Context:
         if self.schema == TensealSchemas.CKKS:
@@ -48,6 +48,12 @@ class TensealSecurityAlgorithm(HomomorphicSecurityAlgorithm[T]):
         print("Key extraction method is not implemented for tenseal library.")
         return KeyDetails({}, {})
 
+    def _get_serializable_encrypted_messages(self, encrypted_messages: list[T]) -> list[T]:
+        return [msg.serialize() for msg in encrypted_messages]
+
+    def _get_deserializable_encrypted_messages(self, encrypted_messages: list[T]) -> list[T]:
+        return [T.deserialize(self.__context, msg) for msg in encrypted_messages]
+
     def encrypt_message(self, msg: int) -> T:
         """
         Encrypt the message
@@ -55,9 +61,9 @@ class TensealSecurityAlgorithm(HomomorphicSecurityAlgorithm[T]):
         """
         data = [msg]
         if self.schema == TensealSchemas.CKKS:
-            return ts.ckks_vector(self._context, data)
+            return ts.ckks_vector(self.__context, data)
         elif self.schema == TensealSchemas.BFV:
-            return ts.bfv_vector(self._context, data)
+            return ts.bfv_vector(self.__context, data)
         else:
             raise NotImplementedError(ERROR_NOT_SUPPORTING_SCHEMA)
 

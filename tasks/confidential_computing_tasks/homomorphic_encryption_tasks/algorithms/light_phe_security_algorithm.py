@@ -29,6 +29,12 @@ class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[Ciphertext]):
         print("Key extraction method is not implemented for LightPHE library.")
         return KeyDetails({}, {})
 
+    def _get_serializable_encrypted_messages(self, encrypted_messages: list[Ciphertext]) -> list[Ciphertext]:
+        return encrypted_messages
+
+    def _get_deserializable_encrypted_messages(self, encrypted_messages: list[Ciphertext]) -> list[Ciphertext]:
+        return encrypted_messages
+
     def encrypt_message(self, msg: int) -> Ciphertext:
         """ Encrypt the message """
         return self.__encryption_model.encrypt(msg)

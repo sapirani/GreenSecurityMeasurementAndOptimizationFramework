@@ -53,6 +53,12 @@ class PaillierSecurityAlgorithm(HomomorphicSecurityAlgorithm[int]):
                        PaillierKeyConsts.MU_PRIVATE_KEY: self.mu}
         return KeyDetails(public_key=public_key, private_key=private_key)
 
+    def _get_serializable_encrypted_messages(self, encrypted_messages: list[int]) -> list[int]:
+        return encrypted_messages
+
+    def _get_deserializable_encrypted_messages(self, encrypted_messages: list[int]) -> list[int]:
+        return encrypted_messages
+
     def encrypt_message(self, msg: int) -> int:
         """ Encrypt the message """
         if self.n is None:
