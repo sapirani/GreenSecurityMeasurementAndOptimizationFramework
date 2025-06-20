@@ -1,7 +1,10 @@
+import os
+import pickle
 from typing import Optional
 
-from Crypto.Cipher import AES
+from Crypto.Cipher import AES, DES, Blowfish
 from Crypto.Random import get_random_bytes
+from Crypto.Util.Padding import pad, unpad
 
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL, KeyDetails
@@ -21,59 +24,123 @@ class PycryptodomeSymmetricAlgorithms:
 
 
 class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
+    __SUPPORTING_IV_MODES = ['CBC', 'CFB', 'OFB']
+    __SUPPORTING_NONCE_MODES = ['CTR', 'EAX', 'GCM']
+    __PADDING_MODES = ['ECB', 'CBC']
+
+    __ALGORITHMS = {
+        'AES': AES,
+        'DES': DES,
+        'BLOWFISH': Blowfish
+    }
+
+    __BLOCK_SIZES = {
+            'AES': AES.block_size,
+            'DES': DES.block_size,
+            'BLOWFISH': Blowfish.block_size,
+            "default": 16
+        }
+
+    __KEY_SIZES = {
+            'AES': 16,
+            'DES': 8,
+            'BLOWFISH': 16,
+            "default": 16
+        }
+
+    __DEFAULT_KEY_STR = "default"
     __MODEL_FILE = "encryption_model.bin"
 
-    def __init__(self, algorithm: str, mode: Optional[str], min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
+    def __init__(self, algorithm: str, mode: Optional[str], min_key_val: int = PRIME_MIN_VAL,
+                 max_key_val: int = PRIME_MAX_VAL):
         super().__init__(min_key_val, max_key_val)
-        self.__key = get_random_bytes(16)
         self.__algorithm = algorithm
         self.__mode = mode
-        self.__encryption_model = self.__pycryptodome_algorithm_factory(algorithm, mode, None)
-        self.__decryption_model = self.__pycryptodome_algorithm_factory(algorithm, mode, self.__encryption_model.nonce)
+        self.algorithm_name = algorithm.upper()
+        self.mode_name = mode.upper()
+        self.block_size = self._get_block_size()
+        self.nonce = self._generate_nonce()
+        self.key = self._generate_key()
+        self.iv = self._generate_iv()
 
-    def __pycryptodome_algorithm_factory(self, algorithm: str, mode: str, nonce: Optional[bytes]):
-        extra = {}
-        if nonce is not None:
-            extra["nonce"] = nonce
+    def _generate_key(self) -> bytes:
+        key_size = self.__KEY_SIZES.get(self.algorithm_name, -1)
+        if key_size < 0:
+            raise ValueError("Unsupported algorithm")
 
-        if algorithm == "AES" and mode == "cbc":
-            return AES.new(self.__key, AES.MODE_CTR, **extra)
-        raise ValueError("Unknown encryption algorithm")
+        return get_random_bytes(key_size)
 
-    def extract_key(self, key_file: str) -> KeyDetails:  # todo: maybe extract from the key file the alg name?
-        """ Initialize the public and private key """
-        print("Key extraction method is not implemented for LightPHE library.")
-        return KeyDetails({}, {})
+    def _generate_iv(self) -> bytes:
+        if self.mode_name in self.__SUPPORTING_IV_MODES:
+            return get_random_bytes(self.block_size)
+        return b''
+
+    def _generate_nonce(self) -> bytes:
+        if self.mode_name in self.__SUPPORTING_NONCE_MODES:
+            return get_random_bytes(8)  # Or 16 depending on mode requirements
+        return b''
+
+    def _get_block_size(self) -> int:
+        return self.__BLOCK_SIZES.get(self.algorithm_name, self.__BLOCK_SIZES[self.__DEFAULT_KEY_STR])
+
+    def _get_cipher(self, encrypting: bool):
+        mode = getattr(self._get_algorithm_module(), f'MODE_{self.mode_name}')
+        kwargs = {'key': self.key}
+
+        if self.mode_name in self.__SUPPORTING_IV_MODES:
+            kwargs['iv'] = self.iv
+
+        if self.mode_name in self.__SUPPORTING_NONCE_MODES:
+            kwargs["nonce"] = self.nonce
+
+        if self.mode_name == 'CTR':
+            from Crypto.Util import Counter
+            kwargs['counter'] = Counter.new(self.block_size * 8)
+
+        if encrypting:
+            return self._get_algorithm_module().new(**kwargs, mode=mode)
+        else:
+            return self._get_algorithm_module().new(**kwargs, mode=mode)
+
+    def _get_algorithm_module(self):
+        return self.__ALGORITHMS.get(self.algorithm_name, AES)
+
+    def extract_key(self, key_file: str) -> KeyDetails:
+        if os.path.exists(key_file):
+            with open(key_file, 'rb') as f:
+                data = pickle.load(f)
+                self.key = data['key']
+                self.iv = data.get('iv', b'')
+        else:
+            with open(key_file, 'wb') as f:
+                pickle.dump({'key': self.key, 'iv': self.iv}, f)
+        return KeyDetails(public_key={}, private_key={'key': self.key, 'iv': self.iv})
+
+    def encrypt_message(self, msg: int) -> bytes:
+        msg_bytes = str(msg).encode()
+        cipher = self._get_cipher(encrypting=True)
+        if self.mode_name in self.__PADDING_MODES:
+            return cipher.encrypt(pad(msg_bytes, self.block_size))
+        else:
+            return cipher.encrypt(msg_bytes)
+
+    def decrypt_message(self, msg: bytes) -> int:
+        cipher = self._get_cipher(encrypting=False)
+        if self.mode_name in self.__PADDING_MODES:
+            plaintext = unpad(cipher.decrypt(msg), self.block_size)
+        else:
+            plaintext = cipher.decrypt(msg)
+        return int(plaintext.decode())
 
     def _get_serializable_encrypted_messages(self, encrypted_messages: list[bytes]) -> list[bytes]:
-        try:
-            # with open(self.__MODEL_FILE, "wb") as f:
-            #     pickle.dump(self.__encryption_model, f)
-            return encrypted_messages
-        except Exception as e:
-            raise RuntimeError("Error occurred when saving lightPhe model.")
         return encrypted_messages
 
     def _get_deserializable_encrypted_messages(self, encrypted_messages: list[bytes]) -> list[bytes]:
-        try:
-            # with open(self.__MODEL_FILE, 'rb') as messages_file:
-            #     self.__encryption_model = pickle.load(messages_file)
-            return encrypted_messages
-        except FileNotFoundError:
-            print("Something went wrong with loading the encrypted messages")
-
         return encrypted_messages
 
-    def encrypt_message(self, msg: int) -> bytes:
-        """ Encrypt the message """
-        return self.__encryption_model.encrypt(msg.to_bytes(2, "big"))
-
-    def decrypt_message(self, msg: bytes) -> int:
-        """ Decrypt the message """
-        return int.from_bytes(self.__decryption_model.decrypt(msg), byteorder="big")
 
 if __name__ == "__main__":
-    pycr = PycryptodomeSecurityAlgorithm("AES", "cbc")
+    pycr = PycryptodomeSecurityAlgorithm("AES", "ECB")
     m1 = 56
     m2 = 83
 
