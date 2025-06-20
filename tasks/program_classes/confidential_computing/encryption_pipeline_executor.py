@@ -3,14 +3,14 @@ from typing import Optional
 from tasks.confidential_computing_tasks.encryption_type import EncryptionType
 from tasks.program_classes.confidential_computing.encryption_program import EncryptionProgram
 
-HOMOMORPHIC_ENCRYPTION_PIPELINE = r'homomorphic_encryption_tasks/homomorphic_pipeline.py'
+FULL_ENCRYPTION_PIPELINE = r'encryption_pipeline.py'
 
 
-class HomomorphicEncryptionExecutor(EncryptionProgram):
+class EncryptionPipelineExecutor(EncryptionProgram):
     def __init__(self, messages_file: str, results_file: str, security_algorithm: EncryptionType, key_file: str,
                  min_key_value: Optional[int] = None, max_key_value: Optional[int] = None):
-        super().__init__(messages_file, results_file, security_algorithm, key_file, HOMOMORPHIC_ENCRYPTION_PIPELINE, min_key_value,
+        super().__init__(messages_file, results_file, security_algorithm, key_file, FULL_ENCRYPTION_PIPELINE, min_key_value,
                          max_key_value)
 
     def get_program_name(self):
-        return "Homomorphic Encryption Pipeline"
+        return "Full Encryption Pipeline"

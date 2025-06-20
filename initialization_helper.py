@@ -10,8 +10,8 @@ from tasks.program_classes.antiviruses.clam_av_program import ClamAVProgram
 from tasks.program_classes.antiviruses.defender_program import DefenderProgram
 from tasks.program_classes.antiviruses.dummy_antivirus_program import DummyAntivirusProgram
 from tasks.program_classes.antiviruses.sophos_av_program import SophosAVProgram
-from tasks.program_classes.confidential_computing.homomorphic_encryption.homomorphic_encryption_executor import \
-    HomomorphicEncryptionExecutor
+from tasks.program_classes.confidential_computing.encryption_pipeline_executor import \
+    EncryptionPipelineExecutor
 from tasks.program_classes.confidential_computing.message_decryptor import MessageDecryptor
 from tasks.program_classes.confidential_computing.message_encryptor import MessageEncryptor
 from tasks.program_classes.dummy_cpu_consumer_program import CPUConsumer
@@ -111,10 +111,10 @@ def program_to_scan_factory(program_type):
     if program_type == ProgramToScan.MessageDecryptor:
         return MessageDecryptor(messages_file=messages_to_decrypt_file, results_file=results_file_for_decryption, security_algorithm=security_algorithm_type,
                                 key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
-    if program_type == ProgramToScan.HomomorphicExecutor:
-        return HomomorphicEncryptionExecutor(messages_file=messages_to_encrypt_file,  results_file=results_file_for_decryption,
-                                             security_algorithm=security_algorithm_type, key_file=algorithm_key_file,
-                                             min_key_value=min_key_value, max_key_value=max_key_value)
+    if program_type == ProgramToScan.EncryptionPipelineExecutor:
+        return EncryptionPipelineExecutor(messages_file=messages_to_encrypt_file, results_file=results_file_for_decryption,
+                                          security_algorithm=security_algorithm_type, key_file=algorithm_key_file,
+                                          min_key_value=min_key_value, max_key_value=max_key_value)
 
     raise Exception("choose program to scan from ProgramToScan enum")
 

@@ -1,8 +1,8 @@
 from tasks.confidential_computing_tasks.action_type import ActionType
-from tasks.confidential_computing_tasks.algorithm_utils import extract_arguments, convert_str_to_alg_type, \
+from tasks.confidential_computing_tasks.utils.algorithm_utils import extract_arguments, convert_str_to_alg_type, \
     get_updated_message
 from tasks.confidential_computing_tasks.encryption_algorithm_factory import EncryptionAlgorithmFactory
-from tasks.confidential_computing_tasks.saving_utils import extract_messages_from_file, \
+from tasks.confidential_computing_tasks.utils.saving_utils import extract_messages_from_file, \
     write_messages_to_file
 
 

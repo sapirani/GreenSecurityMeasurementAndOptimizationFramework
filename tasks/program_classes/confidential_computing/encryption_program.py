@@ -7,7 +7,7 @@ from tasks.confidential_computing_tasks.encryption_type import EncryptionType
 from tasks.program_classes.abstract_program import ProgramInterface
 
 
-CONFIDENTIAL_COMPUTING_TASKS_DIR = fr'tasks/confidential_computing_tasks'
+CONFIDENTIAL_COMPUTING_TASKS_DIR = fr'tasks/confidential_computing_tasks/tasks_options'
 
 class EncryptionProgram(ProgramInterface, ABC):
     def __init__(self, messages_file: str, results_file: str, security_algorithm: EncryptionType, key_file: str, encryption_task_path: str, min_key_value: Optional[int] = None, max_key_value: Optional[int] = None):
