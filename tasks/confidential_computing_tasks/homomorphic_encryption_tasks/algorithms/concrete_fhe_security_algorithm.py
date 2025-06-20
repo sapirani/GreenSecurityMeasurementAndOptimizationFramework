@@ -9,15 +9,18 @@ from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_
 def add(x, y):
     return x + y
 
+
 # Function 2: Multiply two encrypted integers
 @fhe.compiler({"x": "encrypted", "y": "encrypted"})
 def multiply(x, y):
     return x * y
 
+
 # Function 3: Multiply encrypted integer by scalar (constant)
 @fhe.compiler({"x": "encrypted", "scalar": "clear"})
 def scalar_multiply(x, scalar):
     return x * scalar
+
 
 class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[fhe.Value]):
     __KEYS_FILE = "encryption_model.bin"
@@ -45,11 +48,9 @@ class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[fhe.Value]):
         self.__mul_with_scalar_circuit = scalar_multiply.compile(inputset, configuration=self.__config)  # Dummy inputs for compilation
         self.__mul_with_scalar_circuit.keyset = self.__keyset
 
-
-
     def extract_key(self, key_file: str) -> KeyDetails:  # todo: maybe extract from the key file the alg name?
         """ Initialize the public and private key """
-        print("Key extraction method is not implemented for LightPHE library.")
+        print("Key extraction method is not implemented for Concrete-python fhe library.")
         return KeyDetails({}, {})
 
     def _get_serializable_encrypted_messages(self, encrypted_messages: list[fhe.Value]) -> list[fhe.Value]:
@@ -63,8 +64,9 @@ class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[fhe.Value]):
         try:
             self.__add_circuit.keyset = fhe.KeySet.load(self.__KEYS_FILE)
             self.__mul_circuit.keyset = self.__add_circuit.keyset
-            self.__scalar_mul_circuit.keyset = self.__add_circuit.keyset
-            return [self.__add_circuit.load_encrypted_input(ciphertext_bytes) for ciphertext_bytes in encrypted_messages]
+            self.__mul_with_scalar_circuit.keyset = self.__add_circuit.keyset
+            return [self.__add_circuit.load_encrypted_input(ciphertext_bytes) for ciphertext_bytes in
+                    encrypted_messages]
         except FileNotFoundError:
             print("Something went wrong with loading the encrypted messages")
 
@@ -88,10 +90,12 @@ class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[fhe.Value]):
         try:
             return self.__mul_circuit.run({"x": c1, "y": c2})
         except Exception as e:
-            raise NotImplementedError(f"LightPHE with algorithm {self.__algorithm} does not support multiplying messages.")
+            raise NotImplementedError(
+                f"LightPHE with algorithm {self.__algorithm} does not support multiplying messages.")
 
     def scalar_and_message_multiplication(self, c: fhe.Value, scalar: int) -> fhe.Value:
         try:
             return self.__mul_with_scalar_circuit.run({"x": c, "scalar": scalar})
         except Exception as e:
-            raise NotImplementedError(f"LightPHE with algorithm {self.__algorithm} does not support multiplying message with scalar.")
+            raise NotImplementedError(
+                f"LightPHE with algorithm {self.__algorithm} does not support multiplying message with scalar.")
