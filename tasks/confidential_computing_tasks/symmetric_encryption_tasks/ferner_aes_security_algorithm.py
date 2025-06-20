@@ -26,17 +26,17 @@ class FernerAESSecurityAlgorithm(SecurityAlgorithm[bytes]):
         """ Initialize the public and private key """
         try:
             with open(key_file, "r") as f:
-                key_lines = f.readlines()
+                key_content = f.read().strip()
         except FileNotFoundError:
-            key_lines = []
+            key_content = ""
 
-        if len(key_lines) != 1:
+        if key_content == "" or key_content is None:
             print("Generated new fernet key randomly.")
             self.__key = Fernet.generate_key()
             with open(key_file, "wb") as f:
                 f.write(self.__key)
         else:
-            self.__key = key_lines[0].strip()
+            self.__key = key_content
             print(f"Extracted fernet key from {key_file}.")
 
         self.__encryption_fernet = Fernet(self.__key)
