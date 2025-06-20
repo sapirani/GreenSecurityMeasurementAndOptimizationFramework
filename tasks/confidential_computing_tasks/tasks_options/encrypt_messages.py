@@ -1,5 +1,5 @@
 from tasks.confidential_computing_tasks.action_type import ActionType
-from tasks.confidential_computing_tasks.execute_pipeline import execute_pipeline
+from tasks.confidential_computing_tasks.tasks_options.execute_pipeline import execute_pipeline
 
 if __name__ == "__main__":
 

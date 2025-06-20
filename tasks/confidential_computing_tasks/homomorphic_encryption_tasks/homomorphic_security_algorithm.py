@@ -2,7 +2,7 @@ import math
 from abc import ABC, abstractmethod
 
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm, T
-from tasks.confidential_computing_tasks.basic_utils import generate_random_prime
+from tasks.confidential_computing_tasks.utils.basic_utils import generate_random_prime
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL, KeyDetails
 
 class KeyConsts:
