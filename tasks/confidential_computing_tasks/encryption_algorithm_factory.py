@@ -12,7 +12,7 @@ from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.algorithms.
     TensealSecurityAlgorithm, TensealSchemas
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL
 from tasks.confidential_computing_tasks.symmetric_encryption_tasks.ferner_aes_security_algorithm import \
-    FernerAESSecurityAlgorithm
+    FernetAESSecurityAlgorithm
 
 
 class EncryptionAlgorithmFactory:
@@ -47,7 +47,7 @@ class EncryptionAlgorithmFactory:
             return TensealSecurityAlgorithm[CKKSVector](TensealSchemas.CKKS, min_key_val, max_key_val)
         elif encryption_algorithm == EncryptionType.BFVTenseal:
             return TensealSecurityAlgorithm[BFVVector](TensealSchemas.BFV, min_key_val, max_key_val)
-        elif encryption_algorithm == EncryptionType.FernerAES:
-            return FernerAESSecurityAlgorithm(min_key_val, max_key_val)
+        elif encryption_algorithm == EncryptionType.FernetAES:
+            return FernetAESSecurityAlgorithm(min_key_val, max_key_val)
         else:
             raise ValueError("Unknown encryption algorithm")

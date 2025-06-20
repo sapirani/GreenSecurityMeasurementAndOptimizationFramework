@@ -6,7 +6,7 @@ from tasks.confidential_computing_tasks.abstract_seurity_algorithm import Securi
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL, KeyDetails
 
 
-class FernerAESSecurityAlgorithm(SecurityAlgorithm[bytes]):
+class FernetAESSecurityAlgorithm(SecurityAlgorithm[bytes]):
     __KEY_STR = "key"
     __NUM_OF_BYTES = 2
     __ORDER: Literal["little", "big"] = "big"
@@ -50,24 +50,3 @@ class FernerAESSecurityAlgorithm(SecurityAlgorithm[bytes]):
         """ Decrypt the message """
         decrypted_msg = self.__encryption_fernet.decrypt(msg)
         return int.from_bytes(decrypted_msg, self.__ORDER)
-
-# if __name__ == "__main__":
-#     ferner = FernerAESSecurityAlgorithm()
-#     ferner.extract_key("fernet.key")
-#     m1 = 56
-#     m2 = 84
-#
-#     c1 = ferner.encrypt_message(m1)
-#     c2 = ferner.encrypt_message(m2)
-#
-#     sum = m2 + m1
-#     sum_c = ferner.encrypt_message(sum)
-#     sum_c_dec = ferner.decrypt_message(sum_c)
-#
-#     m11 = ferner.decrypt_message(c1)
-#     m22 = ferner.decrypt_message(c2)
-#     sum_dec = m11 + m22
-#
-#     print(f"m11: {m11}")
-#     print(f"m22: {m22}")
-#     print(f"sum_dec == sum_c_dec: {sum_dec == sum_c_dec}")
