@@ -1,4 +1,8 @@
+import pickle
+
 from concrete import fhe
+from concrete.compiler import KeySet
+from concrete.fhe import Value
 
 from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.homomorphic_security_algorithm import \
     HomomorphicSecurityAlgorithm
@@ -22,7 +26,7 @@ def scalar_multiply(x, scalar):
     return x * scalar
 
 
-class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[fhe.Value]):
+class ConcreteFHESecurityAlgorithm(HomomorphicSecurityAlgorithm[fhe.Value]):
     __KEYS_FILE = "encryption_model.bin"
 
     def __init__(self, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
@@ -37,13 +41,13 @@ class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[fhe.Value]):
 
         # Define the same keys for all circuits
         self.__add_circuit = add.compile(inputset, configuration=self.__config)  # Dummy inputs for compilation
-        self.__keyset = self.__add_circuit.keyset
+        self.__keyset = self.__add_circuit.keys
 
         self.__mul_circuit = multiply.compile(inputset, configuration=self.__config)  # Dummy inputs for compilation
-        self.__mul_circuit.keyset = self.__keyset
+        self.__mul_circuit.keys = self.__keyset
 
         self.__mul_with_scalar_circuit = scalar_multiply.compile(inputset, configuration=self.__config)  # Dummy inputs for compilation
-        self.__mul_with_scalar_circuit.keyset = self.__keyset
+        self.__mul_with_scalar_circuit.keys = self.__keyset
 
     def extract_key(self, key_file: str) -> KeyDetails:  # todo: maybe extract from the key file the alg name?
         """ Initialize the public and private key """
@@ -52,17 +56,21 @@ class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[fhe.Value]):
 
     def _get_serializable_encrypted_messages(self, encrypted_messages: list[fhe.Value]) -> list[fhe.Value]:
         try:
-            self.__add_circuit.keyset.save(self.__KEYS_FILE)
-            return [ciphertext.to_bytes() for ciphertext in encrypted_messages]
+            with open(self.__KEYS_FILE, "wb") as f:
+                f.write(self.__keyset.serialize())
+            # self.__add_circuit.keyset.save(self.__KEYS_FILE)
+            return [self.__add_circuit.serialize_encrypted_input(ciphertext) for ciphertext in encrypted_messages]
         except Exception as e:
             raise RuntimeError("Error occurred when saving lightPhe model.")
 
     def _get_deserializable_encrypted_messages(self, encrypted_messages: list[fhe.Value]) -> list[fhe.Value]:
         try:
-            self.__add_circuit.keyset = fhe.KeySet.load(self.__KEYS_FILE)
-            self.__mul_circuit.keyset = self.__add_circuit.keyset
-            self.__mul_with_scalar_circuit.keyset = self.__add_circuit.keyset
-            return [self.__add_circuit.load_encrypted_input(ciphertext_bytes) for ciphertext_bytes in
+            with open(self.__KEYS_FILE, "rb") as f:
+                self.__keyset = KeySet.deserialize(pickle.load(f))
+            self.__add_circuit.keys = self.__keyset
+            self.__mul_circuit.keys = self.__keyset
+            self.__mul_with_scalar_circuit.keys = self.__keyset
+            return [self.__add_circuit.deserialize_encrypted_input(ciphertext_bytes) for ciphertext_bytes in
                     encrypted_messages]
         except FileNotFoundError:
             print("Something went wrong with loading the encrypted messages")
@@ -96,3 +104,13 @@ class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[fhe.Value]):
         except Exception as e:
             raise NotImplementedError(
                 f"Concrete-python fhe does not support multiplying message with scalar.")
+
+if __name__ == "__main__":
+    co = ConcreteFHESecurityAlgorithm()
+    a = 56
+    b = 83
+
+    c1 = co.encrypt_message(a)
+    c2 = co.encrypt_message(b)
+
+    co.save_encrypted_messages([c1, c2], "temp.bin")
