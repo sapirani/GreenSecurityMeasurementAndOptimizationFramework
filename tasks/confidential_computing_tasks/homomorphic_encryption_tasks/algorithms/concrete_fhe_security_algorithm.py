@@ -1,5 +1,4 @@
 from concrete import fhe
-from concrete.fhe.compilation.configuration import SecurityLevel, Exactness
 
 from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.homomorphic_security_algorithm import \
     HomomorphicSecurityAlgorithm
@@ -26,17 +25,14 @@ def scalar_multiply(x, scalar):
 class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[fhe.Value]):
     __KEYS_FILE = "encryption_model.bin"
 
-    def __init__(self, algorithm: str, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
+    def __init__(self, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
         super().__init__(min_key_val, max_key_val)
-        self.__algorithm = algorithm
         inputset = [(10, 185), (9, 200), (15, 198), (15, 230)] # todo: change?
 
         self.__config = fhe.Configuration(
             # you can inset here so many configurations
-            security_level=SecurityLevel.SECURITY_128_BITS,  # you may choose SECURITY_128_BITS
             p_error=0.001,  # Optional: sets per-lookup error probability
-            dataflow_parallelize=True,  # Optional: parallelize computation
-            rounding_exactness=Exactness.APPROXIMATE
+            dataflow_parallelize=True  # Optional: parallelize computation
         )
 
         # Define the same keys for all circuits
@@ -85,18 +81,18 @@ class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[fhe.Value]):
         try:
             return self.__add_circuit.run({"x": c1, "y": c2})
         except Exception as e:
-            raise NotImplementedError(f"Concrete-python fhe with algorithm {self.__algorithm} does not support adding messages.")
+            raise NotImplementedError(f"Concrete-python fhe does not support adding messages.")
 
     def multiply_messages(self, c1: fhe.Value, c2: fhe.Value) -> fhe.Value:
         try:
             return self.__mul_circuit.run({"x": c1, "y": c2})
         except Exception as e:
             raise NotImplementedError(
-                f"Concrete-python fhe with algorithm {self.__algorithm} does not support multiplying messages.")
+                f"Concrete-python fhe does not support multiplying messages.")
 
     def scalar_and_message_multiplication(self, c: fhe.Value, scalar: int) -> fhe.Value:
         try:
             return self.__mul_with_scalar_circuit.run({"x": c, "scalar": scalar})
         except Exception as e:
             raise NotImplementedError(
-                f"Concrete-python fhe with algorithm {self.__algorithm} does not support multiplying message with scalar.")
+                f"Concrete-python fhe does not support multiplying message with scalar.")
