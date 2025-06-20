@@ -1,6 +1,7 @@
 import os
 import pickle
-from typing import Optional
+from dataclasses import dataclass
+from typing import Optional, Any
 
 from Crypto.Cipher import AES, DES, Blowfish
 from Crypto.Random import get_random_bytes
@@ -8,6 +9,19 @@ from Crypto.Util.Padding import pad, unpad
 
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL, KeyDetails
+
+@dataclass
+class AlgorithmDetails:
+    name: str
+    alg: Any
+    block_size: int
+    key_size: int
+
+class PycryptodomeKeyConsts:
+    IV = "iv"
+    NONCE = "nonce"
+    COUNTER = "counter"
+    KEY = "key"
 
 
 class PycryptodomeSymmetricAlgorithms:
@@ -29,26 +43,13 @@ class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
     __PADDING_MODES = ['ECB', 'CBC']
 
     __ALGORITHMS = {
-        'AES': AES,
-        'DES': DES,
-        'BLOWFISH': Blowfish
+        'AES': AlgorithmDetails(name="AES", alg=AES, block_size=AES.block_size, key_size=16),
+        'DES': AlgorithmDetails(name="DES", alg=DES, block_size=DES.block_size, key_size=8),
+        'BLOWFISH': AlgorithmDetails(name="Blowfish", alg=Blowfish, block_size=Blowfish.block_size, key_size=16),
+        'DEFAULT': AlgorithmDetails(name="DEFAULT", alg=None, block_size=-1, key_size=-1)
     }
 
-    __BLOCK_SIZES = {
-            'AES': AES.block_size,
-            'DES': DES.block_size,
-            'BLOWFISH': Blowfish.block_size,
-            "default": 16
-        }
-
-    __KEY_SIZES = {
-            'AES': 16,
-            'DES': 8,
-            'BLOWFISH': 16,
-            "default": 16
-        }
-
-    __DEFAULT_KEY_STR = "default"
+    __DEFAULT_KEY_STR = "DEFAULT"
     __MODEL_FILE = "encryption_model.bin"
 
     def __init__(self, algorithm: str, mode: Optional[str], min_key_val: int = PRIME_MIN_VAL,
@@ -64,7 +65,8 @@ class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
         self.iv = self._generate_iv()
 
     def _generate_key(self) -> bytes:
-        key_size = self.__KEY_SIZES.get(self.algorithm_name, -1)
+        alg_details = self.__ALGORITHMS.get(self.algorithm_name, self.__ALGORITHMS[self.__DEFAULT_KEY_STR])
+        key_size = alg_details.key_size
         if key_size < 0:
             raise ValueError("Unsupported algorithm")
 
@@ -81,21 +83,26 @@ class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
         return b''
 
     def _get_block_size(self) -> int:
-        return self.__BLOCK_SIZES.get(self.algorithm_name, self.__BLOCK_SIZES[self.__DEFAULT_KEY_STR])
+        alg_details = self.__ALGORITHMS.get(self.algorithm_name, self.__ALGORITHMS[self.__DEFAULT_KEY_STR])
+        block_size = alg_details.block_size
+
+        if block_size < 0:
+            raise ValueError("Unsupported algorithm")
+        return block_size
 
     def _get_cipher(self, encrypting: bool):
         mode = getattr(self._get_algorithm_module(), f'MODE_{self.mode_name}')
-        kwargs = {'key': self.key}
+        kwargs = {PycryptodomeKeyConsts.KEY: self.key}
 
         if self.mode_name in self.__SUPPORTING_IV_MODES:
-            kwargs['iv'] = self.iv
+            kwargs[PycryptodomeKeyConsts.IV] = self.iv
 
         if self.mode_name in self.__SUPPORTING_NONCE_MODES:
-            kwargs["nonce"] = self.nonce
+            kwargs[PycryptodomeKeyConsts.NONCE] = self.nonce
 
         if self.mode_name == 'CTR':
             from Crypto.Util import Counter
-            kwargs['counter'] = Counter.new(self.block_size * 8)
+            kwargs[PycryptodomeKeyConsts.COUNTER] = Counter.new(self.block_size * 8)
 
         if encrypting:
             return self._get_algorithm_module().new(**kwargs, mode=mode)
@@ -103,18 +110,23 @@ class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
             return self._get_algorithm_module().new(**kwargs, mode=mode)
 
     def _get_algorithm_module(self):
-        return self.__ALGORITHMS.get(self.algorithm_name, AES)
+        alg_details = self.__ALGORITHMS.get(self.algorithm_name, self.__ALGORITHMS[self.__DEFAULT_KEY_STR])
+        alg_module = alg_details.alg
+        if alg_module is None:
+            raise ValueError("Unsupported algorithm")
+        return alg_module
 
     def extract_key(self, key_file: str) -> KeyDetails:
         if os.path.exists(key_file):
             with open(key_file, 'rb') as f:
                 data = pickle.load(f)
-                self.key = data['key']
-                self.iv = data.get('iv', b'')
+                self.key = data[PycryptodomeKeyConsts.KEY]
+                self.iv = data.get(PycryptodomeKeyConsts.IV, b'')
+                self.nonce = data.get(PycryptodomeKeyConsts.NONCE, b'')
         else:
             with open(key_file, 'wb') as f:
-                pickle.dump({'key': self.key, 'iv': self.iv}, f)
-        return KeyDetails(public_key={}, private_key={'key': self.key, 'iv': self.iv})
+                pickle.dump({PycryptodomeKeyConsts.KEY: self.key, PycryptodomeKeyConsts.IV: self.iv, PycryptodomeKeyConsts.NONCE: self.nonce}, f)
+        return KeyDetails(public_key={}, private_key={PycryptodomeKeyConsts.KEY: self.key, PycryptodomeKeyConsts.IV: self.iv, PycryptodomeKeyConsts.NONCE: self.nonce})
 
     def encrypt_message(self, msg: int) -> bytes:
         msg_bytes = str(msg).encode()
