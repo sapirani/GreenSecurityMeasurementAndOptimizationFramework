@@ -1,4 +1,5 @@
-import pickle
+from concrete import fhe
+from concrete.fhe.compilation.configuration import SecurityLevel, Exactness
 
 from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.homomorphic_security_algorithm import \
     HomomorphicSecurityAlgorithm
@@ -28,7 +29,7 @@ class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[fhe.Value]):
     def __init__(self, algorithm: str, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
         super().__init__(min_key_val, max_key_val)
         self.__algorithm = algorithm
-        inputset = [(10, 185), (9, 200), (15, 198), (15, 230)]
+        inputset = [(10, 185), (9, 200), (15, 198), (15, 230)] # todo: change?
 
         self.__config = fhe.Configuration(
             # you can inset here so many configurations
@@ -84,18 +85,18 @@ class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[fhe.Value]):
         try:
             return self.__add_circuit.run({"x": c1, "y": c2})
         except Exception as e:
-            raise NotImplementedError(f"LightPHE with algorithm {self.__algorithm} does not support adding messages.")
+            raise NotImplementedError(f"Concrete-python fhe with algorithm {self.__algorithm} does not support adding messages.")
 
     def multiply_messages(self, c1: fhe.Value, c2: fhe.Value) -> fhe.Value:
         try:
             return self.__mul_circuit.run({"x": c1, "y": c2})
         except Exception as e:
             raise NotImplementedError(
-                f"LightPHE with algorithm {self.__algorithm} does not support multiplying messages.")
+                f"Concrete-python fhe with algorithm {self.__algorithm} does not support multiplying messages.")
 
     def scalar_and_message_multiplication(self, c: fhe.Value, scalar: int) -> fhe.Value:
         try:
             return self.__mul_with_scalar_circuit.run({"x": c, "scalar": scalar})
         except Exception as e:
             raise NotImplementedError(
-                f"LightPHE with algorithm {self.__algorithm} does not support multiplying message with scalar.")
+                f"Concrete-python fhe with algorithm {self.__algorithm} does not support multiplying message with scalar.")
