@@ -15,3 +15,4 @@ class EncryptionType(Enum):
     LightPheEllipticCurveElGamal = 12
     CKKSTenseal = 13
     BFVTenseal = 14
+    FernerAES = 15
