@@ -34,7 +34,7 @@ class PycryptodomeKeyConsts:
     KEY_HOLDER = "key"
     MODE = "mode"
 
-class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
+class PycryptodomeSymmetricSecurityAlgorithm(SecurityAlgorithm[bytes]):
     __SUPPORTING_IV_MODES = ['CBC', 'CFB', 'OFB']
     __SUPPORTING_NONCE_MODES = ['CTR', 'EAX', 'GCM', PycryptodomeSymmetricAlgorithms.CHACHA20]
     __PADDING_MODES = ['ECB', 'CBC']
@@ -163,7 +163,7 @@ class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
 
 
 if __name__ == "__main__":
-    pycr = PycryptodomeSecurityAlgorithm("ARC4", "ECB")
+    pycr = PycryptodomeSymmetricSecurityAlgorithm("ARC4", "ECB")
     pycr.extract_key("pycr.key")
     m1 = 56
     m2 = 83

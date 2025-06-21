@@ -1,6 +1,8 @@
 from tenseal import CKKSVector, BFVVector
 
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
+from tasks.confidential_computing_tasks.asymmetric_encryption_tasks.pycryptodome_asym_security_algorithm import \
+    PycryptodomeAsymmetricSecurityAlgorithm, PycryptodomeAsymmetricAlgorithms
 from tasks.confidential_computing_tasks.encryption_type import EncryptionType
 from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.algorithms.light_phe_security_algorithm import \
     LightPHESecurityAlgorithm, LightPHEAlgorithms
@@ -13,8 +15,8 @@ from tasks.confidential_computing_tasks.homomorphic_encryption_tasks.algorithms.
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL
 from tasks.confidential_computing_tasks.symmetric_encryption_tasks.ferner_aes_security_algorithm import \
     FernetAESSecurityAlgorithm
-from tasks.confidential_computing_tasks.symmetric_encryption_tasks.pycryptodome_security_algorithm import \
-    PycryptodomeSecurityAlgorithm, PycryptodomeSymmetricAlgorithms
+from tasks.confidential_computing_tasks.symmetric_encryption_tasks.pycryptodome_sym_security_algorithm import \
+    PycryptodomeSymmetricSecurityAlgorithm, PycryptodomeSymmetricAlgorithms
 
 
 class EncryptionAlgorithmFactory:
@@ -52,14 +54,16 @@ class EncryptionAlgorithmFactory:
         elif encryption_algorithm == EncryptionType.FernetAES:
             return FernetAESSecurityAlgorithm(min_key_val, max_key_val)
         elif encryption_algorithm == EncryptionType.PycryptoAES:
-            return PycryptodomeSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.AES, mode="CBC")
+            return PycryptodomeSymmetricSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.AES, mode="CBC")
         elif encryption_algorithm == EncryptionType.PycryptoDES:
-            return PycryptodomeSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.DES, mode="CBC")
+            return PycryptodomeSymmetricSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.DES, mode="CBC")
         elif encryption_algorithm == EncryptionType.PycryptoBlowfish:
-            return PycryptodomeSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.BLOWFISH, mode="CBC")
+            return PycryptodomeSymmetricSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.BLOWFISH, mode="CBC")
         elif encryption_algorithm == EncryptionType.PycryptoArc4:
-            return PycryptodomeSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.ARC4, mode=None)
-        elif encryption_algorithm == EncryptionType.PycryptoAES:
-            return PycryptodomeSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.CHACHA20, mode=None)
+            return PycryptodomeSymmetricSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.ARC4, mode=None)
+        elif encryption_algorithm == EncryptionType.PycryptoChaCha20:
+            return PycryptodomeSymmetricSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.CHACHA20, mode=None)
+        elif encryption_algorithm == EncryptionType.PycryptoRSA:
+            return PycryptodomeAsymmetricSecurityAlgorithm(algorithm=PycryptodomeAsymmetricAlgorithms.RSA)
         else:
             raise ValueError("Unknown encryption algorithm")

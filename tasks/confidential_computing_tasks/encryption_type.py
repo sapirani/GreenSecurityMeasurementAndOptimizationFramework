@@ -21,3 +21,4 @@ class EncryptionType(Enum):
     PycryptoBlowfish = 18
     PycryptoChaCha20 = 19
     PycryptoArc4 = 20
+    PycryptoRSA = 21
