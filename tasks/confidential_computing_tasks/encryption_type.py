@@ -16,3 +16,8 @@ class EncryptionType(Enum):
     CKKSTenseal = 13
     BFVTenseal = 14
     FernetAES = 15
+    PycryptoAES = 16
+    PycryptoDES = 17
+    PycryptoBlowfish = 18
+    PycryptoChaCha20 = 19
+    PycryptoArc4 = 20

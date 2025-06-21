@@ -31,7 +31,7 @@ class PycryptodomeKeyConsts:
     IV = "iv"
     NONCE = "nonce"
     COUNTER = "counter"
-    KEY = "key"
+    KEY_HOLDER = "key"
     MODE = "mode"
 
 class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
@@ -89,7 +89,7 @@ class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
             raise ValueError("Unsupported algorithm")
         return block_size
 
-    def _get_cipher(self, encrypting: bool):
+    def _get_cipher(self):
         alg_details = self.__ALGORITHMS.get(self.algorithm_name, self.__ALGORITHMS['DEFAULT'])
 
         if alg_details.is_stream:
@@ -99,7 +99,7 @@ class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
                 return alg_details.alg.new(key=self.key)
         else:
             mode = getattr(alg_details.alg, f'MODE_{self.mode_name}')
-            kwargs = {PycryptodomeKeyConsts.KEY: self.key, PycryptodomeKeyConsts.MODE: mode}
+            kwargs = {PycryptodomeKeyConsts.KEY_HOLDER: self.key, PycryptodomeKeyConsts.MODE: mode}
 
             if self.mode_name in self.__SUPPORTING_IV_MODES:
                 kwargs[PycryptodomeKeyConsts.IV] = self.iv
@@ -121,7 +121,7 @@ class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
         if os.path.exists(key_file):
             with open(key_file, 'rb') as f:
                 data = pickle.load(f)
-                self.key = data[PycryptodomeKeyConsts.KEY]
+                self.key = data[PycryptodomeKeyConsts.KEY_HOLDER]
                 self.iv = data.get(PycryptodomeKeyConsts.IV, b'')
                 self.nonce = data.get(PycryptodomeKeyConsts.NONCE, b'')
         else:
@@ -130,25 +130,25 @@ class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
             self.nonce = self._generate_nonce()
             with open(key_file, 'wb') as f:
                 pickle.dump({
-                    PycryptodomeKeyConsts.KEY: self.key,
+                    PycryptodomeKeyConsts.KEY_HOLDER: self.key,
                     PycryptodomeKeyConsts.IV: self.iv,
                     PycryptodomeKeyConsts.NONCE: self.nonce
                 }, f)
         return KeyDetails(public_key={},
-                          private_key={PycryptodomeKeyConsts.KEY: self.key,
+                          private_key={PycryptodomeKeyConsts.KEY_HOLDER: self.key,
                                        PycryptodomeKeyConsts.IV: self.iv,
                                        PycryptodomeKeyConsts.NONCE: self.nonce})
 
     def encrypt_message(self, msg: int) -> bytes:
         msg_bytes = str(msg).encode()
-        cipher = self._get_cipher(encrypting=True)
+        cipher = self._get_cipher()
         if self.mode_name in self.__PADDING_MODES:
             return cipher.encrypt(pad(msg_bytes, self.block_size))
         else:
             return cipher.encrypt(msg_bytes)
 
     def decrypt_message(self, msg: bytes) -> int:
-        cipher = self._get_cipher(encrypting=False)
+        cipher = self._get_cipher()
         if self.mode_name in self.__PADDING_MODES:
             plaintext = unpad(cipher.decrypt(msg), self.block_size)
         else:
