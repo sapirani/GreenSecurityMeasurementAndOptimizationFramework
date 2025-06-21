@@ -7,10 +7,20 @@ from tasks.confidential_computing_tasks.utils.saving_utils import extract_messag
 
 
 def execute_pipeline(action_type: ActionType) -> list[int]:
-    messages_file, result_messages_file, encryption_algorithm, encryption_key_file, min_key_val, max_key_val = extract_arguments()
+    params = extract_arguments()
+
+    messages_file = params.path_for_messages
+    result_messages_file = params.path_for_result_messages
+    encryption_algorithm = params.encryption_algorithm
+    encryption_key_file = params.key_file
+    min_key_val = params.min_key_value
+    max_key_val = params.max_key_value
+    cipher_block_mode = params.cipher_block_mode
+
     encryption_algorithm_type = convert_str_to_alg_type(encryption_algorithm)
 
     encryption_instance = EncryptionAlgorithmFactory.create_security_algorithm(encryption_algorithm_type,
+                                                                               cipher_block_mode,
                                                                                min_key_val,
                                                                                max_key_val)
     encryption_instance.extract_key(encryption_key_file)

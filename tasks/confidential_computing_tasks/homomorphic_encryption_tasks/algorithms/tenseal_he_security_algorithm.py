@@ -103,7 +103,7 @@ class TensealSecurityAlgorithm(HomomorphicSecurityAlgorithm[T]):
         if self.schema == TensealSchemas.CKKS:
             return decrypted_message
         elif self.schema == TensealSchemas.BFV:
-            return (decrypted_message + self.__plain_modulus) % self.__plain_modulus
+            return decrypted_message % self.__plain_modulus
         else:
             raise NotImplementedError(ERROR_NOT_SUPPORTING_SCHEMA)
 

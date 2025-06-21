@@ -5,9 +5,10 @@ from tasks.confidential_computing_tasks.abstract_seurity_algorithm import Securi
 from tasks.confidential_computing_tasks.action_type import ActionType
 from tasks.confidential_computing_tasks.encryption_type import EncryptionType
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL
+from tasks.confidential_computing_tasks.tasks_options.pipeline_parameters import PipelineParameters
 
 
-def extract_arguments() -> tuple[str, str, int, str, int, int]:
+def extract_arguments() -> PipelineParameters:
     parser = argparse.ArgumentParser(
         description="This program encrypts or decrypts messages using a security algorithm."
     )
@@ -26,6 +27,11 @@ def extract_arguments() -> tuple[str, str, int, str, int, int]:
                         type=int,
                         required=True,
                         help="type of encryption algorithm")
+
+    parser.add_argument("--mode",
+                        type=str,
+                        default=None,
+                        help="mode of block cipher algorithm")
 
     parser.add_argument("-k", "--key_file",
                         type=str,
@@ -52,7 +58,13 @@ def extract_arguments() -> tuple[str, str, int, str, int, int]:
 
     print("Messages File: {}".format(messages_file))
     print("Encryption Algorithm: {}".format(encryption_algorithm))
-    return messages_file, result_messages_file, encryption_algorithm, encryption_key_file, min_key_val, max_key_val
+    return PipelineParameters(path_for_messages=messages_file,
+                              path_for_result_messages=result_messages_file,
+                              encryption_algorithm=encryption_algorithm,
+                              cipher_block_mode=None,
+                              key_file=encryption_key_file,
+                              min_key_value=min_key_val,
+                              max_key_value=max_key_val)
 
 
 def convert_str_to_alg_type(encryption_algorithm: int) -> EncryptionType:
