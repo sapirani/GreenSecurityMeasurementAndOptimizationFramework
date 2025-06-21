@@ -10,12 +10,14 @@ from Crypto.Util.Padding import pad, unpad
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL, KeyDetails
 
+
 @dataclass
 class AlgorithmDetails:
     name: str
     alg: Any
     block_size: int
     key_size: int
+
 
 class PycryptodomeKeyConsts:
     IV = "iv"
@@ -25,16 +27,9 @@ class PycryptodomeKeyConsts:
 
 
 class PycryptodomeSymmetricAlgorithms:
-    RSA = "RSA"
-    ELGAMAL = "ElGamal"
-    EXPONENTIAL_ELGAMAL = "Exponential-ElGamal"
-    PAILLIER = "Paillier"
-    DAMGARD_JURIK = "Damgard-Jurik"
-    OKAMOTO_UCHIYAMA = "Okamoto-Uchiyama"
-    BENALOH = "Benaloh"
-    NACCACHE_STERN = "Naccache-Stern"
-    GOLDWASSER_MICALI = "Goldwasser-Micali"
-    ELLIPTICCURVE_ELGAMAL = "EllipticCurve-ElGamal"
+    AES = "AES"
+    DES = "DES"
+    BLOWFISH = "BLOWFISH"
 
 
 class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
@@ -60,9 +55,9 @@ class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
         self.algorithm_name = algorithm.upper()
         self.mode_name = mode.upper()
         self.block_size = self._get_block_size()
-        self.nonce = self._generate_nonce()
-        self.key = self._generate_key()
-        self.iv = self._generate_iv()
+        self.key = None
+        self.nonce = None
+        self.iv = None
 
     def _generate_key(self) -> bytes:
         alg_details = self.__ALGORITHMS.get(self.algorithm_name, self.__ALGORITHMS[self.__DEFAULT_KEY_STR])
@@ -124,9 +119,19 @@ class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
                 self.iv = data.get(PycryptodomeKeyConsts.IV, b'')
                 self.nonce = data.get(PycryptodomeKeyConsts.NONCE, b'')
         else:
+            self.key = self._generate_key()
+            self.iv = self._generate_iv()
+            self.nonce = self._generate_nonce()
             with open(key_file, 'wb') as f:
-                pickle.dump({PycryptodomeKeyConsts.KEY: self.key, PycryptodomeKeyConsts.IV: self.iv, PycryptodomeKeyConsts.NONCE: self.nonce}, f)
-        return KeyDetails(public_key={}, private_key={PycryptodomeKeyConsts.KEY: self.key, PycryptodomeKeyConsts.IV: self.iv, PycryptodomeKeyConsts.NONCE: self.nonce})
+                pickle.dump({
+                    PycryptodomeKeyConsts.KEY: self.key,
+                    PycryptodomeKeyConsts.IV: self.iv,
+                    PycryptodomeKeyConsts.NONCE: self.nonce
+                }, f)
+        return KeyDetails(public_key={},
+                          private_key={PycryptodomeKeyConsts.KEY: self.key,
+                                       PycryptodomeKeyConsts.IV: self.iv,
+                                       PycryptodomeKeyConsts.NONCE: self.nonce})
 
     def encrypt_message(self, msg: int) -> bytes:
         msg_bytes = str(msg).encode()
@@ -153,6 +158,7 @@ class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
 
 if __name__ == "__main__":
     pycr = PycryptodomeSecurityAlgorithm("AES", "ECB")
+    pycr.extract_key("pycr.key")
     m1 = 56
     m2 = 83
 
