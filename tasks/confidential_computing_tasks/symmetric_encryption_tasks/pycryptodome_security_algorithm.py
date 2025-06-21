@@ -3,13 +3,21 @@ import pickle
 from dataclasses import dataclass
 from typing import Optional, Any
 
-from Crypto.Cipher import AES, DES, Blowfish
+from Crypto.Cipher import AES, DES, Blowfish, ChaCha20, ARC4
 from Crypto.Random import get_random_bytes
+from Crypto.Util import Counter
 from Crypto.Util.Padding import pad, unpad
 
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL, KeyDetails
 
+
+class PycryptodomeSymmetricAlgorithms:
+    AES = "AES"
+    DES = "DES"
+    BLOWFISH = "BLOWFISH"
+    CHACHA20 = "CHACHA20"
+    ARC4 = "ARC4"
 
 @dataclass
 class AlgorithmDetails:
@@ -17,30 +25,26 @@ class AlgorithmDetails:
     alg: Any
     block_size: int
     key_size: int
-
+    is_stream: bool = False
 
 class PycryptodomeKeyConsts:
     IV = "iv"
     NONCE = "nonce"
     COUNTER = "counter"
     KEY = "key"
-
-
-class PycryptodomeSymmetricAlgorithms:
-    AES = "AES"
-    DES = "DES"
-    BLOWFISH = "BLOWFISH"
-
+    MODE = "mode"
 
 class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
     __SUPPORTING_IV_MODES = ['CBC', 'CFB', 'OFB']
-    __SUPPORTING_NONCE_MODES = ['CTR', 'EAX', 'GCM']
+    __SUPPORTING_NONCE_MODES = ['CTR', 'EAX', 'GCM', PycryptodomeSymmetricAlgorithms.CHACHA20]
     __PADDING_MODES = ['ECB', 'CBC']
 
     __ALGORITHMS = {
-        'AES': AlgorithmDetails(name="AES", alg=AES, block_size=AES.block_size, key_size=16),
-        'DES': AlgorithmDetails(name="DES", alg=DES, block_size=DES.block_size, key_size=8),
-        'BLOWFISH': AlgorithmDetails(name="Blowfish", alg=Blowfish, block_size=Blowfish.block_size, key_size=16),
+        PycryptodomeSymmetricAlgorithms.AES: AlgorithmDetails(name="AES", alg=AES, block_size=AES.block_size, key_size=16),
+        PycryptodomeSymmetricAlgorithms.DES: AlgorithmDetails(name="DES", alg=DES, block_size=DES.block_size, key_size=8),
+        PycryptodomeSymmetricAlgorithms.BLOWFISH: AlgorithmDetails(name="Blowfish", alg=Blowfish, block_size=Blowfish.block_size, key_size=16),
+        PycryptodomeSymmetricAlgorithms.CHACHA20: AlgorithmDetails(name="ChaCha20", alg=ChaCha20, block_size=1, key_size=32, is_stream=True),
+        PycryptodomeSymmetricAlgorithms.ARC4: AlgorithmDetails(name="ARC4", alg=ARC4, block_size=1, key_size=16, is_stream=True),
         'DEFAULT': AlgorithmDetails(name="DEFAULT", alg=None, block_size=-1, key_size=-1)
     }
 
@@ -73,7 +77,7 @@ class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
         return b''
 
     def _generate_nonce(self) -> bytes:
-        if self.mode_name in self.__SUPPORTING_NONCE_MODES:
+        if self.mode_name in self.__SUPPORTING_NONCE_MODES or self.algorithm_name == PycryptodomeSymmetricAlgorithms.CHACHA20:
             return get_random_bytes(8)  # Or 16 depending on mode requirements
         return b''
 
@@ -86,23 +90,25 @@ class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
         return block_size
 
     def _get_cipher(self, encrypting: bool):
-        mode = getattr(self._get_algorithm_module(), f'MODE_{self.mode_name}')
-        kwargs = {PycryptodomeKeyConsts.KEY: self.key}
+        alg_details = self.__ALGORITHMS.get(self.algorithm_name, self.__ALGORITHMS['DEFAULT'])
 
-        if self.mode_name in self.__SUPPORTING_IV_MODES:
-            kwargs[PycryptodomeKeyConsts.IV] = self.iv
-
-        if self.mode_name in self.__SUPPORTING_NONCE_MODES:
-            kwargs[PycryptodomeKeyConsts.NONCE] = self.nonce
-
-        if self.mode_name == 'CTR':
-            from Crypto.Util import Counter
-            kwargs[PycryptodomeKeyConsts.COUNTER] = Counter.new(self.block_size * 8)
-
-        if encrypting:
-            return self._get_algorithm_module().new(**kwargs, mode=mode)
+        if alg_details.is_stream:
+            if self.algorithm_name == PycryptodomeSymmetricAlgorithms.CHACHA20:
+                return alg_details.alg.new(key=self.key, nonce=self.nonce)
+            elif self.algorithm_name == PycryptodomeSymmetricAlgorithms.ARC4:
+                return alg_details.alg.new(key=self.key)
         else:
-            return self._get_algorithm_module().new(**kwargs, mode=mode)
+            mode = getattr(alg_details.alg, f'MODE_{self.mode_name}')
+            kwargs = {PycryptodomeKeyConsts.KEY: self.key, PycryptodomeKeyConsts.MODE: mode}
+
+            if self.mode_name in self.__SUPPORTING_IV_MODES:
+                kwargs[PycryptodomeKeyConsts.IV] = self.iv
+            if self.mode_name in self.__SUPPORTING_NONCE_MODES:
+                kwargs[PycryptodomeKeyConsts.NONCE] = self.nonce
+            if self.mode_name == 'CTR':
+                kwargs[PycryptodomeKeyConsts.COUNTER] = Counter.new(self.block_size * 8)
+
+            return alg_details.alg.new(**kwargs)
 
     def _get_algorithm_module(self):
         alg_details = self.__ALGORITHMS.get(self.algorithm_name, self.__ALGORITHMS[self.__DEFAULT_KEY_STR])
@@ -157,7 +163,7 @@ class PycryptodomeSecurityAlgorithm(SecurityAlgorithm[bytes]):
 
 
 if __name__ == "__main__":
-    pycr = PycryptodomeSecurityAlgorithm("AES", "ECB")
+    pycr = PycryptodomeSecurityAlgorithm("ARC4", "ECB")
     pycr.extract_key("pycr.key")
     m1 = 56
     m2 = 83
