@@ -55,7 +55,6 @@ class PycryptodomeSymmetricSecurityAlgorithm(SecurityAlgorithm[bytes]):
                  max_key_val: int = PRIME_MAX_VAL):
         super().__init__(min_key_val, max_key_val)
         self.__algorithm = algorithm
-        self.__mode = mode
         self.algorithm_name = algorithm.upper()
         self.mode_name = mode.upper()
         self.block_size = self._get_block_size()

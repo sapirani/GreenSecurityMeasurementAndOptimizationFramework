@@ -79,6 +79,8 @@ messages_to_decrypt_file = results_file_for_encryption
 results_file_for_decryption = r"C:\Users\sapir\Desktop\decryption_results.txt"
 
 security_algorithm_type = EncryptionType.FernetAES
+block_cipher_mode = "CBC"
+
 algorithm_key_file = r"fernet.key"
 
 min_key_value = 100
