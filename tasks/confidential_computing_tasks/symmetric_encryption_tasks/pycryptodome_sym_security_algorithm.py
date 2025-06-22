@@ -1,7 +1,8 @@
 import os
 import pickle
 from dataclasses import dataclass
-from typing import Optional, Any
+from typing import Optional
+from types import ModuleType
 
 from Crypto.Cipher import AES, DES, Blowfish, ChaCha20, ARC4
 from Crypto.Random import get_random_bytes
@@ -22,7 +23,7 @@ class PycryptodomeSymmetricAlgorithms:
 @dataclass
 class AlgorithmDetails:
     name: str
-    alg: Any
+    alg: Optional[ModuleType]
     block_size: int
     key_size: int
     is_stream: bool = False
@@ -39,13 +40,14 @@ class PycryptodomeSymmetricSecurityAlgorithm(SecurityAlgorithm[bytes]):
     __SUPPORTING_NONCE_MODES = ['CTR', 'EAX', 'GCM', PycryptodomeSymmetricAlgorithms.CHACHA20]
     __PADDING_MODES = ['ECB', 'CBC']
 
+    __DUMMY_MODULE = ModuleType('default')
     __ALGORITHMS = {
         PycryptodomeSymmetricAlgorithms.AES: AlgorithmDetails(name="AES", alg=AES, block_size=AES.block_size, key_size=16),
         PycryptodomeSymmetricAlgorithms.DES: AlgorithmDetails(name="DES", alg=DES, block_size=DES.block_size, key_size=8),
         PycryptodomeSymmetricAlgorithms.BLOWFISH: AlgorithmDetails(name="Blowfish", alg=Blowfish, block_size=Blowfish.block_size, key_size=16),
         PycryptodomeSymmetricAlgorithms.CHACHA20: AlgorithmDetails(name="ChaCha20", alg=ChaCha20, block_size=1, key_size=32, is_stream=True),
         PycryptodomeSymmetricAlgorithms.ARC4: AlgorithmDetails(name="ARC4", alg=ARC4, block_size=1, key_size=16, is_stream=True),
-        'DEFAULT': AlgorithmDetails(name="DEFAULT", alg=None, block_size=-1, key_size=-1)
+        'DEFAULT': AlgorithmDetails(name="DEFAULT", alg=__DUMMY_MODULE, block_size=-1, key_size=-1)
     }
 
     __DEFAULT_KEY_STR = "DEFAULT"
