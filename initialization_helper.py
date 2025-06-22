@@ -12,8 +12,10 @@ from tasks.program_classes.antiviruses.dummy_antivirus_program import DummyAntiv
 from tasks.program_classes.antiviruses.sophos_av_program import SophosAVProgram
 from tasks.program_classes.confidential_computing.encryption_pipeline_executor import \
     EncryptionPipelineExecutor
+from tasks.program_classes.confidential_computing.message_adder import MessageAdder
 from tasks.program_classes.confidential_computing.message_decryptor import MessageDecryptor
 from tasks.program_classes.confidential_computing.message_encryptor import MessageEncryptor
+from tasks.program_classes.confidential_computing.message_multiplier import MessageMultiplier
 from tasks.program_classes.dummy_cpu_consumer_program import CPUConsumer
 from tasks.program_classes.dummy_io_writer_consumer_program import IOWriteConsumer
 from tasks.program_classes.dummy_memory_consumer_program import MemoryConsumer
@@ -113,10 +115,20 @@ def program_to_scan_factory(program_type):
         return MessageDecryptor(messages_file=messages_to_decrypt_file, results_file=results_file_for_decryption,
                                 security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
                                 key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
+    if program_type == ProgramToScan.MessageAddition:
+        return MessageAdder(messages_file=messages_to_decrypt_file, results_file=results_file_for_decryption,
+                            security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
+                            key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
+    if program_type == ProgramToScan.MessageMultiplication:
+        return MessageMultiplier(messages_file=messages_to_decrypt_file, results_file=results_file_for_decryption,
+                                 security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
+                                 key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
     if program_type == ProgramToScan.EncryptionPipelineExecutor:
-        return EncryptionPipelineExecutor(messages_file=messages_to_encrypt_file, results_file=results_file_for_decryption,
+        return EncryptionPipelineExecutor(messages_file=messages_to_encrypt_file,
+                                          results_file=results_file_for_decryption,
                                           security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
-                                          key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
+                                          key_file=algorithm_key_file, min_key_value=min_key_value,
+                                          max_key_value=max_key_value)
 
     raise Exception("choose program to scan from ProgramToScan enum")
 
