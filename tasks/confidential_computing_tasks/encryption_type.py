@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class EncryptionType(Enum):
     Paillier = 1
     RSA = 2
@@ -22,3 +23,17 @@ class EncryptionType(Enum):
     PycryptoChaCha20 = 19
     PycryptoArc4 = 20
     PycryptoRSA = 21
+
+
+class EncryptionMode(Enum):
+    ECB = 1
+    CBC = 2
+    CFB = 3
+    OFB = 4
+    CTR = 5
+    GCM = 6
+    OCB = 7
+    OPENPGP = 8
+    CCM = 9
+    EAX = 10
+    SIV = 11

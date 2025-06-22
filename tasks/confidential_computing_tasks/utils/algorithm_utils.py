@@ -1,9 +1,10 @@
 import argparse
 import math
+from typing import Optional
 
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.action_type import ActionType
-from tasks.confidential_computing_tasks.encryption_type import EncryptionType
+from tasks.confidential_computing_tasks.encryption_type import EncryptionType, EncryptionMode
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL
 from tasks.confidential_computing_tasks.tasks_options.pipeline_parameters import PipelineParameters
 
@@ -74,6 +75,14 @@ def convert_str_to_alg_type(encryption_algorithm: int) -> EncryptionType:
     except ValueError:
         raise Exception("Unsupported encryption algorithm.")
 
+def convert_str_to_mode_type(encryption_mode: Optional[int]) -> Optional[EncryptionMode]:
+    if encryption_mode is None:
+        return None
+    try:
+        encryption_mode = EncryptionMode(encryption_mode)
+        return encryption_mode
+    except ValueError:
+        raise Exception("Unsupported encryption mode.")
 
 def get_updated_message(msg: int, action_type: ActionType, encryption_alg: SecurityAlgorithm) -> int:
     if action_type == ActionType.Encryption:
