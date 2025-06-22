@@ -56,26 +56,27 @@ def extract_arguments() -> PipelineParameters:
     encryption_key_file = args.key_file
     min_key_val = args.min_key_val
     max_key_val = args.max_key_val
+    cipher_block_mode = args.mode
 
     print("Messages File: {}".format(messages_file))
     print("Encryption Algorithm: {}".format(encryption_algorithm))
     return PipelineParameters(path_for_messages=messages_file,
                               path_for_result_messages=result_messages_file,
                               encryption_algorithm=encryption_algorithm,
-                              cipher_block_mode=None,
+                              cipher_block_mode=conver_mode_type_to_str(convert_int_to_mode_type(cipher_block_mode)),
                               key_file=encryption_key_file,
                               min_key_value=min_key_val,
                               max_key_value=max_key_val)
 
 
-def convert_str_to_alg_type(encryption_algorithm: int) -> EncryptionType:
+def convert_int_to_alg_type(encryption_algorithm: int) -> EncryptionType:
     try:
         encryption_type = EncryptionType(encryption_algorithm)
         return encryption_type
     except ValueError:
         raise Exception("Unsupported encryption algorithm.")
 
-def convert_str_to_mode_type(encryption_mode: Optional[int]) -> Optional[EncryptionMode]:
+def convert_int_to_mode_type(encryption_mode: Optional[int]) -> Optional[EncryptionMode]:
     if encryption_mode is None:
         return None
     try:
@@ -83,6 +84,32 @@ def convert_str_to_mode_type(encryption_mode: Optional[int]) -> Optional[Encrypt
         return encryption_mode
     except ValueError:
         raise Exception("Unsupported encryption mode.")
+
+def conver_mode_type_to_str(mode: EncryptionMode) -> str:
+    if mode == EncryptionMode.ECB:
+        return "ECB"
+    elif mode == EncryptionMode.CBC:
+        return "CBC"
+    elif mode == EncryptionMode.OFB:
+        return "OFB"
+    elif mode == EncryptionMode.CFB:
+        return "CFB"
+    elif mode == EncryptionMode.CTR:
+        return "CTR"
+    elif mode == EncryptionMode.GCM:
+        return "GCM"
+    elif mode == EncryptionMode.OCB:
+        return "OCB"
+    elif mode == EncryptionMode.OPENPGP:
+        return "OpenPGP"
+    elif mode == EncryptionMode.CCM:
+        return "CCM"
+    elif mode == EncryptionMode.EAX:
+        return "EAX"
+    elif mode == EncryptionMode.SIV:
+        return "SIV"
+    else:
+        raise ValueError("Invalid block cipher mode")
 
 def get_updated_message(msg: int, action_type: ActionType, encryption_alg: SecurityAlgorithm) -> int:
     if action_type == ActionType.Encryption:

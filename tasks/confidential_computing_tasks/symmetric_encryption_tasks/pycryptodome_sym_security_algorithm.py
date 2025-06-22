@@ -10,6 +10,7 @@ from Crypto.Util import Counter
 from Crypto.Util.Padding import pad, unpad
 
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
+from tasks.confidential_computing_tasks.encryption_type import EncryptionMode
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL, KeyDetails
 
 
@@ -58,7 +59,7 @@ class PycryptodomeSymmetricSecurityAlgorithm(SecurityAlgorithm[bytes]):
         super().__init__(min_key_val, max_key_val)
         self.__algorithm = algorithm
         self.algorithm_name = algorithm.upper()
-        self.mode_name = mode.upper()
+        self.mode_name = mode.upper() if mode is not None else None
         self.block_size = self._get_block_size()
         self.key = None
         self.nonce = None

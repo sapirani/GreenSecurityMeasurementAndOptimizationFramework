@@ -11,4 +11,4 @@ class PipelineParameters:
     min_key_value: int
     max_key_value: int
     encryption_algorithm: int
-    cipher_block_mode: Optional[int]
+    cipher_block_mode: Optional[str]

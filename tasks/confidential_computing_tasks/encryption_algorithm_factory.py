@@ -23,7 +23,7 @@ from tasks.confidential_computing_tasks.symmetric_encryption_tasks.pycryptodome_
 
 class EncryptionAlgorithmFactory:
     @staticmethod
-    def create_security_algorithm(encryption_algorithm: EncryptionType, cipher_block_mode: Optional[EncryptionMode],
+    def create_security_algorithm(encryption_algorithm: EncryptionType, cipher_block_mode: Optional[str],
                                   min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL) -> SecurityAlgorithm:
         if encryption_algorithm == EncryptionType.Paillier:
             return PaillierSecurityAlgorithm(min_key_val, max_key_val)
