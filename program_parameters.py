@@ -2,13 +2,13 @@ from general_consts import *
 from tasks.confidential_computing_tasks.encryption_type import EncryptionType, EncryptionMode
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.EncryptionPipelineExecutor
+main_program_to_scan = ProgramToScan.MessageEncryptor
 background_programs_types = []  # [ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = True
 summary_version = SummaryVersion.OTHER
 
-scanner_version = ScannerVersion.WITHOUT_BATTERY
+scanner_version = ScannerVersion.FULL
 
 power_plan = PowerPlan.BALANCED
 scan_option = ScanMode.ONE_SCAN
@@ -40,9 +40,9 @@ DEFAULT_TIME_BEFORE_SLEEP_MODE = 4
 is_inside_container = False
 
 # ==== Elastic logging configuration
-elastic_url = "http://127.0.0.1:9200"
+elastic_url = "http://192.168.1.140:9200"
 elastic_username = "elastic"
-elastic_password = "71BPiEiQ"
+elastic_password = "0eD02kdb"
 
 # ==== ClamAV configurations
 recursive = True
@@ -73,15 +73,14 @@ time_interval = 0.2
 
 # ***** Parameters for Confidential Computing ***** #
 messages_to_encrypt_file = r"C:\Users\sapir\Desktop\messages.txt"
-results_file_for_encryption = r"C:\Users\sapir\Desktop\encryption_results.bin"
+results_file_for_encryption = r"C:\Users\sapir\Desktop\our_paillier_encryption_results.bin"
 
 messages_to_decrypt_file = results_file_for_encryption
-results_file_for_decryption = r"C:\Users\sapir\Desktop\decryption_results.txt"
+results_file_for_decryption = r"C:\Users\sapir\Desktop\our_paillier_decryption_results.txt"
 
-security_algorithm_type = EncryptionType.FernetAES
-block_cipher_mode = EncryptionMode.CBC
+security_algorithm_type = EncryptionType.Paillier
+block_cipher_mode = None #EncryptionMode.CBC
+algorithm_key_file = r"C:\Users\sapir\Desktop\key_our_paillier.txt"
 
-algorithm_key_file = r"fernet.key"
-
-min_key_value = 100
-max_key_value = 1000
+min_key_value = 2 ** 2047 - 1
+max_key_value = 2 ** 2048 - 1
