@@ -63,7 +63,7 @@ def extract_arguments() -> PipelineParameters:
     return PipelineParameters(path_for_messages=messages_file,
                               path_for_result_messages=result_messages_file,
                               encryption_algorithm=encryption_algorithm,
-                              cipher_block_mode=conver_mode_type_to_str(convert_int_to_mode_type(cipher_block_mode)),
+                              cipher_block_mode=convert_mode_type_to_str(convert_int_to_mode_type(cipher_block_mode)),
                               key_file=encryption_key_file,
                               min_key_value=min_key_val,
                               max_key_value=max_key_val)
@@ -85,7 +85,9 @@ def convert_int_to_mode_type(encryption_mode: Optional[int]) -> Optional[Encrypt
     except ValueError:
         raise Exception("Unsupported encryption mode.")
 
-def conver_mode_type_to_str(mode: EncryptionMode) -> str:
+def convert_mode_type_to_str(mode: EncryptionMode) -> str:
+    if mode is None:
+        return None
     if mode == EncryptionMode.ECB:
         return "ECB"
     elif mode == EncryptionMode.CBC:
