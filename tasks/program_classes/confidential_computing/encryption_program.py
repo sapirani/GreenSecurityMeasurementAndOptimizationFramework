@@ -15,7 +15,7 @@ class EncryptionProgram(ProgramInterface, ABC):
         self.__messages_file = messages_file
         self.__results_file = results_file
         self.__security_algorithm = security_algorithm.value
-        self.__security_algorithm_mode = block_mode.value
+        self.__security_algorithm_mode = block_mode.value if block_mode else None
         self.__key_file = key_file
         self.__encryption_task_path = encryption_task_path
         self.__min_key_value = min_key_value
