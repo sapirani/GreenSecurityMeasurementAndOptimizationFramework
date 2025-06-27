@@ -16,6 +16,13 @@ def get_last_message_index() -> int:
     except FileNotFoundError:
         return 0
 
+def write_last_message_index(last_message_index: int):
+    try:
+        with open(LAST_MESSAGE_INDEX_FILE_PATH, "w") as last_message_file:
+            last_message_file.write(str(last_message_index))
+    except Exception as e:
+        print(f"Failed to write last message index. The last index: {last_message_index}. The error: {e}")
+
 def extract_messages_from_file(messages_file: str) -> list[int]:
     messages = []
     try:

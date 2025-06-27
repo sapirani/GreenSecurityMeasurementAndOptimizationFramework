@@ -1,13 +1,22 @@
+import signal
+
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.action_type import ActionType
 from tasks.confidential_computing_tasks.utils.algorithm_utils import extract_arguments, convert_int_to_alg_type, \
     get_updated_message
 from tasks.confidential_computing_tasks.encryption_algorithm_factory import EncryptionAlgorithmFactory
 from tasks.confidential_computing_tasks.utils.saving_utils import extract_messages_from_file, \
-    write_messages_to_file
+    write_messages_to_file, write_last_message_index
 
+message_current_index = 0
+
+def handle_signal(signum, frame):
+    print("Got signal, writing last message index")
+    write_last_message_index(message_current_index)
 
 def execute_regular_pipeline(action_type: ActionType) -> list[int]:
+    global message_current_index
+    signal.signal(signal.SIGINT, handle_signal)
     params = extract_arguments()
 
     messages_file = params.path_for_messages
@@ -34,10 +43,10 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
         messages = []
 
     updated_messages = []
-    for idx, message in enumerate(messages):
-        print("Starting to update message #{}".format(idx))
+    for message in messages:
         updated_msg = get_updated_message(message, action_type, encryption_instance)
         updated_messages.append(updated_msg)
+        message_current_index += 1
 
     if action_type == ActionType.Encryption:
         encryption_instance.save_encrypted_messages(updated_messages, result_messages_file)

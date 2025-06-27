@@ -1,3 +1,4 @@
+import signal
 import time
 from typing import Union
 
@@ -43,7 +44,8 @@ class ProgramInterface:
 
     def kill_process(self, p, is_posix):
         # global max_timeout_reached
-        p.terminate()
+        p.send_signal(signal.CTRL_C_EVENT)
+        # p.terminate()
         # max_timeout_reached = True
 
     def process_ignore_cond(self, p):
