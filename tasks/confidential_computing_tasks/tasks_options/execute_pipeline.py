@@ -1,3 +1,6 @@
+import signal
+
+from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.action_type import ActionType
 from tasks.confidential_computing_tasks.utils.algorithm_utils import extract_arguments, convert_int_to_alg_type, \
     get_updated_message
@@ -5,8 +8,7 @@ from tasks.confidential_computing_tasks.encryption_algorithm_factory import Encr
 from tasks.confidential_computing_tasks.utils.saving_utils import extract_messages_from_file, \
     write_messages_to_file
 
-
-def execute_pipeline(action_type: ActionType) -> list[int]:
+def execute_regular_pipeline(action_type: ActionType) -> list[int]:
     params = extract_arguments()
 
     messages_file = params.path_for_messages
@@ -33,7 +35,8 @@ def execute_pipeline(action_type: ActionType) -> list[int]:
         messages = []
 
     updated_messages = []
-    for message in messages:
+    for idx, message in enumerate(messages):
+        print("Starting to update message #{}".format(idx))
         updated_msg = get_updated_message(message, action_type, encryption_instance)
         updated_messages.append(updated_msg)
 
@@ -46,3 +49,43 @@ def execute_pipeline(action_type: ActionType) -> list[int]:
         raise Exception("Unknown action type.")
 
     return updated_messages
+
+
+def execute_operation(messages: list[int], action: ActionType, algorithm: SecurityAlgorithm) -> int:
+    if action == ActionType.Addition:
+        encrypted_res = algorithm.calc_encrypted_sum(messages)
+    elif action == ActionType.Multiplication:
+        encrypted_res = algorithm.calc_encrypted_multiplication(messages)
+    else:
+        raise Exception("Unknown encryption action type.")
+    return algorithm.decrypt_message(encrypted_res)
+
+
+def execute_homomorphic_pipeline(action_type: ActionType) -> int:
+    """
+    A method for executing homomorphic operation (add or multiply).
+    For homomorphic algorithms -> first encrypt, then run the operation and then decrypt.
+    For traditional algorithms -> first run the operation, then encrypt and decrypt.
+    """
+    params = extract_arguments()
+    messages_file = params.path_for_messages
+    encryption_algorithm = params.encryption_algorithm
+    encryption_key_file = params.key_file
+    min_key_val = params.min_key_value
+    max_key_val = params.max_key_value
+    cipher_block_mode = params.cipher_block_mode
+
+    encryption_algorithm_type = convert_int_to_alg_type(encryption_algorithm)
+
+    encryption_instance = EncryptionAlgorithmFactory.create_security_algorithm(encryption_algorithm_type,
+                                                                               cipher_block_mode,
+                                                                               min_key_val,
+                                                                               max_key_val)
+
+    encryption_instance.extract_key(encryption_key_file)
+    messages = extract_messages_from_file(messages_file)
+
+    operation_encrypted_result = execute_operation(messages, action_type, encryption_instance)
+    print(f"The original messages: {messages}")
+    print(f"The decrypted result: {operation_encrypted_result}")
+    return operation_encrypted_result

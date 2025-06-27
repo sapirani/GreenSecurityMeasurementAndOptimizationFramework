@@ -65,7 +65,9 @@ class ProgramToScan(Enum):
     NetworkSender = 14
     MessageEncryptor = 15
     MessageDecryptor = 16
-    EncryptionPipelineExecutor = 17
+    MessageAddition = 17
+    MessageMultiplication = 18
+    EncryptionPipelineExecutor = 19
 
 
 class ScanMode(Enum):

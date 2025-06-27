@@ -30,7 +30,7 @@ def extract_arguments() -> PipelineParameters:
                         help="type of encryption algorithm")
 
     parser.add_argument("--mode",
-                        type=str,
+                        type=int,
                         default=None,
                         help="mode of block cipher algorithm")
 
