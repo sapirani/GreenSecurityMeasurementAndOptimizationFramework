@@ -34,7 +34,8 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
         messages = []
 
     updated_messages = []
-    for message in messages:
+    for idx, message in enumerate(messages):
+        print("Starting to update message #{}".format(idx))
         updated_msg = get_updated_message(message, action_type, encryption_instance)
         updated_messages.append(updated_msg)
 
