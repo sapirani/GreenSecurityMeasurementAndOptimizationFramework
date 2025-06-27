@@ -20,9 +20,9 @@ file_type = "pdf"
 directory_type = "Duplicated Files"
 custom_scan_path = r'""'
 
-RUNNING_TIME = 10 * MINUTE  # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
+RUNNING_TIME = 100 * MINUTE  # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
-SLEEP_BETWEEN_ITERATIONS_SECONDS = 2
+SLEEP_BETWEEN_ITERATIONS_SECONDS = 0
 
 MINIMUM_DELTA_CAPACITY = 200  # in mWh
 
@@ -72,15 +72,15 @@ consumption_speed = 10 * MB / SECOND
 time_interval = 0.2
 
 # ***** Parameters for Confidential Computing ***** #
-messages_to_encrypt_file = r"C:\Users\sapir\Desktop\messages.txt"
-results_file_for_encryption = r"C:\Users\sapir\Desktop\our_paillier_encryption_results.bin"
+messages_to_encrypt_file = r"C:\Users\Administrator\Desktop\messages.txt"
+results_file_for_encryption = r"C:\Users\Administrator\Desktop\tenseal_ckks_encryption_results.bin"
 
 messages_to_decrypt_file = results_file_for_encryption
-results_file_for_decryption = r"C:\Users\sapir\Desktop\our_paillier_decryption_results.txt"
+results_file_for_decryption = r"C:\Users\Administrator\Desktop\tenseal_ckks_decryption_results.txt"
 
-security_algorithm_type = EncryptionType.Paillier
+security_algorithm_type = EncryptionType.CKKSTenseal
 block_cipher_mode = None #EncryptionMode.CBC
-algorithm_key_file = r"C:\Users\sapir\Desktop\key_our_paillier.txt"
+algorithm_key_file = r"C:\Users\Administrator\Desktop\key_tenseal_ckks.txt"
 
 min_key_value = 2 ** 2047 - 1
 max_key_value = 2 ** 2048 - 1
