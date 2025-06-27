@@ -53,11 +53,12 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
 
 def execute_operation(messages: list[int], action: ActionType, algorithm: SecurityAlgorithm) -> int:
     if action == ActionType.Addition:
-        return algorithm.calc_encrypted_sum(messages)
+        encrypted_res = algorithm.calc_encrypted_sum(messages)
     elif action == ActionType.Multiplication:
-        return algorithm.calc_encrypted_multiplication(messages)
-
-    raise Exception("Unknown encryption algorithm or action type.")
+        encrypted_res = algorithm.calc_encrypted_multiplication(messages)
+    else:
+        raise Exception("Unknown encryption action type.")
+    return algorithm.decrypt_message(encrypted_res)
 
 
 def execute_homomorphic_pipeline(action_type: ActionType) -> int:

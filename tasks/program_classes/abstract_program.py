@@ -1,4 +1,3 @@
-import signal
 import time
 from typing import Union
 

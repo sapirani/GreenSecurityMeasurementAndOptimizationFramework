@@ -11,8 +11,12 @@ def get_last_message_index() -> int:
             content = last_message_file.read().strip()
             if content is None or content == "":
                 return 0
-            else:
-                return int(content)
+
+            last_index = int(content)
+            if last_index < 0 or last_index >= len(content):
+                return 0
+            
+            return last_index
     except FileNotFoundError:
         return 0
 
@@ -26,8 +30,8 @@ def write_last_message_index(last_message_index: int):
 def extract_messages_from_file(messages_file: str) -> list[int]:
     messages = []
     try:
-        with open(messages_file, "r") as messages_file:
-            messages = [int(msg.strip()) for msg in messages_file.readlines()]
+        with open(messages_file, "r") as f:
+            messages = [int(msg.strip()) for msg in f.readlines()]
     except FileNotFoundError:
         raise FileNotFoundError("Messages file not found.")
 

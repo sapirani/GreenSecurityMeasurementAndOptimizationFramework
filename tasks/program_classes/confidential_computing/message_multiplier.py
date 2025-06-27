@@ -3,7 +3,7 @@ from typing import Optional
 from tasks.confidential_computing_tasks.encryption_type import EncryptionMode, EncryptionType
 from tasks.program_classes.confidential_computing.encryption_program import EncryptionProgram
 
-MESSAGE_MULTIPLICATION_TASK = r'message_multiplier.py'
+MESSAGE_MULTIPLICATION_TASK = r'message_multiplication.py'
 
 class MessageMultiplier(EncryptionProgram):
     def __init__(self, messages_file: str, results_file: str, security_algorithm: EncryptionType,

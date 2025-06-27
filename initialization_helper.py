@@ -116,11 +116,11 @@ def program_to_scan_factory(program_type):
                                 security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
                                 key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
     if program_type == ProgramToScan.MessageAddition:
-        return MessageAdder(messages_file=messages_to_decrypt_file, results_file=results_file_for_decryption,
+        return MessageAdder(messages_file=messages_to_encrypt_file, results_file=results_file_for_decryption,
                             security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
                             key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
     if program_type == ProgramToScan.MessageMultiplication:
-        return MessageMultiplier(messages_file=messages_to_decrypt_file, results_file=results_file_for_decryption,
+        return MessageMultiplier(messages_file=messages_to_encrypt_file, results_file=results_file_for_decryption,
                                  security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
                                  key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
     if program_type == ProgramToScan.EncryptionPipelineExecutor:
