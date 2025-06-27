@@ -44,8 +44,7 @@ class ProgramInterface:
 
     def kill_process(self, p, is_posix):
         # global max_timeout_reached
-        p.send_signal(signal.CTRL_C_EVENT)
-        # p.terminate()
+        p.terminate()
         # max_timeout_reached = True
 
     def process_ignore_cond(self, p):
