@@ -1,6 +1,8 @@
 import math
 from abc import ABC, abstractmethod
 
+from typing_extensions import override
+
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm, T
 from tasks.confidential_computing_tasks.utils.basic_utils import generate_random_prime
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL, KeyDetails
@@ -14,6 +16,24 @@ class KeyConsts:
 class HomomorphicSecurityAlgorithm(SecurityAlgorithm[T], ABC):
     def __init__(self, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
         super().__init__(min_key_val, max_key_val)
+
+    @override
+    def calc_encrypted_sum(self, messages: list[int]) -> T:
+        return self.__calc_encrypted_operation(messages, is_addition=True)
+
+    @override
+    def calc_encrypted_multiplication(self, messages: list[int]) -> T:
+        return self.__calc_encrypted_operation(messages, is_addition=False)
+
+    def __calc_encrypted_operation(self, messages: list[int], *, is_addition: bool) -> T:
+        encrypted_messages = [self.encrypt_message(msg) for msg in messages]
+        total_encrypted_result = encrypted_messages[0]
+        for enc_message in encrypted_messages[1:]:
+            if is_addition:
+                total_encrypted_result = self.add_messages(total_encrypted_result, enc_message)
+            else:
+                total_encrypted_result = self.multiply_messages(total_encrypted_result, enc_message)
+        return total_encrypted_result
 
     @abstractmethod
     def extract_key(self, key_file: str) -> KeyDetails:

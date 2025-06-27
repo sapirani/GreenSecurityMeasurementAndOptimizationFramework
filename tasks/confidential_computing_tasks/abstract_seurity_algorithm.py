@@ -1,3 +1,4 @@
+import math
 import pickle
 from abc import ABC, abstractmethod
 from typing import TypeVar, Generic
@@ -29,6 +30,14 @@ class SecurityAlgorithm(ABC, Generic[T]):
                 return deserialized_messages
         except FileNotFoundError:
             print("Something went wrong with loading the encrypted messages")
+
+    def calc_encrypted_sum(self, messages: list[int]) -> T:
+        regular_sum = sum(messages)
+        return self.encrypt_message(regular_sum)
+
+    def calc_encrypted_multiplication(self, messages: list[int]) -> T:
+        total_mul = math.prod(messages)
+        return self.encrypt_message(total_mul)
 
     @abstractmethod
     def _get_serializable_encrypted_messages(self, encrypted_messages: list[T]) -> list[T]:
