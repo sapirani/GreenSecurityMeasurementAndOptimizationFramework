@@ -26,39 +26,8 @@ from tasks.confidential_computing_tasks.symmetric_encryption_tasks.pycryptodome_
 class EncryptionAlgorithmFactory:
     @staticmethod
     def create_security_algorithm(encryption_algorithm: EncryptionType, cipher_block_mode: Optional[str],
-                                  min_key_val: int = PRIME_MIN_VAL,
-                                  max_key_val: int = PRIME_MAX_VAL) -> SecurityAlgorithm:
-
-        if encryption_algorithm == EncryptionType.FernetAES:
-            return FernetAESSecurityAlgorithm(min_key_val, max_key_val)
-        elif encryption_algorithm == EncryptionType.PycryptoAES:
-            return PycryptodomeSymmetricSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.AES,
-                                                          mode=cipher_block_mode)
-        elif encryption_algorithm == EncryptionType.PycryptoDES:
-            return PycryptodomeSymmetricSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.DES,
-                                                          mode=cipher_block_mode)
-        elif encryption_algorithm == EncryptionType.PycryptoBlowfish:
-            return PycryptodomeSymmetricSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.BLOWFISH,
-                                                          mode=cipher_block_mode)
-        elif encryption_algorithm == EncryptionType.PycryptoArc4:
-            return PycryptodomeSymmetricSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.ARC4,
-                                                          mode=cipher_block_mode)
-        elif encryption_algorithm == EncryptionType.PycryptoChaCha20:
-            return PycryptodomeSymmetricSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.CHACHA20,
-                                                          mode=cipher_block_mode)
-        elif encryption_algorithm == EncryptionType.PycryptoRSA:
-            return PycryptodomeAsymmetricSecurityAlgorithm(algorithm=PycryptodomeAsymmetricAlgorithms.RSA)
-        else:
-            alg = EncryptionAlgorithmFactory.create_homomorphic_algorithm(encryption_algorithm, min_key_val,
-                                                                           max_key_val)
-            if alg:
-                return alg
-            else:
-                raise Exception('Encryption algorithm not supported')
-
-    @staticmethod
-    def create_homomorphic_algorithm(encryption_algorithm: EncryptionType, min_key_val: int = PRIME_MIN_VAL,
-                                     max_key_val: int = PRIME_MAX_VAL) -> HomomorphicSecurityAlgorithm:
+                                  min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL) \
+                                  -> SecurityAlgorithm:
         if encryption_algorithm == EncryptionType.Paillier:
             return PaillierSecurityAlgorithm(min_key_val, max_key_val)
         elif encryption_algorithm == EncryptionType.RSA:
@@ -87,5 +56,24 @@ class EncryptionAlgorithmFactory:
             return TensealSecurityAlgorithm[CKKSVector](TensealSchemas.CKKS, min_key_val, max_key_val)
         elif encryption_algorithm == EncryptionType.BFVTenseal:
             return TensealSecurityAlgorithm[BFVVector](TensealSchemas.BFV, min_key_val, max_key_val)
+        elif encryption_algorithm == EncryptionType.FernetAES:
+            return FernetAESSecurityAlgorithm(min_key_val, max_key_val)
+        elif encryption_algorithm == EncryptionType.PycryptoAES:
+            return PycryptodomeSymmetricSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.AES,
+                                                          mode=cipher_block_mode)
+        elif encryption_algorithm == EncryptionType.PycryptoDES:
+            return PycryptodomeSymmetricSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.DES,
+                                                          mode=cipher_block_mode)
+        elif encryption_algorithm == EncryptionType.PycryptoBlowfish:
+            return PycryptodomeSymmetricSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.BLOWFISH,
+                                                          mode=cipher_block_mode)
+        elif encryption_algorithm == EncryptionType.PycryptoArc4:
+            return PycryptodomeSymmetricSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.ARC4,
+                                                          mode=cipher_block_mode)
+        elif encryption_algorithm == EncryptionType.PycryptoChaCha20:
+            return PycryptodomeSymmetricSecurityAlgorithm(algorithm=PycryptodomeSymmetricAlgorithms.CHACHA20,
+                                                          mode=cipher_block_mode)
+        elif encryption_algorithm == EncryptionType.PycryptoRSA:
+            return PycryptodomeAsymmetricSecurityAlgorithm(algorithm=PycryptodomeAsymmetricAlgorithms.RSA)
         else:
-            raise ValueError("Unknown Homomorphic encryption algorithm")
+            raise Exception('Encryption algorithm not supported')
