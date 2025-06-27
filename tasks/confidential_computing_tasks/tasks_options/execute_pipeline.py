@@ -58,7 +58,12 @@ def execute_operation(messages: list[int], action: ActionType, algorithm: Securi
     raise Exception("Unknown encryption algorithm or action type.")
 
 
-def execute_operation_pipeline(action_type: ActionType) -> int:
+def execute_homomorphic_pipeline(action_type: ActionType) -> int:
+    """
+    A method for executing homomorphic operation (add or multiply).
+    For homomorphic algorithms -> first encrypt, then run the operation and then decrypt.
+    For traditional algorithms -> first run the operation, then encrypt and decrypt.
+    """
     params = extract_arguments()
     messages_file = params.path_for_messages
     encryption_algorithm = params.encryption_algorithm
