@@ -1,13 +1,11 @@
 import argparse
 import json
-import platform
 import shutil
 import signal
 import threading
 import time
 import warnings
 from functools import partial
-from logging import LoggerAdapter
 
 from statistics import mean
 
@@ -17,7 +15,7 @@ from threading import Thread, Timer
 import pandas as pd
 from scapy.interfaces import get_working_ifaces
 
-from application_logging import get_measurement_logger, ElasticSearchLogHandler, get_elastic_logging_handler
+from application_logging import get_measurement_logger, get_elastic_logging_handler
 from application_logging.adapters.scanner_logger_adapter import ScannerLoggerAdapter
 from initialization_helper import *
 from datetime import date
@@ -64,7 +62,7 @@ finished_scanning_time = []
 def handle_sigint(signum, frame):
     print("Got signal, writing results and terminating")
     if main_process:
-        program.kill_process(main_process, running_os.is_posix())  # killing the main process
+        running_os.kill_process_gracefully(main_process.pid)  # killing the main process
     done_scanning_event.set()
 
 
@@ -279,9 +277,14 @@ def save_data_when_too_low_battery():
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
         f.write("EARLY TERMINATION DUE TO LOW BATTERY!!!!!!!!!!\n\n")
     finished_scanning_time.append(scanner_imp.calc_time_interval(starting_time))
-    save_results_to_files()
+    if main_process:
+        running_os.kill_process_gracefully(main_process.pid)  # killing the main process
+    done_scanning_event.set()
 
 
+# TODO: maybe use done_scanning_event.is_set() directly instead of returning True / False
+# So this function will only set done_scanning_event according to termination conditions
+# (e.g., predefined scanning time has passed)
 def should_scan():
     """_summary_: check what is the scan option
 
@@ -360,6 +363,7 @@ def continuously_measure():
         prev_network_io = save_current_network_io(prev_network_io)
 
     process_network_monitor.stop()
+    done_scanning_event.set()   # releasing waiting threads / processes
 
 
 def save_general_disk(f):
@@ -635,6 +639,7 @@ def terminate_due_to_exception(background_processes, program_name, err):
     raise Exception("An error occurred in child program %s: %s", program_name, err)
 
 
+# TODO: unify all kill methods, and ensure that we are not missing setting done_scanning_event.set()
 def kill_process(child_process_id, powershell_process):
     try:
         if child_process_id is None:
@@ -678,7 +683,7 @@ def kill_background_processes(background_processes):
         # powershell_process.wait()
 
 
-def start_timeout(main_shell_process, is_posix):
+def start_timeout(main_shell_process):
     """
     This function terminates the main process if its running time exceeds maximum allowed time
     :param main_shell_process: the process to terminate  
@@ -687,7 +692,11 @@ def start_timeout(main_shell_process, is_posix):
     if RUNNING_TIME is None or scan_option != ScanMode.ONE_SCAN:
         return
 
-    timeout_thread = Timer(RUNNING_TIME, program.kill_process, [main_shell_process, is_posix])
+    def kill_and_terminate(process_id: int):
+        running_os.kill_process_gracefully(process_id)
+        done_scanning_event.set()
+
+    timeout_thread = Timer(RUNNING_TIME, kill_and_terminate, [main_shell_process.pid])
     timeout_thread.start()
     return timeout_thread
 
@@ -727,10 +736,10 @@ def scan_and_measure():
 
     while not main_program_to_scan == ProgramToScan.NO_SCAN and not done_scanning_event.is_set():
         main_process, main_process_id = start_process(program)
-        timeout_timer = start_timeout(main_process, running_os.is_posix())
+        timeout_timer = start_timeout(main_process)
         background_processes = start_background_processes()
         print("Waiting for the main process to terminate")
-        result = main_process.wait()
+        result = running_os.wait_for_process_termination(main_process, done_scanning_event)
 
         cancel_timeout_timer(timeout_timer)
 
@@ -751,7 +760,7 @@ def scan_and_measure():
             # warnings.warn(f"An error occurred while scanning: {errs}", RuntimeWarning)
             warnings.warn(f"errors encountered while scanning, see stderr directory", RuntimeWarning)
 
-    running_os.wait_for_measurement_termination(measurements_thread, done_scanning_event)
+    running_os.wait_for_thread_termination(measurements_thread, done_scanning_event)
 
     if main_program_to_scan == ProgramToScan.NO_SCAN:
         finished_scanning_time.append(scanner_imp.calc_time_interval(starting_time))
