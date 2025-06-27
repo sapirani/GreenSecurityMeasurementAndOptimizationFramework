@@ -14,8 +14,7 @@ def get_last_message_index() -> int:
             else:
                 return int(content)
     except FileNotFoundError:
-        raise FileNotFoundError("Messages file not found.")
-
+        return 0
 
 def extract_messages_from_file(messages_file: str) -> list[int]:
     messages = []

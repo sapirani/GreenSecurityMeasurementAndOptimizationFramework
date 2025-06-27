@@ -19,13 +19,13 @@ class HomomorphicSecurityAlgorithm(SecurityAlgorithm[T], ABC):
 
     @override
     def calc_encrypted_sum(self, messages: list[int]) -> T:
-        return self.__calc_encrypted_operation(messages, True)
+        return self.__calc_encrypted_operation(messages, is_addition=True)
 
     @override
     def calc_encrypted_multiplication(self, messages: list[int]) -> T:
-        return self.__calc_encrypted_operation(messages, False)
+        return self.__calc_encrypted_operation(messages, is_addition=False)
 
-    def __calc_encrypted_operation(self, messages: list[int], is_addition: bool) -> T:
+    def __calc_encrypted_operation(self, messages: list[int], *, is_addition: bool) -> T:
         encrypted_messages = [self.encrypt_message(msg) for msg in messages]
         total_encrypted_result = encrypted_messages[0]
         for enc_message in encrypted_messages[1:]:
