@@ -237,8 +237,10 @@ class WindowsOS(AbstractOSFuncs):
         (in any possible case, such as reaching predefined timeout, receiving CTRL+C,
         depleting predefined threshold of battery and so on...)
         """
+        # TODO: rename done_scanning_event after unifying with should_scan
         while not done_scanning_event.wait(timeout=2):
-            pass
+            if process.poll() is not None:
+                break
 
         return process.wait()
 
