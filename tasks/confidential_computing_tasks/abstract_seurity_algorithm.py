@@ -14,10 +14,12 @@ class SecurityAlgorithm(ABC, Generic[T]):
         self._min_key_val = min_key_val
         self._max_key_val = max_key_val
 
-    def save_encrypted_messages(self, encrypted_messages: list[T], file_name: str):
+    def save_encrypted_messages(self, encrypted_messages: list[T], file_name: str, should_override_file: bool):
         serializable_messages = self._get_serializable_encrypted_messages(encrypted_messages)
         try:
-            with open(file_name, 'wb') as messages_file:
+            mode = "wb" if should_override_file else "ab"
+            print("MODE ENCRYPTED:", mode)
+            with open(file_name, mode) as messages_file:
                 pickle.dump(serializable_messages, messages_file)
         except FileNotFoundError:
             print("Something went wrong with saving the encrypted messages")
@@ -25,8 +27,16 @@ class SecurityAlgorithm(ABC, Generic[T]):
     def load_encrypted_messages(self, file_name: str) -> list[T]:
         try:
             with open(file_name, 'rb') as messages_file:
-                encrypted_messages = pickle.load(messages_file)
-                deserialized_messages = self._get_deserializable_encrypted_messages(encrypted_messages)
+                deserialized_messages = []
+                while True:
+                    try:
+                        encrypted_messages_portion = pickle.load(messages_file)
+                        deserialized_messages_portion = self._get_deserializable_encrypted_messages(encrypted_messages_portion)
+                        print(f"DESERIALIZED: {deserialized_messages_portion}")
+                        deserialized_messages.extend(deserialized_messages_portion)
+                    except EOFError:
+                        break
+
                 return deserialized_messages
         except FileNotFoundError:
             print("Something went wrong with loading the encrypted messages")

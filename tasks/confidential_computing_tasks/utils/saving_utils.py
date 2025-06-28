@@ -3,7 +3,7 @@ from typing import Any
 
 from tasks.confidential_computing_tasks.action_type import ActionType
 
-LAST_MESSAGE_INDEX_FILE_PATH = r"C:\Users\Administrator\Desktop\last_message_index.txt"
+LAST_MESSAGE_INDEX_FILE_PATH = r"C:\Users\sapir\Desktop\last_message_index.txt"
 
 def get_last_message_index(num_of_messages: int) -> int:
     try:
@@ -38,13 +38,13 @@ def extract_messages_from_file(messages_file: str) -> list[int]:
     if len(messages) == 0:
         raise Exception("No messages found. Must be at least one message.")
 
-    last_message_index = get_last_message_index(num_of_messages=len(messages))
-    return messages[last_message_index:]
+    return messages
 
 
-def write_messages_to_file(messages_file: str, messages: list[int]) -> None:
+def write_messages_to_file(messages_file: str, messages: list[int], should_override_file: bool) -> None:
     try:
-        with open(messages_file, 'w') as f:
+        mode = "w" if should_override_file else "a"
+        with open(messages_file, mode) as f:
             for msg in messages:
                 f.write(str(msg) + '\n')
     except FileNotFoundError:

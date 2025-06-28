@@ -241,7 +241,8 @@ class WindowsOS(AbstractOSFuncs):
         depleting predefined threshold of battery and so on...)
         """
         while not done_scanning_event.wait(timeout=2):
-            pass
+            if process.poll() is not None:
+                break
 
         return process.wait()
 
