@@ -213,7 +213,7 @@ class WindowsOS(AbstractOSFuncs):
         raise NotImplementedError("Not implemented total memory for windows container")
 
     @override
-    def wait_for_thread_termination(self, thread: Thread, done_scanning_event: threading.Event):
+    def wait_for_thread_termination(self, thread: Thread, done_scanning_event: threading.Event) -> None:
         """
         Since signal handling in windows cannot be interrupted, while waiting to the measurement thread we cannot
         actively stop the program (for example, when using CTRL+C).
@@ -228,7 +228,7 @@ class WindowsOS(AbstractOSFuncs):
         thread.join()
 
     @override
-    def wait_for_process_termination(self, process: subprocess.Popen, done_scanning_event: threading.Event):
+    def wait_for_process_termination(self, process: subprocess.Popen, done_scanning_event: threading.Event) -> int:
         """
         Since signal handling in windows cannot be interrupted, while waiting to the process we cannot
         actively stop the program (for example, when using CTRL+C).
