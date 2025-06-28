@@ -1,54 +1,78 @@
 import signal
+import sys
+import types
+from functools import partial
 
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.action_type import ActionType
+from tasks.confidential_computing_tasks.key_details import KeyDetails
 from tasks.confidential_computing_tasks.utils.algorithm_utils import extract_arguments, convert_int_to_alg_type, \
-    get_updated_message
+    get_transformed_message, is_new_execution
 from tasks.confidential_computing_tasks.encryption_algorithm_factory import EncryptionAlgorithmFactory
 from tasks.confidential_computing_tasks.utils.saving_utils import extract_messages_from_file, \
-    write_messages_to_file
+    write_messages_to_file, get_last_message_index
+from tasks.confidential_computing_tasks.utils.storage import Storage
 
-def execute_regular_pipeline(action_type: ActionType) -> list[int]:
-    params = extract_arguments()
 
-    messages_file = params.path_for_messages
-    result_messages_file = params.path_for_result_messages
-    encryption_algorithm = params.encryption_algorithm
-    encryption_key_file = params.key_file
-    min_key_val = params.min_key_value
-    max_key_val = params.max_key_value
-    cipher_block_mode = params.cipher_block_mode
+def handle_sigint(sig, frame: types.FrameType, storage: Storage):
+    print("Sub process Received SIGINT! Cleaning up...")
+    storage.save_transformed_messages()
+    sys.exit(0)
 
-    encryption_algorithm_type = convert_int_to_alg_type(encryption_algorithm)
-
-    encryption_instance = EncryptionAlgorithmFactory.create_security_algorithm(encryption_algorithm_type,
-                                                                               cipher_block_mode,
-                                                                               min_key_val,
-                                                                               max_key_val)
-    encryption_instance.extract_key(encryption_key_file)
-
-    if action_type == ActionType.Encryption or action_type == ActionType.FullPipeline:
-        messages = extract_messages_from_file(messages_file)
-    elif action_type == ActionType.Decryption:
-        messages = encryption_instance.load_encrypted_messages(messages_file)
+def get_message(messages_file_path: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int) -> list:
+    if action == ActionType.Encryption or action == ActionType.FullPipeline:
+        messages = extract_messages_from_file(messages_file_path)
+    elif action == ActionType.Decryption:
+        messages = alg.load_encrypted_messages(messages_file_path)
     else:
         messages = []
 
-    updated_messages = []
-    for idx, message in enumerate(messages):
-        print("Starting to update message #{}".format(idx))
-        updated_msg = get_updated_message(message, action_type, encryption_instance)
-        updated_messages.append(updated_msg)
+    if starting_index >= len(messages):
+        return messages
+    return messages[starting_index:]
 
-    if action_type == ActionType.Encryption:
-        encryption_instance.save_encrypted_messages(updated_messages, result_messages_file)
+def save_messages_for_pipeline(messages: list, results_path: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int):
+    should_override = is_new_execution(starting_index)
+    if action == ActionType.Encryption:
+        alg.save_encrypted_messages(messages, results_path, should_override)
     # If decryption or full pipeline, optionally save decrypted ints as text
-    elif action_type in (ActionType.Decryption, ActionType.FullPipeline):
-        write_messages_to_file(result_messages_file, updated_messages)
+    elif action in (ActionType.Decryption, ActionType.FullPipeline):
+        write_messages_to_file(results_path, messages, should_override)
     else:
         raise Exception("Unknown action type.")
 
-    return updated_messages
+def extract_key_for_algorithm(key_file_path: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int) -> KeyDetails:
+    if action == ActionType.Decryption:
+        return alg.extract_key(key_file_path, should_generate=False)
+    return alg.extract_key(key_file_path, should_generate=is_new_execution(starting_index))
+
+
+def execute_regular_pipeline(action_type: ActionType) -> list[int]:
+    params = extract_arguments()
+    last_message_index = get_last_message_index()
+
+    encryption_algorithm_type = convert_int_to_alg_type(params.encryption_algorithm)
+    encryption_instance = EncryptionAlgorithmFactory.create_security_algorithm(encryption_algorithm_type,
+                                                                               params.cipher_block_mode,
+                                                                               params.min_key_value,
+                                                                               params.max_key_value)
+
+    extract_key_for_algorithm(params.key_file, encryption_instance, action_type, last_message_index)
+    transformed_messages = []
+
+    storage = Storage(alg=encryption_instance, results_path=params.path_for_result_messages,
+                      transformed_messages=transformed_messages, action_type=action_type,
+                      initial_message_index=last_message_index)
+    signal.signal(signal.SIGBREAK, partial(handle_sigint, storage_for_exit=storage))
+    signal.signal(signal.SIGTERM, partial(handle_sigint, storage_for_exit=storage))
+
+    messages = get_message(params.path_for_messages, encryption_instance, action_type, last_message_index)
+    for message in messages:
+        transformed_msg = get_transformed_message(message, action_type, encryption_instance)
+        transformed_messages.append(transformed_msg)
+    save_messages_for_pipeline(transformed_messages, params.path_for_result_messages, encryption_instance, action_type, last_message_index)
+
+    return transformed_messages
 
 
 def execute_operation(messages: list[int], action: ActionType, algorithm: SecurityAlgorithm) -> int:
@@ -67,6 +91,7 @@ def execute_homomorphic_pipeline(action_type: ActionType) -> int:
     For homomorphic algorithms -> first encrypt, then run the operation and then decrypt.
     For traditional algorithms -> first run the operation, then encrypt and decrypt.
     """
+    # TODO: add saving of messages
     params = extract_arguments()
     messages_file = params.path_for_messages
     encryption_algorithm = params.encryption_algorithm

@@ -22,22 +22,30 @@ class FernetAESSecurityAlgorithm(SecurityAlgorithm[bytes]):
     def _get_deserializable_encrypted_messages(self, encrypted_messages: list[bytes]) -> list[bytes]:
         return encrypted_messages
 
-    def extract_key(self, key_file: str) -> KeyDetails:
-        """ Initialize the public and private key """
+    def _generate_and_save_key(self, key_file) -> KeyDetails:
+        if self.__key is not None or self.__encryption_fernet is not None:
+            raise Exception("Key is already generated for Fernet AES encryption.")
+
+        print("Generated new fernet key randomly.")
+        self.__key = Fernet.generate_key()
+        with open(key_file, "wb") as f:
+            f.write(self.__key)
+
+        self.__encryption_fernet = Fernet(self.__key)
+        return KeyDetails(public_key={}, private_key={self.__KEY_STR: self.__key})
+
+    def _load_key(self, key_file) -> KeyDetails:
         try:
             with open(key_file, "r") as f:
                 key_content = f.read().strip()
         except FileNotFoundError:
             key_content = ""
 
-        if key_content == "" or key_content is None:
-            print("Generated new fernet key randomly.")
-            self.__key = Fernet.generate_key()
-            with open(key_file, "wb") as f:
-                f.write(self.__key)
-        else:
+        if key_content:
             self.__key = key_content
             print(f"Extracted fernet key from {key_file}.")
+        else:
+            raise Exception("Key file is not found or empty. Call extract_key() with should_generate=True.")
 
         self.__encryption_fernet = Fernet(self.__key)
         return KeyDetails(public_key={}, private_key={self.__KEY_STR: self.__key})

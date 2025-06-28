@@ -28,7 +28,27 @@ class PycryptodomeAsymmetricSecurityAlgorithm(SecurityAlgorithm[bytes]):
         self.private_key = None
         self.public_key = None
 
-    def extract_key(self, key_file: str) -> KeyDetails:
+    def _generate_and_save_key(self, key_file) -> KeyDetails:
+        if self.private_key is not None and self.public_key is not None:
+            raise Exception("Private and Public key are already initialized for PyCryptoDome RSA.")
+
+        if self.algorithm == PycryptodomeAsymmetricAlgorithms.RSA:
+            key = RSA.generate(self.key_size)
+            self.private_key = key
+            self.public_key = key.publickey()
+        else:
+            raise ValueError("Unsupported asymmetric algorithm in Pycryptodome.")
+
+        with open(key_file, 'wb') as f:
+            pickle.dump({
+                PycryptodomeKeyConsts.PRIVATE_KEY: self.private_key.export_key(),
+                PycryptodomeKeyConsts.PUBLIC_KEY: self.public_key.export_key()
+            }, f)
+
+        return KeyDetails(public_key={PycryptodomeKeyConsts.KEY_HOLDER: self.public_key},
+                          private_key={PycryptodomeKeyConsts.KEY_HOLDER: self.private_key})
+
+    def _load_key(self, key_file) -> KeyDetails:
         if os.path.exists(key_file):
             with open(key_file, 'rb') as f:
                 data = pickle.load(f)
@@ -36,20 +56,9 @@ class PycryptodomeAsymmetricSecurityAlgorithm(SecurityAlgorithm[bytes]):
                     self.private_key = RSA.import_key(data[PycryptodomeKeyConsts.PRIVATE_KEY])
                     self.public_key = RSA.import_key(data[PycryptodomeKeyConsts.PUBLIC_KEY])
                 else:
-                    raise ValueError("Unsupported algorithm")
+                    raise ValueError("Unsupported asymmetric algorithm in Pycryptodome.")
         else:
-            if self.algorithm == PycryptodomeAsymmetricAlgorithms.RSA:
-                key = RSA.generate(self.key_size)
-                self.private_key = key
-                self.public_key = key.publickey()
-            else:
-                raise ValueError("Unsupported algorithm")
-
-            with open(key_file, 'wb') as f:
-                pickle.dump({
-                    PycryptodomeKeyConsts.PRIVATE_KEY: self.private_key.export_key(),
-                    PycryptodomeKeyConsts.PUBLIC_KEY: self.public_key.export_key()
-                }, f)
+            raise Exception("Key file not found.")
 
         return KeyDetails(public_key={PycryptodomeKeyConsts.KEY_HOLDER: self.public_key},
                           private_key={PycryptodomeKeyConsts.KEY_HOLDER: self.private_key})

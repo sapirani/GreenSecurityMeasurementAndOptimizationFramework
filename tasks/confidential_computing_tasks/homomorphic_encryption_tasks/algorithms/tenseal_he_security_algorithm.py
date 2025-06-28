@@ -15,8 +15,6 @@ class TensealSchemas:
 
 
 class TensealSecurityAlgorithm(HomomorphicSecurityAlgorithm[T]):
-    __CONTEXT_PATH = "context.bin"
-
     def __init__(self, schema: str, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
         super().__init__(min_key_val, max_key_val)
         self.schema = schema
@@ -24,7 +22,7 @@ class TensealSecurityAlgorithm(HomomorphicSecurityAlgorithm[T]):
         self.__plain_modulus_deg = 8192
         self.__coeff_mod_bit_sizes = [60, 40, 40, 60]
         self.__global_scale = 2 ** 40
-        self.__context = self._create_context_with_schema()
+        self.__context = None
 
     def _create_context_with_schema(self) -> Context:
         if self.schema == TensealSchemas.CKKS:
@@ -45,14 +43,12 @@ class TensealSecurityAlgorithm(HomomorphicSecurityAlgorithm[T]):
         else:
             raise NotImplementedError(ERROR_NOT_SUPPORTING_SCHEMA)
 
-    def extract_key(self, key_file: str) -> KeyDetails:  # todo: maybe extract from the key file the alg name?
-        """ Initialize the public and private key """
-        print("Key extraction method is not implemented for tenseal library.")
-        return KeyDetails({}, {})
-
-    def _get_serializable_encrypted_messages(self, encrypted_messages: list[T]) -> list[T]:
+    def _generate_and_save_key(self, key_file) -> KeyDetails:
+        if self.__context is not None:
+            raise RuntimeError("Context already initialized for TenSeal library.")
         try:
-            with open(self.__CONTEXT_PATH, "wb") as f:
+            self.__context = self._create_context_with_schema()
+            with open(key_file, "wb") as f:
                 f.write(self.__context.serialize(
                     save_secret_key=True,  # Required to decrypt later
                     save_public_key=True,
@@ -60,7 +56,19 @@ class TensealSecurityAlgorithm(HomomorphicSecurityAlgorithm[T]):
                     save_relin_keys=True
                 ))
         except Exception as e:
-            raise RuntimeError("Error occurred when saving context.")
+            raise RuntimeError("Error occurred when saving TenSeal context.")
+        return KeyDetails(public_key={}, private_key={"context": self.__context})
+
+    def _load_key(self, key_file) -> KeyDetails:
+        try:
+            with open(key_file, "rb") as f:
+                self.__context = ts.context_from(f.read())
+        except Exception as e:
+            raise RuntimeError("Error occurred when loading TenSeal context.")
+
+        return KeyDetails(public_key={}, private_key={"context": self.__context})
+
+    def _get_serializable_encrypted_messages(self, encrypted_messages: list[T]) -> list[T]:
         return [msg.serialize() for msg in encrypted_messages]
 
     def __deserialize_single_message(self, msg: T) -> T:
@@ -72,11 +80,6 @@ class TensealSecurityAlgorithm(HomomorphicSecurityAlgorithm[T]):
             raise NotImplementedError(ERROR_NOT_SUPPORTING_SCHEMA)
 
     def _get_deserializable_encrypted_messages(self, encrypted_messages: list[T]) -> list[T]:
-        try:
-            with open(self.__CONTEXT_PATH, "rb") as f:
-                self.__context = ts.context_from(f.read())
-        except Exception as e:
-            raise RuntimeError("Error occurred when reading context.")
         return [self.__deserialize_single_message(msg) for msg in encrypted_messages]
 
     def encrypt_message(self, msg: int) -> T:

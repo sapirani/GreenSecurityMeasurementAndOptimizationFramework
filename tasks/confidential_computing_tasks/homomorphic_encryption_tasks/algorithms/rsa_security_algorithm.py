@@ -27,12 +27,23 @@ class RSASecurityAlgorithm(HomomorphicSecurityAlgorithm[int]):
         self.e = None
         self.d = None
 
-    def extract_key(self, key_file: str) -> KeyDetails:
+    def _generate_and_save_key(self, key_file) -> KeyDetails:
+        p, q = self._extract_random_prime_p_and_q(key_file, should_generate=True,
+                                                  num_of_key_parts=RSAKeyConsts.NUM_OF_KEY_PARTS)
+        return self.__create_full_key(p, q)
+
+    def _load_key(self, key_file) -> KeyDetails:
+        p, q = self._extract_random_prime_p_and_q(key_file, should_generate=False,
+                                                  num_of_key_parts=RSAKeyConsts.NUM_OF_KEY_PARTS)
+        return self.__create_full_key(p, q)
+
+
+    def __create_full_key(self, p: int, q: int) -> KeyDetails:
         """ Initialize the public and private key """
         if self.p is not None and self.q is not None:
             raise RuntimeError("Key is already initialized")
 
-        self.p, self.q = self._extract_random_prime_p_and_q(key_file, RSAKeyConsts.NUM_OF_KEY_PARTS)
+        self.p, self.q = p, q
         self.n = self.p * self.q
         self.phi = (self.p - 1) * (self.q - 1)
 

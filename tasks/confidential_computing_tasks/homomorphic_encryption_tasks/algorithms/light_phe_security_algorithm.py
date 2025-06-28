@@ -21,33 +21,36 @@ class LightPHEAlgorithms:
 
 
 class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[Ciphertext]):
-    __MODEL_FILE = "encryption_model.bin"
-
     def __init__(self, algorithm: str, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
         super().__init__(min_key_val, max_key_val)
         self.__algorithm = algorithm
-        self.__encryption_model = LightPHE(algorithm_name=algorithm)
+        self.__encryption_model = None
 
-    def extract_key(self, key_file: str) -> KeyDetails:  # todo: maybe extract from the key file the alg name?
-        """ Initialize the public and private key """
-        print("Key extraction method is not implemented for LightPHE library.")
-        return KeyDetails({}, {})
 
-    def _get_serializable_encrypted_messages(self, encrypted_messages: list[Ciphertext]) -> list[Ciphertext]:
+    def _generate_and_save_key(self, key_file) -> KeyDetails:
+        if self.__encryption_model is not None:
+            raise RuntimeError("Encryption model already initialized for LightPHE library.")
         try:
-            with open(self.__MODEL_FILE, "wb") as f:
+            self.__encryption_model = LightPHE(algorithm_name=self.__algorithm)
+            with open(key_file, "wb") as f:
                 pickle.dump(self.__encryption_model, f)
         except Exception as e:
             raise RuntimeError("Error occurred when saving lightPhe model.")
+
+        return KeyDetails(public_key={}, private_key={"model": self.__encryption_model})
+
+    def _load_key(self, key_file) -> KeyDetails:
+        try:
+            with open(key_file, "rb") as f:
+                self.__encryption_model = pickle.load(f)
+        except Exception as e:
+            raise RuntimeError("Error occurred when loading lightPhe model.")
+        return KeyDetails(public_key={}, private_key={"model": self.__encryption_model})
+
+    def _get_serializable_encrypted_messages(self, encrypted_messages: list[Ciphertext]) -> list[Ciphertext]:
         return encrypted_messages
 
     def _get_deserializable_encrypted_messages(self, encrypted_messages: list[Ciphertext]) -> list[Ciphertext]:
-        try:
-            with open(self.__MODEL_FILE, 'rb') as messages_file:
-                self.__encryption_model = pickle.load(messages_file)
-        except FileNotFoundError:
-            print("Something went wrong with loading the encrypted messages")
-
         return encrypted_messages
 
     def encrypt_message(self, msg: int) -> Ciphertext:

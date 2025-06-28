@@ -36,8 +36,11 @@ class HomomorphicSecurityAlgorithm(SecurityAlgorithm[T], ABC):
         return total_encrypted_result
 
     @abstractmethod
-    def extract_key(self, key_file: str) -> KeyDetails:
-        """ Initialize the public and private key """
+    def _generate_and_save_key(self, key_file) -> KeyDetails:
+        pass
+
+    @abstractmethod
+    def _load_key(self, key_file) -> KeyDetails:
         pass
 
     @abstractmethod
@@ -62,22 +65,24 @@ class HomomorphicSecurityAlgorithm(SecurityAlgorithm[T], ABC):
     def scalar_and_message_multiplication(self, c: T, scalar: int) -> T:
         pass
 
-    def _extract_random_prime_p_and_q(self, key_file: str, num_of_key_parts: int = KeyConsts.DEFAULT_KEY_PARTS) -> \
+    def _extract_random_prime_p_and_q(self, key_file: str, should_generate: bool, num_of_key_parts: int = KeyConsts.DEFAULT_KEY_PARTS) -> \
             tuple[int, int]:
-        try:
-            with open(key_file, "r") as f:
-                key_lines = f.readlines()
-        except FileNotFoundError:
-            key_lines = []
 
-        if len(key_lines) != num_of_key_parts:
+        if should_generate:
             print("Generated p, q randomly.")
             return self.__generate_initial_primes(key_file)
         else:
-            p = int(key_lines[KeyConsts.P_INDEX_IN_FILE].strip())
-            q = int(key_lines[KeyConsts.Q_INDEX_IN_FILE].strip())
-            print(f"Extracted p, q from {key_file}.")
-            return p, q
+            try:
+                with open(key_file, "r") as f:
+                    key_lines = f.readlines()
+            except FileNotFoundError:
+                raise Exception("Key file not found.")
+
+            if len(key_lines) == num_of_key_parts:
+                p = int(key_lines[KeyConsts.P_INDEX_IN_FILE].strip())
+                q = int(key_lines[KeyConsts.Q_INDEX_IN_FILE].strip())
+                print(f"Extracted p, q from {key_file}.")
+                return p, q
 
     def __generate_initial_primes(self, key_file: str) -> tuple[int, int]:
         min_prime_number = math.isqrt(self._min_key_val)
