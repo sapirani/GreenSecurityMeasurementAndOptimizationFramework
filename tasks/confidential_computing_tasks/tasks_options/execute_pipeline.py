@@ -7,19 +7,19 @@ from tasks.confidential_computing_tasks.abstract_seurity_algorithm import Securi
 from tasks.confidential_computing_tasks.action_type import ActionType
 from tasks.confidential_computing_tasks.key_details import KeyDetails
 from tasks.confidential_computing_tasks.utils.algorithm_utils import extract_arguments, convert_int_to_alg_type, \
-    get_updated_message, is_new_execution
+    get_transformed_message, is_new_execution
 from tasks.confidential_computing_tasks.encryption_algorithm_factory import EncryptionAlgorithmFactory
 from tasks.confidential_computing_tasks.utils.saving_utils import extract_messages_from_file, \
     write_messages_to_file, get_last_message_index
-from tasks.confidential_computing_tasks.utils.storage_for_exit import StorageForExit
+from tasks.confidential_computing_tasks.utils.storage_for_exit import Storage
 
 
-def handle_sigint(sig, frame: types.FrameType, storage_for_exit: StorageForExit):
+def handle_sigint(sig, frame: types.FrameType, storage_for_exit: Storage):
     print("Sub process Received SIGINT! Cleaning up...")
     storage_for_exit.save_updated_messages()
     sys.exit(0)
 
-def get_message_for_pipeline(messages_file_path: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int) -> list:
+def get_message(messages_file_path: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int) -> list:
     if action == ActionType.Encryption or action == ActionType.FullPipeline:
         messages = extract_messages_from_file(messages_file_path)
     elif action == ActionType.Decryption:
@@ -41,10 +41,10 @@ def save_messages_for_pipeline(messages: list, results_path: str, alg: SecurityA
     else:
         raise Exception("Unknown action type.")
 
-def extract_key_for_algorithm(key_file: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int) -> KeyDetails:
+def extract_key_for_algorithm(key_file_path: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int) -> KeyDetails:
     if action == ActionType.Decryption:
-        return alg.extract_key(key_file, should_generate=False)
-    return alg.extract_key(key_file, should_generate=is_new_execution(starting_index))
+        return alg.extract_key(key_file_path, should_generate=False)
+    return alg.extract_key(key_file_path, should_generate=is_new_execution(starting_index))
 
 
 def execute_regular_pipeline(action_type: ActionType) -> list[int]:
@@ -60,14 +60,15 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
     extract_key_for_algorithm(params.key_file, encryption_instance, action_type, last_message_index)
     updated_messages = []
 
-    storage_for_exit = StorageForExit(alg=encryption_instance, results_path=params.path_for_result_messages,
-                                      updated_messages=updated_messages, action_type=action_type,
-                                      initial_message_index=last_message_index)
+    storage_for_exit = Storage(alg=encryption_instance, results_path=params.path_for_result_messages,
+                               updated_messages=updated_messages, action_type=action_type,
+                               initial_message_index=last_message_index)
     signal.signal(signal.SIGBREAK, partial(handle_sigint, storage_for_exit=storage_for_exit))
+    signal.signal(signal.SIGTERM, partial(handle_sigint, storage_for_exit=storage_for_exit))
 
-    messages = get_message_for_pipeline(params.path_for_messages, encryption_instance, action_type, last_message_index)
+    messages = get_message(params.path_for_messages, encryption_instance, action_type, last_message_index)
     for message in messages:
-        updated_msg = get_updated_message(message, action_type, encryption_instance)
+        updated_msg = get_transformed_message(message, action_type, encryption_instance)
         updated_messages.append(updated_msg)
     save_messages_for_pipeline(updated_messages, params.path_for_result_messages, encryption_instance, action_type, last_message_index)
 

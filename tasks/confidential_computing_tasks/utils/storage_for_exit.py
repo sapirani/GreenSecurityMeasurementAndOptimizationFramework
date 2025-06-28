@@ -1,10 +1,12 @@
+import warnings
+
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.action_type import ActionType
 from tasks.confidential_computing_tasks.utils.algorithm_utils import is_new_execution
 from tasks.confidential_computing_tasks.utils.saving_utils import write_last_message_index, write_messages_to_file
 
 
-class StorageForExit:
+class Storage:
     def __init__(self, alg: SecurityAlgorithm, results_path: str, updated_messages: list, action_type: ActionType,
                  initial_message_index: int):
         self.alg = alg
@@ -28,3 +30,6 @@ class StorageForExit:
             # If decryption or full pipeline, optionally save decrypted ints as text
             elif self.action_type in (ActionType.Decryption, ActionType.FullPipeline):
                 write_messages_to_file(self.results_path, self.updated_messages, should_override_file=self.should_override)
+            else:
+                warnings.warn("The transformed messages weren't saved in a file.", RuntimeWarning)
+

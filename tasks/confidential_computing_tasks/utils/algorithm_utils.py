@@ -113,7 +113,7 @@ def convert_mode_type_to_str(mode: EncryptionMode) -> str:
     else:
         raise ValueError("Invalid block cipher mode")
 
-def get_updated_message(msg: int, action_type: ActionType, encryption_alg: SecurityAlgorithm) -> Any:
+def get_transformed_message(msg: int, action_type: ActionType, encryption_alg: SecurityAlgorithm) -> Any:
     if action_type == ActionType.Encryption:
         updated_msg = encryption_alg.encrypt_message(msg)
 
