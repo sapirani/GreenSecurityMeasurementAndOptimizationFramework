@@ -5,7 +5,7 @@ from tasks.confidential_computing_tasks.action_type import ActionType
 
 LAST_MESSAGE_INDEX_FILE_PATH = r"C:\Users\sapir\Desktop\last_message_index.txt"
 
-def get_last_message_index(num_of_messages: int) -> int:
+def get_last_message_index() -> int:
     try:
         with open(LAST_MESSAGE_INDEX_FILE_PATH, "r") as last_message_file:
             content = last_message_file.read().strip()
@@ -13,7 +13,7 @@ def get_last_message_index(num_of_messages: int) -> int:
                 return 0
 
             last_index = int(content)
-            if last_index < 0 or last_index >= num_of_messages:
+            if last_index < 0:
                 return 0
             
             return last_index

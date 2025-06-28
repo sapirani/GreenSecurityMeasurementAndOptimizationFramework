@@ -127,3 +127,11 @@ def get_updated_message(msg: int, action_type: ActionType, encryption_alg: Secur
     else:
         raise Exception("Unsupported action type.")
     return updated_msg
+
+
+def is_new_execution(starting_messages_index: Optional[int]) -> bool:
+    if starting_messages_index is None:
+        return True
+    if starting_messages_index <= 0:
+        return True
+    return False
