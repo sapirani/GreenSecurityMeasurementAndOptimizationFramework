@@ -40,9 +40,11 @@ class FernetAESSecurityAlgorithm(SecurityAlgorithm[bytes]):
             except FileNotFoundError:
                 key_content = ""
 
-            if key_content != "" and key_content is not None:
+            if key_content:
                 self.__key = key_content
                 print(f"Extracted fernet key from {key_file}.")
+            else:
+                raise Exception("Key file is not found or empty. Call extract_key() with should_generate=True.")
 
 
         self.__encryption_fernet = Fernet(self.__key)

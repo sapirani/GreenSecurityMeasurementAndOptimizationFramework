@@ -47,20 +47,9 @@ class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[Ciphertext]):
         return KeyDetails(public_key={}, private_key={"model": self.__encryption_model})
 
     def _get_serializable_encrypted_messages(self, encrypted_messages: list[Ciphertext]) -> list[Ciphertext]:
-        # try:
-        #     with open(self.__MODEL_FILE, "wb") as f:
-        #         pickle.dump(self.__encryption_model, f)
-        # except Exception as e:
-        #     raise RuntimeError("Error occurred when saving lightPhe model.")
         return encrypted_messages
 
     def _get_deserializable_encrypted_messages(self, encrypted_messages: list[Ciphertext]) -> list[Ciphertext]:
-        # try:
-        #     with open(self.__MODEL_FILE, 'rb') as messages_file:
-        #         self.__encryption_model = pickle.load(messages_file)
-        # except FileNotFoundError:
-        #     print("Something went wrong with loading the encrypted messages")
-
         return encrypted_messages
 
     def encrypt_message(self, msg: int) -> Ciphertext:

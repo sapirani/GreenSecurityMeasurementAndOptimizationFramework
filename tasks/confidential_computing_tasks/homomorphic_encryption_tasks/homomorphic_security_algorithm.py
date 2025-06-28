@@ -73,7 +73,7 @@ class HomomorphicSecurityAlgorithm(SecurityAlgorithm[T], ABC):
                 with open(key_file, "r") as f:
                     key_lines = f.readlines()
             except FileNotFoundError:
-                key_lines = []
+                raise Exception("Key file not found.")
 
             if len(key_lines) == num_of_key_parts:
                 p = int(key_lines[KeyConsts.P_INDEX_IN_FILE].strip())
