@@ -7,6 +7,7 @@ from selenium.webdriver.support.expected_conditions import element_selection_sta
 
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.action_type import ActionType
+from tasks.confidential_computing_tasks.key_details import KeyDetails
 from tasks.confidential_computing_tasks.utils.algorithm_utils import extract_arguments, convert_int_to_alg_type, \
     get_updated_message, is_new_execution
 from tasks.confidential_computing_tasks.encryption_algorithm_factory import EncryptionAlgorithmFactory
@@ -59,7 +60,6 @@ def get_message_for_pipeline(messages_file_path: str, alg: SecurityAlgorithm, ac
 
 def save_messages_for_pipeline(messages: list, results_path: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int):
     should_override = is_new_execution(starting_index)
-    print("SHOULD OVERRIDE SAVING PATH (in main):", should_override)
     if action == ActionType.Encryption:
         alg.save_encrypted_messages(messages, results_path, should_override)
     # If decryption or full pipeline, optionally save decrypted ints as text
@@ -67,6 +67,11 @@ def save_messages_for_pipeline(messages: list, results_path: str, alg: SecurityA
         write_messages_to_file(results_path, messages, should_override)
     else:
         raise Exception("Unknown action type.")
+
+def extract_key_for_algorithm(key_file: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int) -> KeyDetails:
+    if action == ActionType.Decryption:
+        return alg.extract_key(key_file, should_generate=False)
+    return alg.extract_key(key_file, should_generate=is_new_execution(starting_index))
 
 
 def execute_regular_pipeline(action_type: ActionType) -> list[int]:
@@ -78,7 +83,8 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
                                                                                params.cipher_block_mode,
                                                                                params.min_key_value,
                                                                                params.max_key_value)
-    encryption_instance.extract_key(params.key_file, should_generate=is_new_execution(last_message_index))
+
+    extract_key_for_algorithm(params.key_file, encryption_instance, action_type, last_message_index)
     updated_messages = []
 
     storage_for_exit = StorageForExit(alg=encryption_instance, results_path=params.path_for_result_messages,
@@ -87,11 +93,10 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
     signal.signal(signal.SIGBREAK, partial(handle_sigint, storage_for_exit=storage_for_exit))
 
     messages = get_message_for_pipeline(params.path_for_messages, encryption_instance, action_type, last_message_index)
-    print(f"After snip messages: {len(messages)}")
     for message in messages:
         updated_msg = get_updated_message(message, action_type, encryption_instance)
         updated_messages.append(updated_msg)
-    save_messages_for_pipeline(messages, params.path_for_result_messages, encryption_instance, action_type, last_message_index)
+    save_messages_for_pipeline(updated_messages, params.path_for_result_messages, encryption_instance, action_type, last_message_index)
 
     return updated_messages
 

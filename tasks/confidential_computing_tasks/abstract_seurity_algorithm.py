@@ -18,7 +18,6 @@ class SecurityAlgorithm(ABC, Generic[T]):
         serializable_messages = self._get_serializable_encrypted_messages(encrypted_messages)
         try:
             mode = "wb" if should_override_file else "ab"
-            print("MODE ENCRYPTED:", mode)
             with open(file_name, mode) as messages_file:
                 pickle.dump(serializable_messages, messages_file)
         except FileNotFoundError:
@@ -32,7 +31,6 @@ class SecurityAlgorithm(ABC, Generic[T]):
                     try:
                         encrypted_messages_portion = pickle.load(messages_file)
                         deserialized_messages_portion = self._get_deserializable_encrypted_messages(encrypted_messages_portion)
-                        print(f"DESERIALIZED: {deserialized_messages_portion}")
                         deserialized_messages.extend(deserialized_messages_portion)
                     except EOFError:
                         break
