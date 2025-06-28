@@ -43,28 +43,28 @@ class TensealSecurityAlgorithm(HomomorphicSecurityAlgorithm[T]):
         else:
             raise NotImplementedError(ERROR_NOT_SUPPORTING_SCHEMA)
 
-    def extract_key(self, key_file: str, should_generate: bool) -> KeyDetails:
-        """ Initialize the public and private key """
-        if should_generate:
-            if self.__context is not None:
-                raise RuntimeError("Context already initialized for TenSeal library.")
-            try:
-                self.__context = self._create_context_with_schema()
-                with open(key_file, "wb") as f:
-                    f.write(self.__context.serialize(
-                        save_secret_key=True,  # Required to decrypt later
-                        save_public_key=True,
-                        save_galois_keys=True,
-                        save_relin_keys=True
-                    ))
-            except Exception as e:
-                raise RuntimeError("Error occurred when saving TenSeal context.")
-        else:
-            try:
-                with open(key_file, "rb") as f:
-                    self.__context = ts.context_from(f.read())
-            except Exception as e:
-                raise RuntimeError("Error occurred when loading TenSeal context.")
+    def _generate_and_save_key(self, key_file) -> KeyDetails:
+        if self.__context is not None:
+            raise RuntimeError("Context already initialized for TenSeal library.")
+        try:
+            self.__context = self._create_context_with_schema()
+            with open(key_file, "wb") as f:
+                f.write(self.__context.serialize(
+                    save_secret_key=True,  # Required to decrypt later
+                    save_public_key=True,
+                    save_galois_keys=True,
+                    save_relin_keys=True
+                ))
+        except Exception as e:
+            raise RuntimeError("Error occurred when saving TenSeal context.")
+        return KeyDetails(public_key={}, private_key={"context": self.__context})
+
+    def _load_key(self, key_file) -> KeyDetails:
+        try:
+            with open(key_file, "rb") as f:
+                self.__context = ts.context_from(f.read())
+        except Exception as e:
+            raise RuntimeError("Error occurred when loading TenSeal context.")
 
         return KeyDetails(public_key={}, private_key={"context": self.__context})
 

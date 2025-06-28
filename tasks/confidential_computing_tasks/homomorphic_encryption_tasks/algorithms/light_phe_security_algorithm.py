@@ -26,24 +26,25 @@ class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[Ciphertext]):
         self.__algorithm = algorithm
         self.__encryption_model = None
 
-    def extract_key(self, key_file: str, should_generate: bool) -> KeyDetails:
-        """ Initialize the public and private key """
-        if should_generate:
-            if self.__encryption_model is not None:
-                raise RuntimeError("Encryption model already initialized for LightPHE library.")
-            try:
-                self.__encryption_model = LightPHE(algorithm_name=self.__algorithm)
-                with open(key_file, "wb") as f:
-                    pickle.dump(self.__encryption_model, f)
-            except Exception as e:
-                raise RuntimeError("Error occurred when saving lightPhe model.")
-        else:
-            try:
-                with open(key_file, "rb") as f:
-                    self.__encryption_model = pickle.load(f)
-            except Exception as e:
-                raise RuntimeError("Error occurred when loading lightPhe model.")
 
+    def _generate_and_save_key(self, key_file) -> KeyDetails:
+        if self.__encryption_model is not None:
+            raise RuntimeError("Encryption model already initialized for LightPHE library.")
+        try:
+            self.__encryption_model = LightPHE(algorithm_name=self.__algorithm)
+            with open(key_file, "wb") as f:
+                pickle.dump(self.__encryption_model, f)
+        except Exception as e:
+            raise RuntimeError("Error occurred when saving lightPhe model.")
+
+        return KeyDetails(public_key={}, private_key={"model": self.__encryption_model})
+
+    def _load_key(self, key_file) -> KeyDetails:
+        try:
+            with open(key_file, "rb") as f:
+                self.__encryption_model = pickle.load(f)
+        except Exception as e:
+            raise RuntimeError("Error occurred when loading lightPhe model.")
         return KeyDetails(public_key={}, private_key={"model": self.__encryption_model})
 
     def _get_serializable_encrypted_messages(self, encrypted_messages: list[Ciphertext]) -> list[Ciphertext]:

@@ -56,9 +56,21 @@ class SecurityAlgorithm(ABC, Generic[T]):
         pass
 
     @abstractmethod
+    def _generate_and_save_key(self, key_file) -> KeyDetails:
+        pass
+
+    @abstractmethod
+    def _load_key(self, key_file) -> KeyDetails:
+        pass
+
     def extract_key(self, key_file: str, should_generate: bool) -> KeyDetails:
         """ Initialize the public and private key """
-        pass
+        try:
+            if should_generate:
+                return self._generate_and_save_key(key_file)
+            return self._load_key(key_file)
+        except Exception as e:
+            raise Exception("Something went wrong with extracting the key.")
 
     @abstractmethod
     def encrypt_message(self, msg: int) -> T:

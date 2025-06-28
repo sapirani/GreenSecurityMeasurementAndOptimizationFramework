@@ -36,8 +36,11 @@ class HomomorphicSecurityAlgorithm(SecurityAlgorithm[T], ABC):
         return total_encrypted_result
 
     @abstractmethod
-    def extract_key(self, key_file: str, should_generate: bool) -> KeyDetails:
-        """ Initialize the public and private key """
+    def _generate_and_save_key(self, key_file) -> KeyDetails:
+        pass
+
+    @abstractmethod
+    def _load_key(self, key_file) -> KeyDetails:
         pass
 
     @abstractmethod
