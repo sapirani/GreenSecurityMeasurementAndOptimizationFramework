@@ -68,7 +68,8 @@ class AbstractOSFuncs:
     def popen(command, find_child_id_func, should_use_powershell, is_posix, should_find_child_id=False, f_stdout=subprocess.PIPE, f_stderr=subprocess.PIPE):
         print(command)
         def process_obj_and_pid(command_lst):
-            p = subprocess.Popen(command_lst, stdout=f_stdout, stderr=f_stderr)
+            popen_creation_flags = 0 if is_posix else subprocess.CREATE_NEW_PROCESS_GROUP
+            p = subprocess.Popen(command_lst, stdout=f_stdout, stderr=f_stderr, creationflags=popen_creation_flags)
             pid = p.pid
 
             if should_use_powershell or should_find_child_id:
@@ -110,8 +111,11 @@ class AbstractOSFuncs:
             else:
                 raise e
 
-    def wait_for_measurement_termination(self, measurement_thread: Thread, done_scanning_event: threading.Event):
-        measurement_thread.join()
+    def wait_for_thread_termination(self, thread: Thread, done_scanning_event: threading.Event) -> None:
+        thread.join()
+
+    def wait_for_process_termination(self, process: subprocess.Popen, done_scanning_event: threading.Event) -> int:
+        return process.wait()
 
     @abstractmethod
     # TODO: make balance the default
@@ -142,4 +146,8 @@ class AbstractOSFuncs:
 
     @abstractmethod
     def get_container_total_memory_usage(self) -> tuple[float, float]:
+        pass
+
+    @abstractmethod
+    def kill_process_gracefully(self, process_pid: int):
         pass
