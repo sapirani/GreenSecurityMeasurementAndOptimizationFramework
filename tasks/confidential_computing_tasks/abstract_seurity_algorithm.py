@@ -58,7 +58,7 @@ class SecurityAlgorithm(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def extract_key(self, key_file: str) -> KeyDetails:
+    def extract_key(self, key_file: str, should_generate: bool) -> KeyDetails:
         """ Initialize the public and private key """
         pass
 

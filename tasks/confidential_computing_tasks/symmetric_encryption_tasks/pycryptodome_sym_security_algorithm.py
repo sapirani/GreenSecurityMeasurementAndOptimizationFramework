@@ -52,7 +52,6 @@ class PycryptodomeSymmetricSecurityAlgorithm(SecurityAlgorithm[bytes]):
     }
 
     __DEFAULT_KEY_STR = "DEFAULT"
-    __MODEL_FILE = "encryption_model.bin"
 
     def __init__(self, algorithm: str, mode: Optional[str], min_key_val: int = PRIME_MIN_VAL,
                  max_key_val: int = PRIME_MAX_VAL):
@@ -119,14 +118,12 @@ class PycryptodomeSymmetricSecurityAlgorithm(SecurityAlgorithm[bytes]):
             raise ValueError("Unsupported algorithm")
         return alg_module
 
-    def extract_key(self, key_file: str) -> KeyDetails:
-        if os.path.exists(key_file):
-            with open(key_file, 'rb') as f:
-                data = pickle.load(f)
-                self.key = data[PycryptodomeKeyConsts.KEY_HOLDER]
-                self.iv = data.get(PycryptodomeKeyConsts.IV, b'')
-                self.nonce = data.get(PycryptodomeKeyConsts.NONCE, b'')
-        else:
+    def extract_key(self, key_file: str, should_generate: bool) -> KeyDetails:
+        if should_generate:
+            if self.key is not None or self.iv is not None or self.nonce is not None:
+                raise Exception("Key is already initialized for PyCryptoDome.")
+
+            print("Generating key randomly.")
             self.key = self._generate_key()
             self.iv = self._generate_iv()
             self.nonce = self._generate_nonce()
@@ -136,6 +133,15 @@ class PycryptodomeSymmetricSecurityAlgorithm(SecurityAlgorithm[bytes]):
                     PycryptodomeKeyConsts.IV: self.iv,
                     PycryptodomeKeyConsts.NONCE: self.nonce
                 }, f)
+        elif os.path.exists(key_file):
+            with open(key_file, 'rb') as f:
+                data = pickle.load(f)
+                self.key = data[PycryptodomeKeyConsts.KEY_HOLDER]
+                self.iv = data.get(PycryptodomeKeyConsts.IV, b'')
+                self.nonce = data.get(PycryptodomeKeyConsts.NONCE, b'')
+        else:
+            raise Exception("Key file does not exist.")
+
         return KeyDetails(public_key={},
                           private_key={PycryptodomeKeyConsts.KEY_HOLDER: self.key,
                                        PycryptodomeKeyConsts.IV: self.iv,
