@@ -3,7 +3,8 @@ import platform
 import subprocess
 import threading
 from threading import Thread
-
+import os
+import signal
 from typing_extensions import override
 
 from general_consts import PowerPlan, pc_types, GB, physical_memory_types, disk_types
@@ -215,13 +216,38 @@ class WindowsOS(AbstractOSFuncs):
         raise NotImplementedError("Not implemented total memory for windows container")
 
     @override
-    def wait_for_measurement_termination(self, measurement_thread: Thread, done_scanning_event: threading.Event):
+    def wait_for_thread_termination(self, thread: Thread, done_scanning_event: threading.Event) -> None:
         """
         Since signal handling in windows cannot be interrupted, while waiting to the measurement thread we cannot
         actively stop the program (for example, when using CTRL+C).
         Hence, we have no choice but avoid blocking, and give a chance for interruption by the signal
+        ***Important***: you must ensure that done_scanning_event is set when measurement thread terminates
+        (in any possible case, such as reaching predefined timeout, receiving CTRL+C,
+        depleting predefined threshold of battery and so on...)
         """
         while not done_scanning_event.wait(timeout=2):
             pass
 
-        measurement_thread.join()
+        thread.join()
+
+    @override
+    def wait_for_process_termination(self, process: subprocess.Popen, done_scanning_event: threading.Event) -> int:
+        """
+        Since signal handling in windows cannot be interrupted, while waiting to the process we cannot
+        actively stop the program (for example, when using CTRL+C).
+        Hence, we have no choice but avoid blocking, and give a chance for interruption by the signal
+        ***Important***: you must ensure that done_scanning_event is set when measurement thread terminates
+        (in any possible case, such as reaching predefined timeout, receiving CTRL+C,
+        depleting predefined threshold of battery and so on...)
+        """
+        while not done_scanning_event.wait(timeout=2):
+            pass
+
+        return process.wait()
+
+    @override
+    def kill_process_gracefully(self, process_pid: int):
+        """
+        The process might provide a custom handler function for signal.SIGBREAK
+        """
+        os.kill(process_pid, signal.CTRL_BREAK_EVENT)

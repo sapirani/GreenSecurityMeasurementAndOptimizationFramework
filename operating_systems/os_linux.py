@@ -1,7 +1,7 @@
 import platform
 import subprocess
-from statistics import mean
-
+import os
+import signal
 import psutil
 
 from general_consts import MINUTE, NEVER_GO_TO_SLEEP_MODE, YES_BUTTON, NO_BUTTON, PowerPlan
@@ -174,3 +174,9 @@ class LinuxOS(AbstractOSFuncs):
         usage_in_bytes = self.__container_memory_usage_reader.get_memory_usage_bytes()
         usage_percent = self.__container_memory_usage_reader.get_memory_usage_percent()
         return usage_in_bytes, usage_percent
+
+    def kill_process_gracefully(self, process_pid: int):
+        """
+        The process might provide a custom handler function for signal.SIGINT
+        """
+        os.kill(process_pid, signal.SIGINT)

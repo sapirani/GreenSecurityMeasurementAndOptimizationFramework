@@ -41,11 +41,6 @@ class ProgramInterface:
     def set_processes_ids(self, processes_ids):
         self.processes_ids = processes_ids
 
-    def kill_process(self, p, is_posix):
-        # global max_timeout_reached
-        p.terminate()
-        # max_timeout_reached = True
-
     def process_ignore_cond(self, p):
         return p.pid == SYSTEM_IDLE_PID
 
