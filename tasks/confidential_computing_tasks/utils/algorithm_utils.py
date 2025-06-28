@@ -115,18 +115,18 @@ def convert_mode_type_to_str(mode: EncryptionMode) -> str:
 
 def get_transformed_message(msg: int, action_type: ActionType, encryption_alg: SecurityAlgorithm) -> Any:
     if action_type == ActionType.Encryption:
-        updated_msg = encryption_alg.encrypt_message(msg)
+        transformed_msg = encryption_alg.encrypt_message(msg)
 
     elif action_type == ActionType.Decryption:
-        updated_msg = encryption_alg.decrypt_message(msg)
+        transformed_msg = encryption_alg.decrypt_message(msg)
 
     elif action_type == ActionType.FullPipeline:
         encrypted_message = encryption_alg.encrypt_message(msg)
         decrypted_message = encryption_alg.decrypt_message(encrypted_message)
-        updated_msg = math.isclose(msg, decrypted_message, abs_tol=0.001)
+        transformed_msg = math.isclose(msg, decrypted_message, abs_tol=0.001)
     else:
         raise Exception("Unsupported action type.")
-    return updated_msg
+    return transformed_msg
 
 
 def is_new_execution(starting_messages_index: Optional[int]) -> bool:

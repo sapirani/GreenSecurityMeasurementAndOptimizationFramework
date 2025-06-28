@@ -11,12 +11,12 @@ from tasks.confidential_computing_tasks.utils.algorithm_utils import extract_arg
 from tasks.confidential_computing_tasks.encryption_algorithm_factory import EncryptionAlgorithmFactory
 from tasks.confidential_computing_tasks.utils.saving_utils import extract_messages_from_file, \
     write_messages_to_file, get_last_message_index
-from tasks.confidential_computing_tasks.utils.storage_for_exit import Storage
+from tasks.confidential_computing_tasks.utils.storage import Storage
 
 
-def handle_sigint(sig, frame: types.FrameType, storage_for_exit: Storage):
+def handle_sigint(sig, frame: types.FrameType, storage: Storage):
     print("Sub process Received SIGINT! Cleaning up...")
-    storage_for_exit.save_updated_messages()
+    storage.save_transformed_messages()
     sys.exit(0)
 
 def get_message(messages_file_path: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int) -> list:
@@ -58,21 +58,21 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
                                                                                params.max_key_value)
 
     extract_key_for_algorithm(params.key_file, encryption_instance, action_type, last_message_index)
-    updated_messages = []
+    transformed_messages = []
 
-    storage_for_exit = Storage(alg=encryption_instance, results_path=params.path_for_result_messages,
-                               updated_messages=updated_messages, action_type=action_type,
-                               initial_message_index=last_message_index)
-    signal.signal(signal.SIGBREAK, partial(handle_sigint, storage_for_exit=storage_for_exit))
-    signal.signal(signal.SIGTERM, partial(handle_sigint, storage_for_exit=storage_for_exit))
+    storage = Storage(alg=encryption_instance, results_path=params.path_for_result_messages,
+                      transformed_messages=transformed_messages, action_type=action_type,
+                      initial_message_index=last_message_index)
+    signal.signal(signal.SIGBREAK, partial(handle_sigint, storage_for_exit=storage))
+    signal.signal(signal.SIGTERM, partial(handle_sigint, storage_for_exit=storage))
 
     messages = get_message(params.path_for_messages, encryption_instance, action_type, last_message_index)
     for message in messages:
-        updated_msg = get_transformed_message(message, action_type, encryption_instance)
-        updated_messages.append(updated_msg)
-    save_messages_for_pipeline(updated_messages, params.path_for_result_messages, encryption_instance, action_type, last_message_index)
+        transformed_msg = get_transformed_message(message, action_type, encryption_instance)
+        transformed_messages.append(transformed_msg)
+    save_messages_for_pipeline(transformed_messages, params.path_for_result_messages, encryption_instance, action_type, last_message_index)
 
-    return updated_messages
+    return transformed_messages
 
 
 def execute_operation(messages: list[int], action: ActionType, algorithm: SecurityAlgorithm) -> int:
