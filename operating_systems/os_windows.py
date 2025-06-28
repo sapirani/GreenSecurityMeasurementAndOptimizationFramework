@@ -226,7 +226,8 @@ class WindowsOS(AbstractOSFuncs):
         depleting predefined threshold of battery and so on...)
         """
         while not done_scanning_event.wait(timeout=2):
-            pass
+            if not thread.is_alive():
+                break
 
         thread.join()
 
@@ -240,6 +241,7 @@ class WindowsOS(AbstractOSFuncs):
         (in any possible case, such as reaching predefined timeout, receiving CTRL+C,
         depleting predefined threshold of battery and so on...)
         """
+        # TODO: rename done_scanning_event after unifying with should_scan
         while not done_scanning_event.wait(timeout=2):
             if process.poll() is not None:
                 break
