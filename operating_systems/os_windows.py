@@ -223,7 +223,8 @@ class WindowsOS(AbstractOSFuncs):
         depleting predefined threshold of battery and so on...)
         """
         while not done_scanning_event.wait(timeout=2):
-            pass
+            if not thread.is_alive():
+                break
 
         thread.join()
 
