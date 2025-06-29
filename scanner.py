@@ -889,25 +889,28 @@ def get_starting_time() -> float:
     }
     """
     if os.path.exists(BACKED_UP_SCANNING_TIMESTAMPS_PATH):
+        print("NOTE! backup directory exists. It is used for preserving the state of unfinished measurement that"
+              " was interrupted due to low battery.\n"
+              "If you find it unnecessary - please remove the directory at:", BACKED_UP_SCANNING_TIMESTAMPS_PATH)
+
         with open(BACKED_UP_SCANNING_TIMESTAMPS_PATH, "r") as f:
             backed_up_data = json.load(f)
             if backed_up_data["session_id"] == session_id:
                 if main_program_to_scan == ProgramToScan.NO_SCAN:
-                    print("WARNING! preserving state from previous previously unfinished measurement that"
-                          " was interrupted due to low battery is not supported in NO_SCAN mode.\n "
-                          "Delete the the backup directory if you have no need in it")
+                    print("WARNING! restoring backed-up state from previous unfinished measurement "
+                          "is not supported in NO_SCAN mode.\n ")
                 else:
                     print("NOTE! assuming this measurement is a continuation of previously unfinished measurement that"
                           " was interrupted due to low battery")
                     return float(backed_up_data["start_timestamp"])
             else:
                 print(
-                    "WARNING! A backup directory already exists. "
-                    "This may be from a previously interrupted measurement (e.g., due to low battery). "
-                    "However, the current session ID does not match the previous one. "
+                    "WARNING! The current session ID does not match the measurement id "
+                    "of the previous unfinished measurement. "
                     "Assuming this is a new, unrelated measurement.\n"
                     "To continue the previous measurement, re-run the program with the same session ID as an argument.\n"
-                    "To start fresh, delete the existing backup directory."
+                    "It is recommended to remove the backup directory at:", BACKED_UP_SCANNING_TIMESTAMPS_PATH,
+                    "if you find it unuseful"
                 )
     return time.time()
 
