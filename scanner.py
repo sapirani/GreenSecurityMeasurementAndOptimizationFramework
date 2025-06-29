@@ -902,7 +902,7 @@ def get_starting_time() -> float:
                 else:
                     print("NOTE! assuming this measurement is a continuation of previously unfinished measurement that"
                           " was interrupted due to low battery")
-                    return float(backed_up_data["end_timestamp"]) - float(backed_up_data["start_timestamp"])
+                    return time.time() - (float(backed_up_data["end_timestamp"]) - float(backed_up_data["start_timestamp"]))
             else:
                 print(
                     "WARNING! The current session ID does not match the measurement id "
