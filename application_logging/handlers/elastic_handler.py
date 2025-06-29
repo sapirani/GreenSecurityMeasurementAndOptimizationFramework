@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timezone
 import logging
 import os
@@ -12,12 +13,13 @@ class ElasticSearchLogHandler(logging.Handler):
             elastic_username: str,
             elastic_password: str,
             elastic_url: str,
-            index_name: str = INDEX_NAME
+            index_name: str = INDEX_NAME,
+            start_timestamp: float = time.time()
     ):
         super().__init__()
         self.es = Elasticsearch(elastic_url, basic_auth=(elastic_username, elastic_password))
         self.index_name = index_name
-        self.start_date = datetime.now(timezone.utc).isoformat()
+        self.start_date = datetime.fromtimestamp(start_timestamp, tz=timezone.utc).isoformat()
 
         if not self.es.ping():
             print("Cannot connect to Elastic")

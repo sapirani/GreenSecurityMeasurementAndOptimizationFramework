@@ -1,5 +1,6 @@
 import argparse
 import json
+import os.path
 import shutil
 import signal
 import threading
@@ -18,7 +19,7 @@ from scapy.interfaces import get_working_ifaces
 from application_logging import get_measurement_logger, get_elastic_logging_handler
 from application_logging.adapters.scanner_logger_adapter import ScannerLoggerAdapter
 from initialization_helper import *
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
 from operating_systems.abstract_operating_system import AbstractOSFuncs
@@ -27,6 +28,9 @@ from process_connections import ProcessNetworkMonitor
 base_dir, GRAPHS_DIR, STDOUT_FILES_DIR, STDERR_FILES_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, \
     DISK_IO_EACH_MOMENT, NETWORK_IO_EACH_MOMENT, BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, \
     SUMMARY_CSV = result_paths()
+
+BACKUP_DIR_PATH_BEFORE_BATTERY_DEPLETION = "backup_before_battery_depletion"
+BACKED_UP_SCANNING_TIMESTAMPS_PATH = os.path.join(BACKUP_DIR_PATH_BEFORE_BATTERY_DEPLETION, "scanning timestamps.json")
 
 program.set_results_dir(base_dir)
 
@@ -38,6 +42,7 @@ max_timeout_reached = False
 main_process = None
 logger = None
 session_id: str = ""
+start_date: datetime = datetime.now(timezone.utc)
 
 # include main programs and background
 processes_ids = []
@@ -277,6 +282,17 @@ def save_data_when_too_low_battery():
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
         f.write("EARLY TERMINATION DUE TO LOW BATTERY!!!!!!!!!!\n\n")
     finished_scanning_time.append(scanner_imp.calc_time_interval(starting_time))
+
+    print("NOTE! backing up program metadata")
+    Path(BACKUP_DIR_PATH_BEFORE_BATTERY_DEPLETION).mkdir(parents=True, exist_ok=True)  # create dir for saving metadata before termination
+    with open(BACKED_UP_SCANNING_TIMESTAMPS_PATH, "w") as f:
+        backup_data = {
+            "session_id": session_id,
+            "start_timestamp": starting_time,
+            "end_timestamp": time.time()
+        }
+        json.dump(backup_data, f, indent=4)
+
     if main_process:
         running_os.kill_process_gracefully(main_process.pid)  # killing the main process
     done_scanning_event.set()
@@ -726,10 +742,8 @@ def scan_and_measure():
     background programs defined by the user (so the thread will measure them also)
     """
     global main_process
-    global starting_time
     global main_process_id
     global max_timeout_reached
-    starting_time = time.time()
 
     measurements_thread = Thread(target=continuously_measure, args=())
     measurements_thread.start()
@@ -863,13 +877,69 @@ def after_scanning_operations(should_save_results=True):
         print("Scanned program reached the maximum time so we terminated it")
 
 
-def main():
+def get_starting_time() -> float:
+    """
+    This function assumes that if we have a directory located in PATH_FOR_SAVING_BEFORE_BATTERY_DEPLETION,
+    it happened due to previous measurement in which the battery was running low.
+    The file's content is a json containing:
+    {
+        session_id: <str>
+        start_timestamp: <timestamp>
+        end_timestamp: <timestamp>
+    }
+    """
+    if os.path.exists(BACKED_UP_SCANNING_TIMESTAMPS_PATH):
+        print("NOTE! backup directory exists. It is used for preserving the state of unfinished measurement that"
+              " was interrupted due to low battery.\n"
+              "If you find it unnecessary - please remove the directory at:", BACKED_UP_SCANNING_TIMESTAMPS_PATH)
+
+        with open(BACKED_UP_SCANNING_TIMESTAMPS_PATH, "r") as f:
+            backed_up_data = json.load(f)
+            if backed_up_data["session_id"] == session_id:
+                if main_program_to_scan == ProgramToScan.NO_SCAN:
+                    print("WARNING! restoring backed-up state from previous unfinished measurement "
+                          "is not supported in NO_SCAN mode.\n ")
+                else:
+                    print("NOTE! assuming this measurement is a continuation of previously unfinished measurement that"
+                          " was interrupted due to low battery")
+                    return time.time() - (float(backed_up_data["end_timestamp"]) - float(backed_up_data["start_timestamp"]))
+            else:
+                print(
+                    "WARNING! The current session ID does not match the measurement id "
+                    "of the previous unfinished measurement. "
+                    "Assuming this is a new, unrelated measurement.\n"
+                    "To continue the previous measurement, re-run the program with the same session ID as an argument.\n"
+                    "It is recommended to remove the backup directory at:", BACKED_UP_SCANNING_TIMESTAMPS_PATH,
+                    "if you find it unuseful."
+                )
+    return time.time()
+
+
+def main(user_args):
+    global logger
+    global starting_time
     print("======== Process Monitor ========")
     print("Session id:", session_id)
 
     signal.signal(signal.SIGINT, handle_sigint)
 
     before_scanning_operations()
+
+    logger_adapter = partial(
+        ScannerLoggerAdapter,
+        session_id=session_id,
+        hostname=AbstractOSFuncs.get_hostname(),
+        user_defined_extras=user_args.logging_constant_extras
+    )
+
+    starting_time = get_starting_time()
+
+    logger = get_measurement_logger(
+        logger_adapter,
+        get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, starting_time)
+    )
+
+    logger.info("The scanner is starting the measurement")
 
     scan_and_measure()
 
@@ -900,18 +970,4 @@ if __name__ == '__main__':
 
     session_id = args.measurement_session_id
 
-    logger_adapter = partial(
-        ScannerLoggerAdapter,
-        session_id=session_id,
-        hostname=AbstractOSFuncs.get_hostname(),
-        user_defined_extras=args.logging_constant_extras
-    )
-
-    logger = get_measurement_logger(
-        logger_adapter,
-        get_elastic_logging_handler(elastic_username, elastic_password, elastic_url)
-    )
-
-    logger.info("The scanner is starting the measurement")
-
-    main()
+    main(args)

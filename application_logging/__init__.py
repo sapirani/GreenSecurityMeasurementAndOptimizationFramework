@@ -5,9 +5,9 @@ from typing import Protocol, Dict, Any, Optional
 from application_logging.handlers.elastic_handler import ElasticSearchLogHandler
 
 
-def get_elastic_logging_handler(elastic_username: str, elastic_password: str, elastic_url: str) -> Optional[Handler]:
+def get_elastic_logging_handler(elastic_username: str, elastic_password: str, elastic_url: str, starting_time: float) -> Optional[Handler]:
     try:
-        return ElasticSearchLogHandler(elastic_username, elastic_password, elastic_url)
+        return ElasticSearchLogHandler(elastic_username, elastic_password, elastic_url, start_timestamp=starting_time)
     except ConnectionError:
         return None
 
