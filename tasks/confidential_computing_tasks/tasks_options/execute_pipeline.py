@@ -20,7 +20,7 @@ def handle_sigint(sig, frame: types.FrameType, storage: Storage):
     sys.exit(0)
 
 def get_message(messages_file_path: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int) -> list:
-    if action == ActionType.Encryption or action == ActionType.FullPipeline:
+    if action == ActionType.Encryption or action == ActionType.FullPipeline or action == ActionType.Addition or action == ActionType.Multiplication:
         messages = extract_messages_from_file(messages_file_path)
     elif action == ActionType.Decryption:
         messages = alg.load_encrypted_messages(messages_file_path)
@@ -92,23 +92,43 @@ def execute_homomorphic_pipeline(action_type: ActionType) -> int:
     For traditional algorithms -> first run the operation, then encrypt and decrypt.
     """
     # TODO: add saving of messages
+    # params = extract_arguments()
+    # messages_file = params.path_for_messages
+    # encryption_algorithm = params.encryption_algorithm
+    # encryption_key_file = params.key_file
+    # min_key_val = params.min_key_value
+    # max_key_val = params.max_key_value
+    # cipher_block_mode = params.cipher_block_mode
+    #
+    # encryption_algorithm_type = convert_int_to_alg_type(encryption_algorithm)
+    #
+    # encryption_instance = EncryptionAlgorithmFactory.create_security_algorithm(encryption_algorithm_type,
+    #                                                                            cipher_block_mode,
+    #                                                                            min_key_val,
+    #                                                                            max_key_val)
+    #
+    # encryption_instance.extract_key(encryption_key_file)
+    # messages = extract_messages_from_file(messages_file)
+
     params = extract_arguments()
-    messages_file = params.path_for_messages
-    encryption_algorithm = params.encryption_algorithm
-    encryption_key_file = params.key_file
-    min_key_val = params.min_key_value
-    max_key_val = params.max_key_value
-    cipher_block_mode = params.cipher_block_mode
+    last_message_index = get_last_message_index()
 
-    encryption_algorithm_type = convert_int_to_alg_type(encryption_algorithm)
-
+    encryption_algorithm_type = convert_int_to_alg_type(params.encryption_algorithm)
     encryption_instance = EncryptionAlgorithmFactory.create_security_algorithm(encryption_algorithm_type,
-                                                                               cipher_block_mode,
-                                                                               min_key_val,
-                                                                               max_key_val)
+                                                                               params.cipher_block_mode,
+                                                                               params.min_key_value,
+                                                                               params.max_key_value)
 
-    encryption_instance.extract_key(encryption_key_file)
-    messages = extract_messages_from_file(messages_file)
+    extract_key_for_algorithm(params.key_file, encryption_instance, action_type, last_message_index)
+    transformed_messages = []
+
+    storage = Storage(alg=encryption_instance, results_path=params.path_for_result_messages,
+                      transformed_messages=transformed_messages, action_type=action_type,
+                      initial_message_index=last_message_index)
+    signal.signal(signal.SIGBREAK, partial(handle_sigint, storage=storage))
+    signal.signal(signal.SIGTERM, partial(handle_sigint, storage=storage))
+
+    messages = get_message(params.path_for_messages, encryption_instance, action_type, last_message_index)
 
     operation_encrypted_result = execute_operation(messages, action_type, encryption_instance)
     print(f"The original messages: {messages}")
