@@ -902,7 +902,7 @@ def get_starting_time() -> float:
                 else:
                     print("NOTE! assuming this measurement is a continuation of previously unfinished measurement that"
                           " was interrupted due to low battery")
-                    return float(backed_up_data["start_timestamp"])
+                    return float(backed_up_data["end_timestamp"]) - float(backed_up_data["start_timestamp"])
             else:
                 print(
                     "WARNING! The current session ID does not match the measurement id "
@@ -910,7 +910,7 @@ def get_starting_time() -> float:
                     "Assuming this is a new, unrelated measurement.\n"
                     "To continue the previous measurement, re-run the program with the same session ID as an argument.\n"
                     "It is recommended to remove the backup directory at:", BACKED_UP_SCANNING_TIMESTAMPS_PATH,
-                    "if you find it unuseful"
+                    "if you find it unuseful."
                 )
     return time.time()
 
