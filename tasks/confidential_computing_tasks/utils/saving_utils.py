@@ -3,7 +3,7 @@ from typing import Any
 
 from tasks.confidential_computing_tasks.action_type import ActionType
 
-LAST_MESSAGE_INDEX_FILE_PATH = r"C:\Users\sapir\Desktop\last_message_index.txt"
+LAST_MESSAGE_INDEX_FILE_PATH = r"C:\Users\Administrator\Desktop\last_message_index.txt"
 
 def get_last_message_index() -> int:
     try:

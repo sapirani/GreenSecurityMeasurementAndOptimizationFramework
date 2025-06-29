@@ -63,8 +63,8 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
     storage = Storage(alg=encryption_instance, results_path=params.path_for_result_messages,
                       transformed_messages=transformed_messages, action_type=action_type,
                       initial_message_index=last_message_index)
-    signal.signal(signal.SIGBREAK, partial(handle_sigint, storage_for_exit=storage))
-    signal.signal(signal.SIGTERM, partial(handle_sigint, storage_for_exit=storage))
+    signal.signal(signal.SIGBREAK, partial(handle_sigint, storage=storage))
+    signal.signal(signal.SIGTERM, partial(handle_sigint, storage=storage))
 
     messages = get_message(params.path_for_messages, encryption_instance, action_type, last_message_index)
     for message in messages:
