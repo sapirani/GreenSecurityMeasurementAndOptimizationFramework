@@ -1,3 +1,4 @@
+import logging
 import platform
 import subprocess
 import os
@@ -10,12 +11,13 @@ from program_parameters import DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFOR
 from resources_measurement.linux_resources.total_cpu_usage import LinuxContainerCPUReader
 from resources_measurement.linux_resources.total_memory_usage import LinuxContainerMemoryReader
 
+logger = logging.getLogger("measurements_logger")
+
 
 class LinuxOS(AbstractOSFuncs):
     def __init__(self, is_inside_container: bool):
         self.__container_cpu_usage_reader = LinuxContainerCPUReader() if is_inside_container else None
         self.__container_memory_usage_reader = LinuxContainerMemoryReader() if is_inside_container else None
-
 
     @staticmethod
     def get_value_of_terminal_res(res):
@@ -94,14 +96,26 @@ class LinuxOS(AbstractOSFuncs):
         if res.returncode != 0:
             raise Exception(f'An error occurred while reading battery capacity and voltage', res.stderr)
 
-        battery_capacity, voltage = LinuxOS.get_value_of_terminal_res(res)
+        battery_capacity_string, voltage_string = LinuxOS.get_value_of_terminal_res(res)
+
+        battery_capacity = float(battery_capacity_string.split()[0]) * 1000
+        voltage = float(voltage_string.split()[0]) * 1000
 
         battery_df.loc[len(battery_df.index)] = [
                 time_interval,
                 battery_percent,
-                float(battery_capacity.split()[0]) * 1000,
-                float(voltage.split()[0]) * 1000
+                battery_capacity,
+                voltage
             ]
+
+        logger.info(
+            "Battery measurements",
+            extra={
+                "battery_percent": battery_percent,
+                "battery_remaining_capacity_mWh": battery_capacity,
+                "battery_voltage_mV": voltage
+            }
+        )
 
     def change_power_plan(self, name, identifier):
         # this is the command to switch to performance plan
