@@ -243,21 +243,21 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_data_per_process, 
                 logger.info(
                     "Process measurements",
                     extra={
-                        "process_pid": p.pid,
+                        "pid": p.pid,
                         "process_name": p.name(),
-                        "process_cpu_percent": cpu_percent,
-                        "process_threads_num": p.num_threads(),
-                        "process_used_memory_mb": p.memory_info().rss / MB,
-                        "process_used_memory_percent": round(p.memory_percent(), 2),
-                        "process_disk_read_count": io_stat.read_count - prev_io.read_count,
-                        "process_disk_write_count": io_stat.write_count - prev_io.write_count,
-                        "process_disk_read_bytes": (io_stat.read_bytes - prev_io.read_bytes) / KB,
-                        "process_disk_write_bytes": (io_stat.write_bytes - prev_io.write_bytes) / KB,
-                        "process_page_faults": page_faults - prev_data_per_process[(p.pid, p.name())][1],
-                        "process_bytes_sent": process_traffic.bytes_sent / KB,
-                        "process_packets_sent": process_traffic.packets_sent,
-                        "process_bytes_received": process_traffic.bytes_received / KB,
-                        "process_packets_received": process_traffic.packets_received
+                        "cpu_percent": cpu_percent,
+                        "threads_num": p.num_threads(),
+                        "used_memory_mb": p.memory_info().rss / MB,
+                        "used_memory_percent": round(p.memory_percent(), 2),
+                        "disk_read_count": io_stat.read_count - prev_io.read_count,
+                        "disk_write_count": io_stat.write_count - prev_io.write_count,
+                        "disk_read_bytes": (io_stat.read_bytes - prev_io.read_bytes) / KB,
+                        "disk_write_bytes": (io_stat.write_bytes - prev_io.write_bytes) / KB,
+                        "page_faults": page_faults - prev_data_per_process[(p.pid, p.name())][1],
+                        "bytes_sent": process_traffic.bytes_sent / KB,
+                        "packets_sent": process_traffic.packets_sent,
+                        "bytes_received": process_traffic.bytes_received / KB,
+                        "packets_received": process_traffic.packets_received
                     }
                 )
 
