@@ -6,7 +6,6 @@ import signal
 import threading
 import time
 import warnings
-from functools import partial
 
 from statistics import mean
 
