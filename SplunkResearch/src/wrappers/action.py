@@ -174,7 +174,7 @@ class Action(ActionWrapper):
             'diversity_episode_logs': self.diversity_episode_logs,
             'remaining_quota': self.remaining_quota,
             'inserted_logs': self.inserted_logs,
-            'episodic_inserted_logs': self.episodic_inserted_logs,
+            'episodic_inserted_logs': self.unwrapped.episodic_inserted_logs,
             'fake_relevant_distribution': self.unwrapped.fake_relevant_distribution,
             
             
@@ -545,7 +545,7 @@ class Action7(Action): # working!!!! 21/04/25
                 
                 # log_count = int(distribution[i] * 0.005 * self.unwrapped._normalize_factor)
                 self.inserted_logs += log_count
-                self.episodic_inserted_logs += log_count
+                self.unwrapped.episodic_inserted_logs += log_count
  
                 if log_count > 0:
                     diversity = 0
@@ -575,7 +575,7 @@ class Action7(Action): # working!!!! 21/04/25
 
             # self.remaining_quota = self.quota
             self.info = kwargs["options"]
-            self.episodic_inserted_logs = 0
+            self.unwrapped.episodic_inserted_logs = 0
             
             obs, info = self.env.reset(**kwargs)
             return obs, info
@@ -596,7 +596,6 @@ class Action8(Action):
             self.diversity_episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
             self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
             self.diversity_factor = 31
-            self.episodic_inserted_logs = 0
             self.current_real_quantity = 0
             
         def action(self, action):
@@ -610,7 +609,7 @@ class Action8(Action):
             
             diversity_list = action[len(self.top_logtypes):]
             # current_quota = action[-1]
-            # num_logs = 0.5 * 10000
+            # num_logs = 20000
             num_logs = self.config.additional_percentage * self.current_real_quantity
             self.inserted_logs = 0
             self.current_logs = {}
@@ -626,7 +625,7 @@ class Action8(Action):
                 
                 # log_count = int(distribution[i] * 0.005 * self.unwrapped._normalize_factor)
                 self.inserted_logs += log_count
-                self.episodic_inserted_logs += log_count
+                self.unwrapped.episodic_inserted_logs += log_count
                 diversity = 0
                 if log_count > 0:
                     is_trigger = 0
@@ -666,7 +665,7 @@ class Action8(Action):
 
             # self.remaining_quota = self.quota
             self.info = kwargs["options"]
-            self.episodic_inserted_logs = 0
+            self.unwrapped.episodic_inserted_logs = 0
             
             obs, info = self.env.reset(**kwargs)
             return obs, info
@@ -685,7 +684,7 @@ class SngleAction(Action):
             self.diversity_episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
             self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
             self.diversity_factor = 31
-            self.episodic_inserted_logs = 0
+            self.unwrapped.episodic_inserted_logs = 0
             self.current_real_quantity = 0
             
         def action(self, action):
@@ -707,7 +706,7 @@ class SngleAction(Action):
             
             # log_count = int(distribution[i] * 0.005 * self.unwrapped._normalize_factor)
             self.inserted_logs += log_count
-            self.episodic_inserted_logs += log_count
+            self.unwrapped.episodic_inserted_logs += log_count
             logtype = self.env.top_logtypes[int(log_index*len(self.env.top_logtypes))-1]
             if log_count > 0:
                 if not logtype in self.relevant_logtypes:
@@ -738,7 +737,7 @@ class SngleAction(Action):
 
             # self.remaining_quota = self.quota
             self.info = kwargs["options"]
-            self.episodic_inserted_logs = 0
+            self.unwrapped.episodic_inserted_logs = 0
             
             obs, info = self.env.reset(**kwargs)
             return obs, info
@@ -757,7 +756,7 @@ class Action9(Action):
             self.diversity_episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
             self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
             self.diversity_factor = 31
-            self.episodic_inserted_logs = 0
+            self.unwrapped.episodic_inserted_logs = 0
             
         def action(self, action):
             """Convert raw action to log injection dictionary"""
@@ -787,7 +786,7 @@ class Action9(Action):
                     else:
                         log_count = int(action[i] * 300)
                     self.inserted_logs += log_count
-                    self.episodic_inserted_logs += log_count
+                    self.unwrapped.episodic_inserted_logs += log_count
                     key = f"{logtype[0]}_{logtype[1]}_{int(is_trigger)}"                    
                     logs_to_inject[key] = {
                         'count': log_count,
@@ -812,7 +811,7 @@ class Action9(Action):
 
             # self.remaining_quota = self.quota
             self.info = kwargs["options"]
-            self.episodic_inserted_logs = 0
+            self.unwrapped.episodic_inserted_logs = 0
             
             obs, info = self.env.reset(**kwargs)
             return obs, info
@@ -855,7 +854,7 @@ class Action10(Action8):
             
             # log_count = int(distribution[i] * 0.005 * self.unwrapped._normalize_factor)
             self.inserted_logs += log_count
-            self.episodic_inserted_logs += log_count
+            self.unwrapped.episodic_inserted_logs += log_count
 
             if log_count > 0:
                 diversity = 0
@@ -891,7 +890,7 @@ class Action11(Action):
             self.diversity_episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
             self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
             self.diversity_factor = 31
-            self.episodic_inserted_logs = 0
+            self.unwrapped.episodic_inserted_logs = 0
             self.current_real_quantity = 0
             
         def action(self, action):
@@ -919,7 +918,7 @@ class Action11(Action):
                 
                 # log_count = int(distribution[i] * 0.005 * self.unwrapped._normalize_factor)
                 self.inserted_logs += log_count
-                self.episodic_inserted_logs += log_count
+                self.unwrapped.episodic_inserted_logs += log_count
                 diversity = 0
                 if log_count > 0:
                     if logtype in self.relevant_logtypes:
@@ -953,7 +952,7 @@ class Action11(Action):
 
             # self.remaining_quota = self.quota
             self.info = kwargs["options"]
-            self.episodic_inserted_logs = 0
+            self.unwrapped.episodic_inserted_logs = 0
             
             obs, info = self.env.reset(**kwargs)
             return obs, info   

@@ -144,7 +144,7 @@ class ExperimentManager:
                 distribution_freq=1
             )
             
-        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = -6, skip_on_low_alert = True, use_energy = config.use_energy_reward, is_eval = config.mode == "eval")    
+        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = -10, skip_on_low_alert = True, use_energy = config.use_energy_reward, use_alert = config.use_alert_reward , is_eval = config.mode == "eval_post_training")  
         if config.use_energy_reward:
                 
             env = EnergyRewardWrapper(
@@ -311,7 +311,7 @@ class ExperimentManager:
             # Run experiment
             if config.mode == "train":
                 results = self._run_training(model, env, config, callbacks)
-            elif config.mode == "eval":
+            elif config.mode == "eval_post_training":  # eval after training
                 results = self._run_evaluation(model, self.eval_env, eval_config)
             else:  # retrain
                 results = self._run_retraining(model, env, config, callbacks)
@@ -371,7 +371,7 @@ class ExperimentManager:
             render=False,
             verbose=1,
             writers=writers,
-        ) 
+        )
         eval_callback.model = model
         for _ in range(eval_episodes):
             eval_callback.on_step()
@@ -488,12 +488,12 @@ class ExperimentManager:
             CustomEvalCallback3(
                 eval_env=self.eval_env,
                 log_dir=f"{self.dirs['tensorboard']._str}/{config.experiment_name}", rules=rules, event_types=event_types,
-                n_eval_episodes=2,
-                eval_freq=600,
+                n_eval_episodes=1,
+                eval_freq=480,
                 best_model_save_path=self.dirs['models'],
                 log_path=self.dirs['logs'],
                 # eval_log_dir=str(self.dirs['tensorboard']/f"eval_{config.experiment_name}"),
-                deterministic=True,
+                deterministic=False,
                 render=False,
                 verbose=1,
                 writers=writers,
@@ -546,52 +546,61 @@ def lr_schedule(initial_value: float, rate: float):
 if __name__ == "__main__":
     # Create experiment config
     retrain_fake_start_datetime = "08/01/2024:00:00:00"
-    model_path = "/home/shouei/GreenSecurity-FirstExperiment/experiments/models/train_20250529093916_20000_steps.zip"
-    num_episodes = 300000
+    # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250611165220_102000_steps.zip"
+    # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250620175311_35000_steps"
+    # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250623144601_43000_steps.zip"
+    # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250624134948_24000_steps.zip"
+    num_episodes = 100
     action_type = "Action8"
-    for is_random in [ False]:
-        lr = 1e-2
-        env_config = SplunkConfig(
-            # fake_start_datetime=retrain_fake_start_datetime,
-            rule_frequency=2880,
-            search_window=2880,
-            # savedsearches=["rule1", "rule2"],
-            logs_per_minute=150,
-            additional_percentage=1,
-            action_duration=7200, 
-            num_of_measurements=3,
-            baseline_num_of_measurements=3,
-            env_id="splunk_train-v32",
-            end_time="09/01/2024:23:59:59"       
-        )
-        sched_LR = lr_schedule(initial_value = 0.01, rate = 5)
-        experiment_config = ExperimentConfig(
-            env_config=env_config,
-            model_type="ppo",  # ppo, a2c, dqn, etc.
-            policy_type= "MlpPolicy",
-            learning_rate=0.0001,#sched_LR,
-            num_episodes=num_episodes,
-            n_steps=96,
-            ent_coef=0.1,
-            gamma=1,
-            gamma_dist=1,#0.33,
-            alpha_energy=1,
-            beta_alert=1,
-            action_type=action_type,
-            # experiment_name="test_experiment",
-            use_alert_reward=True,
-            use_energy_reward=True,
-            use_random_agent=is_random,
-            is_mock=False,
-            model_path=model_path if model_path else None,
-            
-        )
+    for steps in range(151000, 160000, 1000000):
+        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250626010440_{steps}_steps.zip"
         
-        #retrain model
-        experiment_config.mode = "train"
-        manager = ExperimentManager(base_dir="experiments")
-        results = manager.run_experiment(experiment_config)
+        for learning_rate in [0.0001]:
+            for n_steps in [72]:
+                for ent_coef in [0.05]:
+                    for is_random in [False, True]:
+                        lr = 1e-2
+                        env_config = SplunkConfig(
+                            # fake_start_datetime=retrain_fake_start_datetime,
+                            rule_frequency=600,
+                            search_window=2880,
+                            # savedsearches=["rule1", "rule2"],
+                            logs_per_minute=150,
+                            additional_percentage=1,
+                            action_duration=7200, 
+                            num_of_measurements=1,
+                            baseline_num_of_measurements=1,
+                            env_id="splunk_train-v32",
+                            end_time="12/31/2024:23:59:59"       
+                        )
+                        sched_LR = lr_schedule(initial_value = 0.01, rate = 5)
+                        experiment_config = ExperimentConfig(
+                            env_config=env_config,
+                            model_type="ppo",  # ppo, a2c, dqn, etc.
+                            policy_type= "MlpPolicy",
+                            learning_rate=learning_rate,#sched_LR,
+                            num_episodes=num_episodes,
+                            n_steps=n_steps,
+                            ent_coef=ent_coef,
+                            gamma=1,
+                            gamma_dist=1,#0.33,
+                            alpha_energy=1,
+                            beta_alert=1,
+                            action_type=action_type,
+                            # experiment_name="test_experiment",
+                            use_alert_reward=True,
+                            use_energy_reward=True,
+                            use_random_agent=is_random,
+                            is_mock=False,
+                            model_path=model_path if model_path else None,
+                            
+                        )
+                        
+                        #retrain model
+                        experiment_config.mode = "eval_post_training"#"eval_post_training"  # eval after training
+                        manager = ExperimentManager(base_dir="experiments")
+                        results = manager.run_experiment(experiment_config)
 
-        
-    
- 
+                        
+                    
+                

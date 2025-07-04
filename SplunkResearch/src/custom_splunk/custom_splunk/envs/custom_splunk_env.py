@@ -79,6 +79,7 @@ class SplunkEnv(gym.Env):
         """Initialize environment."""
         super().__init__()
         self.splunk_tools  = SplunkTools(savedsearches, config.rule_frequency)
+        self.episodic_inserted_logs = 0
 
         # Initialize time manager
         self.time_manager = TimeManager(

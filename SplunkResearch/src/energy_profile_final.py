@@ -10,12 +10,12 @@ sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
 # config logging to file
 import logging
 import subprocess
-
+# sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/application_logging/handlers')
 logging.basicConfig(filename='/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/energy_profile_final.log',
                     level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-
+# logger = logging.getLogger()
 from resources.section_logtypes import section_logtypes
 from splunk_tools import SplunkTools
 from env_utils import clean_env
@@ -40,20 +40,8 @@ def handle_process_output(process, logger):
     threading.Thread(target=read_output, args=(process.stderr, logger.error), daemon=True).start()
 
 # Main execution
-if __name__ == "__main__":
-    # Your existing setup
+def overload_profile(savedsearches, splunk_tools):
     top_logtypes = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
-    savedsearches = ["Windows Event For Service Disabled",
-                 "Detect New Local Admin account",
-                 "ESCU Network Share Discovery Via Dir Command Rule",
-                 "Known Services Killed by Ransomware",
-                 "Non Chrome Process Accessing Chrome Default Dir",
-                 "Kerberoasting spn request with RC4 encryption",
-                 "Clop Ransomware Known Service Name",
-                 'Windows AD Replication Request Initiated from Unsanctioned Location',
-                 'ESCU Windows Rapid Authentication On Multiple Hosts Rule']
-    
-    splunk_tools = SplunkTools(active_saved_searches=savedsearches)
     top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
     top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
     top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
@@ -87,11 +75,17 @@ if __name__ == "__main__":
                                                    diversity=int(diversity*31+1),
                                                    time_range=time_range)
                 scanner_id = f"{rule}_{log_source}_{eventcode}_{int(diversity*31+1)}_{quantity}_{datetime.now()}"
-                logging.info(f'Scanner id: {scanner_id}')
-                # To run with high privilege and provide the password, you can use the 'stdin' parameter to pass the password to sudo.
-                # WARNING: Hardcoding passwords is insecure. This is for demonstration only.
-                # This will prompt for password in terminal
-                process = subprocess.Popen(["sudo", "-S", "-E", "env", "PATH=/usr/bin:/bin:/usr/sbin:/sbin:/home/shouei/anaconda3/envs/py38/bin", "/home/shouei/anaconda3/envs/py38/bin/python3", "../scanner.py", "--measurement_session_id", scanner_id],
+                # # config logger handler
+                # elastic_handler = ElasticSearchLogHandler(session_id=scanner_id)
+                # # Remove all previous ElasticSearchLogHandlers
+                # for h in logger.handlers[:]:
+                #     if isinstance(h, ElasticSearchLogHandler):
+                #         logger.removeHandler(h)
+                # logger.addHandler(elastic_handler)
+                logging.info(f"scanner_id: {scanner_id}")
+               
+                # process = subprocess.Popen(["sudo", "-S", "-E", "env", "PATH=/usr/bin:/bin:/usr/sbin:/sbin:/home/shouei/anaconda3/envs/py38/bin", "/home/shouei/anaconda3/envs/py38/bin/python3", "../scanner.py", "--measurement_session_id", scanner_id],
+                process = subprocess.Popen(["/home/shouei/anaconda3/envs/py38/bin/python3", "../scanner.py", "--measurement_session_id", scanner_id],
                                         stdin=subprocess.PIPE,
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
@@ -99,8 +93,8 @@ if __name__ == "__main__":
                                         bufsize=1)  # Line buffered
 
                 # Send the password to sudo without waiting for completion
-                process.stdin.write(' \n')
-                process.stdin.flush()
+                # process.stdin.write(' \n')
+                # process.stdin.flush()
 
                 # Start non-blocking output handling
                 handle_process_output(process, logging)
@@ -115,8 +109,8 @@ if __name__ == "__main__":
                 logging.info('Running saved searches')
                 results, _ = asyncio.run(splunk_tools.run_saved_searches(time_range, num_measurements=1))
                 logging.info('Terminating scanner')
-                subprocess.run(['sudo', 'pkill', '-f', 'scanner.py'],
-                                input=' \n',
+                subprocess.run(['pkill', '-f', 'scanner.py'],
+                                # input=' \n',
                                 text=True,
                                 check=True)
                 logging.warning('Killed all scanner.py processes as last resort')
@@ -125,3 +119,35 @@ if __name__ == "__main__":
             # clean env
             logging.info('Cleaning environment')
             logging.info(clean_env(splunk_tools, time_range))
+
+def routine_profile():
+    # This function is measuring the routine. altering the following profiles parameters:
+    # 1. what rules are running
+    # 2. how many hosts are forwarding logs
+    # 3. what frequency are the rules running
+    rules_number = [1, 5, 9]
+    hosts_number = [1, 10, 50, 100]
+    frequency = [1, 5, 10, 15, 60]  # in minutes
+    
+    for rule in rules_number:
+        for host in hosts_number:
+            for freq in frequency:
+                logging.info(f'Running routine profile with {rule} rules, {host} hosts and {freq} minutes frequency')
+                
+                
+                
+
+if __name__ == "__main__":
+    # Your existing setup
+    savedsearches = ["Windows Event For Service Disabled",
+                 "Detect New Local Admin account",
+                 "ESCU Network Share Discovery Via Dir Command Rule",
+                 "Known Services Killed by Ransomware",
+                 "Non Chrome Process Accessing Chrome Default Dir",
+                 "Kerberoasting spn request with RC4 encryption",
+                 "Clop Ransomware Known Service Name",
+                 'Windows AD Replication Request Initiated from Unsanctioned Location',
+                 'ESCU Windows Rapid Authentication On Multiple Hosts Rule']
+    
+    splunk_tools = SplunkTools(active_saved_searches=savedsearches)
+    overload_profile(savedsearches, splunk_tools)

@@ -201,7 +201,7 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_data_per_process, 
                 page_faults = running_os.get_page_faults(p)
 
                 if (p.pid, p.name()) not in prev_data_per_process:
-                    prev_data_per_process[(p.pid, p.name())] = io_stat, page_faults
+                    prev_data_per_process[(p.pid, p.name())] = io_stat, page_faults, cpu_percent, time_of_sample
                     continue  # remove first sample of process (because cpu_percent is meaningless 0)
 
                 prev_io = prev_data_per_process[(p.pid, p.name())][0]
@@ -225,7 +225,11 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_data_per_process, 
                     process_traffic.packets_received
                 ]
 
-                prev_data_per_process[(p.pid, p.name())] = io_stat, page_faults  # after finishing loop
+                
+                prev_cpu = prev_data_per_process[(p.pid, p.name())][2]
+                prev_time_of_sample = prev_data_per_process[(p.pid, p.name())][3]
+                
+                prev_data_per_process[(p.pid, p.name())] = io_stat, page_faults , cpu_percent, time_of_sample # after finishing loop
 
                 logger.info(
                     "Process measurements",
@@ -234,6 +238,7 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_data_per_process, 
                         "process_name": p.name(),
                         "cmdline": p.cmdline(),
                         "cpu_percent": cpu_percent,
+                        "cpu_integral": ((cpu_percent + prev_cpu) * (time_of_sample - prev_time_of_sample))/2,
                         "threads_num": p.num_threads(),
                         "used_memory_mb": p.memory_info().rss / MB,
                         "used_memory_percent": round(p.memory_percent(), 2),
@@ -245,13 +250,14 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_data_per_process, 
                         "bytes_sent": process_traffic.bytes_sent / KB,
                         "packets_sent": process_traffic.packets_sent,
                         "bytes_received": process_traffic.bytes_received / KB,
-                        "packets_received": process_traffic.packets_received
+                        "packets_received": process_traffic.packets_received,
                     }
                 )
 
         # Note, we are just ignoring access denied and other exceptions and do not handle them.
         # There will be no results for those processes
-        except (psutil.NoSuchProcess, psutil.AccessDenied, ChildProcessError):
+        except (psutil.NoSuchProcess, psutil.AccessDenied, ChildProcessError) as e:
+            print(e)
             pass
 
     return prev_data_per_process
@@ -834,5 +840,5 @@ if __name__ == '__main__':
 
     set_measurement_session_id(args.measurement_session_id)
     logger = get_measurement_logger()
-
+    
     main()
