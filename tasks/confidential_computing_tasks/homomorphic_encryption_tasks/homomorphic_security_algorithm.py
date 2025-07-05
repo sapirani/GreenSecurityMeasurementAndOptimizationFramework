@@ -23,12 +23,12 @@ class HomomorphicSecurityAlgorithm(SecurityAlgorithm[T], ABC):
     @override
     def calc_encrypted_sum(self, messages: list[int], start_total: Optional[T] = None,
                            checkpoint_callback: Optional[Callable[[int, T], None]] = None) -> T:
-        return self.__calc_encrypted_operation(messages, is_addition=True)
+        return self.__calc_encrypted_operation(messages, is_addition=True, start_total=start_total, checkpoint_callback=checkpoint_callback)
 
     @override
     def calc_encrypted_multiplication(self, messages: list[int], start_total: Optional[T] = None,
                                       checkpoint_callback: Optional[Callable[[int, T], None]] = None) -> T:
-        return self.__calc_encrypted_operation(messages, is_addition=False)
+        return self.__calc_encrypted_operation(messages, is_addition=False, start_total=start_total, checkpoint_callback=checkpoint_callback)
 
     def __calc_encrypted_operation(self, messages: list[int], *, is_addition: bool, start_total: Optional[T] = None,
                                    checkpoint_callback: Optional[Callable[[int, T], None]] = None) -> T:
