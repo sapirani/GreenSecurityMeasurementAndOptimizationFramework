@@ -12,7 +12,7 @@ def get_elastic_logging_handler(elastic_username: str, elastic_password: str, el
         return None
 
 
-def get_measurement_logger(custom_filter: Optional[logging.Filter], logger_handler: Optional[Handler]) -> Logger:
+def get_measurement_logger(custom_filter: Optional[logging.Filter] = None, logger_handler: Optional[Handler] = None) -> Logger:
     """
     :param custom_filter: a filter to apply on logs (may be used to insert dynamic fields to the logs)
     :param logger_handler: a handler to attach to the returned adapter (for example, ElasticSearchLogHandler)

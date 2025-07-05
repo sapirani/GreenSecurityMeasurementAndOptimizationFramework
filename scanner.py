@@ -933,8 +933,8 @@ def main(user_args):
     starting_time = get_starting_time()
 
     logger = get_measurement_logger(
-        logger_filter,
-        get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, starting_time)
+        custom_filter=logger_filter,
+        logger_handler=get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, starting_time)
     )
 
     logger.info("The scanner is starting the measurement")
