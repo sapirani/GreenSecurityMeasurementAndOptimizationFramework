@@ -1,4 +1,5 @@
 import ctypes
+import logging
 import platform
 import subprocess
 import threading
@@ -11,6 +12,8 @@ from general_consts import PowerPlan, pc_types, GB, physical_memory_types, disk_
 from general_functions import get_powershell_result_list_format
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from program_parameters import power_plan, DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFORE_SLEEP_MODE
+
+logger = logging.getLogger("measurements_logger")
 
 
 class WindowsOS(AbstractOSFuncs):
@@ -130,6 +133,15 @@ class WindowsOS(AbstractOSFuncs):
                 b.RemainingCapacity,
                 b.Voltage
             ]
+
+            logger.info(
+                "Battery measurements",
+                extra={
+                    "battery_percent": battery_percent,
+                    "battery_remaining_capacity_mWh": b.RemainingCapacity,
+                    "battery_voltage_mV": b.Voltage
+                }
+            )
 
     def save_battery_capacity(self, f):
         batts1 = self.c.CIM_Battery(Caption='Portable Battery')

@@ -6,7 +6,6 @@ import signal
 import threading
 import time
 import warnings
-from functools import partial
 
 from statistics import mean
 
@@ -17,7 +16,7 @@ import pandas as pd
 from scapy.interfaces import get_working_ifaces
 
 from application_logging import get_measurement_logger, get_elastic_logging_handler
-from application_logging.adapters.scanner_logger_adapter import ScannerLoggerAdapter
+from application_logging.filters.scanner_filter import ScannerLoggerFilter
 from initialization_helper import *
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -925,8 +924,7 @@ def main(user_args):
 
     before_scanning_operations()
 
-    logger_adapter = partial(
-        ScannerLoggerAdapter,
+    logger_filter = ScannerLoggerFilter(
         session_id=session_id,
         hostname=AbstractOSFuncs.get_hostname(),
         user_defined_extras=user_args.logging_constant_extras
@@ -935,8 +933,8 @@ def main(user_args):
     starting_time = get_starting_time()
 
     logger = get_measurement_logger(
-        logger_adapter,
-        get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, starting_time)
+        custom_filter=logger_filter,
+        logger_handler=get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, starting_time)
     )
 
     logger.info("The scanner is starting the measurement")

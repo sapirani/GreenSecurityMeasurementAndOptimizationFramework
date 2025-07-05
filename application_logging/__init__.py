@@ -1,6 +1,6 @@
-from logging import Handler, LoggerAdapter, Logger
+from logging import Handler, Logger
 import logging
-from typing import Protocol, Dict, Any, Optional
+from typing import Optional
 
 from application_logging.handlers.elastic_handler import ElasticSearchLogHandler
 
@@ -12,25 +12,21 @@ def get_elastic_logging_handler(elastic_username: str, elastic_password: str, el
         return None
 
 
-class AdapterFactoryProtocol(Protocol):
-    keywords: Dict[str, Any]
-    def __call__(self, logger: Logger) -> LoggerAdapter: ...
-
-
-def get_measurement_logger(adapter_factory: AdapterFactoryProtocol, logger_handler: Optional[Handler]) -> LoggerAdapter:
+def get_measurement_logger(custom_filter: Optional[logging.Filter] = None, logger_handler: Optional[Handler] = None) -> Logger:
     """
-    :param adapter_factory: receives a logger and returns a LoggerAdapter. Other parameters to that adapter are assumed
-    to be initialized in advance (using the partial function)
+    :param custom_filter: a filter to apply on logs (may be used to insert dynamic fields to the logs)
     :param logger_handler: a handler to attach to the returned adapter (for example, ElasticSearchLogHandler)
     """
     _logger = logging.getLogger("measurements_logger")
-    _logger.setLevel(logging.INFO)
+    _logger.setLevel(logging.DEBUG)
 
-    if not _logger.handlers:
+    if not _logger.filters and custom_filter:
+        _logger.addFilter(custom_filter)
+
+    if not _logger.handlers and logger_handler:
         handler = logger_handler if logger_handler else logging.NullHandler()
         formatter = logging.Formatter('%(asctime)s - %(levelname)s %(message)s')
         handler.setFormatter(formatter)
         _logger.addHandler(handler)
 
-    adapter = adapter_factory(_logger)
-    return adapter
+    return _logger
