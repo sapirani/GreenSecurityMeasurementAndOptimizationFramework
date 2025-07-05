@@ -2,6 +2,7 @@ import signal
 import sys
 import types
 from functools import partial
+from typing import Optional
 
 from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.action_type import ActionType
@@ -9,9 +10,26 @@ from tasks.confidential_computing_tasks.key_details import KeyDetails
 from tasks.confidential_computing_tasks.utils.algorithm_utils import extract_arguments, convert_int_to_alg_type, \
     get_transformed_message, is_new_execution
 from tasks.confidential_computing_tasks.encryption_algorithm_factory import EncryptionAlgorithmFactory
+from tasks.confidential_computing_tasks.utils.checkpoint_storage.checkpoint_operation_storage import \
+    OperationCheckpointStorage
 from tasks.confidential_computing_tasks.utils.checkpoint_storage.checkpoint_storage import CheckpointStorage
 from tasks.confidential_computing_tasks.utils.saving_utils import extract_messages_from_file, \
-    write_messages_to_file, get_last_message_index
+    write_messages_to_file, get_last_message_index, save_checkpoint_file, read_checkpoint_file
+
+checkpoint_storage: Optional[OperationCheckpointStorage] = None
+
+
+def checkpoint_callback(i: int, total):
+    if checkpoint_storage:
+        checkpoint_storage.update(i, total)
+
+
+def signal_handler(signum, frame, storage: OperationCheckpointStorage):
+    if checkpoint_storage:
+        print("\n[Signal received] Saving checkpoint...")
+        save_checkpoint_file(index=storage.checkpoint_index,
+                             total=storage.checkpoint_total)
+    exit(0)
 
 
 def handle_sigint(sig, frame: types.FrameType, storage: CheckpointStorage):
@@ -81,11 +99,13 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
     return transformed_messages
 
 
-def execute_operation(messages: list[int], action: ActionType, algorithm: SecurityAlgorithm) -> int:
+def execute_operation(messages: list[int], action: ActionType, algorithm: SecurityAlgorithm, total_checkpoint) -> int:
     if action == ActionType.Addition:
-        encrypted_res = algorithm.calc_encrypted_sum(messages)
+        encrypted_res = algorithm.calc_encrypted_sum(messages, start_total=total_checkpoint,
+                                                     checkpoint_callback=checkpoint_callback)
     elif action == ActionType.Multiplication:
-        encrypted_res = algorithm.calc_encrypted_multiplication(messages)
+        encrypted_res = algorithm.calc_encrypted_multiplication(messages, start_total=total_checkpoint,
+                                                     checkpoint_callback=checkpoint_callback)
     else:
         raise Exception("Unknown encryption action type.")
     return algorithm.decrypt_message(encrypted_res)
@@ -97,46 +117,36 @@ def execute_homomorphic_pipeline(action_type: ActionType) -> int:
     For homomorphic algorithms -> first encrypt, then run the operation and then decrypt.
     For traditional algorithms -> first run the operation, then encrypt and decrypt.
     """
-    # TODO: add saving of messages
-    # params = extract_arguments()
-    # messages_file = params.path_for_messages
-    # encryption_algorithm = params.encryption_algorithm
-    # encryption_key_file = params.key_file
-    # min_key_val = params.min_key_value
-    # max_key_val = params.max_key_value
-    # cipher_block_mode = params.cipher_block_mode
-    #
-    # encryption_algorithm_type = convert_int_to_alg_type(encryption_algorithm)
-    #
-    # encryption_instance = EncryptionAlgorithmFactory.create_security_algorithm(encryption_algorithm_type,
-    #                                                                            cipher_block_mode,
-    #                                                                            min_key_val,
-    #                                                                            max_key_val)
-    #
-    # encryption_instance.extract_key(encryption_key_file)
-    # messages = extract_messages_from_file(messages_file)
+    global checkpoint_storage
 
     params = extract_arguments()
-    last_message_index = get_last_message_index()
+    last_message_index, total_checkpoint = read_checkpoint_file()
 
     encryption_algorithm_type = convert_int_to_alg_type(params.encryption_algorithm)
-    encryption_instance = EncryptionAlgorithmFactory.create_security_algorithm(encryption_algorithm_type,
-                                                                               params.cipher_block_mode,
-                                                                               params.min_key_value,
-                                                                               params.max_key_value)
+    encryption_instance = EncryptionAlgorithmFactory.create_security_algorithm(
+        encryption_algorithm_type,
+        params.cipher_block_mode,
+        params.min_key_value,
+        params.max_key_value
+    )
 
     extract_key_for_algorithm(params.key_file, encryption_instance, action_type, last_message_index)
     transformed_messages = []
 
-    storage = CheckpointStorage(alg=encryption_instance, results_path=params.path_for_result_messages,
-                                transformed_messages=transformed_messages, action_type=action_type,
-                                initial_message_index=last_message_index)
-    signal.signal(signal.SIGBREAK, partial(handle_sigint, storage=storage))
-    signal.signal(signal.SIGTERM, partial(handle_sigint, storage=storage))
+    checkpoint_storage = OperationCheckpointStorage(
+        alg=encryption_instance,
+        results_path=params.path_for_result_messages,
+        transformed_messages=transformed_messages,
+        action_type=action_type,
+        initial_message_index=last_message_index
+    )
+
+    signal.signal(signal.SIGBREAK, partial(handle_sigint, storage=checkpoint_storage))
+    signal.signal(signal.SIGTERM, partial(handle_sigint, storage=checkpoint_storage))
 
     messages = get_message(params.path_for_messages, encryption_instance, action_type, last_message_index)
 
-    operation_encrypted_result = execute_operation(messages, action_type, encryption_instance)
+    operation_encrypted_result = execute_operation(messages, action_type, encryption_instance, total_checkpoint)
     print(f"The original messages: {messages}")
     print(f"The decrypted result: {operation_encrypted_result}")
     return operation_encrypted_result

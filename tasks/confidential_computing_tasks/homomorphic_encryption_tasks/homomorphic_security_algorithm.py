@@ -42,7 +42,7 @@ class HomomorphicSecurityAlgorithm(SecurityAlgorithm[T], ABC):
                 checkpoint_callback(i + 1, total)
 
         return total
-        
+
     @abstractmethod
     def _generate_and_save_key(self, key_file) -> KeyDetails:
         pass
