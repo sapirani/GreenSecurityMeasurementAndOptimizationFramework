@@ -117,7 +117,7 @@ if (scan_option == ScanMode.CONTINUOUS_SCAN or main_program_to_scan == ProgramTo
                     " in ONE_SCAN mode - the meaning of None is to wait until the main process ends")
 
 
-if is_inside_container and battery_monitor_type == ScannerVersion.FULL:
+if is_inside_container and battery_monitor_type == BatteryMonitorType.FULL:
     raise Exception("Measurement of energy consumption inside container is not supported")
 
 # ======= Prepare dataframes titles =======

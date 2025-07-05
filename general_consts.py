@@ -70,12 +70,6 @@ class ScanMode(Enum):
     CONTINUOUS_SCAN = 2
 
 
-class ScannerVersion(Enum):
-    FULL = 1
-    LITE = 2
-    WITHOUT_BATTERY = 3
-
-
 class BatteryMonitorType(Enum):
     FULL = 1
     WITHOUT_BATTERY = 2
