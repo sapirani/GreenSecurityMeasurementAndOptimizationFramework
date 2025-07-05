@@ -34,7 +34,7 @@ class ProcessMetrics:
     def delta(self, prev_metrics: 'ProcessMetrics') -> 'ProcessMetrics':
         return ProcessMetrics(
             time_since_start=self.time_since_start,
-            cpu_percent=self.cpu_percent,
+            cpu_percent=self.cpu_percent,   # TODO: consider calculating integral here (trapeze area)
             threads_num=self.threads_num,
             used_memory_mb=self.used_memory_mb,
             used_memory_percent=self.used_memory_percent,
