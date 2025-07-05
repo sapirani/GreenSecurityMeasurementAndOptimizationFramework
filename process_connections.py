@@ -39,6 +39,8 @@ class ProcessNetworkMonitor:
         self._stop_sniffing = False
 
         self.sniffing_thread = Thread(target=self._sniff_packets)
+
+    def start(self):
         self.sniffing_thread.start()
 
     def _sniff_packets(self):

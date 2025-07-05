@@ -76,7 +76,17 @@ class ScannerVersion(Enum):
     WITHOUT_BATTERY = 3
 
 
-class SummaryVersion(Enum):
+class BatteryMonitorType(Enum):
+    FULL = 1
+    WITHOUT_BATTERY = 2
+
+
+class ProcessMonitorType(Enum):
+    FULL = 1
+    PROCESSES_OF_INTEREST_ONLY = 2
+
+
+class SummaryType(Enum):
     DUDU = 1
     OTHER = 2
 
@@ -172,9 +182,14 @@ def get_core_name(core_number):
     return f"{CPUColumns.CORE} {core_number}(%)"
 
 
-def get_scanner_version_name(scanner_version):
-    return {
-        ScannerVersion.FULL: "Full Scanner",
-        ScannerVersion.LITE: "Lite Scanner",
-        ScannerVersion.WITHOUT_BATTERY: "Without Battery Scanner"
-    }[scanner_version]
+def get_scanner_version_name(battery_monitor_type: BatteryMonitorType, process_monitor_type: ProcessMonitorType) -> str:
+    if battery_monitor_type == battery_monitor_type.FULL and process_monitor_type == process_monitor_type.FULL:
+        return "Full Process Monitoring Including Battery"
+    elif battery_monitor_type == battery_monitor_type.FULL and process_monitor_type == process_monitor_type.PROCESSES_OF_INTEREST_ONLY:
+        return "Only Process of Interest Monitoring Including Battery"
+    elif battery_monitor_type == battery_monitor_type.WITHOUT_BATTERY and process_monitor_type == process_monitor_type.FULL:
+        return "Full Process Monitoring Excluding Battery"
+    elif battery_monitor_type == battery_monitor_type.WITHOUT_BATTERY and process_monitor_type == process_monitor_type.PROCESSES_OF_INTEREST_ONLY:
+        return "Only Process of Interest Monitoring Excluding Battery"
+
+    raise Exception("Scanner version is not supported")

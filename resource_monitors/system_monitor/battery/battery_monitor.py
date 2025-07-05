@@ -1,10 +1,10 @@
-import time
 import psutil
 
 from general_consts import BatteryColumns
+from resource_monitors.system_monitor.battery.battery_monitor_interface import BatteryMonitorInterface
 
 
-class FullScanner:
+class BatteryMonitor(BatteryMonitorInterface):
     def __init__(self, running_os):
         self.running_os = running_os
 
@@ -13,6 +13,7 @@ class FullScanner:
         if battery is not None and battery.power_plugged:  # ensure that charging cable is unplugged in laptop
             raise Exception("Unplug charging cable during measurements!")
 
+    # TODO: REMOVE THE FUNCTIONALITY OF SAVING RESULTS FROM THIS CLASS INTO A DEDICATED CLASS
     def save_battery_stat(self, battery_df, time_interval):
         """_summary_: take battery information and append it to a dataframe
 
@@ -29,6 +30,7 @@ class FullScanner:
 
         self.running_os.insert_battery_state_to_df(battery_df, time_interval, battery.percent)
 
+    # TODO: REMOVE THIS FUNCTIONALITY INTO A DEDICATED CLASS?
     def save_general_battery(self, f):
         """
         This function writes battery info to a file.
@@ -45,15 +47,6 @@ class FullScanner:
         f.write("----Battery----\n")
 
         self.running_os.save_battery_capacity(f)
-        
-    def calc_time_interval(self, starting_time):
-        """
-        :return: the time passed since starting the program
-        """
-        return time.time() - starting_time
-
-    def scan_sleep(self, sec):
-        time.sleep(sec)
 
     def is_battery_too_low(self, battery_df):
         if len(battery_df) == 0:
@@ -61,40 +54,3 @@ class FullScanner:
 
         current_mwh = battery_df.iloc[len(battery_df) - 1].at[BatteryColumns.CAPACITY]
         return current_mwh <= 2500
-
-
-class LiteScanner(FullScanner):
-    def check_if_battery_plugged(self):
-        pass
-
-    def save_battery_stat(self, battery_df, time_interval):
-        pass
-
-    def save_general_battery(self, f):
-        pass
-
-    def calc_time_interval(self, starting_time):
-        """
-        :return: the time passed since starting the program
-        """
-        return time.time()
-
-    def is_battery_too_low(self, mwh):
-        return False
-
-    def scan_sleep(self, sec):
-        time.sleep(0)
-
-
-class WithoutBatteryScanner(FullScanner):
-    def check_if_battery_plugged(self):
-        pass
-
-    def save_battery_stat(self, battery_df, time_interval):
-        pass
-
-    def save_general_battery(self, f):
-        pass
-
-    def is_battery_too_low(self, mwh):
-        return False

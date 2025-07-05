@@ -1,13 +1,14 @@
 from general_consts import *
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.NO_SCAN
+main_program_to_scan = ProgramToScan.DummyANTIVIRUS
 background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = True
-summary_version = SummaryVersion.OTHER
+summary_type = SummaryType.OTHER
 
-scanner_version = ScannerVersion.WITHOUT_BATTERY
+battery_monitor_type = BatteryMonitorType.WITHOUT_BATTERY
+process_monitor_type = ProcessMonitorType.PROCESSES_OF_INTEREST_ONLY
 
 power_plan = PowerPlan.BALANCED
 scan_option = ScanMode.ONE_SCAN
@@ -17,7 +18,7 @@ antivirus_type = AntivirusType.DEFENDER
 
 file_type = "pdf"
 directory_type = "Duplicated Files"
-custom_scan_path = r'""'
+custom_scan_path = r'"C:\Users\sagib\Downloads"'
 
 RUNNING_TIME = 10 * MINUTE # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
@@ -30,7 +31,7 @@ measurement_number = NEW_MEASUREMENT    # write number between 1->inf or type NE
 # MUST disable tamper protection manually for this feature to work
 disable_real_time_protection_during_measurement = False  # must use administrator permissions
 
-screen_brightness_level = 75    # A number between 0 and 100
+screen_brightness_level = 50    # A number between 0 and 100
 
 # return to default settings (can be costumed)
 DEFAULT_SCREEN_TURNS_OFF_TIME = 4
@@ -39,9 +40,9 @@ DEFAULT_TIME_BEFORE_SLEEP_MODE = 4
 is_inside_container = False
 
 # ==== Elastic logging configuration
-elastic_url = "http://192.168.140.101:9200"
+elastic_url = "http://127.0.0.1:9200"
 elastic_username = "elastic"
-elastic_password = "71BPiEiQ"
+elastic_password = "SVR4mUZl"
 
 # ==== ClamAV configurations
 recursive = True
