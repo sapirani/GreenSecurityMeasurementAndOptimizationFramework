@@ -1,49 +1,19 @@
 import os.path
-import platform
 
-import SummaryVersionImp
-from operating_systems.os_linux import LinuxOS
-from operating_systems.os_windows import WindowsOS
+from initialization_helper.initialization_factories import running_os_factory, process_monitor_factory, \
+    summary_builder_factory, program_to_scan_factory, battery_monitor_factory
 from program_parameters import *
-from scanner_versions_imp import FullScanner, LiteScanner, WithoutBatteryScanner
-from tasks.program_classes.antiviruses.clam_av_program import ClamAVProgram
-from tasks.program_classes.antiviruses.defender_program import DefenderProgram
-from tasks.program_classes.antiviruses.dummy_antivirus_program import DummyAntivirusProgram
-from tasks.program_classes.antiviruses.sophos_av_program import SophosAVProgram
-from tasks.program_classes.dummy_cpu_consumer_program import CPUConsumer
-from tasks.program_classes.dummy_io_writer_consumer_program import IOWriteConsumer
-from tasks.program_classes.dummy_memory_consumer_program import MemoryConsumer
-from tasks.program_classes.ids.snort_program import SnortProgram
-from tasks.program_classes.ids.suricata_program import SuricataProgram
-from tasks.program_classes.log_anomaly_detection_program import LogAnomalyDetection
-from tasks.program_classes.network_receiver_program import NetworkReceiver
-from tasks.program_classes.network_sender_program import NetworkSender
-from tasks.program_classes.no_scan_program import NoScanProgram
-from tasks.program_classes.perfmon_monitoring_program import PerfmonProgram
-from tasks.program_classes.server_program import PythonServer
-from tasks.program_classes.splunk_program import SplunkProgram
-from tasks.program_classes.user_activity_program import UserActivityProgram
 
 # ======= Get Operating System Type =======
-running_os = None
-if platform.system() == "Linux":
-    running_os = LinuxOS(is_inside_container=is_inside_container)
-elif platform.system() == "Windows":
-    running_os = WindowsOS()
+running_os = running_os_factory(is_inside_container=is_inside_container)
+program = program_to_scan_factory(main_program_to_scan)
+background_programs = [program_to_scan_factory(background_program) for background_program in background_programs_types]
 
-# ====== Get Scanner Version ======
-if scanner_version == ScannerVersion.FULL:
-    scanner_imp = FullScanner(running_os)
-elif scanner_version == ScannerVersion.LITE:
-    scanner_imp = LiteScanner(running_os)
-elif scanner_version == ScannerVersion.WITHOUT_BATTERY:
-    scanner_imp = WithoutBatteryScanner(running_os)
+process_monitor = process_monitor_factory(process_monitor_type, running_os, program.process_ignore_cond)
+battery_monitor = battery_monitor_factory(battery_monitor_type, running_os)
 
-# ====== Get Summary Version ======
-if summary_version == SummaryVersion.DUDU:
-    summary_version_imp = SummaryVersionImp.DuduSummary()
-elif summary_version == SummaryVersion.OTHER:
-    summary_version_imp = SummaryVersionImp.OtherSummary()
+summary_builder = summary_builder_factory(summary_type)
+
 
 # ======= Power Plan Name and GUID (do not change) =======
 chosen_power_plan_name = power_plan[0]
@@ -59,57 +29,8 @@ power_save_plan_name = PowerPlan.POWER_SAVER[0]
 power_save_plan_identifier = PowerPlan.POWER_SAVER[2]
 
 
-# ======= Result Data Paths =======
-def program_to_scan_factory(program_type):
-    """
-    Return the class that represents the program that the user wishes to run and send its dedicated parameters
-    :param program_type: The program specified by the user
-    :return: The dedicated class
-    """
-
-    if program_type == ProgramToScan.ANTIVIRUS and antivirus_type == AntivirusType.DEFENDER:
-        return DefenderProgram(scan_type, custom_scan_path)
-    if program_type == ProgramToScan.ANTIVIRUS and antivirus_type == AntivirusType.ClamAV:
-        return ClamAVProgram(scan_type, custom_scan_path, recursive, should_optimize, should_mitigate_timestomping)
-    if program_type == ProgramToScan.ANTIVIRUS and antivirus_type == AntivirusType.SOPHOS:
-        return SophosAVProgram(scan_type, custom_scan_path)
-    if program_type == ProgramToScan.IDS and ids_type == IDSType.SURICATA:
-        return SuricataProgram(interface_name, pcap_list_dirs, log_path)
-    if program_type == ProgramToScan.IDS and ids_type == IDSType.SNORT:
-        return SnortProgram(interface_name, pcap_list_dirs, log_path, configuration_file_path=configuration_file_path)
-    if program_type == ProgramToScan.DummyANTIVIRUS:
-        return DummyAntivirusProgram(custom_scan_path)
-    if program_type == ProgramToScan.NO_SCAN:
-        return NoScanProgram()
-    if program_type == ProgramToScan.Perfmon:
-        return PerfmonProgram(program.get_process_name())
-    if program_type == ProgramToScan.UserActivity:
-        return UserActivityProgram()
-    if program_type == ProgramToScan.LogAnomalyDetection:
-        return LogAnomalyDetection(model_name, model_action, script_relative_path, installation_dir)
-    if program_type == ProgramToScan.Splunk:
-        return SplunkProgram()
-    if program_type == ProgramToScan.CPUConsumer:
-        return CPUConsumer(cpu_percent_to_consume, RUNNING_TIME)
-    if program_type == ProgramToScan.MemoryConsumer:
-        return MemoryConsumer(memory_chunk_size, consumption_speed, RUNNING_TIME)
-    if program_type == ProgramToScan.IOWriteConsumer:
-        return IOWriteConsumer(custom_scan_path)
-    if program_type == ProgramToScan.PythonServer:
-        return PythonServer()
-    if program_type == ProgramToScan.NetworkReceiver:
-        return NetworkReceiver()
-    if program_type == ProgramToScan.NetworkSender:
-        return NetworkSender(time_interval=time_interval, running_time=RUNNING_TIME)
-
-    raise Exception("choose program to scan from ProgramToScan enum")
-
-
 if main_program_to_scan == ProgramToScan.NO_SCAN and len(background_programs_types) != 0:
     raise Exception("NO SCAN mode can't include background programs!")
-
-program = program_to_scan_factory(main_program_to_scan)
-background_programs = [program_to_scan_factory(background_program) for background_program in background_programs_types]
 
 
 def construct_base_dir_path():
@@ -196,7 +117,7 @@ if (scan_option == ScanMode.CONTINUOUS_SCAN or main_program_to_scan == ProgramTo
                     " in ONE_SCAN mode - the meaning of None is to wait until the main process ends")
 
 
-if is_inside_container and scanner_version == ScannerVersion.FULL:
+if is_inside_container and battery_monitor_type == BatteryMonitorType.FULL:
     raise Exception("Measurement of energy consumption inside container is not supported")
 
 # ======= Prepare dataframes titles =======
@@ -221,5 +142,6 @@ processes_columns_list = [
     ProcessesColumns.READ_COUNT, ProcessesColumns.WRITE_COUNT, ProcessesColumns.READ_BYTES, ProcessesColumns.WRITE_BYTES,
     ProcessesColumns.PAGE_FAULTS,
     ProcessesColumns.BYTES_SENT, ProcessesColumns.PACKETS_SENT,
-    ProcessesColumns.BYTES_RECEIVED, ProcessesColumns.PACKETS_RECEIVED
+    ProcessesColumns.BYTES_RECEIVED, ProcessesColumns.PACKETS_RECEIVED,
+    ProcessesColumns.PROCESS_OF_INTEREST
 ]
