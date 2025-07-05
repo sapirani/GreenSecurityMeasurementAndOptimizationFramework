@@ -8,7 +8,7 @@ from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_
 
 class FernetAESSecurityAlgorithm(SecurityAlgorithm[bytes]):
     __KEY_STR = "key"
-    __NUM_OF_BYTES = 2
+    __NUM_OF_BYTES = 10
     __ORDER: Literal["little", "big"] = "big"
 
     def __init__(self, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
