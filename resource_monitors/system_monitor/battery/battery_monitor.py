@@ -4,10 +4,10 @@ import pandas as pd
 import psutil
 
 from general_consts import BatteryColumns
-from resource_monitors.system_monitor.battery.battery_monitor_interface import BatteryMonitorInterface
+from resource_monitors.system_monitor.battery.battery_monitor_interface import AbstractBatteryMonitor
 
 
-class BatteryMonitor(BatteryMonitorInterface):
+class BatteryMonitor(AbstractBatteryMonitor):
     def __init__(self, running_os):
         self.running_os = running_os
 

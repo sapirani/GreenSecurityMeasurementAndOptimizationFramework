@@ -4,7 +4,7 @@ from typing import TextIO
 import pandas as pd
 
 
-class BatteryMonitorInterface(ABC):
+class AbstractBatteryMonitor(ABC):
     @abstractmethod
     def check_if_battery_plugged(self) -> None:
         pass

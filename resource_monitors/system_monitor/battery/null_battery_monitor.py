@@ -2,10 +2,10 @@ from typing import TextIO
 
 import pandas as pd
 
-from resource_monitors.system_monitor.battery.battery_monitor_interface import BatteryMonitorInterface
+from resource_monitors.system_monitor.battery.battery_monitor_interface import AbstractBatteryMonitor
 
 
-class NullBatteryMonitor(BatteryMonitorInterface):
+class NullBatteryMonitor(AbstractBatteryMonitor):
     def check_if_battery_plugged(self) -> None:
         pass
 
