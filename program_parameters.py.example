@@ -40,9 +40,9 @@ DEFAULT_TIME_BEFORE_SLEEP_MODE = 4
 is_inside_container = False
 
 # ==== Elastic logging configuration
-elastic_url = "http://192.168.140.101:9200"
+elastic_url = "http://127.0.0.1:9200"
 elastic_username = "elastic"
-elastic_password = "71BPiEiQ"
+elastic_password = "your-password"
 
 # ==== ClamAV configurations
 recursive = True
