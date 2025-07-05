@@ -1,3 +1,6 @@
+from typing import TextIO
+
+import pandas as pd
 import psutil
 
 from general_consts import BatteryColumns
@@ -8,13 +11,13 @@ class BatteryMonitor(BatteryMonitorInterface):
     def __init__(self, running_os):
         self.running_os = running_os
 
-    def check_if_battery_plugged(self):
+    def check_if_battery_plugged(self) -> None:
         battery = psutil.sensors_battery()
         if battery is not None and battery.power_plugged:  # ensure that charging cable is unplugged in laptop
             raise Exception("Unplug charging cable during measurements!")
 
     # TODO: REMOVE THE FUNCTIONALITY OF SAVING RESULTS FROM THIS CLASS INTO A DEDICATED CLASS
-    def save_battery_stat(self, battery_df, time_interval):
+    def save_battery_stat(self, battery_df: pd.DataFrame, time_interval: float) -> None:
         """_summary_: take battery information and append it to a dataframe
 
         Raises:
@@ -31,7 +34,7 @@ class BatteryMonitor(BatteryMonitorInterface):
         self.running_os.insert_battery_state_to_df(battery_df, time_interval, battery.percent)
 
     # TODO: REMOVE THIS FUNCTIONALITY INTO A DEDICATED CLASS?
-    def save_general_battery(self, f):
+    def save_general_battery(self, f: TextIO) -> None:
         """
         This function writes battery info to a file.
         On laptop devices, charger must be unplugged!
@@ -48,7 +51,7 @@ class BatteryMonitor(BatteryMonitorInterface):
 
         self.running_os.save_battery_capacity(f)
 
-    def is_battery_too_low(self, battery_df):
+    def is_battery_too_low(self, battery_df: pd.DataFrame) -> bool:
         if len(battery_df) == 0:
             return False
 
