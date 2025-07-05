@@ -183,5 +183,3 @@ class AbstractProcessMonitor(abc.ABC):
             # There will be no results for those processes
             except (psutil.NoSuchProcess, psutil.AccessDenied, ChildProcessError):
                 pass
-
-        print("finished iteration")
