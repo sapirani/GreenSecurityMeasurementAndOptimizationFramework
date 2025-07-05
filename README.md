@@ -131,7 +131,8 @@ Example usage (extras should be given as JSON):
 4. in `initialization_helper.py` file - add your program in the function called *program_to_scan_factory*
 
 ## Execution Example:
-1) When you want to run the windows defender antivirus and measure it's energy consumption when scanning a folder (in path dir) once, with no other processes running in the background, while the power mode of the computer should be power saver, you should change the next parameters in the file program_parameters.py:
+1) Create program_parameters.py file and fill the relevant fields. You may use the program_parameters.py.example file as a reference.
+2) When you want to run the windows defender antivirus and measure it's energy consumption when scanning a folder (in path dir) once, with no other processes running in the background, while the power mode of the computer should be power saver, you should change the next parameters in the file program_parameters.py:
 
 * `main_program_to_scan` = ProgramToScan.ANTIVIRUS
 * `background_programs_types` = []  
@@ -143,7 +144,7 @@ Example usage (extras should be given as JSON):
 
 Next, run in Windows, in the command line the command - `python scanner.py` or in Linux in the terminal the command - `sudo python3 scanner.py`
 
-2) When you want to run the windows defender antivirus and measure its energy consumption when executing a full scan once while there are other processes running in the background (Dummy process, performance monitor process), with power mode equals to power saver, you should change the next parameters in the file `program_parameters.py`:
+3) When you want to run the windows defender antivirus and measure its energy consumption when executing a full scan once while there are other processes running in the background (Dummy process, performance monitor process), with power mode equals to power saver, you should change the next parameters in the file `program_parameters.py`:
 
 * `main_program_to_scan` = ProgramToScan.ANTIVIRUS
 * `background_programs_types` = [ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]  
