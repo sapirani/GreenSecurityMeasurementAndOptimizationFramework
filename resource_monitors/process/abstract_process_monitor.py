@@ -40,8 +40,8 @@ class ProcessMetrics:
             used_memory_percent=self.used_memory_percent,
             disk_read_count=self.disk_read_count - prev_metrics.disk_read_count,
             disk_write_count=self.disk_write_count - prev_metrics.disk_write_count,
-            disk_read_kb=self.disk_read_kb - prev_metrics.disk_read_kb,
-            disk_write_kb=self.disk_write_kb - prev_metrics.disk_write_kb,
+            disk_read_kb=round(self.disk_read_kb - prev_metrics.disk_read_kb, 3),
+            disk_write_kb=round(self.disk_write_kb - prev_metrics.disk_write_kb, 3),
             page_faults=self.page_faults - prev_metrics.page_faults,
 
             # TODO: I THINK I SHOULD SUBTRACT HERE LIKE IN THE HARDWARE MEASUREMENTS
@@ -118,14 +118,16 @@ class AbstractProcessMonitor(abc.ABC):
                 # oneshot to improve info retrieve efficiency
                 with p.oneshot():
                     # TODO: CHECK IF IT HOLDS TRUE INSIDE CONTAINERS
+                    pid = p.pid
+                    process_name = p.name()
                     cpu_percent = p.cpu_percent() / NUMBER_OF_CORES
                     process_traffic = self.process_network_monitor.get_network_stats(p)
 
                     io_stat = p.io_counters()
                     page_faults = self.running_os.get_page_faults(p)
 
-                    if (p.pid, p.name()) not in self.prev_data_per_process:
-                        self.prev_data_per_process[(p.pid, p.name())] = ProcessMetrics(
+                    if (pid, process_name) not in self.prev_data_per_process:
+                        self.prev_data_per_process[(pid, process_name)] = ProcessMetrics(
                             time_since_start=self.time_since_start,
                             disk_read_kb=io_stat.read_bytes / KB,
                             disk_read_count=io_stat.read_count,
@@ -135,7 +137,7 @@ class AbstractProcessMonitor(abc.ABC):
                         )
                         continue  # remove first sample of process (because cpu_percent is meaningless 0)
 
-                    prev_raw_metrics = self.prev_data_per_process[(p.pid, p.name())]
+                    prev_raw_metrics = self.prev_data_per_process[(pid, process_name)]
 
                     current_raw_metrics = ProcessMetrics(
                         time_since_start=self.time_since_start,
@@ -146,8 +148,8 @@ class AbstractProcessMonitor(abc.ABC):
                         used_memory_percent=round(p.memory_percent(), 2),
                         disk_read_count=io_stat.read_count,
                         disk_write_count=io_stat.write_count,
-                        disk_read_kb=round(io_stat.read_bytes / KB, 3),
-                        disk_write_kb=round(io_stat.write_bytes / KB, 3),
+                        disk_read_kb=io_stat.read_bytes / KB,
+                        disk_write_kb=io_stat.write_bytes / KB,
                         page_faults=page_faults,
 
                         bytes_sent=(process_traffic.bytes_sent / KB),
@@ -160,24 +162,26 @@ class AbstractProcessMonitor(abc.ABC):
                     # TODO: REMOVE THIS FUNCTIONALITY FROM THIS CLASS INTO A DEDICATED CLASS FOR SAVING RESULTS
                     self.processes_df.loc[len(self.processes_df.index)] = [
                         current_metrics.time_since_start,
-                        p.pid,
-                        p.name(),
+                        pid,
+                        process_name,
                         *astuple(current_metrics)[1:]  # skip time_since_start
                     ]
 
                     logger.info(
                         "Process measurements",
                         extra={
-                            "pid": p.pid,
-                            "process_name": p.name(),
+                            "pid": pid,
+                            "process_name": process_name,
                             **asdict(current_metrics)
                         }
                     )
 
-                    self.prev_data_per_process[(p.pid, p.name())] = current_raw_metrics  # after finishing loop
+                    self.prev_data_per_process[(pid, process_name)] = current_raw_metrics  # after finishing loop
 
 
             # Note, we are just ignoring access denied and other exceptions and do not handle them.
             # There will be no results for those processes
             except (psutil.NoSuchProcess, psutil.AccessDenied, ChildProcessError):
                 pass
+
+        print("finished iteration")
