@@ -6,7 +6,7 @@ from tasks.confidential_computing_tasks.utils.algorithm_utils import is_new_exec
 from tasks.confidential_computing_tasks.utils.saving_utils import write_last_message_index, write_messages_to_file
 
 
-class Storage:
+class CheckpointStorage:
     def __init__(self, alg: SecurityAlgorithm, results_path: str, transformed_messages: list, action_type: ActionType,
                  initial_message_index: int):
         self.alg = alg

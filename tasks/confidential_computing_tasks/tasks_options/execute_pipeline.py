@@ -9,15 +9,16 @@ from tasks.confidential_computing_tasks.key_details import KeyDetails
 from tasks.confidential_computing_tasks.utils.algorithm_utils import extract_arguments, convert_int_to_alg_type, \
     get_transformed_message, is_new_execution
 from tasks.confidential_computing_tasks.encryption_algorithm_factory import EncryptionAlgorithmFactory
+from tasks.confidential_computing_tasks.utils.checkpoint_storage.checkpoint_storage import CheckpointStorage
 from tasks.confidential_computing_tasks.utils.saving_utils import extract_messages_from_file, \
     write_messages_to_file, get_last_message_index
-from tasks.confidential_computing_tasks.utils.storage import Storage
 
 
-def handle_sigint(sig, frame: types.FrameType, storage: Storage):
+def handle_sigint(sig, frame: types.FrameType, storage: CheckpointStorage):
     print("Sub process Received SIGINT! Cleaning up...")
     storage.save_transformed_messages()
     sys.exit(0)
+
 
 def get_message(messages_file_path: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int) -> list:
     if action == ActionType.Encryption or action == ActionType.FullPipeline or action == ActionType.Addition or action == ActionType.Multiplication:
@@ -31,7 +32,9 @@ def get_message(messages_file_path: str, alg: SecurityAlgorithm, action: ActionT
         return messages
     return messages[starting_index:]
 
-def save_messages_for_pipeline(messages: list, results_path: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int):
+
+def save_messages_for_pipeline(messages: list, results_path: str, alg: SecurityAlgorithm, action: ActionType,
+                               starting_index: int):
     should_override = is_new_execution(starting_index)
     if action == ActionType.Encryption:
         alg.save_encrypted_messages(messages, results_path, should_override)
@@ -41,7 +44,9 @@ def save_messages_for_pipeline(messages: list, results_path: str, alg: SecurityA
     else:
         raise Exception("Unknown action type.")
 
-def extract_key_for_algorithm(key_file_path: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int) -> KeyDetails:
+
+def extract_key_for_algorithm(key_file_path: str, alg: SecurityAlgorithm, action: ActionType,
+                              starting_index: int) -> KeyDetails:
     if action == ActionType.Decryption:
         return alg.extract_key(key_file_path, should_generate=False)
     return alg.extract_key(key_file_path, should_generate=is_new_execution(starting_index))
@@ -60,9 +65,9 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
     extract_key_for_algorithm(params.key_file, encryption_instance, action_type, last_message_index)
     transformed_messages = []
 
-    storage = Storage(alg=encryption_instance, results_path=params.path_for_result_messages,
-                      transformed_messages=transformed_messages, action_type=action_type,
-                      initial_message_index=last_message_index)
+    storage = CheckpointStorage(alg=encryption_instance, results_path=params.path_for_result_messages,
+                                transformed_messages=transformed_messages, action_type=action_type,
+                                initial_message_index=last_message_index)
     signal.signal(signal.SIGBREAK, partial(handle_sigint, storage=storage))
     signal.signal(signal.SIGTERM, partial(handle_sigint, storage=storage))
 
@@ -70,7 +75,8 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
     for message in messages:
         transformed_msg = get_transformed_message(message, action_type, encryption_instance)
         transformed_messages.append(transformed_msg)
-    save_messages_for_pipeline(transformed_messages, params.path_for_result_messages, encryption_instance, action_type, last_message_index)
+    save_messages_for_pipeline(transformed_messages, params.path_for_result_messages, encryption_instance, action_type,
+                               last_message_index)
 
     return transformed_messages
 
@@ -122,9 +128,9 @@ def execute_homomorphic_pipeline(action_type: ActionType) -> int:
     extract_key_for_algorithm(params.key_file, encryption_instance, action_type, last_message_index)
     transformed_messages = []
 
-    storage = Storage(alg=encryption_instance, results_path=params.path_for_result_messages,
-                      transformed_messages=transformed_messages, action_type=action_type,
-                      initial_message_index=last_message_index)
+    storage = CheckpointStorage(alg=encryption_instance, results_path=params.path_for_result_messages,
+                                transformed_messages=transformed_messages, action_type=action_type,
+                                initial_message_index=last_message_index)
     signal.signal(signal.SIGBREAK, partial(handle_sigint, storage=storage))
     signal.signal(signal.SIGTERM, partial(handle_sigint, storage=storage))
 
