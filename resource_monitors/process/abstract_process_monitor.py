@@ -164,8 +164,8 @@ class AbstractProcessMonitor(ABC):
                         current_metrics.time_since_start,
                         pid,
                         process_name,
-                        *astuple(current_metrics)[1:]  # skip time_since_start
-                        # TODO: CONSIDER ADDING A BOOLEAN 'PROCESS OF INTEREST' FIELD HERE
+                        *astuple(current_metrics)[1:],  # skip time_since_start
+                        True if p in self.processes_of_interest else False
                     ]
 
                     logger.info(

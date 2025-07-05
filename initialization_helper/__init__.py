@@ -142,5 +142,6 @@ processes_columns_list = [
     ProcessesColumns.READ_COUNT, ProcessesColumns.WRITE_COUNT, ProcessesColumns.READ_BYTES, ProcessesColumns.WRITE_BYTES,
     ProcessesColumns.PAGE_FAULTS,
     ProcessesColumns.BYTES_SENT, ProcessesColumns.PACKETS_SENT,
-    ProcessesColumns.BYTES_RECEIVED, ProcessesColumns.PACKETS_RECEIVED
+    ProcessesColumns.BYTES_RECEIVED, ProcessesColumns.PACKETS_RECEIVED,
+    ProcessesColumns.PROCESS_OF_INTEREST
 ]
