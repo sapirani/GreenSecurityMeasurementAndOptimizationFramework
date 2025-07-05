@@ -573,8 +573,6 @@ def wait_and_write_running_time_to_file(child_process_id, powershell_process):
     except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
-    print(time_since_start())
-
 
 def kill_background_processes(background_processes):
     waiting_threads = []

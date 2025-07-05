@@ -1,4 +1,4 @@
-import abc
+from abc import ABC, abstractmethod
 import logging
 import time
 from dataclasses import dataclass, asdict, astuple
@@ -52,7 +52,7 @@ class ProcessMetrics:
         )
 
 
-class AbstractProcessMonitor(abc.ABC):
+class AbstractProcessMonitor(ABC):
     def __init__(
             self,
             process_network_monitor: ProcessNetworkMonitor,
@@ -90,7 +90,7 @@ class AbstractProcessMonitor(abc.ABC):
     def time_since_start(self) -> float:
         return time.time() - self.start_time
 
-    @abc.abstractmethod
+    @abstractmethod
     def save_current_processes_statistics(self) -> None:
         """
         This function gets all processes running in the system and order them by their cpu usage
@@ -117,9 +117,9 @@ class AbstractProcessMonitor(abc.ABC):
             try:
                 # oneshot to improve info retrieve efficiency
                 with p.oneshot():
-                    # TODO: CHECK IF IT HOLDS TRUE INSIDE CONTAINERS
                     pid = p.pid
                     process_name = p.name()
+                    # TODO: CHECK IF IT HOLDS TRUE INSIDE CONTAINERS
                     cpu_percent = p.cpu_percent() / NUMBER_OF_CORES
                     process_traffic = self.process_network_monitor.get_network_stats(p)
 
