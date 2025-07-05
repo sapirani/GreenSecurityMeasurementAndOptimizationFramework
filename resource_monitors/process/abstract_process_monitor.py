@@ -34,7 +34,7 @@ class ProcessMetrics:
     def delta(self, prev_metrics: 'ProcessMetrics') -> 'ProcessMetrics':
         return ProcessMetrics(
             time_since_start=self.time_since_start,
-            cpu_percent=self.cpu_percent,   # TODO: consider calculating integral here (trapeze area)
+            cpu_percent=self.cpu_percent,  # TODO: consider calculating integral here (trapeze area)
             threads_num=self.threads_num,
             used_memory_mb=self.used_memory_mb,
             used_memory_percent=self.used_memory_percent,
@@ -62,7 +62,7 @@ class AbstractProcessMonitor(ABC):
         self.process_network_monitor = process_network_monitor
         self.running_os = running_os
         self.prev_data_per_process: Dict[Tuple[int, str], ProcessMetrics] = {}
-        self.processes_of_interest = []
+        self.mark_processes = []
         self.should_ignore_process = should_ignore_process
         self.start_time = 0
 
@@ -76,14 +76,14 @@ class AbstractProcessMonitor(ABC):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.process_network_monitor.stop()
 
-    def set_processes_of_interest(self, processes: List[psutil.Process]):
-        self.processes_of_interest = processes
+    def set_processes_to_mark(self, processes: List[psutil.Process]):
+        self.mark_processes = processes
 
     def set_start_time(self, start_time):
         self.start_time = start_time
 
     # TODO: REMOVE THIS FUNCTIONALITY FROM THIS CLASS INTO A DEDICATED CLASS FOR SAVING RESULTS
-    def set_processes_df(self,  processes_df: pd.DataFrame):
+    def set_processes_df(self, processes_df: pd.DataFrame):
         self.processes_df = processes_df
 
     @property
@@ -99,7 +99,7 @@ class AbstractProcessMonitor(ABC):
         pass
 
     # TODO: RENAME THIS FUNCTION WHEN SAVING INTO DATAFRAME GETS OUT OF THIS CLASS
-    def add_to_processes_dataframe(self, candidate_processes: Iterable[psutil.Process]) -> None:
+    def monitor_relevant_processes(self, candidate_processes: Iterable[psutil.Process]) -> None:
         """
         This function saves the relevant data from the process in dataframe (will be saved later as csv files)
         :param candidate_processes: list of all processes to extract metrics from. They may be filtered by the
@@ -107,7 +107,7 @@ class AbstractProcessMonitor(ABC):
         """
         for p in candidate_processes:
             try:
-                if self.should_ignore_process(p):
+                if self.should_ignore_process(p) and not (p in self.mark_processes):
                     continue
             except Exception:
                 continue
@@ -165,7 +165,7 @@ class AbstractProcessMonitor(ABC):
                         pid,
                         process_name,
                         *astuple(current_metrics)[1:],  # skip time_since_start
-                        True if p in self.processes_of_interest else False
+                        True if p in self.mark_processes else False
                     ]
 
                     logger.info(
@@ -174,7 +174,7 @@ class AbstractProcessMonitor(ABC):
                             "pid": pid,
                             "process_name": process_name,
                             **asdict(current_metrics),
-                            **({"process_of_interest": True} if p in self.processes_of_interest else {})
+                            **({"process_of_interest": True} if p in self.mark_processes else {})
                         }
                     )
 

@@ -6,4 +6,4 @@ class ProcessesOfInterestOnlyMonitor(AbstractProcessMonitor):
         """
         This function gets all processes running in the system and order them by thier cpu usage
         """
-        self.add_to_processes_dataframe(self.processes_of_interest)
+        self.monitor_relevant_processes(self.mark_processes)

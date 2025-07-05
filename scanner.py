@@ -644,7 +644,7 @@ def scan_and_measure():
         main_process, main_process_id = start_process(program)
         timeout_timer = start_timeout(main_process)
         background_processes = start_background_processes()
-        process_monitor.set_processes_of_interest([main_process] + background_processes)
+        process_monitor.set_processes_to_mark([main_process] + background_processes)
 
         print("Waiting for the main process to terminate")
         result = running_os.wait_for_process_termination(main_process, done_scanning_event)

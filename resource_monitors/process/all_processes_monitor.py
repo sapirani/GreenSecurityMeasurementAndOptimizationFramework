@@ -7,4 +7,4 @@ class AllProcessesMonitor(AbstractProcessMonitor):
         """
         This function gets all processes running in the system and order them by their cpu usage
         """
-        self.add_to_processes_dataframe(psutil.process_iter())
+        self.monitor_relevant_processes(psutil.process_iter())
