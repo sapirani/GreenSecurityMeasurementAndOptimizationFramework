@@ -38,6 +38,7 @@ class SecurityAlgorithm(ABC, Generic[T]):
                 return deserialized_messages
         except FileNotFoundError:
             print("Something went wrong with loading the encrypted messages")
+        return []
 
     def calc_encrypted_sum(self, messages: list[int], start_total: Optional[T] = None, checkpoint_callback: Optional[Callable[[int, T], None]] = None) -> T:
         regular_sum = sum(messages)

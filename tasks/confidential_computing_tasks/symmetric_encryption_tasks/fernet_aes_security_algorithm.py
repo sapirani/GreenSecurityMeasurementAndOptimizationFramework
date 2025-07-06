@@ -52,7 +52,8 @@ class FernetAESSecurityAlgorithm(SecurityAlgorithm[bytes]):
 
     def encrypt_message(self, msg: int) -> bytes:
         """ Encrypt the message """
-        return self.__encryption_fernet.encrypt(msg.to_bytes(self.__NUM_OF_BYTES, self.__ORDER))
+        n_bytes = (msg.bit_length() + 7) // 8 or 1
+        return self.__encryption_fernet.encrypt(msg.to_bytes(n_bytes, self.__ORDER))
 
     def decrypt_message(self, msg: bytes) -> int:
         """ Decrypt the message """
