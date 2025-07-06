@@ -20,16 +20,20 @@ class CheckpointStorage:
     def last_message_index(self):
         return len(self.transformed_messages) + self.initial_message_index
 
-    def save_transformed_messages(self):
+    def save_checkpoint(self):
+        self._save_transformed_messages()
+
+    def _save_transformed_messages(self):
         if self.last_message_index is not None and self.last_message_index > 0:
             write_last_message_index(self.last_message_index)
         if self.transformed_messages is not None and len(self.transformed_messages) > 0 and self.results_path != "":
             print("SHOULD OVERRIDE SAVING PATH (in class):", self.should_override)
             if self.action_type == ActionType.Encryption:
-                self.alg.save_encrypted_messages(self.transformed_messages, self.results_path, should_override_file=self.should_override)
+                self.alg.save_encrypted_messages(self.transformed_messages, self.results_path,
+                                                 should_override_file=self.should_override)
             # If decryption or full pipeline, optionally save decrypted ints as text
             elif self.action_type in (ActionType.Decryption, ActionType.FullPipeline):
-                write_messages_to_file(self.results_path, self.transformed_messages, should_override_file=self.should_override)
+                write_messages_to_file(self.results_path, self.transformed_messages,
+                                       should_override_file=self.should_override)
             else:
                 warnings.warn("The transformed messages weren't saved in a file.", RuntimeWarning)
-

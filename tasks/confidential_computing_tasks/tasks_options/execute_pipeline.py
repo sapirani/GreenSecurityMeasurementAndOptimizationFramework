@@ -23,19 +23,24 @@ def checkpoint_callback(i: int, total):
     if checkpoint_storage:
         checkpoint_storage.update(i, total)
 
-
-def handle_sigint_operation(signum, frame, storage: OperationCheckpointStorage):
-    if checkpoint_storage:
+def handle_signal(signum, frame, storage: CheckpointStorage):
+    if storage:
         print("\n[Signal received] Saving checkpoint...")
-        save_checkpoint_file(index=storage.checkpoint_index,
-                             total=storage.checkpoint_total)
+        storage.save_checkpoint()
     exit(0)
 
-
-def handle_sigint_regular(sig, frame: types.FrameType, storage: CheckpointStorage):
-    print("Sub process Received SIGINT! Cleaning up...")
-    storage.save_transformed_messages()
-    sys.exit(0)
+# def handle_sigint_operation(signum, frame, storage: OperationCheckpointStorage):
+#     if checkpoint_storage:
+#         print("\n[Signal received] Saving checkpoint...")
+#         save_checkpoint_file(index=storage.checkpoint_index,
+#                              total=storage.checkpoint_total)
+#     exit(0)
+#
+#
+# def handle_sigint_regular(sig, frame: types.FrameType, storage: CheckpointStorage):
+#     print("Sub process Received SIGINT! Cleaning up...")
+#     storage.save_transformed_messages()
+#     sys.exit(0)
 
 
 def get_message(messages_file_path: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int) -> list:
@@ -86,8 +91,8 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
     storage = CheckpointStorage(alg=encryption_instance, results_path=params.path_for_result_messages,
                                 transformed_messages=transformed_messages, action_type=action_type,
                                 initial_message_index=last_message_index)
-    signal.signal(signal.SIGBREAK, partial(handle_sigint_regular, storage=storage))
-    signal.signal(signal.SIGTERM, partial(handle_sigint_regular, storage=storage))
+    signal.signal(signal.SIGBREAK, partial(handle_signal, storage=storage))
+    signal.signal(signal.SIGTERM, partial(handle_signal, storage=storage))
 
     messages = get_message(params.path_for_messages, encryption_instance, action_type, last_message_index)
     for message in messages:
@@ -141,8 +146,8 @@ def execute_homomorphic_pipeline(action_type: ActionType) -> int:
         initial_message_index=last_message_index
     )
 
-    signal.signal(signal.SIGBREAK, partial(handle_sigint_operation, storage=checkpoint_storage))
-    signal.signal(signal.SIGTERM, partial(handle_sigint_operation, storage=checkpoint_storage))
+    signal.signal(signal.SIGBREAK, partial(handle_signal, storage=checkpoint_storage))
+    signal.signal(signal.SIGTERM, partial(handle_signal, storage=checkpoint_storage))
 
     messages = get_message(params.path_for_messages, encryption_instance, action_type, last_message_index)
 
