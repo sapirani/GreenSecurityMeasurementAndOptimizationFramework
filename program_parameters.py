@@ -73,14 +73,14 @@ time_interval = 0.2
 
 # ***** Parameters for Confidential Computing ***** #
 messages_to_encrypt_file = r"C:\Users\Administrator\Desktop\messages.txt"
-results_file_for_encryption = r"C:\Users\Administrator\Desktop\tenseal_ckks_encryption_results.bin"
+results_file_for_encryption = r"C:\Users\Administrator\Desktop\pycrypto_rsa_encryption_results.bin"
 
 messages_to_decrypt_file = results_file_for_encryption
-results_file_for_decryption = r"C:\Users\Administrator\Desktop\tenseal_ckks_decryption_results.txt"
+results_file_for_decryption = r"C:\Users\Administrator\Desktop\pycrypto_rsa_decryption_results.txt"
 
-security_algorithm_type = EncryptionType.CKKSTenseal
+security_algorithm_type = EncryptionType.PycryptoRSA
 block_cipher_mode = None #EncryptionMode.CBC
-algorithm_key_file = r"C:\Users\Administrator\Desktop\key_tenseal_ckks.txt"
+algorithm_key_file = r"C:\Users\Administrator\Desktop\key_pycrypto_rsa.txt"
 
 min_key_value = 2 ** 2047 - 1
 max_key_value = 2 ** 2048 - 1

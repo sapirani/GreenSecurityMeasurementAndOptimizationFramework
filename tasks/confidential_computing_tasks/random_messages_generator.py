@@ -22,4 +22,4 @@ def generate_and_write_numbers(n, filename=DEFAULT_MESSAGES_FILENAME, min_value=
 
 
 # Example usage:
-generate_and_write_numbers(170000)  # Generates 10000 numbers and writes to random_numbers.txt
+generate_and_write_numbers(80000000)  # Generates 10000 numbers and writes to random_numbers.txt
