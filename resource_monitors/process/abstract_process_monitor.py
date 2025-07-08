@@ -173,7 +173,7 @@ class AbstractProcessMonitor(ABC):
                         extra={
                             "pid": pid,
                             "process_name": process_name,
-                            "arguments": "\n".join(p.cmdline()[1:]),
+                            "arguments": p.cmdline()[1:],
                             **asdict(current_metrics),
                             **({"process_of_interest": True} if p in self.mark_processes else {})
                         }
