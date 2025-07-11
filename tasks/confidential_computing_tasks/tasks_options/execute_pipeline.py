@@ -21,24 +21,12 @@ def checkpoint_callback(curren_encrypted_msg, total):
     if checkpoint_storage:
         checkpoint_storage.update(curren_encrypted_msg, total)
 
+
 def handle_signal(signum, frame, storage: CheckpointStorage):
     if storage:
         print("\n[Signal received] Saving checkpoint...")
         storage.save_checkpoint()
     exit(0)
-
-# def handle_sigint_operation(signum, frame, storage: OperationCheckpointStorage):
-#     if checkpoint_storage:
-#         print("\n[Signal received] Saving checkpoint...")
-#         save_checkpoint_file(index=storage.checkpoint_index,
-#                              total=storage.checkpoint_total)
-#     exit(0)
-#
-#
-# def handle_sigint_regular(sig, frame: types.FrameType, storage: CheckpointStorage):
-#     print("Sub process Received SIGINT! Cleaning up...")
-#     storage.save_transformed_messages()
-#     sys.exit(0)
 
 
 def get_message(messages_file_path: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int) -> list:
@@ -113,7 +101,7 @@ def execute_operation(messages: list[int], action: ActionType, algorithm: Securi
                                                      checkpoint_callback=checkpoint_callback)
     elif action == ActionType.Multiplication:
         encrypted_res = algorithm.calc_encrypted_multiplication(messages, start_total=deserialized_total,
-                                                     checkpoint_callback=checkpoint_callback)
+                                                                checkpoint_callback=checkpoint_callback)
     else:
         raise Exception("Unknown action type.")
     return algorithm.decrypt_message(encrypted_res)
