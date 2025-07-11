@@ -11,7 +11,9 @@ from process_connections import ProcessNetworkMonitor
 from program_parameters import antivirus_type, scan_type, custom_scan_path, recursive, should_optimize, \
     should_mitigate_timestomping, ids_type, interface_name, pcap_list_dirs, log_path, configuration_file_path, \
     model_name, model_action, script_relative_path, installation_dir, cpu_percent_to_consume, RUNNING_TIME, \
-    memory_chunk_size, consumption_speed, time_interval
+    memory_chunk_size, consumption_speed, time_interval, messages_to_encrypt_file, results_file_for_encryption, \
+    security_algorithm_type, algorithm_key_file, messages_to_decrypt_file, min_key_value, results_file_for_decryption, \
+    block_cipher_mode, max_key_value
 from resource_monitors.process.abstract_process_monitor import AbstractProcessMonitor
 from resource_monitors.process.all_processes_monitor import AllProcessesMonitor
 from resource_monitors.process.process_of_interest_only_monitor import ProcessesOfInterestOnlyMonitor
@@ -24,6 +26,11 @@ from tasks.program_classes.antiviruses.clam_av_program import ClamAVProgram
 from tasks.program_classes.antiviruses.defender_program import DefenderProgram
 from tasks.program_classes.antiviruses.dummy_antivirus_program import DummyAntivirusProgram
 from tasks.program_classes.antiviruses.sophos_av_program import SophosAVProgram
+from tasks.program_classes.confidential_computing.encryption_pipeline_executor import EncryptionPipelineExecutor
+from tasks.program_classes.confidential_computing.message_adder import MessageAdder
+from tasks.program_classes.confidential_computing.message_decryptor import MessageDecryptor
+from tasks.program_classes.confidential_computing.message_encryptor import MessageEncryptor
+from tasks.program_classes.confidential_computing.message_multiplier import MessageMultiplier
 from tasks.program_classes.dummy_cpu_consumer_program import CPUConsumer
 from tasks.program_classes.dummy_io_writer_consumer_program import IOWriteConsumer
 from tasks.program_classes.dummy_memory_consumer_program import MemoryConsumer
@@ -123,5 +130,28 @@ def program_to_scan_factory(program_type: ProgramToScan) -> ProgramInterface:
         return NetworkReceiver()
     if program_type == ProgramToScan.NetworkSender:
         return NetworkSender(time_interval=time_interval, running_time=RUNNING_TIME)
+    if program_type == ProgramToScan.MessageEncryptor:
+        return MessageEncryptor(messages_file=messages_to_encrypt_file, results_file=results_file_for_encryption,
+                                security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
+                                key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
+    if program_type == ProgramToScan.MessageDecryptor:
+        return MessageDecryptor(messages_file=messages_to_decrypt_file, results_file=results_file_for_decryption,
+                                security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
+                                key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
+    if program_type == ProgramToScan.MessageAddition:
+        return MessageAdder(messages_file=messages_to_encrypt_file, results_file=results_file_for_decryption,
+                            security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
+                            key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
+    if program_type == ProgramToScan.MessageMultiplication:
+        return MessageMultiplier(messages_file=messages_to_encrypt_file, results_file=results_file_for_decryption,
+                                 security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
+                                 key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
+    if program_type == ProgramToScan.EncryptionPipelineExecutor:
+        return EncryptionPipelineExecutor(messages_file=messages_to_encrypt_file,
+                                          results_file=results_file_for_decryption,
+                                          security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
+                                          key_file=algorithm_key_file, min_key_value=min_key_value,
+                                          max_key_value=max_key_value)
+
 
     raise Exception("choose program to scan from ProgramToScan enum")
