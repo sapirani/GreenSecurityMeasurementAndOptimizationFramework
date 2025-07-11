@@ -73,15 +73,15 @@ consumption_speed = 10 * MB / SECOND
 time_interval = 0.2
 
 # ***** Parameters for Confidential Computing ***** #
-messages_to_encrypt_file = "path-to-plaintext-messages"
-results_file_for_encryption "path-to-save-ciphertexts"
+messages_to_encrypt_file = r"path-to-plaintext-messages"
+results_file_for_encryption = r"path-to-save-ciphertexts"
 
 messages_to_decrypt_file = results_file_for_encryption
-results_file_for_decryption = "path-to-save-decrypted-results"
+results_file_for_decryption = r"path-to-save-decrypted-results"
 
 security_algorithm_type = EncryptionType.CKKSTenseal
 block_cipher_mode = None #EncryptionMode.CBC
-algorithm_key_file = "path-to-save-algorithm-key"
+algorithm_key_file = r"path-to-save-algorithm-key"
 
 min_key_value = 2 ** 2047 - 1
 max_key_value = 2 ** 2048 - 1
