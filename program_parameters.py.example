@@ -21,9 +21,9 @@ file_type = "pdf"
 directory_type = "Duplicated Files"
 custom_scan_path = r'""'
 
-RUNNING_TIME = 100 * MINUTE  # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
+RUNNING_TIME = 10 * MINUTE # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
-SLEEP_BETWEEN_ITERATIONS_SECONDS = 0
+SLEEP_BETWEEN_ITERATIONS_SECONDS = 2
 
 MINIMUM_DELTA_CAPACITY = 200     # in mWh
 
@@ -41,9 +41,9 @@ DEFAULT_TIME_BEFORE_SLEEP_MODE = 4
 is_inside_container = False
 
 # ==== Elastic logging configuration
-elastic_url = "http://127.0.0.1:9200"
+elastic_url = "http://192.168.1.140:9200"
 elastic_username = "elastic"
-elastic_password = "your-password"
+elastic_password = "0eD02kdb"
 
 # ==== ClamAV configurations
 recursive = True
