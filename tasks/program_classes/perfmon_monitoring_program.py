@@ -4,10 +4,9 @@ from tasks.program_classes.abstract_program import ProgramInterface
 
 
 class PerfmonProgram(ProgramInterface):
-    def __init__(self, program_name):
+    def __init__(self):
         super().__init__()
         self.results_path = None
-        self.program_name = program_name
 
     def get_program_name(self) -> str:
         return "Performance Monitor"

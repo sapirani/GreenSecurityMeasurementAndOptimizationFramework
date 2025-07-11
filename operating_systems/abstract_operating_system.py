@@ -69,7 +69,7 @@ class AbstractOSFuncs:
         print(command)
         def process_obj_and_pid(command_lst):
             popen_creation_flags = 0 if is_posix else subprocess.CREATE_NEW_PROCESS_GROUP
-            p = subprocess.Popen(command_lst, stdout=f_stdout, stderr=f_stderr, creationflags=popen_creation_flags)
+            p = psutil.Popen(command_lst, stdout=f_stdout, stderr=f_stderr, creationflags=popen_creation_flags)
             pid = p.pid
 
             if should_use_powershell or should_find_child_id:
