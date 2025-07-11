@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 import pandas as pd
 
 from general_consts import ProcessesColumns, CPUColumns, MemoryColumns, KB, DiskIOColumns, NetworkIOColumns
@@ -23,11 +25,13 @@ def get_all_df_by_id(processes_df, processes_ids):
     return [processes_df[processes_df[ProcessesColumns.PROCESS_ID] == id] for id in processes_ids]
 
 
-class SummaryVersionInterface:
+class AbstractSummaryBuilder(ABC):
+    @abstractmethod
     def prepare_summary_csv(self, processes_df, cpu_df, memory_df, disk_io_each_moment_df, network_io_each_moment_df,
                             battery_df, processes_names, finished_scanning_time, processes_ids):
         return None
 
+    @abstractmethod
     def colors_func(self, df):
         return None
 
@@ -83,7 +87,7 @@ class SummaryVersionInterface:
         return summary_df
 
 
-class DuduSummary(SummaryVersionInterface):
+class DuduSummary(AbstractSummaryBuilder):
     def prepare_summary_csv(self, processes_df, cpu_df, memory_df, disk_io_each_moment_df, network_io_each_moment_df,
                             battery_df, processes_names, finished_scanning_time, processes_ids):
         total_finishing_time = finished_scanning_time[-1]
@@ -165,8 +169,8 @@ class DuduSummary(SummaryVersionInterface):
         summary_df.loc[len(summary_df.index)] = ["IO Write Count System (total - process) (# - sum)",
                                                  *write_count_total_without_process, system_write_count]
 
-        return SummaryVersionInterface.add_general_info(summary_df, num_of_processes, battery_df, sub_disk_df,
-                                                        sub_network_df, sub_all_processes_df)
+        return AbstractSummaryBuilder.add_general_info(summary_df, num_of_processes, battery_df, sub_disk_df,
+                                                       sub_network_df, sub_all_processes_df)
 
     def colors_func(self, df):
         return ['background-color: #FFFFFF'] + \
@@ -178,7 +182,7 @@ class DuduSummary(SummaryVersionInterface):
                ['background-color: #FFFFFF']
 
 
-class OtherSummary(SummaryVersionInterface):
+class OtherSummary(AbstractSummaryBuilder):
     def prepare_summary_csv(self, processes_df, cpu_df, memory_df, disk_io_each_moment_df, network_io_each_moment_df,
                             battery_df, processes_names, finished_scanning_time, processes_ids):
         total_finishing_time = finished_scanning_time[-1]
@@ -232,8 +236,8 @@ class OtherSummary(SummaryVersionInterface):
         total_write_count = sub_disk_df[DiskIOColumns.WRITE_COUNT].sum()
         summary_df.loc[len(summary_df.index)] = ["Disk IO Write Count (# - sum)", *all_process_write_count, total_write_count]
 
-        return SummaryVersionInterface.add_general_info(summary_df, num_of_processes, battery_df, sub_disk_df,
-                                                        sub_network_df, sub_all_processes_df)
+        return AbstractSummaryBuilder.add_general_info(summary_df, num_of_processes, battery_df, sub_disk_df,
+                                                       sub_network_df, sub_all_processes_df)
 
     def colors_func(self, df):
         return ['background-color: #FFFFFF'] + \

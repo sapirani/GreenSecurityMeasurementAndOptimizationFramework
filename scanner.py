@@ -1,12 +1,12 @@
 import argparse
 import json
 import os.path
+import platform
 import shutil
 import signal
 import threading
 import time
 import warnings
-from functools import partial
 
 from statistics import mean
 
@@ -14,16 +14,14 @@ from human_id import generate_id
 from prettytable import PrettyTable
 from threading import Thread, Timer
 import pandas as pd
-from scapy.interfaces import get_working_ifaces
 
 from application_logging import get_measurement_logger, get_elastic_logging_handler
-from application_logging.adapters.scanner_logger_adapter import ScannerLoggerAdapter
+from application_logging.filters.scanner_filter import ScannerLoggerFilter
 from initialization_helper import *
 from datetime import date, datetime, timezone
 from pathlib import Path
 from general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
 from operating_systems.abstract_operating_system import AbstractOSFuncs
-from process_connections import ProcessNetworkMonitor
 
 base_dir, GRAPHS_DIR, STDOUT_FILES_DIR, STDERR_FILES_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, \
     DISK_IO_EACH_MOMENT, NETWORK_IO_EACH_MOMENT, BATTERY_STATUS_CSV, GENERAL_INFORMATION_FILE, TOTAL_CPU_CSV, \
@@ -86,7 +84,7 @@ def save_current_total_memory():
     )
 
     memory_df.loc[len(memory_df.index)] = [
-        scanner_imp.calc_time_interval(starting_time),
+        time_since_start(),
         f'{memory_used_bytes / GB:.3f}',
         memory_used_percent
     ]
@@ -113,7 +111,7 @@ def save_current_disk_io(previous_disk_io):
     """
     disk_io_stat = psutil.disk_io_counters()
     disk_io_each_moment_df.loc[len(disk_io_each_moment_df.index)] = [
-        scanner_imp.calc_time_interval(starting_time),
+        time_since_start(),
         disk_io_stat.read_count - previous_disk_io.read_count,
         disk_io_stat.write_count - previous_disk_io.write_count,
         f'{(disk_io_stat.read_bytes - previous_disk_io.read_bytes) / KB:.3f}',
@@ -143,7 +141,7 @@ def save_current_network_io(previous_network_io):
     dataframe_append(
         network_io_each_moment_df,
         [
-            scanner_imp.calc_time_interval(starting_time),
+            time_since_start(),
             network_io_stat.packets_sent - previous_network_io.packets_sent,
             network_io_stat.packets_recv - previous_network_io.packets_recv,
             f'{(network_io_stat.bytes_sent - previous_network_io.bytes_sent) / KB:.3f}',
@@ -164,109 +162,8 @@ def save_current_network_io(previous_network_io):
     return network_io_stat
 
 
-def save_current_processes_statistics(prev_data_per_process, process_network_monitor):
-    """
-    This function gets all processes running in the system and order them by thier cpu usage
-    :param prev_data_per_process: previous read of all processes from io_counters.
-    It is dictionary where the key is (pid, name) and the value is the io_counters() read
-    :return: a new dictionary that contains the new values from io_counters() for each process
-    """
-    proc = []
-
-    time_of_sample = scanner_imp.calc_time_interval(starting_time)
-
-    for p in psutil.process_iter():
-        try:
-            if program.process_ignore_cond(p):  # ignore System Idle Process
-                continue
-
-            # trigger cpu_percent() the first time will lead to return of 0.0
-            cpu_percent = p.cpu_percent() / NUMBER_OF_CORES
-            proc.append((p, cpu_percent))
-
-        except Exception:
-            pass
-
-    proc = sorted(proc, key=lambda x: x[1], reverse=True)
-
-    return add_to_processes_dataframe(time_of_sample, proc, prev_data_per_process, process_network_monitor)
-
-
-def add_to_processes_dataframe(time_of_sample, top_list, prev_data_per_process, process_network_monitor):
-    """
-    This function saves the relevant data from the process in dataframe (will be saved later as csv files)
-    :param time_of_sample: time since starting the program
-    :param top_list: list of all processes sorted by cpu usage
-    :param prev_data_per_process: previous read of all processes from io_counters.
-    It is dictionary where the key is (pid, name) and the value is the io_counters() read
-    :return:
-    """
-    for p, cpu_percent in top_list:
-
-        # While fetching the processes, some subprocesses may exit
-        # Hence we need to put this code in try-except block
-        try:
-            # oneshot to improve info retrieve efficiency
-            with p.oneshot():
-                process_traffic = process_network_monitor.get_network_stats(p)
-
-                io_stat = p.io_counters()
-                page_faults = running_os.get_page_faults(p)
-
-                if (p.pid, p.name()) not in prev_data_per_process:
-                    prev_data_per_process[(p.pid, p.name())] = io_stat, page_faults
-                    continue  # remove first sample of process (because cpu_percent is meaningless 0)
-
-                prev_io = prev_data_per_process[(p.pid, p.name())][0]
-                # TODO - does io_counters return only disk operations or all io operations (include network etc..)
-                processes_df.loc[len(processes_df.index)] = [
-                    time_of_sample,
-                    p.pid,
-                    p.name(),
-                    f'{cpu_percent:.2f}',
-                    p.num_threads(),
-                    f'{p.memory_info().rss / MB:.3f}',  # TODO: maybe should use uss/pss instead rss?
-                    round(p.memory_percent(), 2),
-                    io_stat.read_count - prev_io.read_count,
-                    io_stat.write_count - prev_io.write_count,
-                    f'{(io_stat.read_bytes - prev_io.read_bytes) / KB:.3f}',
-                    f'{(io_stat.write_bytes - prev_io.write_bytes) / KB:.3f}',
-                    page_faults - prev_data_per_process[(p.pid, p.name())][1],
-                    process_traffic.bytes_sent / KB,
-                    process_traffic.packets_sent,
-                    process_traffic.bytes_received / KB,
-                    process_traffic.packets_received
-                ]
-
-                prev_data_per_process[(p.pid, p.name())] = io_stat, page_faults  # after finishing loop
-
-                logger.info(
-                    "Process measurements",
-                    extra={
-                        "pid": p.pid,
-                        "process_name": p.name(),
-                        "cpu_percent": cpu_percent,
-                        "threads_num": p.num_threads(),
-                        "used_memory_mb": p.memory_info().rss / MB,
-                        "used_memory_percent": round(p.memory_percent(), 2),
-                        "disk_read_count": io_stat.read_count - prev_io.read_count,
-                        "disk_write_count": io_stat.write_count - prev_io.write_count,
-                        "disk_read_bytes": (io_stat.read_bytes - prev_io.read_bytes) / KB,
-                        "disk_write_bytes": (io_stat.write_bytes - prev_io.write_bytes) / KB,
-                        "page_faults": page_faults - prev_data_per_process[(p.pid, p.name())][1],
-                        "bytes_sent": process_traffic.bytes_sent / KB,
-                        "packets_sent": process_traffic.packets_sent,
-                        "bytes_received": process_traffic.bytes_received / KB,
-                        "packets_received": process_traffic.packets_received
-                    }
-                )
-
-        # Note, we are just ignoring access denied and other exceptions and do not handle them.
-        # There will be no results for those processes
-        except (psutil.NoSuchProcess, psutil.AccessDenied, ChildProcessError):
-            pass
-
-    return prev_data_per_process
+def time_since_start() -> float:
+    return time.time() - starting_time
 
 
 def scan_time_passed():
@@ -275,13 +172,13 @@ def scan_time_passed():
     Returns:
         bool: True if the minimum scan time has passed, False otherwise
     """
-    return time.time() - starting_time >= RUNNING_TIME
+    return time_since_start() >= RUNNING_TIME
 
 
 def save_data_when_too_low_battery():
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
         f.write("EARLY TERMINATION DUE TO LOW BATTERY!!!!!!!!!!\n\n")
-    finished_scanning_time.append(scanner_imp.calc_time_interval(starting_time))
+    finished_scanning_time.append(time_since_start())
 
     print("NOTE! backing up program metadata")
     Path(BACKUP_DIR_PATH_BEFORE_BATTERY_DEPLETION).mkdir(parents=True, exist_ok=True)  # create dir for saving metadata before termination
@@ -307,7 +204,7 @@ def should_scan():
     Returns:
         True if measurement thread should perform another iteration or False if it should terminate
     """
-    if scanner_imp.is_battery_too_low(battery_df):
+    if battery_monitor.is_battery_too_low(battery_df):
         save_data_when_too_low_battery()
         return False
 
@@ -325,18 +222,13 @@ def save_current_total_cpu():
     This function saves the total cpu usage of the system
     """
     total_cpu_per_core = psutil.cpu_percent(percpu=True)
+    total_cpu = 0
     if is_inside_container:
-        total_cpu_sum = running_os.get_container_total_cpu_usage()
-        number_of_cores = running_os.get_container_number_of_cores()
-        total_cpu_mean = total_cpu_sum / number_of_cores
-        total_cpu_val = total_cpu_sum
-    else:
-        total_cpu_mean = mean(total_cpu_per_core)
-        total_cpu_sum = sum(total_cpu_per_core)
-        number_of_cores = len(total_cpu_per_core)
-        total_cpu_val = total_cpu_mean
+        total_cpu = running_os.get_container_total_cpu_usage()
+    elif total_cpu_per_core is not None and len(total_cpu_per_core) > 0:
+        total_cpu = mean(total_cpu_per_core)
 
-    cpu_df.loc[len(cpu_df.index)] = [scanner_imp.calc_time_interval(starting_time), total_cpu_val] + total_cpu_per_core
+    cpu_df.loc[len(cpu_df.index)] = [time_since_start(), total_cpu_val] + total_cpu_per_core
 
     logger.info(
         "Total CPU measurements",
@@ -360,31 +252,28 @@ def continuously_measure():
     # TODO: lock thread until process starts
     prev_disk_io = psutil.disk_io_counters()
     prev_network_io = psutil.net_io_counters()
-    prev_data_per_process = {}
 
-    # NOTE: CHANGE THIS IF YOU WANT TO MONITOR SPECIFIC INTERFACES
-    interfaces_for_packets_capturing = get_working_ifaces()
-    process_network_monitor = ProcessNetworkMonitor(interfaces_for_packets_capturing)
+    with process_monitor:
+        process_monitor.set_start_time(starting_time)
+        process_monitor.set_processes_df(processes_df)
+        # TODO: think if total tables should be printed only once
+        while should_scan():
+            # Create a delay
+            time.sleep(SLEEP_BETWEEN_ITERATIONS_SECONDS)
 
-    # TODO: think if total tables should be printed only once
-    while should_scan():
-        # Create a delay
-        scanner_imp.scan_sleep(SLEEP_BETWEEN_ITERATIONS_SECONDS)
+            battery_monitor.save_battery_stat(battery_df, time_since_start())
+            process_monitor.save_current_processes_statistics()
 
-        scanner_imp.save_battery_stat(battery_df, scanner_imp.calc_time_interval(starting_time))
-        prev_data_per_process = save_current_processes_statistics(prev_data_per_process, process_network_monitor)
+            try:  # in case of measuring cpu in a windows container
+                save_current_total_cpu()
+            except NotImplementedError as e:
+                print(f"Error occurred: {str(e)}")
+                done_scanning_event.set()
 
-        try:  # in case of measuring cpu in a windows container
-            save_current_total_cpu()
-        except NotImplementedError as e:
-            print(f"Error occurred: {str(e)}")
-            done_scanning_event.set()
+            save_current_total_memory()
+            prev_disk_io = save_current_disk_io(prev_disk_io)
+            prev_network_io = save_current_network_io(prev_network_io)
 
-        save_current_total_memory()
-        prev_disk_io = save_current_disk_io(prev_disk_io)
-        prev_network_io = save_current_network_io(prev_network_io)
-
-    process_network_monitor.stop()
     done_scanning_event.set()   # releasing waiting threads / processes
 
 
@@ -451,7 +340,7 @@ def save_general_information_before_scanning():
         f.write(f"Session_id: {session_id}\n")
         f.write(f"Hostname: {running_os.get_hostname()}\n")
         f.write(f'Date: {date.today().strftime("%d/%m/%Y")}\n')
-        f.write(f'Scanner Version: {get_scanner_version_name(scanner_version)}\n\n')
+        f.write(f'Scanner Version: {get_scanner_version_name(battery_monitor_type, process_monitor_type)}\n\n')
 
         # TODO: add background_programs general_information_before_measurement(f)
         program.general_information_before_measurement(f)
@@ -459,7 +348,7 @@ def save_general_information_before_scanning():
         save_general_system_information(f)
 
         f.write('\n======Before Scanning======\n')
-        scanner_imp.save_general_battery(f)
+        battery_monitor.save_general_battery(f)
         f.write('\n')
         save_general_disk(f)
         f.write('\n\n')
@@ -513,12 +402,12 @@ def save_general_information_after_scanning():
 
 def prepare_summary_csv():
     """Prepare the summary csv file"""
-    summary_df = summary_version_imp.prepare_summary_csv(processes_df, cpu_df, memory_df, disk_io_each_moment_df,
-                                                         network_io_each_moment_df,
-                                                         battery_df, processes_names, finished_scanning_time,
-                                                         processes_ids)
+    summary_df = summary_builder.prepare_summary_csv(processes_df, cpu_df, memory_df, disk_io_each_moment_df,
+                                                     network_io_each_moment_df,
+                                                     battery_df, processes_names, finished_scanning_time,
+                                                     processes_ids)
 
-    color_func = summary_version_imp.colors_func
+    color_func = summary_builder.colors_func
 
     styled_summary_df = summary_df.style.apply(color_func, axis=0)
 
@@ -626,7 +515,7 @@ def start_background_processes():
     """
     background_processes = [start_process(background_program) for background_program in background_programs]
     # TODO: think how to check if there are errors without sleeping - waiting for process initialization
-    scanner_imp.scan_sleep(5)
+    time.sleep(5)
 
     for (background_process, child_process_id), background_program in zip(background_processes, background_programs):
         if background_process.poll() is not None:  # if process has not terminated
@@ -684,8 +573,6 @@ def wait_and_write_running_time_to_file(child_process_id, powershell_process):
             p.wait()  # or p.kill()
     except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
-
-    print(scanner_imp.calc_time_interval(starting_time))
 
 
 def kill_background_processes(background_processes):
@@ -758,6 +645,8 @@ def scan_and_measure():
         main_process, main_process_id = start_process(program)
         timeout_timer = start_timeout(main_process)
         background_processes = start_background_processes()
+        process_monitor.set_processes_to_mark([main_process] + background_processes)
+
         print("Waiting for the main process to terminate")
         result = running_os.wait_for_process_termination(main_process, done_scanning_event)
 
@@ -766,7 +655,7 @@ def scan_and_measure():
         # kill background programs after main program finished
         kill_background_processes(background_processes)
 
-        finished_scanning_time.append(scanner_imp.calc_time_interval(starting_time))
+        finished_scanning_time.append(time_since_start())
         # check whether another iteration of scan is needed or not
         if scan_option == ScanMode.ONE_SCAN or (scan_time_passed() and is_delta_capacity_achieved()):
             # if there is no need in another iteration, exit this while and signal the measurement thread to stop
@@ -783,7 +672,7 @@ def scan_and_measure():
     running_os.wait_for_thread_termination(measurements_thread, done_scanning_event)
 
     if main_program_to_scan == ProgramToScan.NO_SCAN:
-        finished_scanning_time.append(scanner_imp.calc_time_interval(starting_time))
+        finished_scanning_time.append(time_since_start())
 
 
 def can_proceed_towards_measurements():
@@ -824,7 +713,7 @@ def print_warnings_system_adjustments(exception: Exception):
 
 
 def before_scanning_operations():
-    scanner_imp.check_if_battery_plugged()
+    battery_monitor.check_if_battery_plugged()
 
     if disable_real_time_protection_during_measurement and running_os.is_tamper_protection_enabled():
         raise Exception("You must disable Tamper Protection manually so that the program could control real "
@@ -931,8 +820,7 @@ def main(user_args):
 
     before_scanning_operations()
 
-    logger_adapter = partial(
-        ScannerLoggerAdapter,
+    logger_filter = ScannerLoggerFilter(
         session_id=session_id,
         hostname=AbstractOSFuncs.get_hostname(),
         user_defined_extras=user_args.logging_constant_extras
@@ -941,8 +829,8 @@ def main(user_args):
     starting_time = get_starting_time()
 
     logger = get_measurement_logger(
-        logger_adapter,
-        get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, starting_time)
+        custom_filter=logger_filter,
+        logger_handler=get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, starting_time)
     )
 
     logger.info("The scanner is starting the measurement")
