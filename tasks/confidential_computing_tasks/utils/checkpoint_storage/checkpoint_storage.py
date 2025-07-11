@@ -1,6 +1,6 @@
 import warnings
 
-from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
+from tasks.confidential_computing_tasks.abstract_security_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.action_type import ActionType
 from tasks.confidential_computing_tasks.utils.algorithm_utils import is_new_execution
 from tasks.confidential_computing_tasks.utils.saving_utils import write_last_message_index, write_messages_to_file
@@ -28,7 +28,7 @@ class CheckpointStorage:
             write_last_message_index(self.last_message_index)
         if self.transformed_messages is not None and len(self.transformed_messages) > 0 and self.results_path != "":
             print("SHOULD OVERRIDE SAVING PATH (in class):", self.should_override)
-            if self.action_type == ActionType.Encryption:
+            if self.action_type in (ActionType.Encryption, ActionType.Addition, ActionType.Multiplication):
                 self.alg.save_encrypted_messages(self.transformed_messages, self.results_path,
                                                  should_override_file=self.should_override)
             # If decryption or full pipeline, optionally save decrypted ints as text

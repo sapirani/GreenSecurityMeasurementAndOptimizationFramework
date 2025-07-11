@@ -4,7 +4,7 @@ from typing import Optional, Callable
 
 from typing_extensions import override
 
-from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm, T
+from tasks.confidential_computing_tasks.abstract_security_algorithm import SecurityAlgorithm, T
 from tasks.confidential_computing_tasks.utils.basic_utils import generate_random_prime
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL, KeyDetails
 
@@ -31,7 +31,7 @@ class HomomorphicSecurityAlgorithm(SecurityAlgorithm[T], ABC):
         return self.__calc_encrypted_operation(messages, is_addition=False, start_total=start_total, checkpoint_callback=checkpoint_callback)
 
     def __calc_encrypted_operation(self, messages: list[int], *, is_addition: bool, start_total: Optional[T] = None,
-                                   checkpoint_callback: Optional[Callable[[int, T], None]] = None) -> T:
+                                   checkpoint_callback: Optional[Callable[[T, T], None]] = None) -> T:
         total = start_total if start_total is not None else self.encrypt_message(messages[0])
         start_idx = 0 if start_total is not None else 1
 
@@ -39,7 +39,7 @@ class HomomorphicSecurityAlgorithm(SecurityAlgorithm[T], ABC):
             encrypted = self.encrypt_message(messages[i])
             total = self.add_messages(total, encrypted) if is_addition else self.multiply_messages(total, encrypted)
             if checkpoint_callback:
-                checkpoint_callback(i + 1, total)
+                checkpoint_callback(encrypted, total)
 
         return total
 

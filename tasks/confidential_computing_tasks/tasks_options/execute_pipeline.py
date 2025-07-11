@@ -1,10 +1,8 @@
 import signal
-import sys
-import types
 from functools import partial
 from typing import Optional
 
-from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
+from tasks.confidential_computing_tasks.abstract_security_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.action_type import ActionType
 from tasks.confidential_computing_tasks.key_details import KeyDetails
 from tasks.confidential_computing_tasks.utils.algorithm_utils import extract_arguments, convert_int_to_alg_type, \
@@ -19,9 +17,9 @@ from tasks.confidential_computing_tasks.utils.saving_utils import extract_messag
 checkpoint_storage: Optional[OperationCheckpointStorage] = None
 
 
-def checkpoint_callback(i: int, total):
+def checkpoint_callback(curren_encrypted_msg, total):
     if checkpoint_storage:
-        checkpoint_storage.update(i, total)
+        checkpoint_storage.update(curren_encrypted_msg, total)
 
 def handle_signal(signum, frame, storage: CheckpointStorage):
     if storage:
@@ -105,14 +103,19 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
 
 
 def execute_operation(messages: list[int], action: ActionType, algorithm: SecurityAlgorithm, total_checkpoint) -> int:
+    if total_checkpoint:
+        deserialized_total = algorithm.deserialize_message(total_checkpoint)
+    else:
+        deserialized_total = None
+
     if action == ActionType.Addition:
-        encrypted_res = algorithm.calc_encrypted_sum(messages, start_total=total_checkpoint,
+        encrypted_res = algorithm.calc_encrypted_sum(messages, start_total=deserialized_total,
                                                      checkpoint_callback=checkpoint_callback)
     elif action == ActionType.Multiplication:
-        encrypted_res = algorithm.calc_encrypted_multiplication(messages, start_total=total_checkpoint,
+        encrypted_res = algorithm.calc_encrypted_multiplication(messages, start_total=deserialized_total,
                                                      checkpoint_callback=checkpoint_callback)
     else:
-        raise Exception("Unknown encryption action type.")
+        raise Exception("Unknown action type.")
     return algorithm.decrypt_message(encrypted_res)
 
 

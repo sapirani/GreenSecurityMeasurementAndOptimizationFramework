@@ -2,7 +2,7 @@ from typing import Literal
 
 from cryptography.fernet import Fernet
 
-from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
+from tasks.confidential_computing_tasks.abstract_security_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL, KeyDetails
 
 
@@ -15,12 +15,6 @@ class FernetAESSecurityAlgorithm(SecurityAlgorithm[bytes]):
         super().__init__(min_key_val, max_key_val)
         self.__key = None
         self.__encryption_fernet = None
-
-    def _get_serializable_encrypted_messages(self, encrypted_messages: list[bytes]) -> list[bytes]:
-        return encrypted_messages
-
-    def _get_deserializable_encrypted_messages(self, encrypted_messages: list[bytes]) -> list[bytes]:
-        return encrypted_messages
 
     def _generate_and_save_key(self, key_file) -> KeyDetails:
         if self.__key is not None or self.__encryption_fernet is not None:
