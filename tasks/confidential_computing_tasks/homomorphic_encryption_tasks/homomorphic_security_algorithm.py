@@ -32,7 +32,10 @@ class HomomorphicSecurityAlgorithm(SecurityAlgorithm[T], ABC):
 
     def __calc_encrypted_operation(self, messages: list[int], *, is_addition: bool, start_total: Optional[T] = None,
                                    checkpoint_callback: Optional[Callable[[T, T], None]] = None) -> T:
-        total = start_total if start_total is not None else self.encrypt_message(messages[0])
+        if len(messages) == 0:
+            return start_total or self.encrypt_message(0)
+
+        total = start_total or self.encrypt_message(messages[0])
         start_idx = 0 if start_total is not None else 1
 
         for i in range(start_idx, len(messages)):
