@@ -9,14 +9,14 @@ from tasks.confidential_computing_tasks.utils.saving_utils import save_checkpoin
 
 
 class OperationCheckpointStorage(CheckpointStorage):
-    def __init__(self,  alg: SecurityAlgorithm, results_path: str, transformed_messages: list, action_type: ActionType,
+    def __init__(self, alg: SecurityAlgorithm, results_path: str, transformed_messages: list, action_type: ActionType,
                  initial_message_index: int):
         super().__init__(alg, results_path, transformed_messages, action_type, initial_message_index)
         self._total: Optional[T] = None
 
-    def update(self, transformed_msg: T, total: T):
+    def update(self, transformed_messages: list[T], total: T):
         self._total = total
-        self.transformed_messages.append(transformed_msg)
+        self.transformed_messages = transformed_messages
 
     @override
     def save_checkpoint(self):

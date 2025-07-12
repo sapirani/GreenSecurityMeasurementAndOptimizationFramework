@@ -1,4 +1,5 @@
 import math
+import threading
 from abc import ABC, abstractmethod
 from typing import Optional, Callable
 
@@ -21,15 +22,15 @@ class HomomorphicSecurityAlgorithm(SecurityAlgorithm[T], ABC):
         super().__init__(min_key_val, max_key_val)
 
     @override
-    def calc_encrypted_sum(self, messages: list[int], start_total: Optional[T] = None,
+    def calc_encrypted_sum(self, messages: list[int], done_event: threading.Event, start_total: Optional[T] = None,
                            checkpoint_callback: Optional[Callable[[int, T], None]] = None) -> T:
-        return self.__calc_encrypted_operation(messages, is_addition=True, start_total=start_total,
+        return self.__calc_encrypted_operation(messages, done_event=done_event, is_addition=True, start_total=start_total,
                                                checkpoint_callback=checkpoint_callback)
 
     @override
-    def calc_encrypted_multiplication(self, messages: list[int], start_total: Optional[T] = None,
+    def calc_encrypted_multiplication(self, messages: list[int], done_event: threading.Event, start_total: Optional[T] = None,
                                       checkpoint_callback: Optional[Callable[[int, T], None]] = None) -> T:
-        return self.__calc_encrypted_operation(messages, is_addition=False, start_total=start_total,
+        return self.__calc_encrypted_operation(messages, done_event=done_event, is_addition=False, start_total=start_total,
                                                checkpoint_callback=checkpoint_callback)
 
     def __get_starting_point(self, start_total: Optional[T] = None, messages: list[int] = None) -> tuple[T, list[int]]:
@@ -42,18 +43,21 @@ class HomomorphicSecurityAlgorithm(SecurityAlgorithm[T], ABC):
 
         return total, remaining_messages
 
-    def __calc_encrypted_operation(self, messages: list[int], *, is_addition: bool, start_total: Optional[T] = None,
-                                   checkpoint_callback: Optional[Callable[[T, T], None]] = None) -> T:
+    def __calc_encrypted_operation(self, messages: list[int], *, done_event: threading.Event, is_addition: bool, start_total: Optional[T] = None,
+                                   checkpoint_callback: Optional[Callable[[list[T], T], None]] = None) -> T:
         if len(messages) == 0:
             return start_total or self.encrypt_message(0)
 
         total, remaining_messages = self.__get_starting_point(start_total, messages)
+        encrypted_messages = []
 
         for message in remaining_messages:
             encrypted = self.encrypt_message(message)
+            encrypted_messages.append(encrypted)
             total = self.add_messages(total, encrypted) if is_addition else self.multiply_messages(total, encrypted)
-            if checkpoint_callback:
-                checkpoint_callback(encrypted, total)
+            if done_event.is_set():
+                checkpoint_callback(encrypted_messages, total)
+                break
 
         return total
 

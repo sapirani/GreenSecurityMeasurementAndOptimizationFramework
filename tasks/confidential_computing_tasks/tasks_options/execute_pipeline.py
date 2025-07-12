@@ -1,4 +1,5 @@
 import signal
+import threading
 from functools import partial
 from typing import Optional
 
@@ -17,16 +18,16 @@ from tasks.confidential_computing_tasks.utils.saving_utils import extract_messag
 checkpoint_storage: Optional[OperationCheckpointStorage] = None
 
 
-def checkpoint_callback(curren_encrypted_msg, total):
+def checkpoint_callback(curren_encrypted_messages, total):
     if checkpoint_storage:
-        checkpoint_storage.update(curren_encrypted_msg, total)
+        checkpoint_storage.update(curren_encrypted_messages, total)
+        checkpoint_storage.save_checkpoint()
 
 
-def handle_signal(signum, frame, storage: CheckpointStorage):
+def handle_signal(signum, frame, storage: CheckpointStorage, done_event: threading.Event):
     if storage:
         print("\n[Signal received] Saving checkpoint...")
-        storage.save_checkpoint()
-    exit(0)
+        done_event.set()
 
 
 def get_message(messages_file_path: str, alg: SecurityAlgorithm, action: ActionType, starting_index: int) -> list:
@@ -74,33 +75,38 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
     extract_key_for_algorithm(params.key_file, encryption_instance, action_type, last_message_index)
     transformed_messages = []
 
+    done_event = threading.Event()
     storage = CheckpointStorage(alg=encryption_instance, results_path=params.path_for_result_messages,
                                 transformed_messages=transformed_messages, action_type=action_type,
                                 initial_message_index=last_message_index)
-    signal.signal(signal.SIGBREAK, partial(handle_signal, storage=storage))
-    signal.signal(signal.SIGTERM, partial(handle_signal, storage=storage))
+    signal.signal(signal.SIGBREAK, partial(handle_signal, storage=storage, done_event=done_event))
+    signal.signal(signal.SIGTERM, partial(handle_signal, storage=storage, done_event=done_event))
 
     messages = get_message(params.path_for_messages, encryption_instance, action_type, last_message_index)
     for message in messages:
         transformed_msg = get_transformed_message(message, action_type, encryption_instance)
         transformed_messages.append(transformed_msg)
+
+        if done_event.is_set():
+            storage.save_checkpoint()
+            break
     save_messages_for_pipeline(transformed_messages, params.path_for_result_messages, encryption_instance, action_type,
                                last_message_index)
 
     return transformed_messages
 
 
-def execute_operation(messages: list[int], action: ActionType, algorithm: SecurityAlgorithm, total_checkpoint) -> int:
+def execute_operation(messages: list[int], action: ActionType, algorithm: SecurityAlgorithm, total_checkpoint, done_event: threading.Event) -> int:
     if total_checkpoint:
         deserialized_total = algorithm.deserialize_message(total_checkpoint)
     else:
         deserialized_total = None
 
     if action == ActionType.Addition:
-        encrypted_res = algorithm.calc_encrypted_sum(messages, start_total=deserialized_total,
+        encrypted_res = algorithm.calc_encrypted_sum(messages, done_event=done_event, start_total=deserialized_total,
                                                      checkpoint_callback=checkpoint_callback)
     elif action == ActionType.Multiplication:
-        encrypted_res = algorithm.calc_encrypted_multiplication(messages, start_total=deserialized_total,
+        encrypted_res = algorithm.calc_encrypted_multiplication(messages, done_event=done_event, start_total=deserialized_total,
                                                                 checkpoint_callback=checkpoint_callback)
     else:
         raise Exception("Unknown action type.")
@@ -129,6 +135,7 @@ def execute_homomorphic_pipeline(action_type: ActionType) -> int:
     extract_key_for_algorithm(params.key_file, encryption_instance, action_type, last_message_index)
     transformed_messages = []
 
+    done_event = threading.Event()
     checkpoint_storage = OperationCheckpointStorage(
         alg=encryption_instance,
         results_path=params.path_for_result_messages,
@@ -137,12 +144,12 @@ def execute_homomorphic_pipeline(action_type: ActionType) -> int:
         initial_message_index=last_message_index
     )
 
-    signal.signal(signal.SIGBREAK, partial(handle_signal, storage=checkpoint_storage))
-    signal.signal(signal.SIGTERM, partial(handle_signal, storage=checkpoint_storage))
+    signal.signal(signal.SIGBREAK, partial(handle_signal, storage=checkpoint_storage, done_event=done_event))
+    signal.signal(signal.SIGTERM, partial(handle_signal, storage=checkpoint_storage, done_event=done_event))
 
     messages = get_message(params.path_for_messages, encryption_instance, action_type, last_message_index)
 
-    operation_encrypted_result = execute_operation(messages, action_type, encryption_instance, total_checkpoint)
+    operation_encrypted_result = execute_operation(messages, action_type, encryption_instance, total_checkpoint, done_event)
     print(f"The original messages: {messages}")
     print(f"The decrypted result: {operation_encrypted_result}")
     return operation_encrypted_result

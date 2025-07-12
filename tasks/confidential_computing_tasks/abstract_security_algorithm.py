@@ -1,6 +1,7 @@
 import json
 import math
 import pickle
+import threading
 from abc import ABC, abstractmethod
 from typing import TypeVar, Generic, Optional, Callable
 
@@ -47,11 +48,11 @@ class SecurityAlgorithm(ABC, Generic[T]):
             print("Something went wrong with loading the encrypted messages")
         raise RuntimeError("Could not load the encrypted messages.")
 
-    def calc_encrypted_sum(self, messages: list[int], start_total: Optional[T] = None, checkpoint_callback: Optional[Callable[[int, T], None]] = None) -> T:
+    def calc_encrypted_sum(self, messages: list[int], done_event: threading.Event, start_total: Optional[T] = None, checkpoint_callback: Optional[Callable[[int, T], None]] = None) -> T:
         regular_sum = sum(messages)
         return self.encrypt_message(regular_sum)
 
-    def calc_encrypted_multiplication(self, messages: list[int], start_total: Optional[T] = None, checkpoint_callback: Optional[Callable[[int, T], None]] = None) -> T:
+    def calc_encrypted_multiplication(self, messages: list[int], done_event: threading.Event, start_total: Optional[T] = None, checkpoint_callback: Optional[Callable[[int, T], None]] = None) -> T:
         total_mul = math.prod(messages)
         return self.encrypt_message(total_mul)
 
