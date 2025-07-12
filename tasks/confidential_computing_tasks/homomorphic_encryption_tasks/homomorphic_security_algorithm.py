@@ -1,11 +1,14 @@
 import math
+import threading
 from abc import ABC, abstractmethod
+from typing import Optional, Callable
 
 from typing_extensions import override
 
-from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm, T
+from tasks.confidential_computing_tasks.abstract_security_algorithm import SecurityAlgorithm, T
 from tasks.confidential_computing_tasks.utils.basic_utils import generate_random_prime
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL, KeyDetails
+
 
 class KeyConsts:
     P_INDEX_IN_FILE = 0
@@ -13,27 +16,44 @@ class KeyConsts:
 
     DEFAULT_KEY_PARTS = 2
 
+
 class HomomorphicSecurityAlgorithm(SecurityAlgorithm[T], ABC):
     def __init__(self, min_key_val: int = PRIME_MIN_VAL, max_key_val: int = PRIME_MAX_VAL):
         super().__init__(min_key_val, max_key_val)
 
     @override
-    def calc_encrypted_sum(self, messages: list[int]) -> T:
-        return self.__calc_encrypted_operation(messages, is_addition=True)
+    def calc_encrypted_sum(self, messages: list[int], done_event: threading.Event, start_total: Optional[T] = None,
+                           checkpoint_callback: Optional[Callable[[int, T], None]] = None) -> T:
+        return self.__calc_encrypted_operation(messages, done_event=done_event, is_addition=True,
+                                               start_total=start_total,
+                                               checkpoint_callback=checkpoint_callback)
 
     @override
-    def calc_encrypted_multiplication(self, messages: list[int]) -> T:
-        return self.__calc_encrypted_operation(messages, is_addition=False)
+    def calc_encrypted_multiplication(self, messages: list[int], done_event: threading.Event,
+                                      start_total: Optional[T] = None,
+                                      checkpoint_callback: Optional[Callable[[int, T], None]] = None) -> T:
+        return self.__calc_encrypted_operation(messages, done_event=done_event, is_addition=False,
+                                               start_total=start_total,
+                                               checkpoint_callback=checkpoint_callback)
 
-    def __calc_encrypted_operation(self, messages: list[int], *, is_addition: bool) -> T:
-        encrypted_messages = [self.encrypt_message(msg) for msg in messages]
-        total_encrypted_result = encrypted_messages[0]
-        for enc_message in encrypted_messages[1:]:
-            if is_addition:
-                total_encrypted_result = self.add_messages(total_encrypted_result, enc_message)
-            else:
-                total_encrypted_result = self.multiply_messages(total_encrypted_result, enc_message)
-        return total_encrypted_result
+    def __calc_encrypted_operation(self, messages: list[int], *, done_event: threading.Event, is_addition: bool,
+                                   start_total: Optional[T] = None,
+                                   checkpoint_callback: Optional[Callable[[list[T], T], None]] = None) -> T:
+
+        total = start_total or self.encrypt_message(0)
+        if len(messages) == 0:
+            return total
+
+        encrypted_messages = []
+        for message in messages:
+            encrypted = self.encrypt_message(message)
+            encrypted_messages.append(encrypted)
+            total = self.add_messages(total, encrypted) if is_addition else self.multiply_messages(total, encrypted)
+            if done_event.is_set():
+                checkpoint_callback(encrypted_messages, total)
+                break
+
+        return total
 
     @abstractmethod
     def _generate_and_save_key(self, key_file) -> KeyDetails:
@@ -65,7 +85,8 @@ class HomomorphicSecurityAlgorithm(SecurityAlgorithm[T], ABC):
     def scalar_and_message_multiplication(self, c: T, scalar: int) -> T:
         pass
 
-    def _extract_random_prime_p_and_q(self, key_file: str, should_generate: bool, num_of_key_parts: int = KeyConsts.DEFAULT_KEY_PARTS) -> \
+    def _extract_random_prime_p_and_q(self, key_file: str, should_generate: bool,
+                                      num_of_key_parts: int = KeyConsts.DEFAULT_KEY_PARTS) -> \
             tuple[int, int]:
 
         if should_generate:

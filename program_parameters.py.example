@@ -1,4 +1,5 @@
 from general_consts import *
+from tasks.confidential_computing_tasks.encryption_type import EncryptionType, EncryptionMode
 
 # ======= Scanner Parameters =======
 main_program_to_scan = ProgramToScan.NO_SCAN
@@ -40,9 +41,9 @@ DEFAULT_TIME_BEFORE_SLEEP_MODE = 4
 is_inside_container = False
 
 # ==== Elastic logging configuration
-elastic_url = "http://192.168.1.140:9200"
+elastic_url = "http://127.0.0.1:9200"
 elastic_username = "elastic"
-elastic_password = "0eD02kdb"
+elastic_password = "your-pass"
 
 # ==== ClamAV configurations
 recursive = True
@@ -72,15 +73,15 @@ consumption_speed = 10 * MB / SECOND
 time_interval = 0.2
 
 # ***** Parameters for Confidential Computing ***** #
-messages_to_encrypt_file = r"C:\Users\Administrator\Desktop\messages.txt"
-results_file_for_encryption = r"C:\Users\Administrator\Desktop\tenseal_ckks_encryption_results.bin"
+messages_to_encrypt_file = r"path-to-plaintext-messages"
+results_file_for_encryption = r"path-to-save-ciphertexts"
 
 messages_to_decrypt_file = results_file_for_encryption
-results_file_for_decryption = r"C:\Users\Administrator\Desktop\tenseal_ckks_decryption_results.txt"
+results_file_for_decryption = r"path-to-save-decrypted-results"
 
 security_algorithm_type = EncryptionType.CKKSTenseal
 block_cipher_mode = None #EncryptionMode.CBC
-algorithm_key_file = r"C:\Users\Administrator\Desktop\key_tenseal_ckks.txt"
+algorithm_key_file = r"path-to-save-algorithm-key"
 
 min_key_value = 2 ** 2047 - 1
 max_key_value = 2 ** 2048 - 1

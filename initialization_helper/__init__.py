@@ -1,7 +1,10 @@
 import os.path
 
-from initialization_helper.initialization_factories import running_os_factory, process_monitor_factory, \
-    summary_builder_factory, program_to_scan_factory, battery_monitor_factory
+from initialization_helper.battery_monitor_factory import battery_monitor_factory
+from initialization_helper.operation_system_factory import running_os_factory
+from initialization_helper.process_monitor_factory import process_monitor_factory
+from initialization_helper.program_factory import program_to_scan_factory
+from initialization_helper.summary_builder_factory import summary_builder_factory
 from program_parameters import *
 
 # ======= Get Operating System Type =======

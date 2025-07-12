@@ -47,11 +47,6 @@ class LightPHESecurityAlgorithm(HomomorphicSecurityAlgorithm[Ciphertext]):
             raise RuntimeError("Error occurred when loading lightPhe model.")
         return KeyDetails(public_key={}, private_key={"model": self.__encryption_model})
 
-    def _get_serializable_encrypted_messages(self, encrypted_messages: list[Ciphertext]) -> list[Ciphertext]:
-        return encrypted_messages
-
-    def _get_deserializable_encrypted_messages(self, encrypted_messages: list[Ciphertext]) -> list[Ciphertext]:
-        return encrypted_messages
 
     def encrypt_message(self, msg: int) -> Ciphertext:
         """ Encrypt the message """

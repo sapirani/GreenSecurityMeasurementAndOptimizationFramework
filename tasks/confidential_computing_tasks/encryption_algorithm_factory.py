@@ -2,7 +2,7 @@ from typing import Optional
 
 from tenseal import CKKSVector, BFVVector
 
-from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
+from tasks.confidential_computing_tasks.abstract_security_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.asymmetric_encryption_tasks.pycryptodome_asym_security_algorithm import \
     PycryptodomeAsymmetricSecurityAlgorithm, PycryptodomeAsymmetricAlgorithms
 from tasks.confidential_computing_tasks.encryption_type import EncryptionType, EncryptionMode

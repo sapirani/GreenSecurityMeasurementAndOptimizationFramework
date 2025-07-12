@@ -2,7 +2,7 @@ import argparse
 import math
 from typing import Optional, Any
 
-from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
+from tasks.confidential_computing_tasks.abstract_security_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.action_type import ActionType
 from tasks.confidential_computing_tasks.encryption_type import EncryptionType, EncryptionMode
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL
