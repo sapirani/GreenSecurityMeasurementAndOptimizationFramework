@@ -3,7 +3,7 @@ from Crypto.Cipher import PKCS1_OAEP
 import pickle
 import os
 
-from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
+from tasks.confidential_computing_tasks.abstract_security_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.key_details import KeyDetails, PRIME_MAX_VAL, PRIME_MIN_VAL
 
 
@@ -78,9 +78,3 @@ class PycryptodomeAsymmetricSecurityAlgorithm(SecurityAlgorithm[bytes]):
             return int(plaintext.decode())
         else:
             raise NotImplementedError("Decryption is only supported for RSA.")
-
-    def _get_serializable_encrypted_messages(self, encrypted_messages: list[bytes]) -> list[bytes]:
-        return encrypted_messages
-
-    def _get_deserializable_encrypted_messages(self, encrypted_messages: list[bytes]) -> list[bytes]:
-        return encrypted_messages

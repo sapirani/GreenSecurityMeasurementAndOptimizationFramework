@@ -9,7 +9,7 @@ from Crypto.Random import get_random_bytes
 from Crypto.Util import Counter
 from Crypto.Util.Padding import pad, unpad
 
-from tasks.confidential_computing_tasks.abstract_seurity_algorithm import SecurityAlgorithm
+from tasks.confidential_computing_tasks.abstract_security_algorithm import SecurityAlgorithm
 from tasks.confidential_computing_tasks.encryption_type import EncryptionMode
 from tasks.confidential_computing_tasks.key_details import PRIME_MIN_VAL, PRIME_MAX_VAL, KeyDetails
 
@@ -176,35 +176,3 @@ class PycryptodomeSymmetricSecurityAlgorithm(SecurityAlgorithm[bytes]):
         else:
             plaintext = cipher.decrypt(msg)
         return int(plaintext.decode())
-
-    def _get_serializable_encrypted_messages(self, encrypted_messages: list[bytes]) -> list[bytes]:
-        return encrypted_messages
-
-    def _get_deserializable_encrypted_messages(self, encrypted_messages: list[bytes]) -> list[bytes]:
-        return encrypted_messages
-
-
-if __name__ == "__main__":
-    pycr = PycryptodomeSymmetricSecurityAlgorithm("ARC4", "ECB")
-    pycr.extract_key("pycr.key")
-    m1 = 56
-    m2 = 83
-
-    c1 = pycr.encrypt_message(m1)
-    c2 = pycr.encrypt_message(m2)
-
-    m11 = pycr.decrypt_message(c1)
-    m12 = pycr.decrypt_message(c2)
-
-    sum_reg = m1 + m2
-    sum_enc = pycr.encrypt_message(sum_reg)
-    sec_sum_reg = pycr.decrypt_message(sum_enc)
-
-    sum_new = m11 + m12
-    sum_enc_new = pycr.encrypt_message(sum_new)
-    sum_dec_new = pycr.decrypt_message(sum_enc_new)
-
-    print(f"M11: {m11}")
-    print(f"M12: {m12}")
-    print(f"Sum: {sum_reg}")
-    print(f"Sum_new: {sum_dec_new}")
