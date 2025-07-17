@@ -72,7 +72,6 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
                                                                                params.min_key_value,
                                                                                params.max_key_value)
 
-    extract_key_for_algorithm(params.key_file, encryption_instance, action_type, last_message_index)
     transformed_messages = []
 
     done_event = threading.Event()
@@ -88,6 +87,7 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
         transformed_messages.append(transformed_msg)
 
         if done_event.is_set():
+            storage.transformed_messages = transformed_messages
             storage.save_checkpoint()
             break
     save_messages_for_pipeline(transformed_messages, params.path_for_result_messages, encryption_instance, action_type,
@@ -132,7 +132,6 @@ def execute_homomorphic_pipeline(action_type: ActionType) -> int:
         params.max_key_value
     )
 
-    extract_key_for_algorithm(params.key_file, encryption_instance, action_type, last_message_index)
     transformed_messages = []
 
     done_event = threading.Event()
@@ -146,6 +145,8 @@ def execute_homomorphic_pipeline(action_type: ActionType) -> int:
 
     signal.signal(signal.SIGBREAK, partial(handle_signal, storage=checkpoint_storage, done_event=done_event))
     signal.signal(signal.SIGTERM, partial(handle_signal, storage=checkpoint_storage, done_event=done_event))
+
+    extract_key_for_algorithm(params.key_file, encryption_instance, action_type, last_message_index)
 
     messages = get_message(params.path_for_messages, encryption_instance, action_type, last_message_index)
 

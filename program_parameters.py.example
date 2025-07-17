@@ -73,27 +73,15 @@ consumption_speed = 10 * MB / SECOND
 time_interval = 0.2
 
 # ***** Parameters for Confidential Computing ***** #
-<<<<<<< HEAD:program_parameters.py
 messages_to_encrypt_file = r"C:\Users\Administrator\Desktop\messages.txt"
 results_file_for_encryption = r"C:\Users\Administrator\Desktop\pycrypto_rsa_encryption_results.bin"
 
 messages_to_decrypt_file = results_file_for_encryption
-results_file_for_decryption = r"C:\Users\Administrator\Desktop\pycrypto_rsa_decryption_results.txt"
-=======
-messages_to_encrypt_file = r"path-to-plaintext-messages"
-results_file_for_encryption = r"path-to-save-ciphertexts"
-
-messages_to_decrypt_file = results_file_for_encryption
 results_file_for_decryption = r"path-to-save-decrypted-results"
->>>>>>> origin/secure_computing_main:program_parameters.py.example
 
 security_algorithm_type = EncryptionType.PycryptoRSA
 block_cipher_mode = None #EncryptionMode.CBC
-<<<<<<< HEAD:program_parameters.py
-algorithm_key_file = r"C:\Users\Administrator\Desktop\key_pycrypto_rsa.txt"
-=======
 algorithm_key_file = r"path-to-save-algorithm-key"
->>>>>>> origin/secure_computing_main:program_parameters.py.example
 
 min_key_value = 2 ** 2047 - 1
 max_key_value = 2 ** 2048 - 1
