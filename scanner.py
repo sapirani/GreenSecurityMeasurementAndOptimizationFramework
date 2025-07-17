@@ -175,9 +175,16 @@ def scan_time_passed():
     return time_since_start() >= RUNNING_TIME
 
 
-def save_data_when_too_low_battery():
+def is_memory_too_high(memory_total_df: pd.DataFrame) -> bool:
+    if len(memory_total_df) == 0:
+        return False
+
+    current_memory_usage_percent = memory_total_df.iloc[len(memory_total_df) - 1].at[MemoryColumns.USED_PERCENT]
+    return current_memory_usage_percent >= 85
+
+def save_data_when_resource_reaches_limit(resource_name: str):
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
-        f.write("EARLY TERMINATION DUE TO LOW BATTERY!!!!!!!!!!\n\n")
+        f.write(f"EARLY TERMINATION DUE TO {resource_name} LIMIT!!!!!!!!!!\n\n")
     finished_scanning_time.append(time_since_start())
 
     print("NOTE! backing up program metadata")
@@ -204,8 +211,12 @@ def should_scan():
     Returns:
         True if measurement thread should perform another iteration or False if it should terminate
     """
+    if is_memory_too_high(memory_df):
+        save_data_when_resource_reaches_limit("HIGH MEMORY")
+        return False
+
     if battery_monitor.is_battery_too_low(battery_df):
-        save_data_when_too_low_battery()
+        save_data_when_resource_reaches_limit("LOW BATTERY")
         return False
 
     if main_program_to_scan == ProgramToScan.NO_SCAN:
