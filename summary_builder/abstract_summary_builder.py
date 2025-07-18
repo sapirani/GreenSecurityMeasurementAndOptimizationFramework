@@ -8,7 +8,7 @@ from utils.general_consts import ProcessesColumns, DiskIOColumns, NetworkIOColum
 from utils.general_functions import EnvironmentImpact, BatteryDeltaDrain
 
 
-def slice_df(df, percent):
+def slice_df(df: pd.DataFrame, percent: float):
     num = int(len(df.index) * (percent / 100))
     return df[num: len(df.index) - num]
 
@@ -20,30 +20,37 @@ def get_ratio(numerator, denominator):
     return None if denominator == 0 else numerator / denominator
 
 
-def get_all_df_by_id(processes_df, processes_ids):
+def get_all_df_by_id(processes_df: pd.DataFrame, processes_ids: List[int]):
     """
     Filter the processes dataframe so it will contain only the main and background processes specified by the user
     """
-    return [processes_df[processes_df[ProcessesColumns.PROCESS_ID] == id] for id in processes_ids]
+    return [processes_df[processes_df[ProcessesColumns.PROCESS_ID] == processes_id] for processes_id in processes_ids]
 
 
 class AbstractSummaryBuilder(ABC):
     DEFAULT_SLICE_PERCENT = 3
 
     @abstractmethod
-    def prepare_summary_csv(self, processes_df, cpu_df, memory_df, disk_io_each_moment_df, network_io_each_moment_df,
-                            battery_df, processes_names, finished_scanning_time, processes_ids):
+    def prepare_summary_csv(
+            self, processes_df: pd.DataFrame, cpu_df: pd.DataFrame, memory_df: pd.DataFrame,
+            disk_io_each_moment_df: pd.DataFrame, network_io_each_moment_df: pd.DataFrame,
+            battery_df: pd.DataFrame, processes_names: List[str], finished_scanning_time: List[float],
+            processes_ids: List[int]
+    ):
         pass
 
     @abstractmethod
-    def get_colors(self) -> List[List[str]]:
+    def get_rows_colors(self) -> List[List[str]]:
         pass
 
-    def colors_func(self, df):
-        return [f"background-color: {color}" for color in itertools.chain.from_iterable(self.get_colors())]
+    def colors_func(self, df: pd.DataFrame):
+        return [f"background-color: {color}" for color in itertools.chain.from_iterable(self.get_rows_colors())]
 
     @staticmethod
-    def add_general_resource_metrics_info(summary_df, num_of_processes, sub_disk_df, sub_network_df, sub_all_processes_df):
+    def add_general_resource_metrics_info(
+            summary_df: pd.DataFrame, num_of_processes: int, sub_disk_df: pd.DataFrame,
+            sub_network_df: pd.DataFrame, sub_all_processes_df: pd.DataFrame
+    ):
         # TODO: merge cells to one
 
         none_list = ["X" for _ in range(num_of_processes - 1)]
@@ -88,8 +95,9 @@ class AbstractSummaryBuilder(ABC):
         return summary_df
 
     @staticmethod
-    def add_energy_info(summary_df, num_of_processes, battery_df):
+    def add_energy_info(summary_df: pd.DataFrame, num_of_processes: int, battery_df: pd.DataFrame):
         none_list = ["X" for _ in range(num_of_processes - 1)]
+
         battery_drain = BatteryDeltaDrain.from_battery_drain(battery_df)
         summary_df.loc[len(summary_df.index)] = ["Energy consumption - total energy(mwh)", *none_list, battery_drain.mwh_drain]
         summary_df.loc[len(summary_df.index)] = ["Battery Drop (%)", *none_list, battery_drain.percent_drain]

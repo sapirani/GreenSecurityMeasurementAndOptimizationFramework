@@ -33,7 +33,7 @@ class EnvironmentImpact:
     kg_of_woods_burned: float
 
     @staticmethod
-    def from_mwh(mwh_consumption) -> 'EnvironmentImpact':
+    def from_mwh(mwh_consumption: float) -> 'EnvironmentImpact':
         kwh_to_mwh = 1e6
         return EnvironmentImpact(
             # link: https://www.epa.gov/energy/greenhouse-gases-equivalencies-calculator-calculations-and-references

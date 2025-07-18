@@ -1,3 +1,5 @@
+from typing import List
+
 import pandas as pd
 
 from utils.general_consts import ProcessesColumns, CPUColumns, MemoryColumns, KB, DiskIOColumns
@@ -5,8 +7,12 @@ from summary_builder.abstract_summary_builder import AbstractSummaryBuilder, sli
 
 
 class NativeSummaryBuilder(AbstractSummaryBuilder):
-    def prepare_summary_csv(self, processes_df, cpu_df, memory_df, disk_io_each_moment_df, network_io_each_moment_df,
-                            battery_df, processes_names, finished_scanning_time, processes_ids):
+    def prepare_summary_csv(
+            self, processes_df: pd.DataFrame, cpu_df: pd.DataFrame, memory_df: pd.DataFrame,
+            disk_io_each_moment_df: pd.DataFrame, network_io_each_moment_df: pd.DataFrame,
+            battery_df: pd.DataFrame, processes_names: List[str], finished_scanning_time: List[float],
+            processes_ids: List[int]
+    ):
         total_finishing_time = finished_scanning_time[-1]
 
         num_of_processes = len(processes_ids) + 1
@@ -65,7 +71,7 @@ class NativeSummaryBuilder(AbstractSummaryBuilder):
         summary_df = AbstractSummaryBuilder.add_energy_info(summary_df, num_of_processes, battery_df)
         return summary_df
 
-    def get_colors(self):
+    def get_rows_colors(self) -> List[List[str]]:
         return [
             ['#FFFFFF'] * 1,    # Scan Duration Rows
             ['#ffff00'] * 1,    # CPU Consumption Rows

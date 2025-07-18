@@ -401,10 +401,10 @@ def save_general_information_after_scanning():
 
 def prepare_summary_csv():
     """Prepare the summary csv file"""
-    summary_df = summary_builder.prepare_summary_csv(processes_df, cpu_df, memory_df, disk_io_each_moment_df,
-                                                     network_io_each_moment_df,
-                                                     battery_df, processes_names, finished_scanning_time,
-                                                     processes_ids)
+    summary_df = summary_builder.prepare_summary_csv(
+        processes_df, cpu_df, memory_df, disk_io_each_moment_df, network_io_each_moment_df, battery_df,
+        processes_names, finished_scanning_time, processes_ids
+    )
 
     color_func = summary_builder.colors_func
 
