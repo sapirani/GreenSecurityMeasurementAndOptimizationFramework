@@ -14,7 +14,7 @@ CGROUP_CONTROLLERS_FILE_NAME = r"cgroup.controllers"
 CGROUP_CONTROLLERS_FILE_PATH = os.path.join(SYSTEM_CGROUP_DIR_PATH, CGROUP_CONTROLLERS_FILE_NAME)
 
 
-class LinuxContainerResourceReader(ABC):
+class AbstractLinuxContainerResourceReader(ABC):
     def __init__(self):
         self._cgroup_metrics_reader = self.__detect_cgroup_version()
 
