@@ -28,6 +28,8 @@ def get_all_df_by_id(processes_df, processes_ids):
 
 
 class AbstractSummaryBuilder(ABC):
+    DEFAULT_SLICE_PERCENT = 3
+
     @abstractmethod
     def prepare_summary_csv(self, processes_df, cpu_df, memory_df, disk_io_each_moment_df, network_io_each_moment_df,
                             battery_df, processes_names, finished_scanning_time, processes_ids):
