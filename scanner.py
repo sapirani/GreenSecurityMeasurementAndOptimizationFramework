@@ -20,7 +20,7 @@ from application_logging.filters.scanner_filter import ScannerLoggerFilter
 from initialization_helper import *
 from datetime import date, datetime, timezone
 from pathlib import Path
-from general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
+from utils.general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 
 base_dir, GRAPHS_DIR, STDOUT_FILES_DIR, STDERR_FILES_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, \

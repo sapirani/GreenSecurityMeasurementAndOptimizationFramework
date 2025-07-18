@@ -1,4 +1,4 @@
-from general_consts import *
+from utils.general_consts import *
 
 # ======= Scanner Parameters =======
 main_program_to_scan = ProgramToScan.NO_SCAN

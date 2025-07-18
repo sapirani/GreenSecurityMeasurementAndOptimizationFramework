@@ -8,8 +8,8 @@ import os
 import signal
 from typing_extensions import override
 
-from general_consts import PowerPlan, pc_types, GB, physical_memory_types, disk_types
-from general_functions import get_powershell_result_list_format
+from utils.general_consts import PowerPlan, pc_types, GB, physical_memory_types, disk_types
+from utils.general_functions import get_powershell_result_list_format
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from program_parameters import power_plan, DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFORE_SLEEP_MODE
 
@@ -30,7 +30,7 @@ class WindowsOS(AbstractOSFuncs):
         if result.returncode != 0:
             raise Exception(f'Could not get {program_name} version', result.stderr)
 
-        import general_functions
+        from utils import general_functions
         version_dict = general_functions.get_powershell_result_list_format(result.stdout)[0]
         f.write(f"Anti Malware Engine Version: {version_dict['AMEngineVersion']}\n")
         f.write(f"Anti Malware Client Version: {version_dict['AMProductVersion']}\n")

@@ -3,7 +3,7 @@ from typing import Union
 
 import psutil
 
-from general_consts import SYSTEM_IDLE_PID
+from utils.general_consts import SYSTEM_IDLE_PID
 
 
 class ProgramInterface:

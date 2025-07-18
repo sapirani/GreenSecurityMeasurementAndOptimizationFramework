@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
-from general_consts import ProcessesColumns, DiskIOColumns, NetworkIOColumns
-from general_functions import calc_delta_capacity, convert_mwh_to_other_metrics
+from utils.general_consts import ProcessesColumns, DiskIOColumns, NetworkIOColumns
+from utils.general_functions import calc_delta_capacity, convert_mwh_to_other_metrics
 
 
 def slice_df(df, percent):

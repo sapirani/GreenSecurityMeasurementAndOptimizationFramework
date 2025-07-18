@@ -1,13 +1,11 @@
-import math
 import os
 from typing import List
 
-import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from general_consts import KB, ProcessesColumns
-from analyze_scanner_results.analyzer_constants import AxisInfo, DEFAULT
+from utils.general_consts import ProcessesColumns
+from analyze_scanner_results.analyzer_constants import AxisInfo
 
 
 def design_and_plot(x_info, y_info, graph_name, path_for_graphs):

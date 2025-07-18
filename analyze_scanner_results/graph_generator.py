@@ -3,8 +3,8 @@ from typing import List
 
 import pandas as pd
 
-from general_consts import BatteryColumns, CPUColumns, MemoryColumns, DiskIOColumns, ProcessesColumns, KB
-from analyze_scanner_results.analyzer_constants import AxisInfo, Units, DEFAULT, MINIMAL_REQUIRED_RECORDS
+from utils.general_consts import BatteryColumns, CPUColumns, MemoryColumns, DiskIOColumns, ProcessesColumns, KB
+from analyze_scanner_results.analyzer_constants import AxisInfo, Units, MINIMAL_REQUIRED_RECORDS
 from analyze_scanner_results.graphing_utils import draw_dataframe, draw_subplots, draw_processes_and_total
 
 NUM_OF_PATHS = 12

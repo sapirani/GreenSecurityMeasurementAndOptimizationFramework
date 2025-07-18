@@ -1,7 +1,7 @@
 import os
 
-from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupMetricReader
-from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
+from resource_monitors.container_monitor.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupMetricReader
+from resource_monitors.container_monitor.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
 
 CGROUP_V2_NAME = "V2"
 

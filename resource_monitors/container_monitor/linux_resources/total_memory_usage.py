@@ -1,6 +1,6 @@
 import psutil
 
-from resources_measurement.linux_resources.total_resource_usage import LinuxContainerResourceReader
+from resource_monitors.container_monitor.linux_resources.total_resource_usage import LinuxContainerResourceReader
 
 
 class LinuxContainerMemoryReader(LinuxContainerResourceReader):

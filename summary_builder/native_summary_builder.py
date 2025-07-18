@@ -1,6 +1,6 @@
 import pandas as pd
 
-from general_consts import ProcessesColumns, CPUColumns, MemoryColumns, KB, DiskIOColumns
+from utils.general_consts import ProcessesColumns, CPUColumns, MemoryColumns, KB, DiskIOColumns
 from summary_builder.abstract_summary_builder import AbstractSummaryBuilder, slice_df, get_all_df_by_id
 
 
