@@ -1,8 +1,6 @@
 import os
 
-from resources_measurement.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupMetricReader
-from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
-from resources_measurement.linux_resources.cgroup_versions.common_paths import SYSTEM_CGROUP_DIR_PATH
+from resource_monitors.container_monitor.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupMetricReader
 
 CGROUP_V2_NAME = "V2"
 
@@ -66,7 +64,7 @@ class CgroupMetricReaderV2(CgroupMetricReader):
                 quota_str, period_str = f.read().strip().split()
                 if quota_str == self.__NO_QUOTA_LIMIT:
                     return os.cpu_count()  # no limit
-                return int(float(quota_str) / float(period_str))
+                return float(quota_str) / float(period_str)
         except Exception as e:
             print(f"Warning: Cannot get number of containers due to error: {e}, Using cpu_count()")
             return os.cpu_count()

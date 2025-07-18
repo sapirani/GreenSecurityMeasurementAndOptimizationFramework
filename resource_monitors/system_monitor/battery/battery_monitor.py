@@ -3,7 +3,7 @@ from typing import TextIO
 import pandas as pd
 import psutil
 
-from general_consts import BatteryColumns
+from utils.general_consts import BatteryColumns
 from resource_monitors.system_monitor.battery.battery_monitor_interface import AbstractBatteryMonitor
 
 

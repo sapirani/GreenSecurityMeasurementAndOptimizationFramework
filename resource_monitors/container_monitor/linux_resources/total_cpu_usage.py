@@ -1,12 +1,12 @@
 import os
 import time
 
-from resources_measurement.linux_resources.total_resource_usage import LinuxContainerResourceReader
+from resource_monitors.container_monitor.linux_resources.abstract_resource_usage import AbstractLinuxContainerResourceReader
 
 DEFAULT_NUMBER_OF_CORES = 1
 
 
-class LinuxContainerCPUReader(LinuxContainerResourceReader):
+class LinuxContainerCPUReader(AbstractLinuxContainerResourceReader):
     def __init__(self):
         super().__init__()
         self.__last_usage_ns = None

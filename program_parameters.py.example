@@ -1,4 +1,4 @@
-from general_consts import *
+from utils.general_consts import *
 from tasks.confidential_computing_tasks.encryption_type import EncryptionType, EncryptionMode
 
 # ======= Scanner Parameters =======
@@ -6,7 +6,7 @@ main_program_to_scan = ProgramToScan.NO_SCAN
 background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = True
-summary_type = SummaryType.OTHER
+summary_type = SummaryType.NATIVE
 
 process_monitor_type = ProcessMonitorType.FULL
 battery_monitor_type = BatteryMonitorType.FULL
@@ -43,7 +43,7 @@ is_inside_container = False
 # ==== Elastic logging configuration
 elastic_url = "http://127.0.0.1:9200"
 elastic_username = "elastic"
-elastic_password = "your-pass"
+elastic_password = "your-password"
 
 # ==== ClamAV configurations
 recursive = True

@@ -1,8 +1,8 @@
 import os
 from abc import ABC, abstractmethod
 
-from resources_measurement.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
-from resources_measurement.linux_resources.cgroup_versions.common_paths import SYSTEM_CGROUP_DIR_PATH
+from resource_monitors.container_monitor.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
+from resource_monitors.container_monitor.linux_resources.cgroup_versions.common_paths import SYSTEM_CGROUP_DIR_PATH
 
 # Contains details on the cgroup of the container.
 # The file format is one or more lines, where each line indicates a hierarchy, its controllers, and the cgroup path for the process:

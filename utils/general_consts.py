@@ -27,11 +27,6 @@ SYSTEM_IDLE_PID = 0
 pc_types = ["Unspecified", "Desktop", "Mobile Device", "Workstation",
                 "EnterpriseServer", "SOHOServer", "AppliancePC", "PerformanceServer"]
 
-# TODO: check if the list is correct
-#physical_memory_types = ["Unknown", "Other", "DRAM", "Synchronous DRAM", "Cache DRAM", "EDO", "EDRAM", "VRAM",
-#                         "SRAM", "RAM", "ROM", "Flash", "EEPROM", "FEPROM", "EPROM", "CDRAM", "3DRAM", "SDRAM",
-#                         "SGRAM", "RDRAM", "DDR", "DDR2", "DDR2 FB-DIMM", "Unknown", "DDR3", "FBD2", "DDR4"]
-
 physical_memory_types = ['Invalid', 'Other', 'Unknown', 'DRAM', # 00-03h
                          'EDRAM', 'VRAM', 'SRAM', 'RAM', # 04-07h
                          'ROM', 'FLASH', 'EEPROM', 'FEPROM', # 08-0Bh
@@ -86,8 +81,8 @@ class ProcessMonitorType(Enum):
 
 
 class SummaryType(Enum):
-    DUDU = 1
-    OTHER = 2
+    ISOLATE_SYSTEM_RESOURCES = 1
+    NATIVE = 2
 
 
 class PowerPlan:

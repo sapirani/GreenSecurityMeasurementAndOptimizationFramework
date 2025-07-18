@@ -35,13 +35,13 @@ class AbstractOSFuncs:
     def save_battery_capacity(self, f):
         pass
 
-    def save_system_information(self, f):   # TODO
+    def save_system_information(self, f):   # TODO: IMPLEMENT IN LINUX
         pass
 
-    def save_physical_memory(self, f):      # TODO
+    def save_physical_memory(self, f):      # TODO: IMPLEMENT IN LINUX
         pass
 
-    def save_disk_information(self, f):     # TODO
+    def save_disk_information(self, f):     # TODO: IMPLEMENT IN LINUX
         pass
 
     def message_box(self, title, text, style):

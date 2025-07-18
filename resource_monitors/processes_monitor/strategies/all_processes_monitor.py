@@ -1,5 +1,5 @@
 import psutil
-from resource_monitors.process.abstract_process_monitor import AbstractProcessMonitor
+from resource_monitors.processes_monitor.strategies.abstract_processes_monitor import AbstractProcessMonitor
 
 
 class AllProcessesMonitor(AbstractProcessMonitor):

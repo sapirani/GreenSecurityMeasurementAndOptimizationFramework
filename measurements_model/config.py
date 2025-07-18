@@ -4,8 +4,8 @@ NO_ENERGY_MEASURED = -1
 
 # Paths
 IDLE_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\idle\Measurement 427"
-ALL_MEASUREMENTS_DUDU_VERSION_NO_NETWORK_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources_dudu_summary"
-ALL_MEASUREMENTS_OTHER_VERSION_WITH_NETWORK_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_other_summary"
+ALL_MEASUREMENTS_SYSTEM_RESOURCE_ISOLATION_VERSION_NO_NETWORK_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources_dudu_summary"
+ALL_MEASUREMENTS_NATIVE_VERSION_WITH_NETWORK_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_other_summary"
 
 FULL_DATASET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_dataset.csv"
 FULL_PREPROCESSED_DATASET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_preprocessed_dataset.csv"
@@ -27,7 +27,7 @@ TOTAL_COL_SUMMARY = "System (total - all processes)"
 SUMMARY_FILE_NAME = 'summary.xlsx'
 
 
-class SummaryFieldsOtherVersion:
+class SummaryFieldsNativeVersion:
     DURATION = "Duration"
     CPU = "CPU"
     MEMORY = "Memory (MB)"
@@ -47,7 +47,7 @@ class SummaryFieldsOtherVersion:
     PROCESS_COLUMN = "ClamAV"  # TODO: change according to the process
 
 
-class SummaryFieldsDuduVersion:
+class SummaryFieldsSystemResourcesIsolationVersion:
     DURATION = "Duration"
     CPU_PROCESS = "CPU Process"
     CPU_SYSTEM = "CPU System (total - process)"
