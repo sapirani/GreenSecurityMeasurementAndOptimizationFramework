@@ -1,6 +1,9 @@
 import time
+import os
 
 from resource_monitors.container_monitor.linux_resources.abstract_resource_usage import AbstractLinuxContainerResourceReader
+
+DEFAULT_NUMBER_OF_CORES = 1
 
 
 class LinuxContainerCPUReader(AbstractLinuxContainerResourceReader):
@@ -8,6 +11,7 @@ class LinuxContainerCPUReader(AbstractLinuxContainerResourceReader):
         super().__init__()
         self.__last_usage_ns = None
         self.__last_time = None
+        self.__number_of_cores = self._cgroup_metrics_reader.get_container_vcores()
 
     def get_cpu_percent(self) -> float:
         current_usage_ns = self._cgroup_metrics_reader.read_cpu_usage_ns()
@@ -36,3 +40,6 @@ class LinuxContainerCPUReader(AbstractLinuxContainerResourceReader):
         # Compute CPU usage percentage
         cpu_percent = (usage_delta_ns / total_possible_ns) * 100
         return cpu_percent
+
+    def get_number_of_cpu_cores(self) -> float:
+        return self.__number_of_cores

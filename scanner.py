@@ -222,19 +222,25 @@ def save_current_total_cpu():
     This function saves the total cpu usage of the system
     """
     total_cpu_per_core = psutil.cpu_percent(percpu=True)
-    total_cpu = 0
     if is_inside_container:
-        total_cpu = running_os.get_container_total_cpu_usage()
-    elif total_cpu_per_core is not None and len(total_cpu_per_core) > 0:
-        total_cpu = mean(total_cpu_per_core)
+        total_cpu_sum = running_os.get_container_total_cpu_usage()
+        number_of_cores = running_os.get_container_number_of_cores()
+        total_cpu_mean = total_cpu_sum / number_of_cores
+        total_cpu_val = total_cpu_sum
+    else:
+        total_cpu_mean = mean(total_cpu_per_core)
+        total_cpu_sum = sum(total_cpu_per_core)
+        number_of_cores = len(total_cpu_per_core)
+        total_cpu_val = total_cpu_mean
 
-    cpu_df.loc[len(cpu_df.index)] = [time_since_start(), total_cpu] + total_cpu_per_core
+    cpu_df.loc[len(cpu_df.index)] = [scanner_imp.calc_time_interval(starting_time), total_cpu_val] + total_cpu_per_core
 
     logger.info(
         "Total CPU measurements",
         extra={
-            "mean_across_cores_percent": mean(total_cpu_per_core),
-            "number_of_cores": len(total_cpu_per_core),
+            "mean_cpu_across_cores_percent": total_cpu_mean,
+            "sum_cpu_across_cores_percent": total_cpu_sum,
+            "number_of_cores": number_of_cores,
             **{f"core{core_index}_percent": core_cpu_usage for core_index, core_cpu_usage in
                enumerate(total_cpu_per_core)}
         }
