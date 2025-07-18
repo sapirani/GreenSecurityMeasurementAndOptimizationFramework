@@ -81,8 +81,8 @@ class ProcessMonitorType(Enum):
 
 
 class SummaryType(Enum):
-    DUDU = 1
-    OTHER = 2
+    ISOLATE_SYSTEM_RESOURCES = 1
+    NATIVE = 2
 
 
 class PowerPlan:

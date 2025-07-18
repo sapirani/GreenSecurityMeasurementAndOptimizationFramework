@@ -17,7 +17,7 @@ from resource_monitors.process.all_processes_monitor import AllProcessesMonitor
 from resource_monitors.process.process_of_interest_only_monitor import ProcessesOfInterestOnlyMonitor
 from resource_monitors.system_monitor.battery.battery_monitor import BatteryMonitor
 from resource_monitors.system_monitor.battery.null_battery_monitor import NullBatteryMonitor
-from summary_builder import DuduSummary, OtherSummary
+from summary_builder import SystemResourceIsolationSummaryBuilder, NativeSummaryBuilder
 from general_consts import SummaryType, ProgramToScan, AntivirusType, IDSType, ProcessMonitorType, BatteryMonitorType
 from tasks.program_classes.abstract_program import ProgramInterface
 from tasks.program_classes.antiviruses.clam_av_program import ClamAVProgram
@@ -49,10 +49,10 @@ def running_os_factory(is_inside_container: bool) -> AbstractOSFuncs:
 
 
 def summary_builder_factory(summary_type: SummaryType):
-    if summary_type == SummaryType.DUDU:
-        return DuduSummary()
-    elif summary_type == SummaryType.OTHER:
-        return OtherSummary()
+    if summary_type == SummaryType.ISOLATE_SYSTEM_RESOURCES:
+        return SystemResourceIsolationSummaryBuilder()
+    elif summary_type == SummaryType.NATIVE:
+        return NativeSummaryBuilder()
 
     raise Exception("Selected summary builder is not supported")
 
