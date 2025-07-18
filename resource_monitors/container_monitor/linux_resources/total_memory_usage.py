@@ -1,9 +1,9 @@
 import psutil
 
-from resources_measurement.linux_resources.total_resource_usage import LinuxContainerResourceReader
+from resource_monitors.container_monitor.linux_resources.abstract_resource_usage import AbstractLinuxContainerResourceReader
 
 
-class LinuxContainerMemoryReader(LinuxContainerResourceReader):
+class LinuxContainerMemoryReader(AbstractLinuxContainerResourceReader):
     def __init__(self):
         super().__init__()
         self.__memory_limit = self.__get_memory_limit_bytes()

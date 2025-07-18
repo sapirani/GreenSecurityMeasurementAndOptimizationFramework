@@ -1,6 +1,6 @@
 import os
 
-from general_consts import MINUTE
+from utils.general_consts import MINUTE
 from tasks.program_classes.abstract_program import ProgramInterface
 
 

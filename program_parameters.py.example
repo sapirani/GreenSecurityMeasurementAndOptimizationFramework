@@ -1,11 +1,11 @@
-from general_consts import *
+from utils.general_consts import *
 
 # ======= Scanner Parameters =======
 main_program_to_scan = ProgramToScan.NO_SCAN
 background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = True
-summary_type = SummaryType.OTHER
+summary_type = SummaryType.NATIVE
 
 process_monitor_type = ProcessMonitorType.FULL
 battery_monitor_type = BatteryMonitorType.FULL

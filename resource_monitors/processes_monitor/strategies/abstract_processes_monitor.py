@@ -7,9 +7,9 @@ from typing import List, Dict, Tuple, Callable, Iterable
 import pandas as pd
 import psutil
 
-from general_consts import MB, KB, NUMBER_OF_CORES
+from utils.general_consts import MB, KB, NUMBER_OF_CORES
 from operating_systems.abstract_operating_system import AbstractOSFuncs
-from process_connections import ProcessNetworkMonitor
+from resource_monitors.processes_monitor.process_network_monitor import ProcessNetworkMonitor
 
 logger = logging.getLogger("measurements_logger")
 

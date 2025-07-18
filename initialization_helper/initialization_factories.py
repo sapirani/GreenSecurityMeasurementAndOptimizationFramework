@@ -7,18 +7,18 @@ from scapy.interfaces import get_working_ifaces
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from operating_systems.os_linux import LinuxOS
 from operating_systems.os_windows import WindowsOS
-from process_connections import ProcessNetworkMonitor
+from resource_monitors.processes_monitor.process_network_monitor import ProcessNetworkMonitor
 from program_parameters import antivirus_type, scan_type, custom_scan_path, recursive, should_optimize, \
     should_mitigate_timestomping, ids_type, interface_name, pcap_list_dirs, log_path, configuration_file_path, \
     model_name, model_action, script_relative_path, installation_dir, cpu_percent_to_consume, RUNNING_TIME, \
     memory_chunk_size, consumption_speed, time_interval
-from resource_monitors.process.abstract_process_monitor import AbstractProcessMonitor
-from resource_monitors.process.all_processes_monitor import AllProcessesMonitor
-from resource_monitors.process.process_of_interest_only_monitor import ProcessesOfInterestOnlyMonitor
+from resource_monitors.processes_monitor.strategies.abstract_processes_monitor import AbstractProcessMonitor
+from resource_monitors.processes_monitor.strategies.all_processes_monitor import AllProcessesMonitor
+from resource_monitors.processes_monitor.strategies.process_of_interest_only_monitor import ProcessesOfInterestOnlyMonitor
 from resource_monitors.system_monitor.battery.battery_monitor import BatteryMonitor
 from resource_monitors.system_monitor.battery.null_battery_monitor import NullBatteryMonitor
-from summary_builder import DuduSummary, OtherSummary
-from general_consts import SummaryType, ProgramToScan, AntivirusType, IDSType, ProcessMonitorType, BatteryMonitorType
+from summary_builder import SystemResourceIsolationSummaryBuilder, NativeSummaryBuilder
+from utils.general_consts import SummaryType, ProgramToScan, AntivirusType, IDSType, ProcessMonitorType, BatteryMonitorType
 from tasks.program_classes.abstract_program import ProgramInterface
 from tasks.program_classes.antiviruses.clam_av_program import ClamAVProgram
 from tasks.program_classes.antiviruses.defender_program import DefenderProgram
@@ -49,10 +49,10 @@ def running_os_factory(is_inside_container: bool) -> AbstractOSFuncs:
 
 
 def summary_builder_factory(summary_type: SummaryType):
-    if summary_type == SummaryType.DUDU:
-        return DuduSummary()
-    elif summary_type == SummaryType.OTHER:
-        return OtherSummary()
+    if summary_type == SummaryType.ISOLATE_SYSTEM_RESOURCES:
+        return SystemResourceIsolationSummaryBuilder()
+    elif summary_type == SummaryType.NATIVE:
+        return NativeSummaryBuilder()
 
     raise Exception("Selected summary builder is not supported")
 
