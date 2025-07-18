@@ -40,12 +40,6 @@ class SystemResourceIsolationSummaryBuilder(AbstractSummaryBuilder):
         summary_df.loc[len(summary_df.index)] = ["Memory Total (total - process) (MB)", *memory_total_without_process,
                                                  system_memory]
 
-        # Page Faults
-        my_processes_page_faults = [pd.to_numeric(df[ProcessesColumns.PAGE_FAULTS]).sum() for df in all_processes_df]
-        page_faults_all_processes = pd.to_numeric(processes_df[ProcessesColumns.PAGE_FAULTS]).sum()
-        page_faults_system = page_faults_all_processes - sum(my_processes_page_faults)
-        summary_df.loc[len(summary_df.index)] = ["Page Faults", *my_processes_page_faults, page_faults_system]
-
         # IO Read Bytes
         all_process_read_bytes = [pd.to_numeric(df[ProcessesColumns.READ_BYTES]).sum() for df in all_processes_df]
         total_read_bytes = sub_disk_df[DiskIOColumns.READ_BYTES].sum()
@@ -86,14 +80,29 @@ class SystemResourceIsolationSummaryBuilder(AbstractSummaryBuilder):
         summary_df.loc[len(summary_df.index)] = ["IO Write Count System (total - process) (# - sum)",
                                                  *write_count_total_without_process, system_write_count]
 
-        return AbstractSummaryBuilder.add_general_info(summary_df, num_of_processes, battery_df, sub_disk_df,
-                                                       sub_network_df, sub_all_processes_df)
+        summary_df = AbstractSummaryBuilder.add_general_resource_metrics_info(
+            summary_df, num_of_processes, sub_disk_df, sub_network_df, sub_all_processes_df
+        )
 
-    def colors_func(self, df):
-        return ['background-color: #FFFFFF'] + \
-               ['background-color: #ffff00' for _ in range(2)] + ['background-color: #9CC2E5' for _ in range(3)] + \
-               ['background-color: #66ff66' for _ in range(4)] + ['background-color: #70ad47' for _ in range(4)] + \
-               ['background-color: #cc66ff' for _ in range(2)] + \
-               ['background-color: #00FFFF' for _ in range(4)] + \
-               ['background-color: #ffc000' for _ in range(2)] + \
-               ['background-color: #FFFFFF']
+        # Page Faults
+        my_processes_page_faults = [pd.to_numeric(df[ProcessesColumns.PAGE_FAULTS]).sum() for df in all_processes_df]
+        page_faults_all_processes = pd.to_numeric(processes_df[ProcessesColumns.PAGE_FAULTS]).sum()
+        page_faults_system = page_faults_all_processes - sum(my_processes_page_faults)
+        summary_df.loc[len(summary_df.index)] = ["Page Faults", *my_processes_page_faults, page_faults_system]
+
+        summary_df = AbstractSummaryBuilder.add_energy_info(summary_df, num_of_processes, battery_df)
+        return summary_df
+
+    def get_colors(self):
+        return [
+            ['#FFFFFF'] * 1,    # Scan Duration Rows
+            ['#ffff00'] * 2,    # CPU Consumption Rows
+            ['#9CC2E5'] * 2,    # Memory Consumption Rows
+            ['#66ff66'] * 4,    # I/O Read Rows
+            ['#70ad47'] * 4,    # I/O Write Rows
+            ['#cc66ff'] * 2,    # Disk I/O time Rows
+            ['#00FFFF'] * 4,    # Network Consumption Rows
+            ['#FFCC99'] * 1,    # Page Faults Rows
+            ['#ffc000'] * 2,    # Energy Consumption Rows
+            ['#FFFFFF'] * 1,    # Trees Translation Rows
+        ]

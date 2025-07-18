@@ -1,4 +1,6 @@
+import itertools
 from abc import ABC, abstractmethod
+from typing import List
 
 import pandas as pd
 
@@ -32,11 +34,14 @@ class AbstractSummaryBuilder(ABC):
         pass
 
     @abstractmethod
-    def colors_func(self, df):
+    def get_colors(self) -> List[List[str]]:
         pass
 
+    def colors_func(self, df):
+        return [f"background-color: {color}" for color in itertools.chain.from_iterable(self.get_colors())]
+
     @staticmethod
-    def add_general_info(summary_df, num_of_processes, battery_df, sub_disk_df, sub_network_df, sub_all_processes_df):
+    def add_general_resource_metrics_info(summary_df, num_of_processes, sub_disk_df, sub_network_df, sub_all_processes_df):
         # TODO: merge cells to one
 
         none_list = ["X" for _ in range(num_of_processes - 1)]
@@ -78,6 +83,11 @@ class AbstractSummaryBuilder(ABC):
                                                  *all_process_network_packets_received,
                                                  total_network_packets_received]
 
+        return summary_df
+
+    @staticmethod
+    def add_energy_info(summary_df, num_of_processes, battery_df):
+        none_list = ["X" for _ in range(num_of_processes - 1)]
         battery_drop = calc_delta_capacity(battery_df)
         summary_df.loc[len(summary_df.index)] = ["Energy consumption - total energy(mwh)", *none_list, battery_drop[0]]
         summary_df.loc[len(summary_df.index)] = ["Battery Drop (%)", *none_list, battery_drop[1]]
