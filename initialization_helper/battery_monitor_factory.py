@@ -1,4 +1,4 @@
-from general_consts import BatteryMonitorType
+from utils.general_consts import BatteryMonitorType
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from resource_monitors.system_monitor.battery.battery_monitor import BatteryMonitor
 from resource_monitors.system_monitor.battery.null_battery_monitor import NullBatteryMonitor

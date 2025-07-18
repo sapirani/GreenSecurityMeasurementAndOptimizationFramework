@@ -40,6 +40,7 @@ max_timeout_reached = False
 main_process = None
 logger = None
 session_id: str = ""
+consecutive_high_memory_occurrences: int = 0
 start_date: datetime = datetime.now(timezone.utc)
 
 # include main programs and background
@@ -176,18 +177,26 @@ def scan_time_passed():
 
 
 def is_memory_too_high(memory_total_df: pd.DataFrame) -> bool:
+    """
+    :return: True if the memory is above certain value 3 times in a row
+    """
+    global consecutive_high_memory_occurrences
+
     if len(memory_total_df) == 0:
         return False
 
     current_memory_usage_percent = memory_total_df.iloc[len(memory_total_df) - 1].at[MemoryColumns.USED_PERCENT]
-    return current_memory_usage_percent >= 85
+    consecutive_high_memory_occurrences = consecutive_high_memory_occurrences + 1 if current_memory_usage_percent >= 97 else 0
+
+    return consecutive_high_memory_occurrences >= 3
+
 
 def save_data_when_resource_reaches_limit(resource_name: str):
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
         f.write(f"EARLY TERMINATION DUE TO {resource_name} LIMIT!!!!!!!!!!\n\n")
     finished_scanning_time.append(time_since_start())
 
-    print("NOTE! backing up program metadata")
+    print(f"NOTE! backing up program metadata due to {resource_name}")
     Path(BACKUP_DIR_PATH_BEFORE_BATTERY_DEPLETION).mkdir(parents=True, exist_ok=True)  # create dir for saving metadata before termination
     with open(BACKED_UP_SCANNING_TIMESTAMPS_PATH, "w") as f:
         backup_data = {

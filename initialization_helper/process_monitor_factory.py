@@ -3,12 +3,12 @@ from typing import Callable
 import psutil
 from scapy.interfaces import get_working_ifaces
 
-from general_consts import ProcessMonitorType
+from utils.general_consts import ProcessMonitorType
 from operating_systems.abstract_operating_system import AbstractOSFuncs
-from process_connections import ProcessNetworkMonitor
-from resource_monitors.process.abstract_process_monitor import AbstractProcessMonitor
-from resource_monitors.process.all_processes_monitor import AllProcessesMonitor
-from resource_monitors.process.process_of_interest_only_monitor import ProcessesOfInterestOnlyMonitor
+from resource_monitors.processes_monitor.process_network_monitor import ProcessNetworkMonitor
+from resource_monitors.processes_monitor.strategies.abstract_processes_monitor import AbstractProcessMonitor
+from resource_monitors.processes_monitor.strategies.all_processes_monitor import AllProcessesMonitor
+from resource_monitors.processes_monitor.strategies.process_of_interest_only_monitor import ProcessesOfInterestOnlyMonitor
 
 
 def process_monitor_factory(process_monitor_type: ProcessMonitorType, running_os: AbstractOSFuncs,

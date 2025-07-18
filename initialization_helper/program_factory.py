@@ -4,7 +4,7 @@ from program_parameters import antivirus_type, scan_type, custom_scan_path, recu
     memory_chunk_size, consumption_speed, time_interval, messages_to_encrypt_file, security_algorithm_type, \
     algorithm_key_file, min_key_value, results_file_for_encryption, block_cipher_mode, max_key_value, \
     messages_to_decrypt_file, results_file_for_decryption
-from general_consts import ProgramToScan, AntivirusType, IDSType
+from utils.general_consts import ProgramToScan, AntivirusType, IDSType
 from tasks.program_classes.abstract_program import ProgramInterface
 from tasks.program_classes.antiviruses.clam_av_program import ClamAVProgram
 from tasks.program_classes.antiviruses.defender_program import DefenderProgram
