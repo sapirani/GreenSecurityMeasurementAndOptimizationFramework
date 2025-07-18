@@ -17,13 +17,13 @@ class SystemResourceIsolationSummaryBuilder(AbstractSummaryBuilder):
 
         num_of_processes = len(processes_ids) + 1
 
-        sub_cpu_df = slice_df(cpu_df, self.DEFAULT_SLICE_PERCENT).astype(float)
-        sub_memory_df = slice_df(memory_df, self.DEFAULT_SLICE_PERCENT).astype(float)
-        sub_disk_df = slice_df(disk_io_each_moment_df, self.DEFAULT_SLICE_PERCENT).astype(float)
-        sub_network_df = slice_df(network_io_each_moment_df, self.DEFAULT_SLICE_PERCENT).astype(float)
+        sub_cpu_df = slice_df(cpu_df, self._DEFAULT_SLICE_PERCENT).astype(float)
+        sub_memory_df = slice_df(memory_df, self._DEFAULT_SLICE_PERCENT).astype(float)
+        sub_disk_df = slice_df(disk_io_each_moment_df, self._DEFAULT_SLICE_PERCENT).astype(float)
+        sub_network_df = slice_df(network_io_each_moment_df, self._DEFAULT_SLICE_PERCENT).astype(float)
 
         all_processes_df = get_all_df_by_id(processes_df, processes_ids)
-        sub_all_processes_df = [slice_df(df, self.DEFAULT_SLICE_PERCENT) for df in all_processes_df]
+        sub_all_processes_df = [slice_df(df, self._DEFAULT_SLICE_PERCENT) for df in all_processes_df]
         summary_df = pd.DataFrame(
             columns=["Metric", *processes_names, "System (total - all processes)"])
 

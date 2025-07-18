@@ -15,7 +15,3 @@ class Convert_Mwh(unittest.TestCase):
 
     def test_convert_mwh_to_kg_of_woods_burned(self):
         self.assertAlmostEqual(EnvironmentImpact.from_mwh(3.5 * 1e6).kg_of_woods_burned, 1)
-
-
-if __name__ == '__main__':
-    unittest.main()

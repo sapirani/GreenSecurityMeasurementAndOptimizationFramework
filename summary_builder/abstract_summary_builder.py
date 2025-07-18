@@ -28,7 +28,7 @@ def get_all_df_by_id(processes_df: pd.DataFrame, processes_ids: List[int]):
 
 
 class AbstractSummaryBuilder(ABC):
-    DEFAULT_SLICE_PERCENT = 3
+    _DEFAULT_SLICE_PERCENT = 3
 
     @abstractmethod
     def prepare_summary_csv(
