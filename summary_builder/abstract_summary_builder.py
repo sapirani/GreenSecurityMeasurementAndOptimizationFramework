@@ -29,11 +29,11 @@ class AbstractSummaryBuilder(ABC):
     @abstractmethod
     def prepare_summary_csv(self, processes_df, cpu_df, memory_df, disk_io_each_moment_df, network_io_each_moment_df,
                             battery_df, processes_names, finished_scanning_time, processes_ids):
-        return None
+        raise NotImplementedError()
 
     @abstractmethod
     def colors_func(self, df):
-        return None
+        raise NotImplementedError()
 
     @staticmethod
     def add_general_info(summary_df, num_of_processes, battery_df, sub_disk_df, sub_network_df, sub_all_processes_df):

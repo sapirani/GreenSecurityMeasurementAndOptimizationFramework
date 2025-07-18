@@ -1,7 +1,5 @@
-from measurements_model.config import ALL_MEASUREMENTS_NATIVE_VERSION_WITH_NETWORK_DIR_PATH, ProcessColumns
 from measurements_model.dataset_creation.summary_version_columns import SystemResourcesIsolationSummaryVersionCols, OtherSummaryVersionCols
 
-# ALL_MEASUREMENTS_DIRS_PATH = ALL_MEASUREMENTS_OTHER_VERSION_WITH_NETWORK_DIR_PATH # can be any directory that holds 'Measurement' directories
 ALL_MEASUREMENTS_DIRS_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\Green Security Experiments\Experiments - HeavyLoad combinations - No scan\No scan - heavyLoad - 200525\No scan - heavyLoad - different combinations"
 
 IS_NO_SCAN_MODE = True
