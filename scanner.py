@@ -233,7 +233,7 @@ def save_current_total_cpu():
         number_of_cores = len(total_cpu_per_core)
         total_cpu_val = total_cpu_mean
 
-    cpu_df.loc[len(cpu_df.index)] = [scanner_imp.calc_time_interval(starting_time), total_cpu_val] + total_cpu_per_core
+    cpu_df.loc[len(cpu_df.index)] = [time_since_start(), total_cpu_val] + total_cpu_per_core
 
     logger.info(
         "Total CPU measurements",
