@@ -5,7 +5,7 @@ from typing import List
 import pandas as pd
 
 from utils.general_consts import ProcessesColumns, DiskIOColumns, NetworkIOColumns
-from utils.general_functions import calc_delta_capacity, convert_mwh_to_other_metrics
+from utils.general_functions import EnvironmentImpact, BatteryDeltaDrain
 
 
 def slice_df(df, percent):
@@ -88,10 +88,10 @@ class AbstractSummaryBuilder(ABC):
     @staticmethod
     def add_energy_info(summary_df, num_of_processes, battery_df):
         none_list = ["X" for _ in range(num_of_processes - 1)]
-        battery_drop = calc_delta_capacity(battery_df)
-        summary_df.loc[len(summary_df.index)] = ["Energy consumption - total energy(mwh)", *none_list, battery_drop[0]]
-        summary_df.loc[len(summary_df.index)] = ["Battery Drop (%)", *none_list, battery_drop[1]]
-        other_metrics = convert_mwh_to_other_metrics(battery_drop[0])
-        summary_df.loc[len(summary_df.index)] = ["Trees (KG)", *none_list, other_metrics[3]]
+        battery_drain = BatteryDeltaDrain.from_battery_drain(battery_df)
+        summary_df.loc[len(summary_df.index)] = ["Energy consumption - total energy(mwh)", *none_list, battery_drain.mwh_drain]
+        summary_df.loc[len(summary_df.index)] = ["Battery Drop (%)", *none_list, battery_drain.percent_drain]
+        environment_impact = EnvironmentImpact.from_mwh(battery_drain.mwh_drain)
+        summary_df.loc[len(summary_df.index)] = ["Trees (KG)", *none_list, environment_impact.kg_of_woods_burned]
 
         return summary_df

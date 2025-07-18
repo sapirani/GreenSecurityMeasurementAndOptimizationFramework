@@ -20,7 +20,7 @@ from application_logging.filters.scanner_filter import ScannerLoggerFilter
 from initialization_helper import *
 from datetime import date, datetime, timezone
 from pathlib import Path
-from utils.general_functions import convert_mwh_to_other_metrics, calc_delta_capacity
+from utils.general_functions import EnvironmentImpact, BatteryDeltaDrain
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 
 base_dir, GRAPHS_DIR, STDOUT_FILES_DIR, STDERR_FILES_DIR, PROCESSES_CSV, TOTAL_MEMORY_EACH_MOMENT_CSV, \
@@ -373,14 +373,14 @@ def save_general_information_after_scanning():
 
         if not battery_df.empty:
             f.write('\n------Battery------\n')
-            battery_drop = calc_delta_capacity(battery_df)
-            f.write(f'Amount of Battery Drop: {battery_drop[0]} mWh, {battery_drop[1]}%\n')
+            battery_drain = BatteryDeltaDrain.from_battery_drain(battery_df)
+            f.write(f'Amount of Battery Drop: {battery_drain.mwh_drain} mWh, {battery_drain.percent_drain}%\n')
             f.write('Approximately equivalent to -\n')
-            conversions = convert_mwh_to_other_metrics(battery_drop[0])
-            f.write(f'  CO2 emission: {conversions[0]} kg\n')
-            f.write(f'  Coal burned: {conversions[1]} kg\n')
-            f.write(f'  Number of smartphone charged: {conversions[2]}\n')
-            f.write(f'  Kilograms of wood burned: {conversions[3]}\n')
+            environment_impact = EnvironmentImpact.from_mwh(battery_drain.mwh_drain)
+            f.write(f'  CO2 emission: {environment_impact.co2} kg\n')
+            f.write(f'  Coal burned: {environment_impact.coal_burned} kg\n')
+            f.write(f'  Number of smartphone charged: {environment_impact.number_of_smartphones_charged}\n')
+            f.write(f'  Kilograms of wood burned: {environment_impact.kg_of_woods_burned}\n')
 
         if main_program_to_scan == ProgramToScan.NO_SCAN:
             measurement_time = finished_scanning_time[-1]
@@ -470,7 +470,7 @@ def is_delta_capacity_achieved():
     if psutil.sensors_battery() is None:  # if desktop computer (has no battery)
         return True
 
-    return calc_delta_capacity(battery_df)[0] >= MINIMUM_DELTA_CAPACITY
+    return BatteryDeltaDrain.from_battery_drain(battery_df).mwh_drain >= MINIMUM_DELTA_CAPACITY
 
 
 def start_process(program_to_scan):
