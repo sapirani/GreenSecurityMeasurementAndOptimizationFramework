@@ -26,7 +26,7 @@ Both Windows and POSIX operating systems are supported.
 ```
 
 
-## Preliminaries:
+## Preliminaries
 1. Please use python>=3.10.
 
 2. Create python environment with the packages listed in requirements.txt.
