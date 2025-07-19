@@ -45,4 +45,4 @@ def program_to_scan_factory(program_type: ProgramToScan) -> ProgramInterface:
                                           key_file=algorithm_key_file, min_key_value=min_key_value,
                                           max_key_value=max_key_value)
 
-    raise Exception("choose program to scan from ProgramToScan enum")
+    raise Exception("Choose program to scan from ProgramToScan enum")

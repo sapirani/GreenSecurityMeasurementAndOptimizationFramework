@@ -706,6 +706,8 @@ def can_proceed_towards_measurements():
     :return: True if it is new measurement or if the user agreed to delete the previous measurements
     """
     if os.path.exists(base_dir):
+        if is_inside_container:
+            return False
 
         button_selected = running_os.message_box("Deleting Previous Results",
                                                  "Running the program will override the results of the previous measurement.\n\n"
