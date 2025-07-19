@@ -1,4 +1,4 @@
-# Resource Consumption Measurement Benchmark
+# Measurement Benchmark - A Framework for Measurement of Reasource and Energy Consumption of Processes
 
 This project investigates the energy footprint and resource characteristics of secure computations, with a particular focus on the demands of homomorphic encryption schemes.
 We introduce a general-purpose, process-level measurement framework capable of profiling CPU, memory, disk, and network usage, alongside energy consumption estimates.
