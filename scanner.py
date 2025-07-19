@@ -40,7 +40,6 @@ max_timeout_reached = False
 main_process = None
 logger = None
 session_id: str = ""
-consecutive_high_memory_occurrences: int = 0
 start_date: datetime = datetime.now(timezone.utc)
 
 # include main programs and background
@@ -176,27 +175,12 @@ def scan_time_passed():
     return time_since_start() >= RUNNING_TIME
 
 
-def is_memory_too_high(memory_total_df: pd.DataFrame) -> bool:
-    """
-    :return: True if the memory is above certain value 3 times in a row
-    """
-    global consecutive_high_memory_occurrences
-
-    if len(memory_total_df) == 0:
-        return False
-
-    current_memory_usage_percent = memory_total_df.iloc[len(memory_total_df) - 1].at[MemoryColumns.USED_PERCENT]
-    consecutive_high_memory_occurrences = consecutive_high_memory_occurrences + 1 if current_memory_usage_percent >= 97 else 0
-
-    return consecutive_high_memory_occurrences >= 3
-
-
-def save_data_when_resource_reaches_limit(resource_name: str):
+def save_data_when_battery_is_too_low():
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
-        f.write(f"EARLY TERMINATION DUE TO {resource_name} LIMIT!!!!!!!!!!\n\n")
+        f.write(f"EARLY TERMINATION DUE TO LOW BATTERY!!!!!!!!!!\n\n")
     finished_scanning_time.append(time_since_start())
 
-    print(f"NOTE! backing up program metadata due to {resource_name}")
+    print(f"NOTE! backing up program metadata")
     Path(BACKUP_DIR_PATH_BEFORE_BATTERY_DEPLETION).mkdir(parents=True, exist_ok=True)  # create dir for saving metadata before termination
     with open(BACKED_UP_SCANNING_TIMESTAMPS_PATH, "w") as f:
         backup_data = {
@@ -220,12 +204,8 @@ def should_scan():
     Returns:
         True if measurement thread should perform another iteration or False if it should terminate
     """
-    if is_memory_too_high(memory_df):
-        save_data_when_resource_reaches_limit("HIGH MEMORY")
-        return False
-
     if battery_monitor.is_battery_too_low(battery_df):
-        save_data_when_resource_reaches_limit("LOW BATTERY")
+        save_data_when_battery_is_too_low()
         return False
 
     if main_program_to_scan == ProgramToScan.BASELINE_MEASUREMENT:

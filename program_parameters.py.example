@@ -3,7 +3,7 @@ from tasks.confidential_computing_tasks.encryption_type import EncryptionType, E
 
 # ======= Scanner Parameters =======
 main_program_to_scan = ProgramToScan.BASELINE_MEASUREMENT
-background_programs_types = []  # For example: [ProgramToScan.PythonServer]
+background_programs_types = []  # For example: [ProgramToScan.MessageEncryptor]
 
 kill_background_process_when_main_finished = True
 summary_type = SummaryType.NATIVE
