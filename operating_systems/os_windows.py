@@ -7,7 +7,6 @@ from threading import Thread
 import os
 import signal
 from typing_extensions import override
-from utils import general_functions
 from utils.general_consts import PowerPlan, pc_types, GB, physical_memory_types, disk_types
 from utils.general_functions import get_powershell_result_list_format
 from operating_systems.abstract_operating_system import AbstractOSFuncs
@@ -21,19 +20,6 @@ class WindowsOS(AbstractOSFuncs):
         import wmi
         self.c = wmi.WMI()
         self.t = wmi.WMI(moniker="//./root/wmi")
-
-    @classmethod
-    def save_antivirus_version(cls, f, program_name):
-        result = subprocess.run(["powershell", "-Command", "Get-MpComputerStatus | Select AMEngineVersion,"
-                                                           " AMProductVersion, AMServiceVersion | Format-List"],
-                                capture_output=True)
-        if result.returncode != 0:
-            raise Exception(f'Could not get {program_name} version', result.stderr)
-
-        version_dict = general_functions.get_powershell_result_list_format(result.stdout)[0]
-        f.write(f"Anti Malware Engine Version: {version_dict['AMEngineVersion']}\n")
-        f.write(f"Anti Malware Client Version: {version_dict['AMProductVersion']}\n")
-        f.write(f"Anti Malware Service Version: {version_dict['AMServiceVersion']}\n\n")
 
     def init_thread(self):
         import pythoncom
@@ -56,24 +42,6 @@ class WindowsOS(AbstractOSFuncs):
 
         return f"results_{hardware_info}_{platform.system()}_{platform.release()}"
 
-    def is_tamper_protection_enabled(self):
-        """_summary_: tamper protection should be disabled for the program to work properly
-
-            Raises:
-                Exception: if could not check if tamper protection enabled
-
-            Returns:
-                _type_ : bool -- True if tamper protection is enabled, False otherwise
-            """
-        result = subprocess.run(
-            ["powershell", "-Command", "Get-MpComputerStatus | Select IsTamperProtected | Format-List"],
-            capture_output=True)
-        if result.returncode != 0:
-            raise Exception("Could not check if tamper protection enabled", result.stderr)
-
-        # return bool(re.search("IsTamperProtected\s*:\sTrue", str(result.stdout)))
-        return get_powershell_result_list_format(result.stdout)[0]["IsTamperProtected"] == "True"
-
     def get_page_faults(self, psutil_process):
         return psutil_process.memory_info().num_page_faults
 
@@ -90,15 +58,6 @@ class WindowsOS(AbstractOSFuncs):
 
     def get_default_power_plan_identifier(self):
         return PowerPlan.BALANCED[1]
-
-    def change_real_time_protection(self, should_disable=True):
-
-        protection_mode = "1" if should_disable else "0"
-        result = subprocess.run(["powershell", "-Command",
-                                 f'Start-Process powershell -ArgumentList("Set-MpPreference -DisableRealTimeMonitoring {protection_mode}") -Verb runAs -WindowStyle hidden'],
-                                capture_output=True)
-        if result.returncode != 0:
-            raise Exception("Could not change real time protection", result.stderr)
 
     def change_sleep_and_turning_screen_off_settings(self, screen_time=DEFAULT_SCREEN_TURNS_OFF_TIME,
                                                      sleep_time=DEFAULT_TIME_BEFORE_SLEEP_MODE):
