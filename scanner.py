@@ -11,7 +11,6 @@ import warnings
 from statistics import mean
 from typing import TextIO, Tuple, List
 
-import psutil
 from human_id import generate_id
 from prettytable import PrettyTable
 from threading import Thread, Timer
@@ -497,7 +496,7 @@ def is_delta_capacity_achieved():
     return BatteryDeltaDrain.from_battery_drain(battery_df).mwh_drain >= MINIMUM_DELTA_CAPACITY
 
 
-def start_process(program_to_scan: ProgramInterface) -> psutil.Popen:
+def start_process(program_to_scan: ProgramInterface) -> Tuple[psutil.Popen, int]:
     """
     This function creates a process that runs the given program
     :param program_to_scan: the program to run. Can be either the main program or background program
