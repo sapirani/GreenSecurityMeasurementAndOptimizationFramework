@@ -1,8 +1,8 @@
 # GreenSecurity - A Framework for Measurement of Reasource and Energy Consumption of Processes
 
 This project investigates the energy footprint and resource characteristics of secure computations, with a particular focus on the demands of cybersecurity-related schemes (such as antivirus, IDS, Splunk, etc.).
-We introduce a general-purpose, __process-level__ measurement framework capable of __profiling CPU, memory, disk, and network usage, alongside energy consumption estimates__.
-The framework operates __independently of source__ code and supports fine-grained attribution of resource and energy usage at both the per-process and system-wide levels.
+We introduce a general-purpose, process-level measurement framework capable of __profiling CPU, memory, disk, and network usage, alongside energy consumption estimates__.
+The framework operates __independently of source__ code and supports fine-grained attribution of resource and energy usage __at both the per-process and system-wide levels__.
 These capabilities make our framework broadly applicable and easy to use for profiling arbitrary programs, including, in our case, a range of cybersecurity applications.
 
 To support deeper analysis, we also provide interactive visualizations through ElasticSearch and Kibana that allow users to explore time-series trends and compare schemes across multiple metrics.
