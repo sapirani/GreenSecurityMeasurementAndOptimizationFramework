@@ -234,7 +234,6 @@ def should_scan():
         return not done_scanning_event.is_set()
     elif scan_option == ScanMode.CONTINUOUS_SCAN:
         return not (scan_time_passed() and is_delta_capacity_achieved()) and not done_scanning_event.is_set()
-        # return not scan_time_passed() and not is_delta_capacity_achieved()
 
 
 def save_current_total_cpu():
@@ -273,15 +272,14 @@ def continuously_measure():
     """
     running_os.init_thread()
 
-    # init prev_disk_io by first disk io measurements (before scan)
     # TODO: lock thread until process starts
+    # init prev_disk_io by first disk io measurements (before scan)
     prev_disk_io = psutil.disk_io_counters()
     prev_network_io = psutil.net_io_counters()
 
     with process_monitor:
         process_monitor.set_start_time(starting_time)
         process_monitor.set_processes_df(processes_df)
-        # TODO: think if total tables should be printed only once
         while should_scan():
             # Create a delay
             time.sleep(SLEEP_BETWEEN_ITERATIONS_SECONDS)
@@ -366,9 +364,6 @@ def save_general_information_before_scanning():
         f.write(f"Hostname: {running_os.get_hostname()}\n")
         f.write(f'Date: {date.today().strftime("%d/%m/%Y")}\n')
         f.write(f'Scanner Version: {get_scanner_version_name(battery_monitor_type, process_monitor_type)}\n\n')
-
-        # TODO: add background_programs general_information_before_measurement(f)
-        program.general_information_before_measurement(f)
 
         save_general_system_information(f)
 
