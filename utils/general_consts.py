@@ -44,25 +44,15 @@ disk_types = ["Unknown", "NoRootDirectory", "Removable", "Fixed", "Network", "CD
 
 # ======= Static Classes =======
 class ProgramToScan(Enum):
-    NO_SCAN = 1
-    ANTIVIRUS = 2
-    DummyANTIVIRUS = 3
-    IDS = 4
-    Perfmon = 5
-    UserActivity = 6
-    LogAnomalyDetection = 7
-    Splunk = 8
-    CPUConsumer = 9
-    MemoryConsumer = 10
-    IOWriteConsumer = 11
-    PythonServer = 12
-    NetworkReceiver = 13
-    NetworkSender = 14
-    MessageEncryptor = 15
-    MessageDecryptor = 16
-    MessageAddition = 17
-    MessageMultiplication = 18
-    EncryptionPipelineExecutor = 19
+    BASELINE_MEASUREMENT = 1
+    PythonServer = 2
+    NetworkReceiver = 3
+    NetworkSender = 4
+    MessageEncryptor = 5
+    MessageDecryptor = 6
+    MessageAddition = 7
+    MessageMultiplication = 8
+    EncryptionPipelineExecutor = 9
 
 
 class ScanMode(Enum):
@@ -89,23 +79,6 @@ class PowerPlan:
     BALANCED = ("Balanced Plan", "381b4222-f694-41f0-9685-ff5bb260df2e", None)
     POWER_SAVER = ("Power Saver Plan", "a1841308-3541-4fab-bc81-f71556f20b4a", "powersave")
     HIGH_PERFORMANCE = ("High Performance Plan", "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", "performance")
-
-
-class ScanType:
-    FULL_SCAN = "FullScan"
-    QUICK_SCAN = "QuickScan"
-    CUSTOM_SCAN = "CustomScan"
-    
-    
-class IDSType:
-    SURICATA = "Suricata"
-    SNORT = "Snort"
-
-
-class AntivirusType:
-    DEFENDER = "Defender"
-    ClamAV = "ClamAV"
-    SOPHOS = "Sophos"
 
 
 # ======= Tables Column Names =======

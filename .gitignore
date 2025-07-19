@@ -1,34 +1,6 @@
 __pycache__
 .idea
-.ipynb_checkpoints
 .vscode
-Dell Inc.*
-VMware*
-ASUSTeK* COMPUTER*
-data
-session_log.log
-*.csv
-*.json
-green_sec_env
-visualization*
-screenlog.*
-.env
-SplunkResearch/unused_folders
-SplunkResearch/src/unused_scripts
-experiments
-config.json
-SplunkResearch/experiments*
-SplunkResearch/monitor_files/wineventlog:security.txt
-SplunkResearch/monitor_files/wineventlog:system.txt
-SplunkResearch/best_experiments
-SplunkResearch/best_parallel_exp
-*.template
-*.png
-paper_results
-elastic-start-local
-logs_resource
-LENOVO*
 results*
-Windows*
 program_parameters.py
 *backup*

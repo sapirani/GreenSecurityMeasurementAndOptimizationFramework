@@ -26,9 +26,6 @@ class ProgramInterface:
     def path_adjustments(self) -> str:
         return ""
 
-    def general_information_before_measurement(self, f):
-        pass
-
     def should_find_child_id(self):
         return False
 

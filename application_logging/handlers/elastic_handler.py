@@ -30,7 +30,6 @@ class ElasticSearchLogHandler(logging.Handler):
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "message": record.getMessage(),
-            # TODO: try to find a way to avoid sending start_date inside each log
             "start_date": self.start_date
         }
 

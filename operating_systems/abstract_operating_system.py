@@ -10,21 +10,6 @@ from program_parameters import DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFOR
 
 
 class AbstractOSFuncs:
-    def is_tamper_protection_enabled(self):
-        """
-        Needed only in Windows
-        :return: True if tamper protection is enabled, False otherwise
-        """
-        return True
-
-    def change_real_time_protection(self, should_disable=True):
-        """
-        Needed only in Windows
-        :param should_disable: determine if real time protection will be turned on or off
-        :return: None
-        """
-        pass
-
     def init_thread(self):
         """
         probably only needed in Windows
@@ -35,13 +20,13 @@ class AbstractOSFuncs:
     def save_battery_capacity(self, f):
         pass
 
-    def save_system_information(self, f):   # TODO: IMPLEMENT IN LINUX
+    def save_system_information(self, f):
         pass
 
-    def save_physical_memory(self, f):      # TODO: IMPLEMENT IN LINUX
+    def save_physical_memory(self, f):
         pass
 
-    def save_disk_information(self, f):     # TODO: IMPLEMENT IN LINUX
+    def save_disk_information(self, f):
         pass
 
     def message_box(self, title, text, style):
@@ -118,7 +103,6 @@ class AbstractOSFuncs:
         return process.wait()
 
     @abstractmethod
-    # TODO: make balance the default
     def change_power_plan(self, name, identifier):
         pass
 
