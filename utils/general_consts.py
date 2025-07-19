@@ -81,12 +81,6 @@ class PowerPlan:
     HIGH_PERFORMANCE = ("High Performance Plan", "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", "performance")
 
 
-class ScanType:
-    FULL_SCAN = "FullScan"
-    QUICK_SCAN = "QuickScan"
-    CUSTOM_SCAN = "CustomScan"
-
-
 # ======= Tables Column Names =======
 class BatteryColumns:
     TIME = "Time(sec)"

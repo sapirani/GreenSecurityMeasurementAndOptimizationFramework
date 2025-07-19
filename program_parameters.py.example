@@ -13,7 +13,6 @@ battery_monitor_type = BatteryMonitorType.FULL
 
 power_plan = PowerPlan.BALANCED
 scan_option = ScanMode.ONE_SCAN
-scan_type = ScanType.QUICK_SCAN  # relevant only for one scan or continuous scan
 
 RUNNING_TIME = 10 * MINUTE # insert time (e.g. 0.5 * MINUTE) or None in case you want to wait until process ends in ONE_SCAN mode
 
