@@ -3,7 +3,7 @@
 This project investigates the energy footprint and resource characteristics of secure computations, with a particular focus on the demands of homomorphic encryption schemes.
 We introduce a general-purpose, process-level measurement framework capable of profiling CPU, memory, disk, and network usage, alongside energy consumption estimates.
 The framework operates independently of source code and supports fine-grained attribution of resource and energy usage at both the per-process and system-wide levels.
-This makes it broadly applicable and easy to use for profiling  arbitrary programs, including, in our case, a range of cybersecurity applications.
+These capabilities make our framework broadly applicable and easy to use for profiling  arbitrary programs, including, in our case, a range of cybersecurity applications.
 
 We implemented a wide range of HE, comparing them against symmetric and asymmetric encryption algorithms, in terms of resource consumption and performance.
 To support deeper analysis, we also provide interactive visualizations through ElasticSearch and Kibana that allow users to explore time-series trends and compare schemes across multiple metrics.
@@ -67,7 +67,7 @@ The main components of the code:
 
 ### Modes of Execution
 There are 3 modes of execution:
-1. No main program - the code measures the resource usage without running any program. This is the baseline consumption of other system processes running in the background.
+1. Baseline measurement - the code measures the resource usage without running any program. This is the baseline consumption of other system processes running in the background.
 2. One scan - the code starts scanning. Meanwhile, the code keeps measuring the resource usage.
 3. Continuous scan - the code runs a program, and when the scan is over it immediately starts a new one. The code ends when at least a certain amount of time has elapsed and at least a certain amount of battery capacity has drained decreased.
 
