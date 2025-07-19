@@ -1,7 +1,7 @@
 from program_parameters import messages_to_encrypt_file, security_algorithm_type, \
     algorithm_key_file, min_key_value, results_file_for_encryption, block_cipher_mode, max_key_value, \
     messages_to_decrypt_file, results_file_for_decryption
-from tasks.program_classes.no_main_program import NoMainProgram
+from tasks.program_classes.baseline_measurement_program import BaselineMeasurementProgram
 from tasks.program_classes.server_program import PythonServer
 from utils.general_consts import ProgramToScan
 from tasks.program_classes.abstract_program import ProgramInterface
@@ -19,7 +19,7 @@ def program_to_scan_factory(program_type: ProgramToScan) -> ProgramInterface:
     :return: The dedicated class
     """
     if program_type == ProgramToScan.BASELINE_MEASUREMENT:
-        return NoMainProgram()
+        return BaselineMeasurementProgram()
     if program_type == ProgramToScan.PythonServer:
         return PythonServer()
     if program_type == ProgramToScan.MessageEncryptor:

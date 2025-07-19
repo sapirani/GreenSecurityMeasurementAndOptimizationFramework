@@ -34,7 +34,7 @@ class ProcessMetrics:
     def delta(self, prev_metrics: 'ProcessMetrics') -> 'ProcessMetrics':
         return ProcessMetrics(
             time_since_start=self.time_since_start,
-            cpu_percent=self.cpu_percent,  # TODO: consider calculating integral here (trapeze area)
+            cpu_percent=self.cpu_percent,
             threads_num=self.threads_num,
             used_memory_mb=self.used_memory_mb,
             used_memory_percent=self.used_memory_percent,
@@ -43,8 +43,6 @@ class ProcessMetrics:
             disk_read_kb=round(self.disk_read_kb - prev_metrics.disk_read_kb, 3),
             disk_write_kb=round(self.disk_write_kb - prev_metrics.disk_write_kb, 3),
             page_faults=self.page_faults - prev_metrics.page_faults,
-
-            # TODO: I THINK I SHOULD SUBTRACT HERE LIKE IN THE HARDWARE MEASUREMENTS
             bytes_sent=self.bytes_sent,
             packets_sent=self.packets_sent,
             bytes_received=self.bytes_received,
@@ -65,8 +63,6 @@ class AbstractProcessMonitor(ABC):
         self.mark_processes = []
         self.should_ignore_process = should_ignore_process
         self.start_time = 0
-
-        # TODO: REMOVE THIS FUNCTIONALITY FROM THIS CLASS INTO A DEDICATED CLASS FOR SAVING RESULTS
         self.processes_df = pd.DataFrame()
 
     def __enter__(self):
@@ -82,7 +78,6 @@ class AbstractProcessMonitor(ABC):
     def set_start_time(self, start_time):
         self.start_time = start_time
 
-    # TODO: REMOVE THIS FUNCTIONALITY FROM THIS CLASS INTO A DEDICATED CLASS FOR SAVING RESULTS
     def set_processes_df(self, processes_df: pd.DataFrame):
         self.processes_df = processes_df
 
@@ -95,10 +90,8 @@ class AbstractProcessMonitor(ABC):
         """
         This function gets all processes running in the system and order them by their cpu usage
         """
-        # TODO: RETURN PROCESS STATISTICS AND SAVE IT ELSEWHERE
         pass
 
-    # TODO: RENAME THIS FUNCTION WHEN SAVING INTO DATAFRAME GETS OUT OF THIS CLASS
     def monitor_relevant_processes(self, candidate_processes: Iterable[psutil.Process]) -> None:
         """
         This function saves the relevant data from the process in dataframe (will be saved later as csv files)
@@ -119,7 +112,6 @@ class AbstractProcessMonitor(ABC):
                 with p.oneshot():
                     pid = p.pid
                     process_name = p.name()
-                    # TODO: CHECK IF IT HOLDS TRUE INSIDE CONTAINERS
                     cpu_percent = p.cpu_percent() / NUMBER_OF_CORES
                     process_traffic = self.process_network_monitor.get_network_stats(p)
 
@@ -144,7 +136,6 @@ class AbstractProcessMonitor(ABC):
                         cpu_percent=round(cpu_percent, 2),
                         threads_num=p.num_threads(),
                         used_memory_mb=round(p.memory_info().rss / MB, 3),
-                        # TODO: maybe should use uss/pss instead rss?
                         used_memory_percent=round(p.memory_percent(), 2),
                         disk_read_count=io_stat.read_count,
                         disk_write_count=io_stat.write_count,
@@ -159,7 +150,6 @@ class AbstractProcessMonitor(ABC):
                     )
 
                     current_metrics = current_raw_metrics.delta(prev_raw_metrics)
-                    # TODO: REMOVE THIS FUNCTIONALITY FROM THIS CLASS INTO A DEDICATED CLASS FOR SAVING RESULTS
                     self.processes_df.loc[len(self.processes_df.index)] = [
                         current_metrics.time_since_start,
                         pid,

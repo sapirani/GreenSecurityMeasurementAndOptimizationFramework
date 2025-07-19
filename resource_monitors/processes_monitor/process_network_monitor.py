@@ -25,7 +25,6 @@ class ProcessNetworkMonitor:
 
     Note: this class monitors packets captured in any interface
     """
-    # TODO: IMPLEMENT SOMEWHERE THE ABILITY TO SKIP NETWORK MONITORING IF IT'S NOT NEEDED SINCE IT IS EXHAUSTIVE
     def __init__(self, interfaces):
         self._interfaces = interfaces
 

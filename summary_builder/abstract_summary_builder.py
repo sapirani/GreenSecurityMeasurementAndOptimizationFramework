@@ -51,8 +51,6 @@ class AbstractSummaryBuilder(ABC):
             summary_df: pd.DataFrame, num_of_processes: int, sub_disk_df: pd.DataFrame,
             sub_network_df: pd.DataFrame, sub_all_processes_df: pd.DataFrame
     ):
-        # TODO: merge cells to one
-
         none_list = ["X" for _ in range(num_of_processes - 1)]
 
         total_disk_read_time = sub_disk_df[DiskIOColumns.READ_TIME].sum()

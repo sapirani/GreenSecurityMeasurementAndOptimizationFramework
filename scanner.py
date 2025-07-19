@@ -46,7 +46,6 @@ start_date: datetime = datetime.now(timezone.utc)
 processes_ids = []
 processes_names = []
 
-# TODO: maybe its better to calculate MEMORY(%) in the end of scan in order to reduce calculations during scanning
 processes_df = pd.DataFrame(columns=processes_columns_list)
 
 memory_df = pd.DataFrame(columns=memory_columns_list)
@@ -195,9 +194,6 @@ def save_data_when_battery_is_too_low():
     done_scanning_event.set()
 
 
-# TODO: maybe use done_scanning_event.is_set() directly instead of returning True / False
-# So this function will only set done_scanning_event according to termination conditions
-# (e.g., predefined scanning time has passed)
 def should_scan():
     """_summary_: check what is the scan option
 
@@ -252,7 +248,6 @@ def continuously_measure():
     """
     running_os.init_thread()
 
-    # TODO: lock thread until process starts
     # init prev_disk_io by first disk io measurements (before scan)
     prev_disk_io = psutil.disk_io_counters()
     prev_network_io = psutil.net_io_counters()
@@ -514,7 +509,6 @@ def start_background_processes():
     and the pid of the process
     """
     background_processes = [start_process(background_program) for background_program in background_programs]
-    # TODO: think how to check if there are errors without sleeping - waiting for process initialization
     time.sleep(5)
 
     for (background_process, child_process_id), background_program in zip(background_processes, background_programs):
@@ -550,7 +544,6 @@ def terminate_due_to_exception(background_processes, program_name, err):
     raise Exception("An error occurred in child program %s: %s", program_name, err)
 
 
-# TODO: unify all kill methods, and ensure that we are not missing setting done_scanning_event.set()
 def kill_process(child_process_id, powershell_process):
     try:
         if child_process_id is None:

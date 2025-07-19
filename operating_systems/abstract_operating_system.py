@@ -20,13 +20,13 @@ class AbstractOSFuncs:
     def save_battery_capacity(self, f):
         pass
 
-    def save_system_information(self, f):   # TODO: IMPLEMENT IN LINUX
+    def save_system_information(self, f):
         pass
 
-    def save_physical_memory(self, f):      # TODO: IMPLEMENT IN LINUX
+    def save_physical_memory(self, f):
         pass
 
-    def save_disk_information(self, f):     # TODO: IMPLEMENT IN LINUX
+    def save_disk_information(self, f):
         pass
 
     def message_box(self, title, text, style):
@@ -103,7 +103,6 @@ class AbstractOSFuncs:
         return process.wait()
 
     @abstractmethod
-    # TODO: make balance the default
     def change_power_plan(self, name, identifier):
         pass
 
