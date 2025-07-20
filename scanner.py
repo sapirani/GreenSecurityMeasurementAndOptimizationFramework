@@ -177,7 +177,7 @@ def time_since_start() -> float:
     :return: the total seconds elapsed since the measurement session started
     NOTE: In the case where this measurement is continuing a previous measurement that was early stopped
     (for example, due to low battery) and both measurements represent the same measurement session, the returned
-    time will be the time elapsed since the started of the entire measurement session
+    time will be the time elapsed since the beginning of the entire measurement session
     """
     return time.time() - starting_time
 
