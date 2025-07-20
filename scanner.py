@@ -219,7 +219,7 @@ def save_data_when_too_low_battery():
 # (e.g., predefined scanning time has passed)
 def should_scan():
     """
-    Checks what is the scan option
+    Checks whether the measurements thread should continue to measure
     :return: True if measurement thread should perform another iteration or False if it should terminate
     """
     if battery_monitor.is_battery_too_low(battery_df):
