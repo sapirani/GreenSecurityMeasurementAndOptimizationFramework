@@ -87,7 +87,37 @@ It is possible to configure the computer's power plan during measurements. The a
 
 ### Available Programs
 This project currently supports the following programs (it is very easy to add another program - [perform the following steps](#supporting-additional-programs)):
-# TODO: INSERT HERE ALL IMPLEMENTED ALGORITHMS
+1. MessageEncryptor - encrypts all messages in the given file and writes the serialized ciphertexts into results file.
+2. MessageDecryptor - decrypts all ciphertexts in the given file and writes the plaintexts into results file.
+3. EncryptionPipeline - encrypts and decrypts each message in the given file and writes to results file whether the decryption led to the original plaintext.
+4. MessageAddition -
+  - In Homomorphic algorithms - first encrypts all messages, than sums the ciphertexts and finally decrypts the result.
+  - In traditional algorithms - first decrypts all ciphertexts, than sums the plaintexts.
+5. MessageMultiplication - Same as MessageAddition, but calculating the multiplication of the messages.
+
+For each program you need to define the algorithm that will be used to execute the operation. The algorithm should be of type `EncryptionType`.
+The available algorithms are:
+1. Paillier - implemented without using existing libraries.
+2. RSA - implemented without using existing libraries.
+3. LightPheRSA - the algorithm RSA implemented using the library lightphe.
+4. LightPheElGamal - the algorithm Elgamal implemented using the library lightphe.
+5. LightPheExponentialElGamal - the algorithm Exponential ElGamal implemented using the library lightphe.
+6. LightPhePaillier - the algorithm Paillier implemented using the library lightphe.
+7. LightPheDamgardJurik - the algorithm Damgard Jurik implemented using the library lightphe.
+8. LightPheOkamotoUchiyama - the algorithm Okamoto Uchiyama implemented using the library lightphe.
+9. LightPheBenaloh - the algorithm Benloh implemented using the library lightphe.
+10. LightPheNaccacheStern - the algorithm Naccache Stern implemented using the library lightphe.
+11. LightPheGoldwasserMicali - the algorithm Goldwasser Micali implemented using the library lightphe.
+12. LightPheEllipticCurveElGamal - the algorithm Elliptic Curve Elgamal implemented using the library lightphe.
+13. CKKSTenseal - the algorithm CKKS implemented using the TenSeal library.
+14. BFVTenseal - the algorithm BFV implemented using the TenSeal library.
+15. FernetAES - the algorithm AES implemented using the Fernet library.
+16. PycryptoAES - the algorithm AES implemented using the Pycryptodome library.
+17. PycryptoDES - the algorithm DES implemented using the Pycryptodome library.
+18. PycryptoBlowfish - the algorithm Blowfish implemented using the Pycryptodome library.
+19. PycryptoChaCha20 - the algorithm ChaCha implemented using the Pycryptodome library.
+20. PycryptoArc4 - the algorithm Arc4 implemented using the Pycryptodome library.
+21. PycryptoRSA - the algorithm RSA implemented using the Pycryptodome library.
 
 #### Using Elastic to Analyze Results:
 Make sure your elastic details are written inside the program_parameters.py file.
