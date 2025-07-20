@@ -9,6 +9,7 @@ import time
 import warnings
 
 from statistics import mean
+from typing import TextIO, Tuple, List
 
 from human_id import generate_id
 from prettytable import PrettyTable
@@ -20,6 +21,8 @@ from application_logging.filters.scanner_filter import ScannerLoggerFilter
 from initialization_helper import *
 from datetime import date, datetime, timezone
 from pathlib import Path
+
+from tasks.program_classes.abstract_program import ProgramInterface
 from utils.general_functions import EnvironmentImpact, BatteryDeltaDrain
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 
@@ -63,6 +66,11 @@ finished_scanning_time = []
 
 
 def handle_sigint(signum, frame):
+    """
+    This function captures a signal (typically SIGINT), and terminates the program gracefully.
+    It sends signal to the main program, instructing it to exit gracefully and set the global event to instruct this
+    program's threads to exit.
+    """
     print("Got signal, writing results and terminating")
     if main_process:
         running_os.kill_process_gracefully(main_process.pid)  # killing the main process
@@ -70,7 +78,7 @@ def handle_sigint(signum, frame):
 
 
 def save_current_total_memory():
-    """_summary_: take memory information and append it to a dataframe
+    """Monitors memory information and append it to the relevant dataframe
     """
     if is_inside_container:
         memory_used_bytes, memory_used_percent = running_os.get_container_total_memory_usage()
@@ -91,24 +99,21 @@ def save_current_total_memory():
 
 
 def dataframe_append(df, element):
-    """_summary_: append an element to a dataframe
+    """
 
-    Args:
-        df : dataframe to append to
-        element (): element to append
+    :param df: dataframe to append to
+    :param element: element to append
     """
     df.loc[len(df.index)] = element
 
 
 def save_current_disk_io(previous_disk_io):
-    """_summary_: take disk io information and append it to a dataframe
-
-    Args:
-        previous_disk_io : previous disk io information
-
-    Returns:
-        disk_io_stat: psutil.disk_io_counters
     """
+    Monitors disk io information and appends it to the relevant dataframe
+    :param previous_disk_io: previous disk io information
+    :return: current psutil.disk_io_counters
+    """
+
     disk_io_stat = psutil.disk_io_counters()
     disk_io_each_moment_df.loc[len(disk_io_each_moment_df.index)] = [
         time_since_start(),
@@ -136,6 +141,11 @@ def save_current_disk_io(previous_disk_io):
 
 
 def save_current_network_io(previous_network_io):
+    """
+    Monitors network io information and appends it to the relevant dataframe
+    :param previous_network_io: previous network io information
+    :return: current psutil.net_io_counters
+    """
     network_io_stat = psutil.net_io_counters()
 
     dataframe_append(
@@ -163,19 +173,28 @@ def save_current_network_io(previous_network_io):
 
 
 def time_since_start() -> float:
+    """
+    :return: the total seconds elapsed since the measurement session started
+    NOTE: In the case where this measurement is continuing a previous measurement that was early stopped
+    (for example, due to low battery) and both measurements represent the same measurement session, the returned
+    time will be the time elapsed since the beginning of the entire measurement session
+    """
     return time.time() - starting_time
 
 
 def scan_time_passed():
-    """_summary_: check if the minimum scan time has passed
-
-    Returns:
-        bool: True if the minimum scan time has passed, False otherwise
+    """
+    Checks if the minimum scan time has passed
+    :return: True if the minimum scan time has passed, False otherwise
     """
     return time_since_start() >= RUNNING_TIME
 
 
 def save_data_when_too_low_battery():
+    """
+    Stores metadata before battery depletes, to be able to continue the same measurement session from the same point
+    when the device will be recharged.
+    """
     with open(GENERAL_INFORMATION_FILE, 'a') as f:
         f.write("EARLY TERMINATION DUE TO LOW BATTERY!!!!!!!!!!\n\n")
     finished_scanning_time.append(time_since_start())
@@ -199,10 +218,9 @@ def save_data_when_too_low_battery():
 # So this function will only set done_scanning_event according to termination conditions
 # (e.g., predefined scanning time has passed)
 def should_scan():
-    """_summary_: check what is the scan option
-
-    Returns:
-        True if measurement thread should perform another iteration or False if it should terminate
+    """
+    Checks whether the measurements thread should continue to measure
+    :return: True if measurement thread should perform another iteration or False if it should terminate
     """
     if battery_monitor.is_battery_too_low(battery_df):
         save_data_when_too_low_battery()
@@ -219,7 +237,7 @@ def should_scan():
 
 def save_current_total_cpu():
     """
-    This function saves the total cpu usage of the system
+    Saves the total cpu usage of the system
     """
     total_cpu_per_core = psutil.cpu_percent(percpu=True)
     if is_inside_container:
@@ -282,7 +300,7 @@ def continuously_measure():
     done_scanning_event.set()   # releasing waiting threads / processes
 
 
-def save_general_disk(f):
+def save_general_disk(f: TextIO):
     """
     This function writes disk info to a file.
     :param f: text file to write the battery info
@@ -301,11 +319,10 @@ def save_general_disk(f):
     f.write('\n')
 
 
-def save_general_system_information(f):
+def save_general_system_information(f: TextIO):
     """
     This function saves general info about the platform to a file.
-    :param f:
-    :return:
+    :param f: text file to write the battery info
     """
     platform_system = platform.uname()
 
@@ -479,7 +496,7 @@ def is_delta_capacity_achieved():
     return BatteryDeltaDrain.from_battery_drain(battery_df).mwh_drain >= MINIMUM_DELTA_CAPACITY
 
 
-def start_process(program_to_scan):
+def start_process(program_to_scan: ProgramInterface) -> Tuple[psutil.Popen, int]:
     """
     This function creates a process that runs the given program
     :param program_to_scan: the program to run. Can be either the main program or background program
@@ -511,11 +528,11 @@ def start_process(program_to_scan):
     return shell_process, pid
 
 
-def start_background_processes():
+def start_background_processes() -> List[Tuple[psutil.Popen, int]]:
     """
     Start a process per each background program using start_process function above.
     If there is an error when creating a process, terminate all process and notify user
-    :return: list of tuples. each tuple contains a process object as returned by subprocesses popen
+    :return: list of tuples. each tuple contains a process object as returned by psutil popen
     and the pid of the process
     """
     background_processes = [start_process(background_program) for background_program in background_programs]
@@ -701,6 +718,11 @@ def can_proceed_towards_measurements():
 
 
 def initialize_total_cpu():
+    """
+    CPU measurements are relative to the previous measurement.
+    For that reason, the first CPU measurement is performed for initialization and the received value of that first
+    measurement is meaningless.
+    """
     psutil.cpu_percent(percpu=True)  # first call to psutil with cpu is meaningless
     try:
         if is_inside_container:
@@ -711,6 +733,11 @@ def initialize_total_cpu():
 
 
 def print_warnings_system_adjustments(exception: Exception):
+    """
+    Should be called upon receiving an exception during pre/post configurations of measured environment.
+    For example, when screen brightness could not be modified
+    :param exception: the received exception
+    """
     print(f"Warning! {exception}")
     print("Warning! Ensure that the parameter is_inside_container is set to True if you run inside container")
     print("Warning! Skipping system adjustments (e.g., brightness, power settings")
@@ -718,6 +745,9 @@ def print_warnings_system_adjustments(exception: Exception):
 
 
 def before_scanning_operations():
+    """
+    Pre-configuration of measured environment. For example - modify the screen brightness to a certain value.
+    """
     battery_monitor.check_if_battery_plugged()
 
     if disable_real_time_protection_during_measurement and running_os.is_tamper_protection_enabled():
@@ -756,6 +786,10 @@ def before_scanning_operations():
 
 
 def after_scanning_operations(should_save_results=True):
+    """
+    Post-configuration of measured environment. For example - restoring device's power plan to what it was prior
+    this measurement.
+    """
     if should_save_results:
         save_results_to_files()
 
@@ -787,6 +821,8 @@ def get_starting_time() -> float:
         start_timestamp: <timestamp>
         end_timestamp: <timestamp>
     }
+    :return: the current time minus the total time passed so far from the entire measurement session, even if it
+    was previously stopped (for example, due to low battery).
     """
     if os.path.exists(BACKED_UP_SCANNING_TIMESTAMPS_PATH):
         print("NOTE! backup directory exists. It is used for preserving the state of unfinished measurement that"
