@@ -12,4 +12,4 @@ class MessageAdder(EncryptionProgram):
                          min_key_value, max_key_value)
 
     def get_program_name(self):
-        return "Messages Addition (Encryption)"
+        return "MessagesAddition"

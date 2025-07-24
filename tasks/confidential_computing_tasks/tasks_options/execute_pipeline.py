@@ -34,13 +34,11 @@ def get_message(messages_file_path: str, alg: SecurityAlgorithm, action: ActionT
     if action == ActionType.Encryption or action == ActionType.FullPipeline or action == ActionType.Addition or action == ActionType.Multiplication:
         messages = extract_messages_from_file(messages_file_path)
     elif action == ActionType.Decryption:
-        messages = alg.load_encrypted_messages(messages_file_path)
+        messages = alg.load_encrypted_messages(messages_file_path, starting_index)
     else:
         messages = []
 
-    if starting_index >= len(messages):
-        return messages
-    return messages[starting_index:]
+    return messages
 
 
 def save_messages_for_pipeline(messages: list, results_path: str, alg: SecurityAlgorithm, action: ActionType,
@@ -80,6 +78,8 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
                                 initial_message_index=last_message_index)
     signal.signal(signal.SIGBREAK, partial(handle_signal, storage=storage, done_event=done_event))
     signal.signal(signal.SIGTERM, partial(handle_signal, storage=storage, done_event=done_event))
+
+    extract_key_for_algorithm(params.key_file, encryption_instance, action_type, last_message_index)
 
     messages = get_message(params.path_for_messages, encryption_instance, action_type, last_message_index)
     for message in messages:

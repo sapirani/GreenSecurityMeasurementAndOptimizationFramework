@@ -10,6 +10,7 @@ import warnings
 
 from statistics import mean
 
+import psutil
 from human_id import generate_id
 from prettytable import PrettyTable
 from threading import Thread, Timer
@@ -20,6 +21,9 @@ from application_logging.filters.scanner_filter import ScannerLoggerFilter
 from initialization_helper import *
 from datetime import date, datetime, timezone
 from pathlib import Path
+
+from utils.general_consts import GB, KB, MemoryColumns, NUMBER_OF_CORES, get_scanner_version_name, PROCESS_ID_PHRASE, \
+    BACKGROUND_ID_PHRASE, ProcessesColumns, YES_BUTTON, NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE
 from utils.general_functions import EnvironmentImpact, BatteryDeltaDrain
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 
@@ -186,7 +190,7 @@ def is_memory_too_high(memory_total_df: pd.DataFrame) -> bool:
         return False
 
     current_memory_usage_percent = memory_total_df.iloc[len(memory_total_df) - 1].at[MemoryColumns.USED_PERCENT]
-    consecutive_high_memory_occurrences = consecutive_high_memory_occurrences + 1 if current_memory_usage_percent >= 97 else 0
+    consecutive_high_memory_occurrences = consecutive_high_memory_occurrences + 1 if current_memory_usage_percent >= 87 else 0
 
     return consecutive_high_memory_occurrences >= 3
 
@@ -220,9 +224,9 @@ def should_scan():
     Returns:
         True if measurement thread should perform another iteration or False if it should terminate
     """
-    if is_memory_too_high(memory_df):
-        save_data_when_resource_reaches_limit("HIGH MEMORY")
-        return False
+    # if is_memory_too_high(memory_df):
+    #     save_data_when_resource_reaches_limit("HIGH MEMORY")
+    #     return False
 
     if battery_monitor.is_battery_too_low(battery_df):
         save_data_when_resource_reaches_limit("LOW BATTERY")

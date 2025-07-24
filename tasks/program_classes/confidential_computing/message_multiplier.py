@@ -12,4 +12,4 @@ class MessageMultiplier(EncryptionProgram):
                          min_key_value, max_key_value)
 
     def get_program_name(self):
-        return "Messages Multiplication (Encryption)"
+        return "MessagesMultiplication"

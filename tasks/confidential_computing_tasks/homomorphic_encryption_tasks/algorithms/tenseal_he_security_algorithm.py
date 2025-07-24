@@ -115,13 +115,13 @@ class TensealSecurityAlgorithm(HomomorphicSecurityAlgorithm[T]):
         try:
             return c1 + c2
         except Exception as e:
-            raise NotImplementedError(f"tenseal with {self.schema} schema does not support adding messages.")
+            raise NotImplementedError(f"tenseal with {self.schema} schema does not support adding messages. The error: {e}")
 
     def multiply_messages(self, c1: T, c2: T) -> T:
         try:
             return c1 * c2
         except Exception as e:
-            raise NotImplementedError(f"tenseal with {self.schema} schema does not support multiplying messages.")
+            raise NotImplementedError(f"tenseal with {self.schema} schema does not support multiplying messages. The error: {e}")
 
     def scalar_and_message_multiplication(self, c: T, scalar: int) -> T:
         try:
