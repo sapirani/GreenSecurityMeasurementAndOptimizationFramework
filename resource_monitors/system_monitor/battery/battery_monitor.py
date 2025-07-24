@@ -16,7 +16,6 @@ class BatteryMonitor(AbstractBatteryMonitor):
         if battery is not None and battery.power_plugged:  # ensure that charging cable is unplugged in laptop
             raise Exception("Unplug charging cable during measurements!")
 
-    # TODO: REMOVE THE FUNCTIONALITY OF SAVING RESULTS FROM THIS CLASS INTO A DEDICATED CLASS
     def save_battery_stat(self, battery_df: pd.DataFrame, time_interval: float) -> None:
         """_summary_: take battery information and append it to a dataframe
 
@@ -33,7 +32,6 @@ class BatteryMonitor(AbstractBatteryMonitor):
 
         self.running_os.insert_battery_state_to_df(battery_df, time_interval, battery.percent)
 
-    # TODO: REMOVE THIS FUNCTIONALITY INTO A DEDICATED CLASS?
     def save_general_battery(self, f: TextIO) -> None:
         """
         This function writes battery info to a file.

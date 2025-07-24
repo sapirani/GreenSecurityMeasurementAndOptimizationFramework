@@ -17,4 +17,4 @@ COPY . .
 
 VOLUME ["/green_security_measurements"]
 
-#ENTRYPOINT ["green_security_venv/bin/python", "scanner.py"]
+ENTRYPOINT ["green_security_venv/bin/python", "scanner.py"]

@@ -20,7 +20,7 @@ class LinuxContainerMemoryReader(AbstractLinuxContainerResourceReader):
     def get_memory_usage_percent(self) -> float:
         usage = self.get_memory_usage_bytes()
         if self.__memory_limit <= 0:
-            return 0.0  # TODO: check if this is the right value
+            return 0.0
         return (usage / self.__memory_limit) * 100
 
     def __get_host_memory_limit(self) -> int:
