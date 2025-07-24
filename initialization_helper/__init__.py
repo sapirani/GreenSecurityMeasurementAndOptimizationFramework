@@ -6,6 +6,8 @@ from initialization_helper.process_monitor_factory import process_monitor_factor
 from initialization_helper.program_factory import program_to_scan_factory
 from initialization_helper.summary_builder_factory import summary_builder_factory
 from program_parameters import *
+from utils.general_consts import BatteryColumns, MemoryColumns, get_core_name, NUMBER_OF_CORES, CPUColumns, \
+    DiskIOColumns, NetworkIOColumns, MEASUREMENT_NAME_DIR, ProcessesColumns
 
 # ======= Get Operating System Type =======
 running_os = running_os_factory(is_inside_container=is_inside_container)

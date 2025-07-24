@@ -1,9 +1,10 @@
 import json
 import math
+import os
 import pickle
 import threading
 from abc import ABC, abstractmethod
-from typing import TypeVar, Generic, Optional, Callable
+from typing import TypeVar, Generic, Optional, Callable, Generator
 
 from sentry_sdk.serializer import serialize
 
@@ -31,22 +32,54 @@ class SecurityAlgorithm(ABC, Generic[T]):
         except FileNotFoundError:
             print("Something went wrong with saving the encrypted messages")
 
-    def load_encrypted_messages(self, file_name: str) -> list[T]:
+    def load_encrypted_messages(self, file_name: str, starting_index: int) -> Generator[T, None, None]:
         try:
-            with open(file_name, 'rb') as messages_file:
-                deserialized_messages = []
-                while True:
-                    try:
-                        encrypted_messages_portion = pickle.load(messages_file)
-                        deserialized_messages_portion = self._get_deserializable_encrypted_messages(encrypted_messages_portion)
-                        deserialized_messages.extend(deserialized_messages_portion)
-                    except EOFError:
-                        break
+            file_idx = 1
+            while True:
+                file_parts = file_name.split(".")
+                current_file = f"{file_parts[0]}{file_idx}{file_idx}.{file_parts[1]}"
+                if os.path.exists(current_file):
+                    with open(f"{current_file}", 'rb') as messages_file:
+                        while True:
+                            try:
+                                encrypted_messages_portion = pickle.load(messages_file)
+                                print("LEN: {}".format(len(encrypted_messages_portion)))
+                                if len(encrypted_messages_portion) > starting_index:
+                                    encrypted_messages_portion = encrypted_messages_portion[starting_index:]
+                                    starting_index = 0
+                                    for encrypted_msg in encrypted_messages_portion:
+                                        deserialized_message = self.deserialize_message(encrypted_msg)
+                                        yield deserialized_message
+                                else:
+                                    starting_index -= len(encrypted_messages_portion)
+                            except EOFError:
+                                break
 
-                return deserialized_messages
-        except FileNotFoundError:
-            print("Something went wrong with loading the encrypted messages")
-        raise RuntimeError("Could not load the encrypted messages.")
+                        file_idx += 1
+                        if file_idx == 4:
+                            break
+                else:
+                    break
+
+        except Exception as e:
+            print("Something went wrong with loading the encrypted messages", e)
+
+    # def load_encrypted_messages(self, file_name: str) -> list[T]:
+    #     try:
+    #         with open(file_name, 'rb') as messages_file:
+    #             deserialized_messages = []
+    #             while True:
+    #                 try:
+    #                     encrypted_messages_portion = pickle.load(messages_file)
+    #                     deserialized_messages_portion = self._get_deserializable_encrypted_messages(encrypted_messages_portion)
+    #                     deserialized_messages.extend(deserialized_messages_portion)
+    #                 except EOFError:
+    #                     break
+    #
+    #             return deserialized_messages
+    #     except FileNotFoundError:
+    #         print("Something went wrong with loading the encrypted messages")
+    #     raise RuntimeError("Could not load the encrypted messages.")
 
     def calc_encrypted_sum(self, messages: list[int], done_event: threading.Event, start_total: Optional[T] = None, checkpoint_callback: Optional[Callable[[int, T], None]] = None) -> T:
         regular_sum = sum(messages)
@@ -58,9 +91,6 @@ class SecurityAlgorithm(ABC, Generic[T]):
 
     def _get_serializable_encrypted_messages(self, encrypted_messages: list[T]) -> list[bytes]:
         return [self.serialize_message(msg) for msg in encrypted_messages]
-
-    def _get_deserializable_encrypted_messages(self, serialized_encrypted_messages: list[bytes]) -> list[T]:
-        return [self.deserialize_message(msg) for msg in serialized_encrypted_messages]
 
     @abstractmethod
     def _generate_and_save_key(self, key_file) -> KeyDetails:
