@@ -3,6 +3,9 @@ import platform
 import subprocess
 import os
 import signal
+from typing import TextIO, List
+
+import pandas as pd
 import psutil
 
 from utils.general_consts import MINUTE, NEVER_GO_TO_SLEEP_MODE, YES_BUTTON, NO_BUTTON, PowerPlan
@@ -20,11 +23,11 @@ class LinuxOS(AbstractOSFuncs):
         self.__container_memory_usage_reader = LinuxContainerMemoryReader() if is_inside_container else None
 
     @staticmethod
-    def get_value_of_terminal_res(res):
+    def get_value_of_terminal_res(res: subprocess.CompletedProcess) -> List[str]:
         res_lst = res.stdout.decode("utf-8").strip().split("\n")
         return list(map(lambda res_line: res_line[res_line.rfind(":") + 2:].strip(), res_lst))
 
-    def get_computer_info(self, is_inside_container: bool):
+    def get_computer_info(self, is_inside_container: bool) -> str:
         if is_inside_container:
             return f"results_{self.get_hostname()}"
 
@@ -41,8 +44,8 @@ class LinuxOS(AbstractOSFuncs):
             return f"results_{manufacturer}_{platform.system()}_{platform.release()}"
         return f"results_{platform.system()}_{platform.release()}"
 
-    def change_sleep_and_turning_screen_off_settings(self, screen_time=DEFAULT_SCREEN_TURNS_OFF_TIME,
-                                                     sleep_time=DEFAULT_TIME_BEFORE_SLEEP_MODE):
+    def change_sleep_and_turning_screen_off_settings(self, screen_time: int = DEFAULT_SCREEN_TURNS_OFF_TIME,
+                                                     sleep_time: int = DEFAULT_TIME_BEFORE_SLEEP_MODE) -> None:
         # avoid turning the screen off (avoid suspend)
         result_screen = subprocess.run(f'sudo -H -u $SUDO_USER DISPLAY:=0 DBUS_SESSION_BUS_ADDRESS='
                                        f'unix:path=/run/user/$SUDO_UID/bus gsettings set org.gnome.desktop.session '
@@ -70,10 +73,7 @@ class LinuxOS(AbstractOSFuncs):
         if result_sleep.returncode != 0:
             raise Exception(f'An error occurred while changing sleep mode', result_sleep.stderr)
 
-        # is the following command necessary??? suppose to control the idle time before going to sleep
-        # gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 400
-
-    def message_box(self, title, text, style):
+    def message_box(self, title: str, text: str, style: int) -> bool:
         import tkinter as tk
         from tkinter import messagebox
 
@@ -89,7 +89,7 @@ class LinuxOS(AbstractOSFuncs):
             return YES_BUTTON
         return NO_BUTTON
 
-    def insert_battery_state_to_df(self, battery_df, time_interval, battery_percent):
+    def insert_battery_state_to_df(self, battery_df: pd.DataFrame, time_interval: float, battery_percent: int) -> None:
         res = subprocess.run("upower -i /org/freedesktop/UPower/devices/battery_BAT0 | grep -E 'energy:|voltage'",
                              capture_output=True, shell=True)
 
@@ -117,8 +117,7 @@ class LinuxOS(AbstractOSFuncs):
             }
         )
 
-    def change_power_plan(self, name, identifier):
-        # this is the command to switch to performance plan
+    def change_power_plan(self, name: str, identifier: str) -> None:
         if identifier is None:
             raise Exception(f'The power plan "{name}" is not supported in Linux')
 
@@ -128,10 +127,7 @@ class LinuxOS(AbstractOSFuncs):
         if res.returncode != 0:
             raise Exception(f'An error occurred while changing power plan', res.stderr)
 
-        # "echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
-
-    def get_page_faults(self, psutil_process):
-        # this is the command to switch to performance plan
+    def get_page_faults(self, psutil_process: psutil.Process) -> int:
         res = subprocess.run(f"ps -o min_flt,maj_flt {psutil_process.pid}",
                              capture_output=True, shell=True)
 
@@ -147,16 +143,16 @@ class LinuxOS(AbstractOSFuncs):
         minor_faults, major_faults = int(faults_res[0].strip()), int(faults_res[1].strip())
         return minor_faults + major_faults
 
-    def get_chosen_power_plan_identifier(self):
+    def get_chosen_power_plan_identifier(self) -> str:
         return power_plan[2]
 
-    def get_default_power_plan_name(self):
+    def get_default_power_plan_name(self) -> str:
         return PowerPlan.POWER_SAVER[0]
 
-    def get_default_power_plan_identifier(self):
+    def get_default_power_plan_identifier(self) -> str:
         return PowerPlan.POWER_SAVER[2]
 
-    def save_battery_capacity(self, f):
+    def save_battery_capacity(self, f: TextIO) -> None:
         res = subprocess.run("upower -i /org/freedesktop/UPower/devices/battery_BAT0 |"
                              " grep -E 'energy-full-design|energy-empty'",
                              capture_output=True, shell=True)
@@ -189,7 +185,7 @@ class LinuxOS(AbstractOSFuncs):
         usage_percent = self.__container_memory_usage_reader.get_memory_usage_percent()
         return usage_in_bytes, usage_percent
 
-    def kill_process_gracefully(self, process_pid: int):
+    def kill_process_gracefully(self, process_pid: int) -> None:
         """
         The process might provide a custom handler function for signal.SIGINT
         """
