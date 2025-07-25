@@ -64,23 +64,6 @@ class SecurityAlgorithm(ABC, Generic[T]):
         except Exception as e:
             print("Something went wrong with loading the encrypted messages", e)
 
-    # def load_encrypted_messages(self, file_name: str) -> list[T]:
-    #     try:
-    #         with open(file_name, 'rb') as messages_file:
-    #             deserialized_messages = []
-    #             while True:
-    #                 try:
-    #                     encrypted_messages_portion = pickle.load(messages_file)
-    #                     deserialized_messages_portion = self._get_deserializable_encrypted_messages(encrypted_messages_portion)
-    #                     deserialized_messages.extend(deserialized_messages_portion)
-    #                 except EOFError:
-    #                     break
-    #
-    #             return deserialized_messages
-    #     except FileNotFoundError:
-    #         print("Something went wrong with loading the encrypted messages")
-    #     raise RuntimeError("Could not load the encrypted messages.")
-
     def calc_encrypted_sum(self, messages: list[int], done_event: threading.Event, start_total: Optional[T] = None, checkpoint_callback: Optional[Callable[[int, T], None]] = None) -> T:
         regular_sum = sum(messages)
         return self.encrypt_message(regular_sum)

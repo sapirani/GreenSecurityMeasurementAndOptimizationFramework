@@ -41,17 +41,7 @@ class ProgramInterface:
     def process_ignore_cond(self, p):
         return p.pid == SYSTEM_IDLE_PID
 
-    ######## probably not needed anymore because we don't start powershell process if not needed in popen
-    ######## so the id of the process we are interested in is the pid returned from popen process
-    def find_child_id(self, p, is_posix) -> Union[int, None]:  # from python 3.10 - int | None:
-        # result_screen = subprocess.run(["powershell", "-Command", f'Get-WmiObject Win32_Process -Filter "ParentProcessID={process_pid}" | Select ProcessID'],
-        #                               capture_output=True)
-        # if result_screen.returncode != 0:
-        #    raise Exception(result_screen.stderr)
-
-        # scanning_process_id = int(str(result_screen.stdout).split("\\r\\n")[3: -3][0].strip())
-        # print(scanning_process_id)
-
+    def find_child_id(self, p, is_posix) -> Union[int, None]:
         try:
             children = []
             process_pid = p.pid
