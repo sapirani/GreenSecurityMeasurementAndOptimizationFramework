@@ -45,7 +45,7 @@ def extract_messages_from_file(messages_file: str) -> list[int]:
     return messages
 
 
-def write_messages_to_file(messages_file: str, messages: list[int], should_override_file: bool) -> None:
+def write_messages_to_file(messages_file: str, messages: list[int], should_override_file: bool):
     try:
         mode = "w" if should_override_file else "a"
         with open(messages_file, mode) as f:

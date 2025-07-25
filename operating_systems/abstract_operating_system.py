@@ -19,28 +19,28 @@ class AbstractOSFuncs:
         """
         pass
 
-    def save_battery_capacity(self, f: TextIO) -> None:
+    def save_battery_capacity(self, f: TextIO):
         """
         Save the full capacity of the device's battery into a file
         :param f: an open file to write capacity into
         """
         pass
 
-    def save_system_information(self, f: TextIO) -> None:
+    def save_system_information(self, f: TextIO):
         """
         Save general information about the device (such as manufacturer) into a file
         :param f: an open file to write information into
         """
         pass
 
-    def save_physical_memory(self, f: TextIO) -> None:
+    def save_physical_memory(self, f: TextIO):
         """
         Save information about the installed memory (such as speed, capacity, etc.) into a file
         :param f: an open file to write information into
         """
         pass
 
-    def save_disk_information(self, f: TextIO) -> None:
+    def save_disk_information(self, f: TextIO):
         """
         Save information about the installed disk (such as manufacturer, size, firmware version, etc.) into a file
         :param f: an open file to write information into
@@ -55,7 +55,7 @@ class AbstractOSFuncs:
         pass
 
     @abstractmethod
-    def insert_battery_state_to_df(self, battery_df: pd.DataFrame, time_interval: float, battery_percent: int) -> None:
+    def insert_battery_state_to_df(self, battery_df: pd.DataFrame, time_interval: float, battery_percent: int):
         """
         Save to current battery measurement (remaining capacity and voltage consumption) into a dataframe and log results
         :param battery_df: dataframe to save results into
@@ -140,7 +140,7 @@ class AbstractOSFuncs:
             else:
                 raise e
 
-    def wait_for_thread_termination(self, thread: Thread, done_scanning_event: threading.Event) -> None:
+    def wait_for_thread_termination(self, thread: Thread, done_scanning_event: threading.Event):
         """
         Important - this function should allow the signal handler to strat without blocking interrupts.
         For example, in Windows, performing a simple thread.join() blocks interrupts (so CTRL+C won't stop the program)

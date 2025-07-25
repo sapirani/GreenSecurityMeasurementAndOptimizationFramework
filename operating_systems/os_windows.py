@@ -69,7 +69,7 @@ class WindowsOS(AbstractOSFuncs):
         if result_sleep_mode.returncode != 0:
             raise Exception(f'An error occurred while disabling sleep mode', result_sleep_mode.stderr)
 
-    def insert_battery_state_to_df(self, battery_df: pd.DataFrame, time_interval: float, battery_percent: int) -> None:
+    def insert_battery_state_to_df(self, battery_df: pd.DataFrame, time_interval: float, battery_percent: int):
         import wmi
         t = wmi.WMI(moniker="//./root/wmi")
 
@@ -92,7 +92,7 @@ class WindowsOS(AbstractOSFuncs):
                 }
             )
 
-    def save_battery_capacity(self, f: TextIO) -> None:
+    def save_battery_capacity(self, f: TextIO):
         batts1 = self.c.CIM_Battery(Caption='Portable Battery')
         for i, b in enumerate(batts1):
             f.write('Battery %d Design Capacity: %d mWh\n' % (i, b.DesignCapacity or 0))
@@ -101,7 +101,7 @@ class WindowsOS(AbstractOSFuncs):
         for i, b in enumerate(batts):
             f.write('Battery %d Fully Charged Capacity: %d mWh\n' % (i, b.FullChargedCapacity))
 
-    def save_system_information(self, f: TextIO) -> None:
+    def save_system_information(self, f: TextIO):
         wmi_system = self.c.Win32_ComputerSystem()[0]
 
         f.write(f"PC Type: {pc_types[wmi_system.PCSystemType]}\n")
@@ -109,7 +109,7 @@ class WindowsOS(AbstractOSFuncs):
         f.write(f"System Family: {wmi_system.SystemFamily}\n")
         f.write(f"Model: {wmi_system.Model}\n")
 
-    def save_physical_memory(self, f: TextIO) -> None:
+    def save_physical_memory(self, f: TextIO):
         wmi_physical_memory = self.c.Win32_PhysicalMemory()
 
         for physical_memory in wmi_physical_memory:
@@ -119,7 +119,7 @@ class WindowsOS(AbstractOSFuncs):
             f.write(f"Memory Type: {physical_memory_types[physical_memory.SMBIOSMemoryType]}\n")
             f.write(f"Speed: {physical_memory.Speed} MHz\n")
 
-    def save_disk_information(self, f: TextIO) -> None:
+    def save_disk_information(self, f: TextIO):
         wmi_logical_disks = self.c.Win32_LogicalDisk()
         result = subprocess.run(["powershell", "-Command",
                                  "Get-Disk | Select FriendlyName, Manufacturer, Model,  PartitionStyle, NumberOfPartitions,"
@@ -177,7 +177,7 @@ class WindowsOS(AbstractOSFuncs):
         raise NotImplementedError("Not implemented total memory for windows container")
 
     @override
-    def wait_for_thread_termination(self, thread: Thread, done_scanning_event: threading.Event) -> None:
+    def wait_for_thread_termination(self, thread: Thread, done_scanning_event: threading.Event):
         """
         Since signal handling in windows cannot be interrupted, while waiting to the measurement thread we cannot
         actively stop the program (for example, when using CTRL+C).
@@ -209,7 +209,7 @@ class WindowsOS(AbstractOSFuncs):
         return process.wait()
 
     @override
-    def kill_process_gracefully(self, process_pid: int) -> None:
+    def kill_process_gracefully(self, process_pid: int):
         """
         The process might provide a custom handler function for signal.SIGBREAK
         """

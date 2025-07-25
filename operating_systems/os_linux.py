@@ -45,7 +45,7 @@ class LinuxOS(AbstractOSFuncs):
         return f"results_{platform.system()}_{platform.release()}"
 
     def change_sleep_and_turning_screen_off_settings(self, screen_time: int = DEFAULT_SCREEN_TURNS_OFF_TIME,
-                                                     sleep_time: int = DEFAULT_TIME_BEFORE_SLEEP_MODE) -> None:
+                                                     sleep_time: int = DEFAULT_TIME_BEFORE_SLEEP_MODE):
         # avoid turning the screen off (avoid suspend)
         result_screen = subprocess.run(f'sudo -H -u $SUDO_USER DISPLAY:=0 DBUS_SESSION_BUS_ADDRESS='
                                        f'unix:path=/run/user/$SUDO_UID/bus gsettings set org.gnome.desktop.session '
@@ -89,7 +89,7 @@ class LinuxOS(AbstractOSFuncs):
             return YES_BUTTON
         return NO_BUTTON
 
-    def insert_battery_state_to_df(self, battery_df: pd.DataFrame, time_interval: float, battery_percent: int) -> None:
+    def insert_battery_state_to_df(self, battery_df: pd.DataFrame, time_interval: float, battery_percent: int):
         res = subprocess.run("upower -i /org/freedesktop/UPower/devices/battery_BAT0 | grep -E 'energy:|voltage'",
                              capture_output=True, shell=True)
 
@@ -117,7 +117,7 @@ class LinuxOS(AbstractOSFuncs):
             }
         )
 
-    def change_power_plan(self, name: str, identifier: str) -> None:
+    def change_power_plan(self, name: str, identifier: str):
         if identifier is None:
             raise Exception(f'The power plan "{name}" is not supported in Linux')
 
@@ -152,7 +152,7 @@ class LinuxOS(AbstractOSFuncs):
     def get_default_power_plan_identifier(self) -> str:
         return PowerPlan.POWER_SAVER[2]
 
-    def save_battery_capacity(self, f: TextIO) -> None:
+    def save_battery_capacity(self, f: TextIO):
         res = subprocess.run("upower -i /org/freedesktop/UPower/devices/battery_BAT0 |"
                              " grep -E 'energy-full-design|energy-empty'",
                              capture_output=True, shell=True)
@@ -185,7 +185,7 @@ class LinuxOS(AbstractOSFuncs):
         usage_percent = self.__container_memory_usage_reader.get_memory_usage_percent()
         return usage_in_bytes, usage_percent
 
-    def kill_process_gracefully(self, process_pid: int) -> None:
+    def kill_process_gracefully(self, process_pid: int):
         """
         The process might provide a custom handler function for signal.SIGINT
         """

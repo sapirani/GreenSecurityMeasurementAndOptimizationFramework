@@ -11,12 +11,12 @@ class BatteryMonitor(AbstractBatteryMonitor):
     def __init__(self, running_os):
         self.running_os = running_os
 
-    def check_if_battery_plugged(self) -> None:
+    def check_if_battery_plugged(self):
         battery = psutil.sensors_battery()
         if battery is not None and battery.power_plugged:  # ensure that charging cable is unplugged in laptop
             raise Exception("Unplug charging cable during measurements!")
 
-    def save_battery_stat(self, battery_df: pd.DataFrame, time_interval: float) -> None:
+    def save_battery_stat(self, battery_df: pd.DataFrame, time_interval: float):
         """_summary_: take battery information and append it to a dataframe
 
         Raises:
@@ -32,7 +32,7 @@ class BatteryMonitor(AbstractBatteryMonitor):
 
         self.running_os.insert_battery_state_to_df(battery_df, time_interval, battery.percent)
 
-    def save_general_battery(self, f: TextIO) -> None:
+    def save_general_battery(self, f: TextIO):
         """
         This function writes battery info to a file.
         On laptop devices, charger must be unplugged!
