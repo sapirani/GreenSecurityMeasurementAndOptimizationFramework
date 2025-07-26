@@ -6,6 +6,10 @@ import threading
 from threading import Thread
 import os
 import signal
+from typing import TextIO
+
+import pandas as pd
+import psutil
 from typing_extensions import override
 from utils import general_functions
 from utils.general_consts import PowerPlan, pc_types, GB, physical_memory_types, disk_types
@@ -39,14 +43,7 @@ class WindowsOS(AbstractOSFuncs):
         import pythoncom
         pythoncom.CoInitialize()
 
-    """def popen(self, command):
-        command_list = list(map(lambda s: s.strip('"'), command.split()))
-        return subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        #return subprocess.Popen(["powershell", "-Command", command],
-        #                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-"""
-
-    def get_computer_info(self, is_inside_container: bool):
+    def get_computer_info(self, is_inside_container: bool) -> str:
         wmi_system = self.c.Win32_ComputerSystem()[0]
 
         if is_inside_container:
@@ -74,21 +71,21 @@ class WindowsOS(AbstractOSFuncs):
         # return bool(re.search("IsTamperProtected\s*:\sTrue", str(result.stdout)))
         return get_powershell_result_list_format(result.stdout)[0]["IsTamperProtected"] == "True"
 
-    def get_page_faults(self, psutil_process):
+    def get_page_faults(self, psutil_process: psutil.Process) -> int:
         return psutil_process.memory_info().num_page_faults
 
-    def change_power_plan(self, name, identifier):
+    def change_power_plan(self, name: str, identifier: str):
         result = subprocess.run(["powershell", "-Command", "powercfg /s " + identifier], capture_output=True)
         if result.returncode != 0:
             raise Exception(f'An error occurred while switching to the power plan: {name}', result.stderr)
 
-    def get_chosen_power_plan_identifier(self):
+    def get_chosen_power_plan_identifier(self) -> str:
         return power_plan[1]
 
-    def get_default_power_plan_name(self):
+    def get_default_power_plan_name(self) -> str:
         return PowerPlan.BALANCED[0]
 
-    def get_default_power_plan_identifier(self):
+    def get_default_power_plan_identifier(self) -> str:
         return PowerPlan.BALANCED[1]
 
     def change_real_time_protection(self, should_disable=True):
@@ -100,14 +97,8 @@ class WindowsOS(AbstractOSFuncs):
         if result.returncode != 0:
             raise Exception("Could not change real time protection", result.stderr)
 
-    def change_sleep_and_turning_screen_off_settings(self, screen_time=DEFAULT_SCREEN_TURNS_OFF_TIME,
-                                                     sleep_time=DEFAULT_TIME_BEFORE_SLEEP_MODE):
-        """_summary_ : change the sleep and turning screen off settings
-
-        Args:
-            screen_time :Defaults to DEFAULT_SCREEN_TURNS_OFF_TIME.
-            sleep_time : Defaults to DEFAULT_TIME_BEFORE_SLEEP_MODE.
-        """
+    def change_sleep_and_turning_screen_off_settings(self, screen_time: int = DEFAULT_SCREEN_TURNS_OFF_TIME,
+                                                     sleep_time: int = DEFAULT_TIME_BEFORE_SLEEP_MODE):
         result_screen = subprocess.run(["powershell", "-Command", f"powercfg /Change monitor-timeout-dc {screen_time}"],
                                        capture_output=True)
         if result_screen.returncode != 0:
@@ -119,7 +110,7 @@ class WindowsOS(AbstractOSFuncs):
         if result_sleep_mode.returncode != 0:
             raise Exception(f'An error occurred while disabling sleep mode', result_sleep_mode.stderr)
 
-    def insert_battery_state_to_df(self, battery_df, time_interval, battery_percent):
+    def insert_battery_state_to_df(self, battery_df: pd.DataFrame, time_interval: float, battery_percent: int):
         import wmi
         t = wmi.WMI(moniker="//./root/wmi")
 
@@ -142,7 +133,7 @@ class WindowsOS(AbstractOSFuncs):
                 }
             )
 
-    def save_battery_capacity(self, f):
+    def save_battery_capacity(self, f: TextIO):
         batts1 = self.c.CIM_Battery(Caption='Portable Battery')
         for i, b in enumerate(batts1):
             f.write('Battery %d Design Capacity: %d mWh\n' % (i, b.DesignCapacity or 0))
@@ -151,7 +142,7 @@ class WindowsOS(AbstractOSFuncs):
         for i, b in enumerate(batts):
             f.write('Battery %d Fully Charged Capacity: %d mWh\n' % (i, b.FullChargedCapacity))
 
-    def save_system_information(self, f):
+    def save_system_information(self, f: TextIO):
         wmi_system = self.c.Win32_ComputerSystem()[0]
 
         f.write(f"PC Type: {pc_types[wmi_system.PCSystemType]}\n")
@@ -159,7 +150,7 @@ class WindowsOS(AbstractOSFuncs):
         f.write(f"System Family: {wmi_system.SystemFamily}\n")
         f.write(f"Model: {wmi_system.Model}\n")
 
-    def save_physical_memory(self, f):
+    def save_physical_memory(self, f: TextIO):
         wmi_physical_memory = self.c.Win32_PhysicalMemory()
 
         for physical_memory in wmi_physical_memory:
@@ -169,7 +160,7 @@ class WindowsOS(AbstractOSFuncs):
             f.write(f"Memory Type: {physical_memory_types[physical_memory.SMBIOSMemoryType]}\n")
             f.write(f"Speed: {physical_memory.Speed} MHz\n")
 
-    def save_disk_information(self, f):
+    def save_disk_information(self, f: TextIO):
         wmi_logical_disks = self.c.Win32_LogicalDisk()
         result = subprocess.run(["powershell", "-Command",
                                  "Get-Disk | Select FriendlyName, Manufacturer, Model,  PartitionStyle, NumberOfPartitions,"
@@ -211,10 +202,10 @@ class WindowsOS(AbstractOSFuncs):
         except Exception:
             pass
 
-    def message_box(self, title, text, style):
+    def message_box(self, title: str, text: str, style: int) -> bool:
         return ctypes.windll.user32.MessageBoxW(0, text, title, style)
 
-    def is_posix(self):
+    def is_posix(self) -> bool:
         return False
 
     def get_container_total_cpu_usage(self) -> float:
@@ -227,7 +218,7 @@ class WindowsOS(AbstractOSFuncs):
         raise NotImplementedError("Not implemented total memory for windows container")
 
     @override
-    def wait_for_thread_termination(self, thread: Thread, done_scanning_event: threading.Event) -> None:
+    def wait_for_thread_termination(self, thread: Thread, done_scanning_event: threading.Event):
         """
         Since signal handling in windows cannot be interrupted, while waiting to the measurement thread we cannot
         actively stop the program (for example, when using CTRL+C).
