@@ -6,13 +6,13 @@ from resource_monitors.system_monitor.battery.battery_monitor_interface import A
 
 
 class NullBatteryMonitor(AbstractBatteryMonitor):
-    def check_if_battery_plugged(self) -> None:
+    def check_if_battery_plugged(self):
         pass
 
-    def save_battery_stat(self, battery_df: pd.DataFrame, time_interval: float) -> None:
+    def save_battery_stat(self, battery_df: pd.DataFrame, time_interval: float):
         pass
 
-    def save_general_battery(self, f: TextIO) -> None:
+    def save_general_battery(self, f: TextIO):
         pass
 
     def is_battery_too_low(self, battery_df: pd.DataFrame) -> bool:

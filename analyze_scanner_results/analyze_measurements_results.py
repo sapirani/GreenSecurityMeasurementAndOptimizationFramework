@@ -11,7 +11,7 @@ graphs_output_dir_name = fr"graphs"
 
 
 
-def print_measurement_results(measurement_results_dir: str, container_name: str) -> None:
+def print_measurement_results(measurement_results_dir: str, container_name: str):
     graphs_generator = GraphsGenerator(measurement_dir=measurement_results_dir, container_name=container_name)
     graphs_generator.display_battery_graphs()
     graphs_generator.display_cpu_graphs()

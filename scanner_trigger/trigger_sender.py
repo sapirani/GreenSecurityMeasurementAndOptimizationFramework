@@ -25,7 +25,7 @@ def decorate_addresses(addresses: List[Tuple[str, int]]) -> str:
     return "\n".join([f"Host: {host}, Port: {port}" for host, port in addresses])
 
 
-def main(trigger_message: str, receivers_addresses: List[Tuple[str, int]], session_id: str) -> None:
+def main(trigger_message: str, receivers_addresses: List[Tuple[str, int]], session_id: str):
     logging.info("Sending trigger to the following addresses:\n" + decorate_addresses(receivers_addresses))
 
     for receiver_address in receivers_addresses:

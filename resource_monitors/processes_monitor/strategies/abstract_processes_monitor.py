@@ -91,7 +91,7 @@ class AbstractProcessMonitor(ABC):
         return time.time() - self.start_time
 
     @abstractmethod
-    def save_current_processes_statistics(self) -> None:
+    def save_current_processes_statistics(self):
         """
         This function gets all processes running in the system and order them by their cpu usage
         """
@@ -99,7 +99,7 @@ class AbstractProcessMonitor(ABC):
         pass
 
     # TODO: RENAME THIS FUNCTION WHEN SAVING INTO DATAFRAME GETS OUT OF THIS CLASS
-    def monitor_relevant_processes(self, candidate_processes: Iterable[psutil.Process]) -> None:
+    def monitor_relevant_processes(self, candidate_processes: Iterable[psutil.Process]):
         """
         This function saves the relevant data from the process in dataframe (will be saved later as csv files)
         :param candidate_processes: list of all processes to extract metrics from. They may be filtered by the

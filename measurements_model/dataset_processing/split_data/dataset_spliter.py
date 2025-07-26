@@ -18,7 +18,7 @@ class DatasetSpliter(ABC):
         pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
         pass
 
-    def __save_split(self, x_train: pd.DataFrame, x_test: pd.DataFrame, y_train: pd.Series, y_test: pd.Series) -> None:
+    def __save_split(self, x_train: pd.DataFrame, x_test: pd.DataFrame, y_train: pd.Series, y_test: pd.Series):
         full_train_set = pd.concat([x_train, y_train], axis=1)
         full_test_set = pd.concat([x_test, y_test], axis=1)
 

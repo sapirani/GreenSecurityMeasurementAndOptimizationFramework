@@ -25,7 +25,7 @@ class ElasticSearchLogHandler(logging.Handler):
             print("Cannot connect to Elastic")
             raise ConnectionError("Elasticsearch cluster is not reachable")
 
-    def emit(self, record: logging.LogRecord) -> None:
+    def emit(self, record: logging.LogRecord):
         doc = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,

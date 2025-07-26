@@ -1,7 +1,7 @@
 import logging
 
 
-def setup_logging() -> None:
+def setup_logging():
     # Create a handler for printing to console
     console_handler = logging.StreamHandler()
 
