@@ -32,7 +32,7 @@ from tasks.program_classes.ids.suricata_program import SuricataProgram
 from tasks.program_classes.log_anomaly_detection_program import LogAnomalyDetection
 from tasks.program_classes.network_receiver_program import NetworkReceiver
 from tasks.program_classes.network_sender_program import NetworkSender
-from tasks.program_classes.no_scan_program import NoScanProgram
+from tasks.program_classes.baseline_measurement_program import BaselineMeasurementProgram
 from tasks.program_classes.perfmon_monitoring_program import PerfmonProgram
 from tasks.program_classes.server_program import PythonServer
 from tasks.program_classes.splunk_program import SplunkProgram
@@ -101,8 +101,8 @@ def program_to_scan_factory(program_type: ProgramToScan) -> ProgramInterface:
         return SnortProgram(interface_name, pcap_list_dirs, log_path, configuration_file_path=configuration_file_path)
     if program_type == ProgramToScan.DummyANTIVIRUS:
         return DummyAntivirusProgram(custom_scan_path)
-    if program_type == ProgramToScan.NO_SCAN:
-        return NoScanProgram()
+    if program_type == ProgramToScan.BASELINE_MEASUREMENT:
+        return BaselineMeasurementProgram()
     if program_type == ProgramToScan.Perfmon:
         return PerfmonProgram()
     if program_type == ProgramToScan.UserActivity:

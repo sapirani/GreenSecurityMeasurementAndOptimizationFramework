@@ -226,7 +226,7 @@ def should_scan():
         save_data_when_too_low_battery()
         return False
 
-    if main_program_to_scan == ProgramToScan.NO_SCAN:
+    if main_program_to_scan == ProgramToScan.BASELINE_MEASUREMENT:
         return not scan_time_passed() and not done_scanning_event.is_set()
     elif scan_option == ScanMode.ONE_SCAN:
         return not done_scanning_event.is_set()
@@ -405,7 +405,7 @@ def save_general_information_after_scanning():
             f.write(f'  Number of smartphone charged: {environment_impact.number_of_smartphones_charged}\n')
             f.write(f'  Kilograms of wood burned: {environment_impact.kg_of_woods_burned}\n')
 
-        if main_program_to_scan == ProgramToScan.NO_SCAN:
+        if main_program_to_scan == ProgramToScan.BASELINE_MEASUREMENT:
             measurement_time = finished_scanning_time[-1]
             f.write(f'\nMeasurement duration: {measurement_time} seconds, '
                     f'{measurement_time / 60} minutes\n')
@@ -663,7 +663,7 @@ def scan_and_measure():
     measurements_thread = Thread(target=continuously_measure, args=())
     measurements_thread.start()
 
-    while not main_program_to_scan == ProgramToScan.NO_SCAN and not done_scanning_event.is_set():
+    while not main_program_to_scan == ProgramToScan.BASELINE_MEASUREMENT and not done_scanning_event.is_set():
         main_process, main_process_id = start_process(program)
         timeout_timer = start_timeout(main_process)
         background_processes = start_background_processes()
@@ -693,7 +693,7 @@ def scan_and_measure():
 
     running_os.wait_for_thread_termination(measurements_thread, done_scanning_event)
 
-    if main_program_to_scan == ProgramToScan.NO_SCAN:
+    if main_program_to_scan == ProgramToScan.BASELINE_MEASUREMENT:
         finished_scanning_time.append(time_since_start())
 
 
@@ -832,9 +832,9 @@ def get_starting_time() -> float:
         with open(BACKED_UP_SCANNING_TIMESTAMPS_PATH, "r") as f:
             backed_up_data = json.load(f)
             if backed_up_data["session_id"] == session_id:
-                if main_program_to_scan == ProgramToScan.NO_SCAN:
+                if main_program_to_scan == ProgramToScan.BASELINE_MEASUREMENT:
                     print("WARNING! restoring backed-up state from previous unfinished measurement "
-                          "is not supported in NO_SCAN mode.\n ")
+                          "is not supported in BASELINE_MEASUREMENT mode.\n ")
                 else:
                     print("NOTE! assuming this measurement is a continuation of previously unfinished measurement that"
                           " was interrupted due to low battery")
