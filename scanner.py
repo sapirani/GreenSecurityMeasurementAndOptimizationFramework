@@ -249,7 +249,14 @@ def save_current_total_cpu():
         cpu_sum_across_cores = sum(cpu_per_core)
         number_of_cores = len(cpu_per_core)
 
-    cpu_df.loc[len(cpu_df.index)] = [time_since_start(), cpu_sum_across_cores, cpu_mean_across_cores] + cpu_per_core
+    cpu_sum_across_cores = round(cpu_sum_across_cores, 2)
+    cpu_mean_across_cores = round(cpu_mean_across_cores, 2)
+
+    cpu_df.loc[len(cpu_df.index)] = [
+        time_since_start(),
+        cpu_sum_across_cores,
+        cpu_mean_across_cores
+    ] + cpu_per_core
 
     logger.info(
         "Total CPU measurements",
