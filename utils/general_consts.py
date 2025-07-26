@@ -119,7 +119,8 @@ class MemoryColumns:
 
 class CPUColumns:
     TIME = "Time(sec)"
-    USED_PERCENT = "Total CPU(%)"
+    SUM_ACROSS_CORES_PERCENT = "SUM ACROSS CORES(%)"
+    MEAN_ACROSS_CORES_PERCENT = "MEAN ACROSS CORES(%)"
     CORE = "Core"
 
 
@@ -145,7 +146,8 @@ class ProcessesColumns:
     TIME = "Time(sec)"
     PROCESS_ID = "PID"
     PROCESS_NAME = "PNAME"
-    CPU_CONSUMPTION = "CPU(%)"
+    CPU_SUM_ACROSS_CORES = "CPU SUM ACROSS CORES(%)"
+    CPU_MEAN_ACROSS_CORES = "CPU MEAN ACROSS CORES(%)"
     NUMBER_OF_THREADS = "NUM THREADS"
     USED_MEMORY = "MEMORY(MB)"
     MEMORY_PERCENT = "MEMORY(%)"

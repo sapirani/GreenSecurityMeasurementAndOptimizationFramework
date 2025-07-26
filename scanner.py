@@ -164,8 +164,8 @@ def save_current_network_io(previous_network_io):
         extra={
             "packets_sent": network_io_stat.packets_sent - previous_network_io.packets_sent,
             "packets_received": network_io_stat.packets_recv - previous_network_io.packets_recv,
-            "bytes_sent": (network_io_stat.bytes_sent - previous_network_io.bytes_sent) / KB,
-            "bytes_received": (network_io_stat.bytes_recv - previous_network_io.bytes_recv) / KB
+            "network_kb_sent": (network_io_stat.bytes_sent - previous_network_io.bytes_sent) / KB,
+            "network_kb_received": (network_io_stat.bytes_recv - previous_network_io.bytes_recv) / KB
         }
     )
 
@@ -239,28 +239,26 @@ def save_current_total_cpu():
     """
     Saves the total cpu usage of the system
     """
-    total_cpu_per_core = psutil.cpu_percent(percpu=True)
+    cpu_per_core = psutil.cpu_percent(percpu=True)
     if is_inside_container:
-        total_cpu_sum = running_os.get_container_total_cpu_usage()
+        cpu_sum_across_cores = running_os.get_container_total_cpu_usage()
         number_of_cores = running_os.get_container_number_of_cores()
-        total_cpu_mean = total_cpu_sum / number_of_cores
-        total_cpu_val = total_cpu_sum
+        cpu_mean_across_cores = cpu_sum_across_cores / number_of_cores
     else:
-        total_cpu_mean = mean(total_cpu_per_core)
-        total_cpu_sum = sum(total_cpu_per_core)
-        number_of_cores = len(total_cpu_per_core)
-        total_cpu_val = total_cpu_mean
+        cpu_mean_across_cores = mean(cpu_per_core)
+        cpu_sum_across_cores = sum(cpu_per_core)
+        number_of_cores = len(cpu_per_core)
 
-    cpu_df.loc[len(cpu_df.index)] = [time_since_start(), total_cpu_val] + total_cpu_per_core
+    cpu_df.loc[len(cpu_df.index)] = [time_since_start(), cpu_sum_across_cores, cpu_mean_across_cores] + cpu_per_core
 
     logger.info(
         "Total CPU measurements",
         extra={
-            "mean_cpu_across_cores_percent": total_cpu_mean,
-            "sum_cpu_across_cores_percent": total_cpu_sum,
+            "mean_cpu_across_cores_percent": cpu_mean_across_cores,
+            "sum_cpu_across_cores_percent": cpu_sum_across_cores,
             "number_of_cores": number_of_cores,
             **{f"core{core_index}_percent": core_cpu_usage for core_index, core_cpu_usage in
-               enumerate(total_cpu_per_core)}
+               enumerate(cpu_per_core)}
         }
     )
 
