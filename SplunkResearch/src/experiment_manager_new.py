@@ -144,7 +144,9 @@ class ExperimentManager:
                 distribution_freq=1
             )
             
-        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = -10, skip_on_low_alert = True, use_energy = config.use_energy_reward, use_alert = config.use_alert_reward , is_eval = config.mode == "eval_post_training")  
+        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = -2, skip_on_low_alert = True, use_energy = config.use_energy_reward, use_alert = config.use_alert_reward , is_eval = (config.mode == "eval_post_training"))  
+        # alert_threshold = -6, -2, -10
+        
         if config.use_energy_reward:
                 
             env = EnergyRewardWrapper(
@@ -292,8 +294,12 @@ class ExperimentManager:
             env = self.create_environment(config)
             model = self.create_model(config, env)
             # create eval env
-            eval_config = replace(config, mode="eval")
+            if "eval" not in config.mode:
+                eval_config = replace(config, mode="eval")
+            else:
+                eval_config = config
             eval_config.env_config.env_id = "splunk_eval-v32"
+            eval_config.env_config.rule_frequency = 2880
             eval_config.env_config.end_time = "04/26/2025:23:59:59"
             self.eval_env = self.create_environment(eval_config)
 
@@ -395,7 +401,7 @@ class ExperimentManager:
         """Load model from path"""
         model_cls = self._get_model_class(config.model_type)
         model = model_cls.load(config.model_path, env=env)
-        
+        logger.info(f"Loaded model from {config.model_path}")
         
         return model
         
@@ -488,8 +494,8 @@ class ExperimentManager:
             CustomEvalCallback3(
                 eval_env=self.eval_env,
                 log_dir=f"{self.dirs['tensorboard']._str}/{config.experiment_name}", rules=rules, event_types=event_types,
-                n_eval_episodes=1,
-                eval_freq=480,
+                n_eval_episodes=2,
+                eval_freq=960,
                 best_model_save_path=self.dirs['models'],
                 log_path=self.dirs['logs'],
                 # eval_log_dir=str(self.dirs['tensorboard']/f"eval_{config.experiment_name}"),
@@ -518,62 +524,64 @@ class ExperimentManager:
             smtp.login(my_email, email_password)
             smtp.send_message(msg)
 
-def lr_schedule(initial_value: float, rate: float):
-    """
-    Learning rate schedule:
-        Exponential decay by factors of 10
+# def lr_schedule(initial_value: float, rate: float):
+#     """
+#     Learning rate schedule:
+#         Exponential decay by factors of 10
 
-    :param initial_value: Initial learning rate.
-    :param rate: Exponential rate of decay. High values mean fast early drop in LR
-    :return: schedule that computes
-      current learning rate depending on remaining progress
-    """
-    def func(progress_remaining: float) -> float:
-        """
-        Progress will decrease from 1 (beginning) to 0.
+#     :param initial_value: Initial learning rate.
+#     :param rate: Exponential rate of decay. High values mean fast early drop in LR
+#     :return: schedule that computes
+#       current learning rate depending on remaining progress
+#     """
+#     def func(progress_remaining: float) -> float:
+#         """
+#         Progress will decrease from 1 (beginning) to 0.
 
-        :param progress_remaining:
-        :return: current learning rate
-        """
-        if progress_remaining <= 0:
-            return 1e-9
+#         :param progress_remaining:
+#         :return: current learning rate
+#         """
+#         if progress_remaining <= 0:
+#             return 1e-9
         
-        return initial_value * 10 ** (rate * np.log(progress_remaining))
+#         return initial_value * 10 ** (rate * np.log(progress_remaining))
 
-    return func
-    
-# Example usage:
+#     return func
+
+
+ 
 if __name__ == "__main__":
     # Create experiment config
     retrain_fake_start_datetime = "08/01/2024:00:00:00"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250611165220_102000_steps.zip"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250620175311_35000_steps"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250623144601_43000_steps.zip"
-    # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250624134948_24000_steps.zip"
-    num_episodes = 100
+    # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250711001649_264000_steps.zip"
+    num_episodes = 100000
     action_type = "Action8"
-    for steps in range(151000, 160000, 1000000):
-        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250626010440_{steps}_steps.zip"
-        
+    for steps in range(45000, 160000, 500000):
+        # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250626010440_{steps}_steps.zip"
+        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250726233927_243000_steps.zip"
+        print(f"Model path: {model_path}")
         for learning_rate in [0.0001]:
             for n_steps in [72]:
                 for ent_coef in [0.05]:
-                    for is_random in [False, True]:
+                    for is_random in [False]:
                         lr = 1e-2
                         env_config = SplunkConfig(
                             # fake_start_datetime=retrain_fake_start_datetime,
-                            rule_frequency=600,
+                            rule_frequency=60, #600,
                             search_window=2880,
                             # savedsearches=["rule1", "rule2"],
                             logs_per_minute=150,
                             additional_percentage=1,
                             action_duration=7200, 
-                            num_of_measurements=1,
-                            baseline_num_of_measurements=1,
+                            num_of_measurements=2,
+                            baseline_num_of_measurements=2,
                             env_id="splunk_train-v32",
                             end_time="12/31/2024:23:59:59"       
                         )
-                        sched_LR = lr_schedule(initial_value = 0.01, rate = 5)
+                        # sched_LR = lr_schedule(initial_value = 0.01, rate = 5)
                         experiment_config = ExperimentConfig(
                             env_config=env_config,
                             model_type="ppo",  # ppo, a2c, dqn, etc.
@@ -597,7 +605,7 @@ if __name__ == "__main__":
                         )
                         
                         #retrain model
-                        experiment_config.mode = "eval_post_training"#"eval_post_training"  # eval after training
+                        experiment_config.mode = "retrain"#"eval_post_training"  # eval after training
                         manager = ExperimentManager(base_dir="experiments")
                         results = manager.run_experiment(experiment_config)
 

@@ -80,6 +80,8 @@ class SplunkEnv(gym.Env):
         super().__init__()
         self.splunk_tools  = SplunkTools(savedsearches, config.rule_frequency)
         self.episodic_inserted_logs = 0
+        self.all_data = []
+        self.all_data_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/all_data.csv"
 
         # Initialize time manager
         self.time_manager = TimeManager(
@@ -178,6 +180,7 @@ class SplunkEnv(gym.Env):
         self.rules_rel_diff_alerts = {rule : 0 for rule in self.relevant_logtypes}
         self.is_mock = False
         self.should_delete = False
+        
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
         """Execute environment step."""
         self.step_counter += 1

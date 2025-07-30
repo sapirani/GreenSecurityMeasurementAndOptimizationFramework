@@ -1,5 +1,7 @@
 from ast import Tuple
 import asyncio
+from curses import raw
+from os import path
 import pickle
 import random
 from time import sleep
@@ -18,6 +20,7 @@ from env_utils import *
 import logging
 logger = logging.getLogger(__name__)
 from time_manager import TimeWindow
+std = 13
 
 class AlertPredictor:
     """Separate class to handle alert prediction logic"""
@@ -65,7 +68,8 @@ class AlertPredictor:
             rewards.append(reward)
             
         # return np.mean(rewards) if rewards else 0
-        return min(-(sum(self.current_alerts.values()) - sum(self.expected_alerts.values()))/ (sum(self.expected_alerts.values()) + self.epsilon), 0)
+        return sum(self.current_alerts.values())
+        # return min(-(sum(self.current_alerts.values()) - sum(self.expected_alerts.values()))/ (sum(self.expected_alerts.values()) + self.epsilon), 0)
 
 
 class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
@@ -146,7 +150,9 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 logger.info('Cleaning the environment')
                 clean_env(self.splunk_tools, time_range)
                 logger.info('Measure no agent reward values')
-                
+                logger.info('wait for the environment to be cleaned')
+                sleep(3)
+                                
             if sum(running_dict.values()) > 0:
                 logger.info(f"Running {running_dict}")
                 # Execute rules and get metrics
@@ -189,7 +195,8 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         # Decide whether to execute
         should_execute = True
         if self.enable_prediction and self.skip_on_low_alert:
-            should_execute = ((predicted_reward >= self.alert_threshold) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval
+            should_execute = ((predicted_reward <= (sum(self.expected_alerts.values()) + std)) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval
+            # should_execute = ((predicted_reward >= self.alert_threshold) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval
             self.unwrapped.should_delete = should_execute
             
         # Log decision
@@ -200,8 +207,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             'threshold': self.alert_threshold
         })
         
-        logger.info(f"Alert prediction: reward={predicted_reward:.3f}, "
-                   f"threshold={self.alert_threshold}, execute={should_execute}")
+        logger.info(f"Alert prediction: reward={predicted_reward:.3f}, " f"threshold={self.alert_threshold}, execute={should_execute}")
         
         return should_execute, predicted_reward, raw_baseline_metrics
     
@@ -280,7 +286,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
        
     def reward(self, reward: float) -> float:
         return reward
-     
+      
     def step(self, action):
         """Override step to properly handle info updates with prediction"""
         obs, reward, terminated, truncated, info = super().step(action)
@@ -307,12 +313,13 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             if not self.unwrapped.is_mock:
                 self.env.inject_episodic_logs()
                 # wait for the logs to be injected
-                sleep(5)
+                # sleep(4)
             # Normal execution flow
             raw_metrics, combined_metrics = self.get_current_reward_values(info['current_window'])
             _, combined_baseline_metrics = self.process_metrics(
                 self.get_baseline_data(info['current_window']).groupby('search_name')
             )
+
             info['combined_metrics'] = combined_metrics
             info['combined_baseline_metrics'] = combined_baseline_metrics
             if self.unwrapped.is_mock and (self.use_alert or self.use_energy):
@@ -324,9 +331,22 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                     raw_baseline_metrics[rule]['cpu'] = 0
                     raw_baseline_metrics[rule]['duration'] = 0
                 info['combined_metrics']['alert'] = sum(current_alerts.values())# + sum(baseline_alerts.values())
-
+            #BUILD HERE THE INFO JSON
+            if should_execute:
+                self.unwrapped.all_data.append({
+                    'time_range': info['current_window'],
+                    'ac_fake_distribution': self.unwrapped.ac_fake_distribution,
+                    'raw_metrics':raw_metrics,
+                })
+                if random.randint(0, 1000) % 10 == 0:
+                    # dump and empty the all_data to csv in path if exists
+                    if self.unwrapped.all_data:
+                        all_data_df = pd.json_normalize(self.unwrapped.all_data, sep='_')
+                        all_data_df.to_csv(self.unwrapped.all_data_path, index=False, mode='a', header=not path.exists(self.unwrapped.all_data_path))
+                    
+                    self.unwrapped.all_data = []
             # Set a penalty reward for skipping
-            info['alert_reward'] = predicted_alert_reward
+            # info['alert_reward'] = predicted_alert_reward
             if not self.use_alert:
                 predicted_alert_reward = 0
             dist_reward = -200*(info['ac_distribution_value'] ** 2)
@@ -334,11 +354,20 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             reward = 1
             if info.get('ac_distribution_value', 0) > self.env.distribution_threshold:
                     reward = dist_reward
-                    if predicted_alert_reward < self.alert_threshold:
-                        reward += predicted_alert_reward
+                    if predicted_alert_reward > sum(self.expected_alerts.values())+std:
+                        info['alert_reward'] = - 2**((predicted_alert_reward - sum(self.expected_alerts.values()))//std)
+                        # info['alert_reward'] = -((predicted_alert_reward - sum(self.expected_alerts.values()))/ (sum(self.expected_alerts.values()) + self.epsilon))**((predicted_alert_reward - sum(self.expected_alerts.values()))//std)
+                        reward += info['alert_reward']
+
+                    # if predicted_alert_reward < self.alert_threshold:
+                    #     reward += predicted_alert_reward
             else:
-                if predicted_alert_reward < self.alert_threshold:
-                    reward = predicted_alert_reward
+                # if predicted_alert_reward < self.alert_threshold:
+                #     reward = predicted_alert_reward
+                if predicted_alert_reward > sum(self.expected_alerts.values())+std:
+                    info['alert_reward'] = - 2**((predicted_alert_reward - sum(self.expected_alerts.values()))//std)
+                    # info['alert_reward'] = -((predicted_alert_reward - sum(self.expected_alerts.values()))/ (sum(self.expected_alerts.values()) + self.epsilon))**((predicted_alert_reward - sum(self.expected_alerts.values()))//std)
+                    reward += info['alert_reward']
                 else:
                     reward = 1
 
@@ -354,8 +383,6 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         #             # info['done'] = True
             
         return obs, reward, terminated, truncated, info
-    
-
     
 class EnergyRewardWrapper(RewardWrapper):
     """Wrapper for energy consumption rewards"""
@@ -398,13 +425,14 @@ class EnergyRewardWrapper(RewardWrapper):
             #     energy_reward = 0
             # energy_reward = np.clip(energy_reward, 0, 1) # Normalize to [0, 1]
             info['energy_reward'] = energy_reward
+            logger.info(f"Energy reward: {energy_reward:.3f}, current: {current:.3f}, baseline: {baseline:.3f}")
             # reward +=  energy_reward
             # reward += self.alpha*energy_reward
             if reward != 1:
                 return obs, reward, terminated, truncated, info
-            reward = energy_reward * 100
+            reward = max(energy_reward, 0) * 100
             # reward += self.unwrapped.total_steps*self.alpha*energy_reward
-            # reward = energy_reward/(reward + self.epsilon)
+        # reward = energy_reward/(reward + self.epsilon)
             # reward += self.alpha * energy_reward
             
             
@@ -540,7 +568,7 @@ class DistributionRewardWrapper(RewardWrapper):
         self.gamma = gamma
         self.epsilon = epsilon
         self.distribution_reward_freq = distribution_freq
-        self.distribution_threshold = 0.22
+        self.distribution_threshold = 0.12 #0.18 #0.22
         
         
     def step(self, action):

@@ -37,7 +37,7 @@ class MetricsLoggerCallback:
             self._log_metrics('action_window', f"{action_window}")
 
         # Log reward components
-        for reward_type in ['distribution_reward', 'energy_reward', 'alert_reward']:
+        for reward_type in ['distribution_reward']:
             if reward_type in info:
                 self._log_metrics(reward_type, info[reward_type])
         
@@ -75,6 +75,9 @@ class MetricsLoggerCallback:
         self._log_metrics('final_distribution_value', info.get('distribution_value'))
         self._log_metrics('ac_distribution_value', info.get('ac_distribution_value'))
         self._log_metrics('ac_distribution_reward', info.get('ac_distribution_reward'))
+        self._log_metrics('energy_reward', info.get('energy_reward'))
+        self._log_metrics('alert_reward', info.get('alert_reward'))
+        
         self._log_metrics('total_episode_logs', info.get('total_episode_logs'))
         
         if current_metrics and baseline_metrics:
@@ -105,8 +108,10 @@ class MetricsLoggerCallback:
                     current_val = raw_current_metrics_search.get(metric, None)
                     baseline_val = raw_baseline_metrics_search.get(metric, None)
                     if current_val is not None and baseline_val is not None:
-                        self.writers[search_name].add_scalar(f'{self.phase}/rules_{metric}', current_val, global_step=info['n_calls'])
                         self.writers[search_name].add_scalar(f'{self.phase}/rules_baseline_{metric}', baseline_val, global_step=info['n_calls'])
+                        self.writers[search_name].add_scalar(f'{self.phase}/rules_{metric}', current_val, global_step=info['n_calls'])
+                        # if (metric == 'cpu' and current_val == 0) or (metric == 'duration' and current_val == 0):
+                        #     continue  # Skip logging gaps for zero values                        
                         self.writers[search_name].add_scalar(f'{self.phase}/rules_{metric}_gap', current_val - baseline_val, global_step=info['n_calls'])
                         # current_dict[metric][search_name] = current_val
                         # baseline_dict[metric][search_name] = baseline_val

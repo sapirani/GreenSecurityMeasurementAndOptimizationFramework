@@ -178,7 +178,7 @@ class StateWrapper3(StateWrapper):
         self.observation_space = spaces.Box(
             low=0,
             high=3,
-            shape=(len(self.top_logtypes)*2+2,),  # +1 for 'other' category
+            shape=(len(self.top_logtypes)*2,),  # +1 for 'other' category
             # shape=(len(self.top_logtypes),),  # +1 for 'other' category
             dtype=np.float64
         )
@@ -186,7 +186,7 @@ class StateWrapper3(StateWrapper):
         
     def observation(self, obs):
         """Convert current distributions to normalized state"""
-        # Calculate fake distribution using the latest episode_logs
+        # Calculate fake distribution using the latest episode_logs   
         # This happens AFTER action wrapper has updated episode_logs
         # Update real distribution AFTER action is executed
         if not self.unwrapped.done:
@@ -219,13 +219,12 @@ class StateWrapper3(StateWrapper):
         # state = np.append(state, self.current_real_quantity/100000) 
         # real_total_logs = self.total_current_logs
         real_total_logs = self.total_episode_logs
-        state = np.append(state, real_total_logs/500000)
-        state = np.append(state, (self.unwrapped.episodic_inserted_logs+real_total_logs)/500000)
+        # state = np.append(state, real_total_logs/500000)
+        # state = np.append(state, (self.unwrapped.episodic_inserted_logs+real_total_logs)/500000)
         # # append to state the step index
         # # state = np.append(state, self.env.step_counter/self.env.total_steps)
         # # add sparse vector for step index
 
-        
         # current_datetime = datetime.datetime.strptime(self.env.time_manager.action_window.end, '%m/%d/%Y:%H:%M:%S')
         # weekday_vector = np.zeros(7)
         # weekday_vector[current_datetime.weekday()] = 1
@@ -239,8 +238,8 @@ class StateWrapper3(StateWrapper):
     
     def _normalize(self, state):
         """Normalize state vector"""
-        # return state / (500000)  # Avoid division by zero
-        return state / (sum(state) + 0.0000000001)
+        return (state+ 0.0000000001) / (500000)  # Avoid division by zero
+        # return state / (sum(state) + 0.0000000001)
      
 
      

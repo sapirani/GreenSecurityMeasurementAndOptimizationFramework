@@ -144,7 +144,7 @@ def main():
         #     plt.savefig(f"{results_dir}/cpu_over_time_{rule}.png")
         #     plt.close()
         # normalize X
-        X = X.apply(lambda x: x/sum(x), axis=1)
+        X = X.apply(lambda x: x/100000, axis=1)
         X_alerts = Y[[f"rule_alert_{rule}" for rule in rules]]
         Y = Y[[f"rule_cpu_{rule}" for rule in rules]]
         X_alerts = X_alerts + 0.0001

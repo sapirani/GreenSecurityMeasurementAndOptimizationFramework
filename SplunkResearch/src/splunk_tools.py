@@ -765,15 +765,25 @@ class SplunkTools(object):
         # Use RFC3339 format for Splunk query
         if time_range is None:
             time_range = ("0", datetime.now())
-        start_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
-        end_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
-        job = self.service.jobs.create(
-            f'search index=main host="dt-splunk" | delete', 
-            earliest_time=start_time, 
-            latest_time=end_time,
-            time_format='%Y-%m-%d %H:%M:%S',
-            count=0
-        )
+        if type(time_range) is str:
+            start_time = f"-{time_range}"
+
+            job = self.service.jobs.create(
+                f'search index=main host="dt-splunk" earliest={start_time}| delete', 
+                earliest_time=start_time, 
+                time_format='%Y-%m-%d %H:%M:%S',
+                count=0
+            )
+        else:
+            start_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+            end_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+            job = self.service.jobs.create(
+                f'search index=main host="dt-splunk" | delete', 
+                earliest_time=start_time, 
+                latest_time=end_time,
+                time_format='%Y-%m-%d %H:%M:%S',
+                count=0
+            )
         while True:
             job.refresh()
             if job.content['isDone'] == '1':
