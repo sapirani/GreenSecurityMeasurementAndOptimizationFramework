@@ -103,7 +103,12 @@ class ProcessNetworkMonitor:
             if connection.laddr:
                 self.local_port_to_pid[connection.laddr.port] = pid
 
-    def get_network_stats(self, process: psutil.Process) -> NetworkStats:
+    def get_current_network_stats(self, process: psutil.Process) -> NetworkStats:
+        """
+        :param process: the process to receive measurements
+        :return: network statistics measured since the last call to this function
+        (or since the calling self.start() if it is the first call to this function)
+        """
         try:
             process_connections = process.net_connections()
         except psutil.NoSuchProcess:

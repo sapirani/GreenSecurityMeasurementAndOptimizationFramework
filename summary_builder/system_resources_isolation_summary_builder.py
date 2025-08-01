@@ -30,8 +30,8 @@ class SystemResourceIsolationSummaryBuilder(AbstractSummaryBuilder):
         summary_df.loc[len(summary_df.index)] = ["Duration", *([total_finishing_time for i in range(num_of_processes)])]
 
         # CPU
-        cpu_all_processes = [pd.to_numeric(df[ProcessesColumns.CPU_CONSUMPTION]).mean() for df in sub_all_processes_df]
-        cpu_total = sub_cpu_df[CPUColumns.USED_PERCENT].mean()
+        cpu_all_processes = [pd.to_numeric(df[ProcessesColumns.CPU_SUM_ACROSS_CORES]).mean() for df in sub_all_processes_df]
+        cpu_total = sub_cpu_df[CPUColumns.SUM_ACROSS_CORES_PERCENT].mean()
         cpu_system = cpu_total - sum(cpu_all_processes)
         cpu_total_without_process = [cpu_total - process_cpu for process_cpu in cpu_all_processes]
         summary_df.loc[len(summary_df.index)] = ["CPU Process", *cpu_all_processes, "X"]

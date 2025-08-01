@@ -17,7 +17,8 @@ logger = logging.getLogger("measurements_logger")
 @dataclass
 class ProcessMetrics:
     time_since_start: float
-    cpu_percent: float = 0
+    cpu_percent_sum_across_cores: float = 0     # can exceed 100% in case where process utilizes more than one core
+    cpu_percent_mean_across_cores: float = 0
     threads_num: int = 0
     used_memory_mb: float = 0
     used_memory_percent: float = 0
@@ -26,15 +27,16 @@ class ProcessMetrics:
     disk_read_kb: float = 0
     disk_write_kb: float = 0
     page_faults: int = 0
-    bytes_sent: int = 0
+    network_kb_sent: int = 0
     packets_sent: int = 0
-    bytes_received: int = 0
+    network_kb_received: int = 0
     packets_received: int = 0
 
     def delta(self, prev_metrics: 'ProcessMetrics') -> 'ProcessMetrics':
         return ProcessMetrics(
             time_since_start=self.time_since_start,
-            cpu_percent=self.cpu_percent,  # TODO: consider calculating integral here (trapeze area)
+            cpu_percent_sum_across_cores=self.cpu_percent_sum_across_cores,
+            cpu_percent_mean_across_cores=self.cpu_percent_mean_across_cores,
             threads_num=self.threads_num,
             used_memory_mb=self.used_memory_mb,
             used_memory_percent=self.used_memory_percent,
@@ -43,11 +45,9 @@ class ProcessMetrics:
             disk_read_kb=round(self.disk_read_kb - prev_metrics.disk_read_kb, 3),
             disk_write_kb=round(self.disk_write_kb - prev_metrics.disk_write_kb, 3),
             page_faults=self.page_faults - prev_metrics.page_faults,
-
-            # TODO: I THINK I SHOULD SUBTRACT HERE LIKE IN THE HARDWARE MEASUREMENTS
-            bytes_sent=self.bytes_sent,
+            network_kb_sent=self.network_kb_sent,
             packets_sent=self.packets_sent,
-            bytes_received=self.bytes_received,
+            network_kb_received=self.network_kb_received,
             packets_received=self.packets_received
         )
 
@@ -120,8 +120,8 @@ class AbstractProcessMonitor(ABC):
                     pid = p.pid
                     process_name = p.name()
                     # TODO: CHECK IF IT HOLDS TRUE INSIDE CONTAINERS
-                    cpu_percent = p.cpu_percent() / NUMBER_OF_CORES
-                    process_traffic = self.process_network_monitor.get_network_stats(p)
+                    cpu_percent_sum_across_cores = round(p.cpu_percent(), 2)
+                    process_traffic = self.process_network_monitor.get_current_network_stats(p)
 
                     io_stat = p.io_counters()
                     page_faults = self.running_os.get_page_faults(p)
@@ -141,7 +141,8 @@ class AbstractProcessMonitor(ABC):
 
                     current_raw_metrics = ProcessMetrics(
                         time_since_start=self.time_since_start,
-                        cpu_percent=round(cpu_percent, 2),
+                        cpu_percent_sum_across_cores=cpu_percent_sum_across_cores,
+                        cpu_percent_mean_across_cores=cpu_percent_sum_across_cores / NUMBER_OF_CORES,
                         threads_num=p.num_threads(),
                         used_memory_mb=round(p.memory_info().rss / MB, 3),
                         # TODO: maybe should use uss/pss instead rss?
@@ -151,10 +152,9 @@ class AbstractProcessMonitor(ABC):
                         disk_read_kb=io_stat.read_bytes / KB,
                         disk_write_kb=io_stat.write_bytes / KB,
                         page_faults=page_faults,
-
-                        bytes_sent=(process_traffic.bytes_sent / KB),
+                        network_kb_sent=process_traffic.bytes_sent / KB,
                         packets_sent=process_traffic.packets_sent,
-                        bytes_received=process_traffic.bytes_received / KB,
+                        network_kb_received=process_traffic.bytes_received / KB,
                         packets_received=process_traffic.packets_received
                     )
 
