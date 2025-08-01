@@ -1,7 +1,7 @@
 from utils.general_consts import *
 
 # ======= Scanner Parameters =======
-main_program_to_scan = ProgramToScan.NO_SCAN
+main_program_to_scan = ProgramToScan.BASELINE_MEASUREMENT
 background_programs_types = []  #[ProgramToScan.DummyANTIVIRUS, ProgramToScan.Perfmon]
 
 kill_background_process_when_main_finished = True

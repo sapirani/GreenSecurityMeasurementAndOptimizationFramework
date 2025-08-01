@@ -6,11 +6,11 @@ import pandas as pd
 
 class AbstractBatteryMonitor(ABC):
     @abstractmethod
-    def check_if_battery_plugged(self) -> None:
+    def check_if_battery_plugged(self):
         pass
 
     @abstractmethod
-    def save_battery_stat(self, battery_df: pd.DataFrame, time_interval: float) -> None:
+    def save_battery_stat(self, battery_df: pd.DataFrame, time_interval: float):
         """_summary_: take battery information and append it to a dataframe
 
         Raises:
@@ -19,7 +19,7 @@ class AbstractBatteryMonitor(ABC):
         pass
 
     @abstractmethod
-    def save_general_battery(self, f: TextIO) -> None:
+    def save_general_battery(self, f: TextIO):
         """
         This function writes battery info to a file.
         On laptop devices, charger must be unplugged!

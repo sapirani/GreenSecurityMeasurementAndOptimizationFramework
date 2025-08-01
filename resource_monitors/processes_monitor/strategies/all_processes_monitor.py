@@ -3,7 +3,7 @@ from resource_monitors.processes_monitor.strategies.abstract_processes_monitor i
 
 
 class AllProcessesMonitor(AbstractProcessMonitor):
-    def save_current_processes_statistics(self) -> None:
+    def save_current_processes_statistics(self):
         """
         This function gets all processes running in the system and order them by their cpu usage
         """

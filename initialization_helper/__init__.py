@@ -29,8 +29,8 @@ power_save_plan_name = PowerPlan.POWER_SAVER[0]
 power_save_plan_identifier = PowerPlan.POWER_SAVER[2]
 
 
-if main_program_to_scan == ProgramToScan.NO_SCAN and len(background_programs_types) != 0:
-    raise Exception("NO SCAN mode can't include background programs!")
+if main_program_to_scan == ProgramToScan.BASELINE_MEASUREMENT and len(background_programs_types) != 0:
+    raise Exception("BASELINE_MEASUREMENT mode can't include background programs!")
 
 
 def construct_base_dir_path():
@@ -39,7 +39,7 @@ def construct_base_dir_path():
     """
     computer_info = running_os.get_computer_info(is_inside_container)
 
-    if main_program_to_scan == ProgramToScan.NO_SCAN:
+    if main_program_to_scan == ProgramToScan.BASELINE_MEASUREMENT:
         return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name)
     elif scan_option == ScanMode.ONE_SCAN:
         return os.path.join(computer_info, program.get_program_name(), chosen_power_plan_name, 'One Scan', program.path_adjustments())
@@ -112,7 +112,7 @@ if (pcap_list_dirs is not None and len(pcap_list_dirs) > 0) and interface_name i
     raise Exception("Choose either interface to listen on or pcap files when using IDS, not both")
 
 # ======= Scan Time Checks =======
-if (scan_option == ScanMode.CONTINUOUS_SCAN or main_program_to_scan == ProgramToScan.NO_SCAN) and RUNNING_TIME is None:
+if (scan_option == ScanMode.CONTINUOUS_SCAN or main_program_to_scan == ProgramToScan.BASELINE_MEASUREMENT) and RUNNING_TIME is None:
     raise Exception("MAXIMUM_SCAN_TIME is allowed to be None  only when performing running a regular main program"
                     " in ONE_SCAN mode - the meaning of None is to wait until the main process ends")
 
