@@ -71,7 +71,8 @@ class AbstractOSFuncs:
         pass
 
     @abstractmethod
-    def insert_battery_state_to_df(self, battery_df: pd.DataFrame, time_interval: float, battery_percent: int):
+    def get_battery_capacity_and_voltage(self) -> Tuple[float, float]:
+        # TODO: UPDATE DESCRIPTION
         """
         Save to current battery measurement (remaining capacity and voltage consumption) into a dataframe and log results
         :param battery_df: dataframe to save results into

@@ -4,7 +4,6 @@ from typing import List
 
 import pandas as pd
 
-from utils.general_consts import ProcessesColumns, DiskIOColumns, NetworkIOColumns
 from utils.general_functions import EnvironmentImpact, BatteryDeltaDrain
 
 
@@ -24,7 +23,7 @@ def get_all_df_by_id(processes_df: pd.DataFrame, processes_ids: List[int]):
     """
     Filter the processes dataframe so it will contain only the main and background processes specified by the user
     """
-    return [processes_df[processes_df[ProcessesColumns.PROCESS_ID] == processes_id] for processes_id in processes_ids]
+    return [processes_df[processes_df["pid"] == processes_id] for processes_id in processes_ids]
 
 
 class AbstractSummaryBuilder(ABC):
@@ -49,45 +48,45 @@ class AbstractSummaryBuilder(ABC):
     @staticmethod
     def add_general_resource_metrics_info(
             summary_df: pd.DataFrame, num_of_processes: int, sub_disk_df: pd.DataFrame,
-            sub_network_df: pd.DataFrame, sub_all_processes_df: pd.DataFrame
+            sub_network_df: pd.DataFrame, sub_all_processes_df: List[pd.DataFrame]
     ):
         # TODO: merge cells to one
 
         none_list = ["X" for _ in range(num_of_processes - 1)]
 
-        total_disk_read_time = sub_disk_df[DiskIOColumns.READ_TIME].sum()
-        total_disk_write_time = sub_disk_df[DiskIOColumns.WRITE_TIME].sum()
+        total_disk_read_time = sub_disk_df["disk_read_time"].sum()
+        total_disk_write_time = sub_disk_df["disk_write_time"].sum()
         summary_df.loc[len(summary_df.index)] = ["Disk IO Read Time (ms - sum)", *none_list, total_disk_read_time]
         summary_df.loc[len(summary_df.index)] = ["Disk IO Write Time (ms - sum)", *none_list, total_disk_write_time]
 
         # Network IO Sent Bytes
-        all_process_network_size_sent_kb = [pd.to_numeric(df[ProcessesColumns.BYTES_SENT]).sum()
+        all_process_network_size_sent_kb = [pd.to_numeric(df["network_kb_sent"]).sum()
                                             for df in sub_all_processes_df]
-        total_network_size_sent = sub_network_df[NetworkIOColumns.KB_SENT].sum()
+        total_network_size_sent = sub_network_df["network_kb_sent"].sum()
         summary_df.loc[len(summary_df.index)] = ["Network Size Sent (KB - sum)",
                                                  *all_process_network_size_sent_kb,
                                                  total_network_size_sent]
 
         # Network IO Sent Packets
-        all_process_network_packets_sent = [pd.to_numeric(df[ProcessesColumns.PACKETS_SENT]).sum()
+        all_process_network_packets_sent = [pd.to_numeric(df["packets_sent"]).sum()
                                             for df in sub_all_processes_df]
-        total_network_packets_sent = sub_network_df[NetworkIOColumns.PACKETS_SENT].sum()
+        total_network_packets_sent = sub_network_df["packets_sent"].sum()
         summary_df.loc[len(summary_df.index)] = ["Network Packets Sent (# - sum)",
                                                  *all_process_network_packets_sent,
                                                  total_network_packets_sent]
 
         # Network IO Received Bytes
-        all_process_network_size_received_kb = [pd.to_numeric(df[ProcessesColumns.BYTES_RECEIVED]).sum()
+        all_process_network_size_received_kb = [pd.to_numeric(df["network_kb_received"]).sum()
                                                 for df in sub_all_processes_df]
-        total_network_size_received = sub_network_df[NetworkIOColumns.KB_RECEIVED].sum()
+        total_network_size_received = sub_network_df["network_kb_received"].sum()
         summary_df.loc[len(summary_df.index)] = ["Network Size Received (KB - sum)",
                                                  *all_process_network_size_received_kb,
                                                  total_network_size_received]
 
         # Network IO Received Packets
-        all_process_network_packets_received = [pd.to_numeric(df[ProcessesColumns.PACKETS_RECEIVED]).sum()
+        all_process_network_packets_received = [pd.to_numeric(df["packets_received"]).sum()
                                                 for df in sub_all_processes_df]
-        total_network_packets_received = sub_network_df[NetworkIOColumns.PACKETS_RECEIVED].sum()
+        total_network_packets_received = sub_network_df["packets_received"].sum()
         summary_df.loc[len(summary_df.index)] = ["Network Packets Received (# - sum)",
                                                  *all_process_network_packets_received,
                                                  total_network_packets_received]

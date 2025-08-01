@@ -103,71 +103,23 @@ class AntivirusType:
     SOPHOS = "Sophos"
 
 
-# ======= Tables Column Names =======
-class BatteryColumns:
-    TIME = "Time(sec)"
-    PERCENTS = "REMAINING BATTERY(%)"
-    CAPACITY = "REMAINING CAPACITY(mWh)"
-    VOLTAGE = "Voltage(mV)"
-
-
-class MemoryColumns:
-    TIME = "Time(sec)"
-    USED_MEMORY = "Used(GB)"
-    USED_PERCENT = "Percentage"
-
-
-class CPUColumns:
-    TIME = "Time(sec)"
-    SUM_ACROSS_CORES_PERCENT = "SUM ACROSS CORES(%)"
-    MEAN_ACROSS_CORES_PERCENT = "MEAN ACROSS CORES(%)"
-    CORE = "Core"
-
-
-class DiskIOColumns:
-    TIME = "Time(sec)"
-    READ_COUNT = "READ(#)"
-    WRITE_COUNT = "WRITE(#)"
-    READ_BYTES = "READ(KB)"
-    WRITE_BYTES = "WRITE(KB)"
-    READ_TIME = "READ(ms)"
-    WRITE_TIME = "WRITE(ms)"
-
-
-class NetworkIOColumns:
-    TIME = "Time(sec)"
-    PACKETS_SENT = "Packets Sent(#)"
-    PACKETS_RECEIVED = "Packets Received(#)"
-    KB_SENT = "Sent(KB)"
-    KB_RECEIVED = "Received(KB)"
-
-
-class ProcessesColumns:
-    TIME = "Time(sec)"
-    PROCESS_ID = "PID"
-    PROCESS_NAME = "PNAME"
-    CPU_SUM_ACROSS_CORES = "CPU SUM ACROSS CORES(%)"
-    CPU_MEAN_ACROSS_CORES = "CPU MEAN ACROSS CORES(%)"
-    NUMBER_OF_THREADS = "NUM THREADS"
-    USED_MEMORY = "MEMORY(MB)"
-    MEMORY_PERCENT = "MEMORY(%)"
-    READ_COUNT = "READ_IO(#)"
-    WRITE_COUNT = "WRITE_IO(#)"
-    READ_BYTES = "READ_IO(KB)"
-    WRITE_BYTES = "WRITE_IO(KB)"
-    PAGE_FAULTS = "PAGE_FAULTS"
-    BYTES_SENT = "NETWORK_DATA_SENT(KB)"
-    PACKETS_SENT = "PACKETS_SENT(#)"
-    BYTES_RECEIVED = "NETWORK_BYTES_RECEIVED(KB)"
-    PACKETS_RECEIVED = "PACKETS_RECEIVED(#)"
-    PROCESS_OF_INTEREST = "PROCESS_OF_INTEREST"
-
-
 class TableNames:
     CPU = "total_cpu"
     DISK = "disk_io_each_moment"
     MEMORY = "total_memory_each_moment"
     ALL_PROCESSES = "processes_data"
+
+
+class LoggerName:
+    SYSTEM_METRICS = "system_metrics"
+    PROCESS_METRICS = "process_metrics"
+    APPLICATION_FLOW = "system_metrics"
+
+
+class IndexName:
+    SYSTEM_METRICS = "system_metrics"
+    PROCESS_METRICS = "process_metrics"
+    APPLICATION_FLOW = "system_metrics"
 
 
 def get_core_name(core_number):

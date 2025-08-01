@@ -7,8 +7,6 @@ import signal
 import threading
 import time
 import warnings
-
-from statistics import mean
 from typing import TextIO, Tuple, List
 
 from human_id import generate_id
@@ -22,6 +20,11 @@ from initialization_helper import *
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+from resource_monitors import MetricResult
+from resource_monitors.system_monitor.cpu.cpu_usage_recorder import SystemCpuUsageRecorder
+from resource_monitors.system_monitor.disk.disk_usage_recorder import SystemDiskUsageRecorder
+from resource_monitors.system_monitor.memory.memory_usage_recorder import SystemMemoryUsageRecorder
+from resource_monitors.system_monitor.network.network_usage_recorder import SystemNetworkUsageRecorder
 from tasks.program_classes.abstract_program import ProgramInterface
 from utils.general_functions import EnvironmentImpact, BatteryDeltaDrain
 from operating_systems.abstract_operating_system import AbstractOSFuncs
@@ -41,7 +44,9 @@ starting_time = 0
 main_process_id = None
 max_timeout_reached = False
 main_process = None
-logger = None
+system_metrics_logger = None
+process_metrics_logger = None
+application_flow_logger = None
 session_id: str = ""
 start_date: datetime = datetime.now(timezone.utc)
 
@@ -50,17 +55,17 @@ processes_ids = []
 processes_names = []
 
 # TODO: maybe its better to calculate MEMORY(%) in the end of scan in order to reduce calculations during scanning
-processes_df = pd.DataFrame(columns=processes_columns_list)
+processes_df = pd.DataFrame()
 
-memory_df = pd.DataFrame(columns=memory_columns_list)
+memory_df = pd.DataFrame()
 
-disk_io_each_moment_df = pd.DataFrame(columns=disk_io_columns_list)
+disk_io_each_moment_df = pd.DataFrame()
 
-network_io_each_moment_df = pd.DataFrame(columns=network_io_columns_list)
+network_io_each_moment_df = pd.DataFrame()
 
-battery_df = pd.DataFrame(columns=battery_columns_list)
+battery_df = pd.DataFrame()
 
-cpu_df = pd.DataFrame(columns=cpu_columns_list)
+cpu_df = pd.DataFrame()
 
 finished_scanning_time = []
 
@@ -77,99 +82,13 @@ def handle_sigint(signum, frame):
     done_scanning_event.set()
 
 
-def save_current_total_memory():
-    """Monitors memory information and append it to the relevant dataframe
-    """
-    if is_inside_container:
-        memory_used_bytes, memory_used_percent = running_os.get_container_total_memory_usage()
-    else:
-        vm = psutil.virtual_memory()
-        memory_used_bytes, memory_used_percent = vm.used, vm.percent
-
-    logger.info(
-        "Total memory measurement",
-        extra={"total_memory_gb": memory_used_bytes / GB, "total_memory_percent": memory_used_percent}
-    )
-
-    memory_df.loc[len(memory_df.index)] = [
-        time_since_start(),
-        f'{memory_used_bytes / GB:.3f}',
-        memory_used_percent
-    ]
-
-
 def dataframe_append(df, element):
     """
 
     :param df: dataframe to append to
     :param element: element to append
     """
-    df.loc[len(df.index)] = element
-
-
-def save_current_disk_io(previous_disk_io):
-    """
-    Monitors disk io information and appends it to the relevant dataframe
-    :param previous_disk_io: previous disk io information
-    :return: current psutil.disk_io_counters
-    """
-
-    disk_io_stat = psutil.disk_io_counters()
-    disk_io_each_moment_df.loc[len(disk_io_each_moment_df.index)] = [
-        time_since_start(),
-        disk_io_stat.read_count - previous_disk_io.read_count,
-        disk_io_stat.write_count - previous_disk_io.write_count,
-        f'{(disk_io_stat.read_bytes - previous_disk_io.read_bytes) / KB:.3f}',
-        f'{(disk_io_stat.write_bytes - previous_disk_io.write_bytes) / KB:.3f}',
-        disk_io_stat.read_time - previous_disk_io.read_time,
-        disk_io_stat.write_time - previous_disk_io.write_time
-    ]
-
-    logger.info(
-        "Total disk measurements",
-        extra={
-            "disk_read_count": disk_io_stat.read_count - previous_disk_io.read_count,
-            "disk_write_count": disk_io_stat.write_count - previous_disk_io.write_count,
-            "disk_read_bytes": (disk_io_stat.read_bytes - previous_disk_io.read_bytes) / KB,
-            "disk_write_bytes": (disk_io_stat.write_bytes - previous_disk_io.write_bytes) / KB,
-            "disk_read_time": disk_io_stat.read_time - previous_disk_io.read_time,
-            "disk_write_time": disk_io_stat.write_time - previous_disk_io.write_time
-        }
-    )
-
-    return disk_io_stat
-
-
-def save_current_network_io(previous_network_io):
-    """
-    Monitors network io information and appends it to the relevant dataframe
-    :param previous_network_io: previous network io information
-    :return: current psutil.net_io_counters
-    """
-    network_io_stat = psutil.net_io_counters()
-
-    dataframe_append(
-        network_io_each_moment_df,
-        [
-            time_since_start(),
-            network_io_stat.packets_sent - previous_network_io.packets_sent,
-            network_io_stat.packets_recv - previous_network_io.packets_recv,
-            f'{(network_io_stat.bytes_sent - previous_network_io.bytes_sent) / KB:.3f}',
-            f'{(network_io_stat.bytes_recv - previous_network_io.bytes_recv) / KB:.3f}',
-        ]
-    )
-
-    logger.info(
-        "Total network measurements",
-        extra={
-            "packets_sent": network_io_stat.packets_sent - previous_network_io.packets_sent,
-            "packets_received": network_io_stat.packets_recv - previous_network_io.packets_recv,
-            "network_kb_sent": (network_io_stat.bytes_sent - previous_network_io.bytes_sent) / KB,
-            "network_kb_received": (network_io_stat.bytes_recv - previous_network_io.bytes_recv) / KB
-        }
-    )
-
-    return network_io_stat
+    return pd.concat([df, pd.DataFrame([{"seconds_from_start": time_since_start(), **element}])], ignore_index=True)
 
 
 def time_since_start() -> float:
@@ -217,12 +136,12 @@ def save_data_when_too_low_battery():
 # TODO: maybe use done_scanning_event.is_set() directly instead of returning True / False
 # So this function will only set done_scanning_event according to termination conditions
 # (e.g., predefined scanning time has passed)
-def should_scan():
+def should_scan(battery_capacity: float):
     """
     Checks whether the measurements thread should continue to measure
     :return: True if measurement thread should perform another iteration or False if it should terminate
     """
-    if battery_monitor.is_battery_too_low(battery_df):
+    if battery_monitor.is_battery_too_low(battery_capacity):
         save_data_when_too_low_battery()
         return False
 
@@ -235,39 +154,49 @@ def should_scan():
         # return not scan_time_passed() and not is_delta_capacity_achieved()
 
 
-def save_current_total_cpu():
-    """
-    Saves the total cpu usage of the system
-    """
-    cpu_per_core = psutil.cpu_percent(percpu=True)
-    if is_inside_container:
-        cpu_sum_across_cores = running_os.get_container_total_cpu_usage()
-        number_of_cores = running_os.get_container_number_of_cores()
-        cpu_mean_across_cores = cpu_sum_across_cores / number_of_cores
-    else:
-        cpu_mean_across_cores = mean(cpu_per_core)
-        cpu_sum_across_cores = sum(cpu_per_core)
-        number_of_cores = len(cpu_per_core)
+def save_metrics_results(
+        processes_results: List[MetricResult],
+        system_cpu_results: MetricResult,
+        system_memory_results: MetricResult,
+        system_disk_results: MetricResult,
+        system_network_results: MetricResult,
+        system_battery_results: MetricResult
+):
+    global processes_df
+    global cpu_df
+    global memory_df
+    global disk_io_each_moment_df
+    global network_io_each_moment_df
+    global battery_df
 
-    cpu_sum_across_cores = round(cpu_sum_across_cores, 2)
-    cpu_mean_across_cores = round(cpu_mean_across_cores, 2)
+    iteration_timestamp = datetime.now(timezone.utc).isoformat()
 
-    cpu_df.loc[len(cpu_df.index)] = [
-        time_since_start(),
-        cpu_sum_across_cores,
-        cpu_mean_across_cores
-    ] + cpu_per_core
+    for process_results in processes_results:
+        process_metrics_logger.info(
+            "Process Measurements",
+            extra={
+                "timestamp": iteration_timestamp,
+                **process_results.to_dict()
+            }
+        )
+        processes_df = dataframe_append(processes_df, process_results.to_dict())
 
-    logger.info(
-        "Total CPU measurements",
+    system_metrics_logger.info(
+        "System Measurements",
         extra={
-            "mean_cpu_across_cores_percent": cpu_mean_across_cores,
-            "sum_cpu_across_cores_percent": cpu_sum_across_cores,
-            "number_of_cores": number_of_cores,
-            **{f"core{core_index}_percent": core_cpu_usage for core_index, core_cpu_usage in
-               enumerate(cpu_per_core)}
+            "timestamp": iteration_timestamp,
+            **system_cpu_results.to_dict(),
+            **system_memory_results.to_dict(),
+            **system_disk_results.to_dict(),
+            **system_network_results.to_dict(),
+            **system_battery_results.to_dict()
         }
     )
+    cpu_df = dataframe_append(cpu_df, system_cpu_results.to_dict())
+    memory_df = dataframe_append(memory_df, system_memory_results.to_dict())
+    disk_io_each_moment_df = dataframe_append(disk_io_each_moment_df, system_disk_results.to_dict())
+    network_io_each_moment_df = dataframe_append(network_io_each_moment_df, system_network_results.to_dict())
+    battery_df = dataframe_append(battery_df, system_battery_results.to_dict())
 
 
 def continuously_measure():
@@ -278,29 +207,43 @@ def continuously_measure():
 
     # init prev_disk_io by first disk io measurements (before scan)
     # TODO: lock thread until process starts
-    prev_disk_io = psutil.disk_io_counters()
-    prev_network_io = psutil.net_io_counters()
+    battery_capacity = None
+
+    system_cpu_monitor = SystemCpuUsageRecorder(running_os, done_scanning_event, is_inside_container)
+    system_memory_monitor = SystemMemoryUsageRecorder(running_os, is_inside_container)
+    system_disk_usage_recorder = SystemDiskUsageRecorder()
+    system_network_usage_recorder = SystemNetworkUsageRecorder()
 
     with process_monitor:
-        process_monitor.set_start_time(starting_time)
-        process_monitor.set_processes_df(processes_df)
-        # TODO: think if total tables should be printed only once
-        while should_scan():
+        while should_scan(battery_capacity):
             # Create a delay
             time.sleep(SLEEP_BETWEEN_ITERATIONS_SECONDS)
 
-            battery_monitor.save_battery_stat(battery_df, time_since_start())
-            process_monitor.save_current_processes_statistics()
+            print("iteration starts:", time_since_start())
+            # TODO: HANDLE RESULTS OF BATTERY BETTER
+            processes_results = process_monitor.get_current_metrics()
+            print("after processes starts:", time_since_start())
+            system_cpu_results = system_cpu_monitor.get_current_metrics()
+            print("after cpu starts:", time_since_start())
+            system_memory_results = system_memory_monitor.get_current_metrics()
+            print("after memory starts:", time_since_start())
+            system_disk_results = system_disk_usage_recorder.get_current_metrics()
+            print("after disk starts:", time_since_start())
+            system_network_results = system_network_usage_recorder.get_current_metrics()
+            print("after network starts:", time_since_start())
+            system_battery_results = battery_monitor.get_current_metrics()
+            print("after battery starts:", time_since_start())
 
-            try:  # in case of measuring cpu in a windows container
-                save_current_total_cpu()
-            except NotImplementedError as e:
-                print(f"Error occurred: {str(e)}")
-                done_scanning_event.set()
+            save_metrics_results(
+                processes_results,
+                system_cpu_results,
+                system_memory_results,
+                system_disk_results,
+                system_network_results,
+                system_battery_results
+            )
 
-            save_current_total_memory()
-            prev_disk_io = save_current_disk_io(prev_disk_io)
-            prev_network_io = save_current_network_io(prev_network_io)
+            battery_capacity = system_battery_results.battery_remaining_capacity_mWh
 
     done_scanning_event.set()   # releasing waiting threads / processes
 
@@ -456,8 +399,8 @@ def ignore_last_results():
     if processes_df.empty:
         processes_num_last_measurement = 0
     else:
-        processes_num_last_measurement = processes_df[ProcessesColumns.TIME].value_counts()[
-            processes_df[ProcessesColumns.TIME].max()]
+        processes_num_last_measurement = processes_df["seconds_from_start"].value_counts()[
+            processes_df["seconds_from_start"].max()]
     processes_df = processes_df.iloc[:-processes_num_last_measurement, :]
     memory_df = memory_df.iloc[:-1, :]
     disk_io_each_moment_df = disk_io_each_moment_df.iloc[:-1, :]
@@ -857,7 +800,9 @@ def get_starting_time() -> float:
 
 
 def main(user_args):
-    global logger
+    global system_metrics_logger
+    global process_metrics_logger
+    global application_flow_logger
     global starting_time
     print("======== Process Monitor ========")
     print("Session id:", session_id)
@@ -874,18 +819,31 @@ def main(user_args):
 
     starting_time = get_starting_time()
 
-    logger = get_measurement_logger(
+    system_metrics_logger = get_measurement_logger(
+        logger_name=LoggerName.SYSTEM_METRICS,
         custom_filter=logger_filter,
-        logger_handler=get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, starting_time)
+        logger_handler=get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, IndexName.SYSTEM_METRICS, starting_time)
     )
 
-    logger.info("The scanner is starting the measurement")
+    process_metrics_logger = get_measurement_logger(
+        logger_name=LoggerName.PROCESS_METRICS,
+        custom_filter=logger_filter,
+        logger_handler=get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, IndexName.PROCESS_METRICS, starting_time)
+    )
+
+    application_flow_logger = get_measurement_logger(
+        logger_name=LoggerName.APPLICATION_FLOW,
+        custom_filter=logger_filter,
+        logger_handler=get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, IndexName.APPLICATION_FLOW, starting_time)
+    )
+
+    application_flow_logger.info("The scanner is starting the measurement")
 
     scan_and_measure()
 
     after_scanning_operations()
 
-    logger.info("The scanner has finished measuring")
+    application_flow_logger.info("The scanner has finished measuring")
 
     print("Finished scanning")
 

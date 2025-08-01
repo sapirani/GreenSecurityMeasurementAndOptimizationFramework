@@ -1,14 +1,21 @@
-from typing import TextIO
-
-import pandas as pd
+import dataclasses
+from typing import TextIO, Optional
 import psutil
 
-from utils.general_consts import BatteryColumns
+from operating_systems.abstract_operating_system import AbstractOSFuncs
+from resource_monitors import MetricResult, MetricRecorder
 from resource_monitors.system_monitor.battery.battery_monitor_interface import AbstractBatteryMonitor
 
 
-class BatteryMonitor(AbstractBatteryMonitor):
-    def __init__(self, running_os):
+@dataclasses.dataclass
+class SystemBatteryResults(MetricResult):
+    battery_percent: float
+    battery_remaining_capacity_mWh: float
+    battery_voltage_mV: float
+
+
+class SystemBatteryUsageRecorder(MetricRecorder, AbstractBatteryMonitor):
+    def __init__(self, running_os: AbstractOSFuncs):
         self.running_os = running_os
 
     def check_if_battery_plugged(self):
@@ -16,8 +23,7 @@ class BatteryMonitor(AbstractBatteryMonitor):
         if battery is not None and battery.power_plugged:  # ensure that charging cable is unplugged in laptop
             raise Exception("Unplug charging cable during measurements!")
 
-    # TODO: REMOVE THE FUNCTIONALITY OF SAVING RESULTS FROM THIS CLASS INTO A DEDICATED CLASS
-    def save_battery_stat(self, battery_df: pd.DataFrame, time_interval: float):
+    def get_current_metrics(self):
         """_summary_: take battery information and append it to a dataframe
 
         Raises:
@@ -31,7 +37,12 @@ class BatteryMonitor(AbstractBatteryMonitor):
         if battery.power_plugged:
             raise Exception("Unplug charging cable during measurements!")
 
-        self.running_os.insert_battery_state_to_df(battery_df, time_interval, battery.percent)
+        mwh, voltage = self.running_os.get_battery_capacity_and_voltage()
+        return SystemBatteryResults(
+            battery_percent=battery.percent,
+            battery_remaining_capacity_mWh=mwh,
+            battery_voltage_mV=voltage
+        )
 
     # TODO: REMOVE THIS FUNCTIONALITY INTO A DEDICATED CLASS?
     def save_general_battery(self, f: TextIO):
@@ -51,9 +62,8 @@ class BatteryMonitor(AbstractBatteryMonitor):
 
         self.running_os.save_battery_capacity(f)
 
-    def is_battery_too_low(self, battery_df: pd.DataFrame) -> bool:
-        if len(battery_df) == 0:
+    def is_battery_too_low(self, battery_capacity: Optional[float]) -> bool:
+        if battery_capacity is None:
             return False
 
-        current_mwh = battery_df.iloc[len(battery_df) - 1].at[BatteryColumns.CAPACITY]
-        return current_mwh <= 2500
+        return battery_capacity <= 2500

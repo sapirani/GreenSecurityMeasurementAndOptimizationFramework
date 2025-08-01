@@ -1,8 +1,7 @@
 import os
 
-from resource_monitors.container_monitor.linux_resources.cgroup_versions.abstract_cgroup_version import CgroupMetricReader
-from resource_monitors.container_monitor.linux_resources.cgroup_versions.cgroup_entry import CgroupEntry
-from resource_monitors.container_monitor.linux_resources.cgroup_versions.common_paths import SYSTEM_CGROUP_DIR_PATH
+from resource_monitors.container_monitor.linux_resources.cgroup_versions.abstract_cgroup_version import \
+    CgroupMetricReader
 
 CGROUP_V2_NAME = "V2"
 

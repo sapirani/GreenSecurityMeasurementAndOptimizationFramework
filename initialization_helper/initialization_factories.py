@@ -7,15 +7,16 @@ from scapy.interfaces import get_working_ifaces
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from operating_systems.os_linux import LinuxOS
 from operating_systems.os_windows import WindowsOS
-from resource_monitors.processes_monitor.process_network_monitor import ProcessNetworkMonitor
 from program_parameters import antivirus_type, scan_type, custom_scan_path, recursive, should_optimize, \
     should_mitigate_timestomping, ids_type, interface_name, pcap_list_dirs, log_path, configuration_file_path, \
     model_name, model_action, script_relative_path, installation_dir, cpu_percent_to_consume, RUNNING_TIME, \
     memory_chunk_size, consumption_speed, time_interval
+from resource_monitors.processes_monitor.process_network_monitor import ProcessNetworkMonitor
 from resource_monitors.processes_monitor.strategies.abstract_processes_monitor import AbstractProcessMonitor
 from resource_monitors.processes_monitor.strategies.all_processes_monitor import AllProcessesMonitor
-from resource_monitors.processes_monitor.strategies.process_of_interest_only_monitor import ProcessesOfInterestOnlyMonitor
-from resource_monitors.system_monitor.battery.battery_monitor import BatteryMonitor
+from resource_monitors.processes_monitor.strategies.process_of_interest_only_monitor import \
+    ProcessesOfInterestOnlyMonitor
+from resource_monitors.system_monitor.battery.battery_monitor import SystemBatteryUsageRecorder
 from resource_monitors.system_monitor.battery.null_battery_monitor import NullBatteryMonitor
 from summary_builder import SystemResourceIsolationSummaryBuilder, NativeSummaryBuilder
 from utils.general_consts import SummaryType, ProgramToScan, AntivirusType, IDSType, ProcessMonitorType, BatteryMonitorType
@@ -75,7 +76,7 @@ def process_monitor_factory(
 
 def battery_monitor_factory(battery_monitor_type: BatteryMonitorType, running_os: AbstractOSFuncs):
     if battery_monitor_type == BatteryMonitorType.FULL:
-        return BatteryMonitor(running_os)
+        return SystemBatteryUsageRecorder(running_os)
     elif battery_monitor_type == BatteryMonitorType.WITHOUT_BATTERY:
         return NullBatteryMonitor()
 

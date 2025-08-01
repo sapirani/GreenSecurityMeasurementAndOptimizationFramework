@@ -119,31 +119,3 @@ if (scan_option == ScanMode.CONTINUOUS_SCAN or main_program_to_scan == ProgramTo
 
 if is_inside_container and battery_monitor_type == BatteryMonitorType.FULL:
     raise Exception("Measurement of energy consumption inside container is not supported")
-
-# ======= Prepare dataframes titles =======
-battery_columns_list = [BatteryColumns.TIME, BatteryColumns.PERCENTS, BatteryColumns.CAPACITY, BatteryColumns.VOLTAGE]
-
-memory_columns_list = [MemoryColumns.TIME, MemoryColumns.USED_MEMORY, MemoryColumns.USED_PERCENT]
-
-cores_names_list = [get_core_name(i) for i in range(1, NUMBER_OF_CORES + 1)]
-
-cpu_columns_list = [CPUColumns.TIME, CPUColumns.SUM_ACROSS_CORES_PERCENT, CPUColumns.MEAN_ACROSS_CORES_PERCENT] +\
-                   cores_names_list
-
-disk_io_columns_list = [DiskIOColumns.TIME, DiskIOColumns.READ_COUNT, DiskIOColumns.WRITE_COUNT,
-                        DiskIOColumns.READ_BYTES, DiskIOColumns.WRITE_BYTES, DiskIOColumns.READ_TIME,
-                        DiskIOColumns.WRITE_TIME]
-
-network_io_columns_list = [NetworkIOColumns.TIME, NetworkIOColumns.PACKETS_SENT, NetworkIOColumns.PACKETS_RECEIVED,
-                           NetworkIOColumns.KB_SENT, NetworkIOColumns.KB_RECEIVED]
-
-processes_columns_list = [
-    ProcessesColumns.TIME, ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME,
-    ProcessesColumns.CPU_SUM_ACROSS_CORES, ProcessesColumns.CPU_MEAN_ACROSS_CORES,
-    ProcessesColumns.NUMBER_OF_THREADS, ProcessesColumns.USED_MEMORY, ProcessesColumns.MEMORY_PERCENT,
-    ProcessesColumns.READ_COUNT, ProcessesColumns.WRITE_COUNT, ProcessesColumns.READ_BYTES, ProcessesColumns.WRITE_BYTES,
-    ProcessesColumns.PAGE_FAULTS,
-    ProcessesColumns.BYTES_SENT, ProcessesColumns.PACKETS_SENT,
-    ProcessesColumns.BYTES_RECEIVED, ProcessesColumns.PACKETS_RECEIVED,
-    ProcessesColumns.PROCESS_OF_INTEREST
-]

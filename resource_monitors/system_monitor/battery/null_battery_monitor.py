@@ -1,4 +1,4 @@
-from typing import TextIO
+from typing import TextIO, Optional
 
 import pandas as pd
 
@@ -9,11 +9,11 @@ class NullBatteryMonitor(AbstractBatteryMonitor):
     def check_if_battery_plugged(self):
         pass
 
-    def save_battery_stat(self, battery_df: pd.DataFrame, time_interval: float):
+    def get_current_metrics(self, battery_df: pd.DataFrame, time_interval: float):
         pass
 
     def save_general_battery(self, f: TextIO):
         pass
 
-    def is_battery_too_low(self, battery_df: pd.DataFrame) -> bool:
+    def is_battery_too_low(self, battery_capacity: Optional[float]) -> bool:
         return False

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TextIO
+from typing import TextIO, Optional
 
 import pandas as pd
 
@@ -10,7 +10,7 @@ class AbstractBatteryMonitor(ABC):
         pass
 
     @abstractmethod
-    def save_battery_stat(self, battery_df: pd.DataFrame, time_interval: float):
+    def get_current_metrics(self, battery_df: pd.DataFrame, time_interval: float):
         """_summary_: take battery information and append it to a dataframe
 
         Raises:
@@ -28,5 +28,5 @@ class AbstractBatteryMonitor(ABC):
         pass
 
     @abstractmethod
-    def is_battery_too_low(self, battery_df: pd.DataFrame) -> bool:
+    def is_battery_too_low(self, battery_capacity: Optional[float]) -> bool:
         pass

@@ -2,7 +2,7 @@ from typing import List
 
 import pandas as pd
 
-from utils.general_consts import ProcessesColumns, CPUColumns, MemoryColumns, KB, DiskIOColumns
+from utils.general_consts import KB
 from summary_builder.abstract_summary_builder import AbstractSummaryBuilder, slice_df, get_all_df_by_id
 
 
@@ -30,16 +30,16 @@ class SystemResourceIsolationSummaryBuilder(AbstractSummaryBuilder):
         summary_df.loc[len(summary_df.index)] = ["Duration", *([total_finishing_time for i in range(num_of_processes)])]
 
         # CPU
-        cpu_all_processes = [pd.to_numeric(df[ProcessesColumns.CPU_SUM_ACROSS_CORES]).mean() for df in sub_all_processes_df]
-        cpu_total = sub_cpu_df[CPUColumns.SUM_ACROSS_CORES_PERCENT].mean()
+        cpu_all_processes = [pd.to_numeric(df["cpu_percent_sum_across_cores"]).mean() for df in sub_all_processes_df]
+        cpu_total = sub_cpu_df["sum_cpu_across_cores_percent"].mean()
         cpu_system = cpu_total - sum(cpu_all_processes)
         cpu_total_without_process = [cpu_total - process_cpu for process_cpu in cpu_all_processes]
         summary_df.loc[len(summary_df.index)] = ["CPU Process", *cpu_all_processes, "X"]
         summary_df.loc[len(summary_df.index)] = ["CPU System (total - process)", *cpu_total_without_process, cpu_system]
 
         # Memory
-        all_process_memory = [pd.to_numeric(df[ProcessesColumns.USED_MEMORY]).mean() for df in sub_all_processes_df]
-        total_memory = sub_memory_df[MemoryColumns.USED_MEMORY].mean() * KB
+        all_process_memory = [pd.to_numeric(df["used_memory_mb"]).mean() for df in sub_all_processes_df]
+        total_memory = sub_memory_df["total_memory_gb"].mean() * KB
         system_memory = total_memory - sum(all_process_memory)
         memory_total_without_process = [total_memory - process_memory for process_memory in all_process_memory]
         summary_df.loc[len(summary_df.index)] = ["Memory Process (MB)", *all_process_memory, "X"]
@@ -47,8 +47,8 @@ class SystemResourceIsolationSummaryBuilder(AbstractSummaryBuilder):
                                                  system_memory]
 
         # IO Read Bytes
-        all_process_read_bytes = [pd.to_numeric(df[ProcessesColumns.READ_BYTES]).sum() for df in all_processes_df]
-        total_read_bytes = sub_disk_df[DiskIOColumns.READ_BYTES].sum()
+        all_process_read_bytes = [pd.to_numeric(df["disk_read_kb"]).sum() for df in all_processes_df]
+        total_read_bytes = sub_disk_df["disk_read_kb"].sum()
         system_read_bytes = total_read_bytes - sum(all_process_read_bytes)
         read_bytes_total_without_process = [total_read_bytes - process_read_bytes for process_read_bytes in
                                             all_process_read_bytes]
@@ -57,8 +57,8 @@ class SystemResourceIsolationSummaryBuilder(AbstractSummaryBuilder):
                                                  *read_bytes_total_without_process, system_read_bytes]
 
         # IO Read Count
-        all_process_read_count = [pd.to_numeric(df[ProcessesColumns.READ_COUNT]).sum() for df in all_processes_df]
-        total_read_count = sub_disk_df[DiskIOColumns.READ_COUNT].sum()
+        all_process_read_count = [pd.to_numeric(df["disk_read_count"]).sum() for df in all_processes_df]
+        total_read_count = sub_disk_df["disk_read_count"].sum()
         system_read_count = total_read_count - sum(all_process_read_count)
         read_count_total_without_process = [total_read_count - process_read_count for process_read_count in
                                             all_process_read_count]
@@ -67,8 +67,8 @@ class SystemResourceIsolationSummaryBuilder(AbstractSummaryBuilder):
                                                  *read_count_total_without_process, system_read_count]
 
         # IO Write Bytes
-        all_process_write_bytes = [pd.to_numeric(df[ProcessesColumns.WRITE_BYTES]).sum() for df in all_processes_df]
-        total_write_bytes = sub_disk_df[DiskIOColumns.WRITE_BYTES].sum()
+        all_process_write_bytes = [pd.to_numeric(df["disk_write_kb"]).sum() for df in all_processes_df]
+        total_write_bytes = sub_disk_df["disk_write_kb"].sum()
         system_write_bytes = total_write_bytes - sum(all_process_write_bytes)
         write_bytes_total_without_process = [total_write_bytes - process_write_bytes for process_write_bytes in
                                              all_process_write_bytes]
@@ -77,8 +77,8 @@ class SystemResourceIsolationSummaryBuilder(AbstractSummaryBuilder):
                                                  *write_bytes_total_without_process, system_write_bytes]
 
         # IO Write Count
-        all_process_write_count = [pd.to_numeric(df[ProcessesColumns.WRITE_COUNT]).sum() for df in all_processes_df]
-        total_write_count = sub_disk_df[DiskIOColumns.WRITE_COUNT].sum()
+        all_process_write_count = [pd.to_numeric(df["disk_write_count"]).sum() for df in all_processes_df]
+        total_write_count = sub_disk_df["disk_write_count"].sum()
         system_write_count = total_write_count - sum(all_process_write_count)
         write_count_total_without_process = [total_write_count - process_write_count for process_write_count in
                                              all_process_write_count]
@@ -91,8 +91,8 @@ class SystemResourceIsolationSummaryBuilder(AbstractSummaryBuilder):
         )
 
         # Page Faults
-        my_processes_page_faults = [pd.to_numeric(df[ProcessesColumns.PAGE_FAULTS]).sum() for df in all_processes_df]
-        page_faults_all_processes = pd.to_numeric(processes_df[ProcessesColumns.PAGE_FAULTS]).sum()
+        my_processes_page_faults = [pd.to_numeric(df["page_faults"]).sum() for df in all_processes_df]
+        page_faults_all_processes = pd.to_numeric(processes_df["page_faults"]).sum()
         page_faults_system = page_faults_all_processes - sum(my_processes_page_faults)
         summary_df.loc[len(summary_df.index)] = ["Page Faults", *my_processes_page_faults, page_faults_system]
 
