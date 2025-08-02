@@ -110,6 +110,66 @@ class TableNames:
     ALL_PROCESSES = "processes_data"
 
 
+# ======= Tables Column Names =======
+class ProcessesColumns(str, Enum):
+    TIME = "seconds_from_start"
+    PROCESS_ID = "pid"
+    PROCESS_NAME = "process_name"
+    CPU_SUM_ACROSS_CORES = "cpu_percent_sum_across_cores"
+    CPU_MEAN_ACROSS_CORES = "cpu_percent_mean_across_cores"
+    NUMBER_OF_THREADS = "threads_num"
+    USED_MEMORY = "used_memory_mb"
+    MEMORY_PERCENT = "used_memory_percent"
+    READ_COUNT = "disk_read_count"
+    WRITE_COUNT = "disk_write_count"
+    READ_BYTES = "disk_read_kb"
+    WRITE_BYTES = "disk_write_kb"
+    PAGE_FAULTS = "page_faults"
+    BYTES_SENT = "network_kb_sent"
+    PACKETS_SENT = "packets_sent"
+    BYTES_RECEIVED = "network_kb_received"
+    PACKETS_RECEIVED = "packets_received"
+    PROCESS_OF_INTEREST = "process_of_interest"
+
+
+class CPUColumns(str, Enum):
+    TIME = "seconds_from_start"
+    SUM_ACROSS_CORES_PERCENT = "sum_cpu_across_cores_percent"
+    MEAN_ACROSS_CORES_PERCENT = "mean_cpu_across_cores_percent"
+    # CORE = "Core"
+
+
+class MemoryColumns(str, Enum):
+    TIME = "seconds_from_start"
+    USED_MEMORY = "total_memory_gb"
+    USED_PERCENT = "total_memory_percent"
+
+
+class DiskIOColumns(str, Enum):
+    TIME = "seconds_from_start"
+    READ_COUNT = "disk_read_count"
+    WRITE_COUNT = "disk_write_count"
+    READ_BYTES = "disk_read_kb"
+    WRITE_BYTES = "disk_write_kb"
+    READ_TIME = "disk_read_time"
+    WRITE_TIME = "disk_write_time"
+
+
+class NetworkIOColumns(str, Enum):
+    TIME = "seconds_from_start"
+    PACKETS_SENT = "packets_sent"
+    PACKETS_RECEIVED = "packets_received"
+    KB_SENT = "network_kb_sent"
+    KB_RECEIVED = "network_kb_received"
+
+
+class BatteryColumns(str, Enum):
+    TIME = "seconds_from_start"
+    PERCENTS = "battery_percent"
+    CAPACITY = "battery_voltage_mV"
+    VOLTAGE = "battery_remaining_capacity_mWh"
+
+
 class LoggerName:
     SYSTEM_METRICS = "system_metrics"
     PROCESS_METRICS = "process_metrics"

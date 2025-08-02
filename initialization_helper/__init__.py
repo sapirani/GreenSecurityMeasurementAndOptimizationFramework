@@ -1,10 +1,19 @@
 import os.path
+from typing import Type
 
 from initialization_helper.initialization_factories import running_os_factory, process_resource_usage_recorder_factory, \
     summary_builder_factory, program_to_scan_factory, battery_usage_recorder_factory
 from program_parameters import *
 
 # ======= Get Operating System Type =======
+from resource_usage_recorder import MetricResult
+from resource_usage_recorder.processes_recorder.strategies.abstract_processes_recorder import ProcessMetrics
+from resource_usage_recorder.system_recorder.battery.battery_usage_recorder import SystemBatteryResults
+from resource_usage_recorder.system_recorder.cpu.cpu_usage_recorder import SystemCPUResults
+from resource_usage_recorder.system_recorder.disk.disk_usage_recorder import SystemDiskResults
+from resource_usage_recorder.system_recorder.memory.memory_usage_recorder import SystemMemoryResults
+from resource_usage_recorder.system_recorder.network.network_usage_recorder import SystemNetworkResults
+
 running_os = running_os_factory(is_inside_container=is_inside_container)
 program = program_to_scan_factory(main_program_to_scan)
 background_programs = [program_to_scan_factory(background_program) for background_program in background_programs_types]
@@ -121,3 +130,42 @@ if (scan_option == ScanMode.CONTINUOUS_SCAN or main_program_to_scan == ProgramTo
 
 if is_inside_container and battery_monitor_type == BatteryMonitorType.FULL:
     raise Exception("Measurement of energy consumption inside container is not supported")
+
+
+def assert_results_columns_and_dataclasses_match(
+        results_columns_class: Type[Enum],
+        metric_result_class: Type[MetricResult]
+):
+    """
+    Assert that the dataframes column names fit the fields names of dataclasses results
+    """
+    column_values = {
+        v for k, v in vars(results_columns_class).items()
+        if not k.startswith("_") and isinstance(v, str)
+    }
+
+    assert "seconds_from_start" in column_values, (
+        f"time column (in {results_columns_class.__name__}) should be called 'seconds_from_start'"
+    )
+
+    column_values.remove("seconds_from_start")
+
+    dataclass_field_names = metric_result_class.get_columns()
+
+    missing = column_values - dataclass_field_names
+
+    assert not missing, (
+        "There is a missmatch between dataframe columns and results dataclasses\n"
+        f"The following column values from {results_columns_class.__name__}: {missing}, "
+        f"are not found as fields in {metric_result_class.__name__}.\n"
+        f"Rename these column values or rename fields {metric_result_class.get_columns()} from "
+        f"{metric_result_class.__name__} to fit the column names."
+    )
+
+
+assert_results_columns_and_dataclasses_match(ProcessesColumns, ProcessMetrics)
+assert_results_columns_and_dataclasses_match(CPUColumns, SystemCPUResults)
+assert_results_columns_and_dataclasses_match(MemoryColumns, SystemMemoryResults)
+assert_results_columns_and_dataclasses_match(DiskIOColumns, SystemDiskResults)
+assert_results_columns_and_dataclasses_match(NetworkIOColumns, SystemNetworkResults)
+assert_results_columns_and_dataclasses_match(BatteryColumns, SystemBatteryResults)

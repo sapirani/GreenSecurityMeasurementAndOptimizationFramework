@@ -220,7 +220,6 @@ def continuously_measure():
             time.sleep(SLEEP_BETWEEN_ITERATIONS_SECONDS)
 
             print("iteration starts:", time_since_start())
-            # TODO: HANDLE RESULTS OF BATTERY BETTER
             processes_results = processes_resource_usage_recorder.get_current_metrics()
             print("after processes starts:", time_since_start())
             system_cpu_results = system_cpu_monitor.get_current_metrics()
