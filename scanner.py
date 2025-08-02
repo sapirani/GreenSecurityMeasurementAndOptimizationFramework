@@ -7,7 +7,7 @@ import signal
 import threading
 import time
 import warnings
-from typing import TextIO, Tuple, List, Dict
+from typing import TextIO, Tuple, List, Dict, Optional
 
 from human_id import generate_id
 from prettytable import PrettyTable
@@ -136,7 +136,7 @@ def save_data_when_too_low_battery():
 # TODO: maybe use done_scanning_event.is_set() directly instead of returning True / False
 # So this function will only set done_scanning_event according to termination conditions
 # (e.g., predefined scanning time has passed)
-def should_scan(battery_capacity: float) -> bool:
+def should_scan(battery_capacity: Optional[float]) -> bool:
     """
     Checks whether the measurements thread should continue to measure
     :return: True if measurement thread should perform another iteration or False if it should terminate
