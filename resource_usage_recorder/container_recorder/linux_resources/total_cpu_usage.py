@@ -1,6 +1,6 @@
 import time
 
-from resource_monitors.container_monitor.linux_resources.abstract_resource_usage import \
+from resource_usage_recorder.container_recorder.linux_resources.abstract_resource_usage import \
     AbstractLinuxContainerResourceReader
 
 DEFAULT_NUMBER_OF_CORES = 1

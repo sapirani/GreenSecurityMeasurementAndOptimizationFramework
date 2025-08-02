@@ -5,11 +5,11 @@ from abc import ABC
 # The format of the file is a single line with space-separated controller names.
 # E.g. cpu io memory
 # Presence of this file indicates that the system is using cgroup v2.
-from resource_monitors.container_monitor.linux_resources.cgroup_versions.abstract_cgroup_version import \
+from resource_usage_recorder.container_recorder.linux_resources.cgroup_versions.abstract_cgroup_version import \
     CgroupMetricReader
-from resource_monitors.container_monitor.linux_resources.cgroup_versions.cgroup_v1 import CgroupMetricReaderV1
-from resource_monitors.container_monitor.linux_resources.cgroup_versions.cgroup_v2 import CgroupMetricReaderV2
-from resource_monitors.container_monitor.linux_resources.cgroup_versions.common_paths import SYSTEM_CGROUP_DIR_PATH
+from resource_usage_recorder.container_recorder.linux_resources.cgroup_versions.cgroup_v1 import CgroupMetricReaderV1
+from resource_usage_recorder.container_recorder.linux_resources.cgroup_versions.cgroup_v2 import CgroupMetricReaderV2
+from resource_usage_recorder.container_recorder.linux_resources.cgroup_versions.common_paths import SYSTEM_CGROUP_DIR_PATH
 
 CGROUP_CONTROLLERS_FILE_NAME = r"cgroup.controllers"
 CGROUP_CONTROLLERS_FILE_PATH = os.path.join(SYSTEM_CGROUP_DIR_PATH, CGROUP_CONTROLLERS_FILE_NAME)

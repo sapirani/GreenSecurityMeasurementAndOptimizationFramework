@@ -7,8 +7,8 @@ from typing import TextIO, List, Tuple
 
 import psutil
 
-from resource_monitors.container_monitor.linux_resources.total_cpu_usage import LinuxContainerCPUReader
-from resource_monitors.container_monitor.linux_resources.total_memory_usage import LinuxContainerMemoryReader
+from resource_usage_recorder.container_recorder.linux_resources.total_cpu_usage import LinuxContainerCPUReader
+from resource_usage_recorder.container_recorder.linux_resources.total_memory_usage import LinuxContainerMemoryReader
 from utils.general_consts import MINUTE, NEVER_GO_TO_SLEEP_MODE, YES_BUTTON, NO_BUTTON, PowerPlan, LoggerName
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from program_parameters import DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFORE_SLEEP_MODE, power_plan

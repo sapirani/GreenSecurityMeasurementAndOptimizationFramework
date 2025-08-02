@@ -7,7 +7,7 @@ import signal
 import threading
 import time
 import warnings
-from typing import TextIO, Tuple, List
+from typing import TextIO, Tuple, List, Dict
 
 from human_id import generate_id
 from prettytable import PrettyTable
@@ -20,11 +20,11 @@ from initialization_helper import *
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from resource_monitors import MetricResult
-from resource_monitors.system_monitor.cpu.cpu_usage_recorder import SystemCpuUsageRecorder
-from resource_monitors.system_monitor.disk.disk_usage_recorder import SystemDiskUsageRecorder
-from resource_monitors.system_monitor.memory.memory_usage_recorder import SystemMemoryUsageRecorder
-from resource_monitors.system_monitor.network.network_usage_recorder import SystemNetworkUsageRecorder
+from resource_usage_recorder import MetricResult
+from resource_usage_recorder.system_recorder.cpu.cpu_usage_recorder import SystemCpuUsageRecorder
+from resource_usage_recorder.system_recorder.disk.disk_usage_recorder import SystemDiskUsageRecorder
+from resource_usage_recorder.system_recorder.memory.memory_usage_recorder import SystemMemoryUsageRecorder
+from resource_usage_recorder.system_recorder.network.network_usage_recorder import SystemNetworkUsageRecorder
 from tasks.program_classes.abstract_program import ProgramInterface
 from utils.general_functions import EnvironmentImpact, BatteryDeltaDrain
 from operating_systems.abstract_operating_system import AbstractOSFuncs
@@ -82,7 +82,7 @@ def handle_sigint(signum, frame):
     done_scanning_event.set()
 
 
-def dataframe_append(df, element):
+def dataframe_append(df: pd.DataFrame, element: Dict) -> pd.DataFrame:
     """
 
     :param df: dataframe to append to
@@ -136,12 +136,12 @@ def save_data_when_too_low_battery():
 # TODO: maybe use done_scanning_event.is_set() directly instead of returning True / False
 # So this function will only set done_scanning_event according to termination conditions
 # (e.g., predefined scanning time has passed)
-def should_scan(battery_capacity: float):
+def should_scan(battery_capacity: float) -> bool:
     """
     Checks whether the measurements thread should continue to measure
     :return: True if measurement thread should perform another iteration or False if it should terminate
     """
-    if battery_monitor.is_battery_too_low(battery_capacity):
+    if battery_usage_recorder.is_battery_too_low(battery_capacity):
         save_data_when_too_low_battery()
         return False
 
@@ -214,14 +214,14 @@ def continuously_measure():
     system_disk_usage_recorder = SystemDiskUsageRecorder()
     system_network_usage_recorder = SystemNetworkUsageRecorder()
 
-    with process_monitor:
+    with processes_resource_usage_recorder:
         while should_scan(battery_capacity):
             # Create a delay
             time.sleep(SLEEP_BETWEEN_ITERATIONS_SECONDS)
 
             print("iteration starts:", time_since_start())
             # TODO: HANDLE RESULTS OF BATTERY BETTER
-            processes_results = process_monitor.get_current_metrics()
+            processes_results = processes_resource_usage_recorder.get_current_metrics()
             print("after processes starts:", time_since_start())
             system_cpu_results = system_cpu_monitor.get_current_metrics()
             print("after cpu starts:", time_since_start())
@@ -231,7 +231,7 @@ def continuously_measure():
             print("after disk starts:", time_since_start())
             system_network_results = system_network_usage_recorder.get_current_metrics()
             print("after network starts:", time_since_start())
-            system_battery_results = battery_monitor.get_current_metrics()
+            system_battery_results = battery_usage_recorder.get_current_metrics()
             print("after battery starts:", time_since_start())
 
             save_metrics_results(
@@ -318,7 +318,7 @@ def save_general_information_before_scanning():
         save_general_system_information(f)
 
         f.write('\n======Before Scanning======\n')
-        battery_monitor.save_general_battery(f)
+        battery_usage_recorder.save_general_battery(f)
         f.write('\n')
         save_general_disk(f)
         f.write('\n\n')
@@ -615,7 +615,7 @@ def scan_and_measure():
         main_process, main_process_id = start_process(program)
         timeout_timer = start_timeout(main_process)
         background_processes = start_background_processes()
-        process_monitor.set_processes_to_mark([main_process] + background_processes)
+        processes_resource_usage_recorder.set_processes_to_mark([main_process] + background_processes)
 
         print("Waiting for the main process to terminate")
         result = running_os.wait_for_process_termination(main_process, done_scanning_event)
@@ -696,7 +696,7 @@ def before_scanning_operations():
     """
     Pre-configuration of measured environment. For example - modify the screen brightness to a certain value.
     """
-    battery_monitor.check_if_battery_plugged()
+    battery_usage_recorder.check_if_battery_plugged()
 
     if disable_real_time_protection_during_measurement and running_os.is_tamper_protection_enabled():
         raise Exception("You must disable Tamper Protection manually so that the program could control real "

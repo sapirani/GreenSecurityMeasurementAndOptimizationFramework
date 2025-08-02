@@ -1,6 +1,6 @@
 import os
 
-from resource_monitors.container_monitor.linux_resources.cgroup_versions.abstract_cgroup_version import \
+from resource_usage_recorder.container_recorder.linux_resources.cgroup_versions.abstract_cgroup_version import \
     CgroupMetricReader
 
 CGROUP_V1_NAME = "V1"

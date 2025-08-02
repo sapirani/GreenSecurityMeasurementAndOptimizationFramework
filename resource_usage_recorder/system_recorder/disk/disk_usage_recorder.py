@@ -1,11 +1,12 @@
-import dataclasses
+from dataclasses import dataclass
+
 
 import psutil
 from utils.general_consts import KB
-from resource_monitors import MetricResult, MetricRecorder
+from resource_usage_recorder import MetricResult, MetricRecorder
 
 
-@dataclasses.dataclass
+@dataclass
 class SystemDiskResults(MetricResult):
     disk_read_count: int
     disk_write_count: int

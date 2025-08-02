@@ -1,4 +1,4 @@
-import dataclasses
+from dataclasses import dataclass
 from collections import defaultdict
 from threading import Thread, Lock
 import psutil
@@ -7,16 +7,18 @@ from scapy.arch import get_if_addr
 from scapy.interfaces import get_working_ifaces
 from scapy.sendrecv import sniff
 
+from resource_usage_recorder import MetricResult
 
-@dataclasses.dataclass
-class NetworkStats:
+
+@dataclass
+class NetworkStats(MetricResult):
     bytes_sent: int = 0
     packets_sent: int = 0
     bytes_received: int = 0
     packets_received: int = 0
 
 
-class ProcessNetworkMonitor:
+class ProcessNetworkUsageRecorder:
     """
     This class is responsible for monitoring the number of packets and the total size sent and received from this device
     Disclaimer: it may be difficult to capture short outgoing sessions, since the connections of the process are not

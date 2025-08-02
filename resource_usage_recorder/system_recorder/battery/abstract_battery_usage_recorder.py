@@ -1,16 +1,16 @@
 from abc import ABC, abstractmethod
 from typing import TextIO, Optional
 
-import pandas as pd
+from resource_usage_recorder import MetricResult
 
 
-class AbstractBatteryMonitor(ABC):
+class AbstractBatteryUsageRecorder(ABC):
     @abstractmethod
     def check_if_battery_plugged(self):
         pass
 
     @abstractmethod
-    def get_current_metrics(self, battery_df: pd.DataFrame, time_interval: float):
+    def get_current_metrics(self) -> MetricResult:
         """_summary_: take battery information and append it to a dataframe
 
         Raises:

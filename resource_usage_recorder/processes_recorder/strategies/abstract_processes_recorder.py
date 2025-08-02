@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from typing import List, Dict, Tuple, Callable, Iterable
 import psutil
 
-from resource_monitors import MetricResult
-from resource_monitors.processes_monitor.process_network_monitor import ProcessNetworkMonitor
+from resource_usage_recorder import MetricResult
+from resource_usage_recorder.processes_recorder.process_network_usage_recorder import ProcessNetworkUsageRecorder
 from utils.general_consts import MB, KB, NUMBER_OF_CORES, LoggerName
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 
@@ -56,39 +56,39 @@ class ProcessMetrics(MetricResult):
         )
 
 
-class AbstractProcessMonitor(ABC):
+class AbstractProcessResourceUsageRecorder(ABC):
     def __init__(
             self,
-            process_network_monitor: ProcessNetworkMonitor,
+            process_network_usage_recorder: ProcessNetworkUsageRecorder,
             running_os: AbstractOSFuncs,
             should_ignore_process: Callable[[psutil.Process], bool]
     ):
-        self.process_network_monitor = process_network_monitor
+        self.process_network_usage_recorder = process_network_usage_recorder
         self.running_os = running_os
         self.prev_data_per_process: Dict[Tuple[int, str], ProcessMetrics] = {}
         self.mark_processes = []
         self.should_ignore_process = should_ignore_process
 
     def __enter__(self):
-        self.process_network_monitor.start()
+        self.process_network_usage_recorder.start()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.process_network_monitor.stop()
+        self.process_network_usage_recorder.stop()
 
     def set_processes_to_mark(self, processes: List[psutil.Process]):
         self.mark_processes = processes
 
     @abstractmethod
-    def get_current_metrics(self):
+    def get_current_metrics(self) -> List[ProcessMetrics]:
         """
-        This function gets all processes running in the system and order them by their cpu usage
+        This function gets telemetry from all desired processes.
         """
         pass
 
-    def _get_current_metrics(self, candidate_processes: Iterable[psutil.Process]) -> List[MetricResult]:
+    def _get_current_metrics(self, candidate_processes: Iterable[psutil.Process]) -> List[ProcessMetrics]:
         """
-        This function saves the relevant data from the process in dataframe (will be saved later as csv files)
+        This function Returns telemetry about processes.
         :param candidate_processes: list of all processes to extract metrics from. They may be filtered by the
             should_ignore_process predicate
         """
@@ -112,7 +112,7 @@ class AbstractProcessMonitor(ABC):
                     process_of_interest = True if p in self.mark_processes else False
                     # TODO: CHECK IF IT HOLDS TRUE INSIDE CONTAINERS
                     cpu_percent_sum_across_cores = round(p.cpu_percent(), 2)
-                    process_traffic = self.process_network_monitor.get_current_network_stats(p)
+                    process_traffic = self.process_network_usage_recorder.get_current_network_stats(p)
 
                     io_stat = p.io_counters()
                     page_faults = self.running_os.get_page_faults(p)

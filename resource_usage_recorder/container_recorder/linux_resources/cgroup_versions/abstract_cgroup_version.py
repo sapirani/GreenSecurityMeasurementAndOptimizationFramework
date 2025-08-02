@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 # Hierarchy ID can be 0 (for cgroup v2), or 2, 3, etc. in v1
 # Controller(s)	can be cpu,cpuacct or memory for v1 or empty string ("") for v2
 # Path to cgroup can be /docker/<container-id> or /
-from resource_monitors.container_monitor.linux_resources.cgroup_versions.common_paths import SYSTEM_CGROUP_DIR_PATH
+from resource_usage_recorder.container_recorder.linux_resources.cgroup_versions.common_paths import SYSTEM_CGROUP_DIR_PATH
 
 CGROUP_TYPE_PATH = r"/proc/self/cgroup"
 

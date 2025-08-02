@@ -122,10 +122,6 @@ class IndexName:
     APPLICATION_FLOW = "system_metrics"
 
 
-def get_core_name(core_number):
-    return f"{CPUColumns.CORE} {core_number}(%)"
-
-
 def get_scanner_version_name(battery_monitor_type: BatteryMonitorType, process_monitor_type: ProcessMonitorType) -> str:
     if battery_monitor_type == battery_monitor_type.FULL and process_monitor_type == process_monitor_type.FULL:
         return "Full Process Monitoring Including Battery"

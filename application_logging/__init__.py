@@ -11,7 +11,7 @@ def get_elastic_logging_handler(
         elastic_url: str,
         index_name: str,
         starting_time: float
-) -> Optional[Handler]:
+) -> Handler:
     try:
         return ElasticSearchLogHandler(
             elastic_username=elastic_username,

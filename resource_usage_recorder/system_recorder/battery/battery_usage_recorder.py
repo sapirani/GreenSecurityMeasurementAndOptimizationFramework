@@ -1,20 +1,20 @@
-import dataclasses
+from dataclasses import dataclass
 from typing import TextIO, Optional
 import psutil
 
 from operating_systems.abstract_operating_system import AbstractOSFuncs
-from resource_monitors import MetricResult, MetricRecorder
-from resource_monitors.system_monitor.battery.battery_monitor_interface import AbstractBatteryMonitor
+from resource_usage_recorder import MetricResult, MetricRecorder
+from resource_usage_recorder.system_recorder.battery.abstract_battery_usage_recorder import AbstractBatteryUsageRecorder
 
 
-@dataclasses.dataclass
+@dataclass
 class SystemBatteryResults(MetricResult):
     battery_percent: float
     battery_remaining_capacity_mWh: float
     battery_voltage_mV: float
 
 
-class SystemBatteryUsageRecorder(MetricRecorder, AbstractBatteryMonitor):
+class SystemBatteryUsageRecorder(AbstractBatteryUsageRecorder, MetricRecorder):
     def __init__(self, running_os: AbstractOSFuncs):
         self.running_os = running_os
 
@@ -23,16 +23,18 @@ class SystemBatteryUsageRecorder(MetricRecorder, AbstractBatteryMonitor):
         if battery is not None and battery.power_plugged:  # ensure that charging cable is unplugged in laptop
             raise Exception("Unplug charging cable during measurements!")
 
-    def get_current_metrics(self):
-        """_summary_: take battery information and append it to a dataframe
-
-        Raises:
-            Exception: if the computer is charging or using desktop computer cant get battery information
+    def get_current_metrics(self) -> SystemBatteryResults:
+        """
+        :return: returns battery information - percent, capacity (mWh), and voltage (mV)
+        :raise: Exception: if the computer is charging or using desktop computer cant get battery information
         """
         # Fetch the battery information
         battery = psutil.sensors_battery()
         if battery is None:  # if desktop computer (has no battery)
-            return
+            raise Exception(
+                "Could not read battery from non battery-powered devices! "
+                "Please choose monitoring without battery readings"
+            )
 
         if battery.power_plugged:
             raise Exception("Unplug charging cable during measurements!")

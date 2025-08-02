@@ -1,7 +1,7 @@
 import os.path
 
-from initialization_helper.initialization_factories import running_os_factory, process_monitor_factory, \
-    summary_builder_factory, program_to_scan_factory, battery_monitor_factory
+from initialization_helper.initialization_factories import running_os_factory, process_resource_usage_recorder_factory, \
+    summary_builder_factory, program_to_scan_factory, battery_usage_recorder_factory
 from program_parameters import *
 
 # ======= Get Operating System Type =======
@@ -9,8 +9,10 @@ running_os = running_os_factory(is_inside_container=is_inside_container)
 program = program_to_scan_factory(main_program_to_scan)
 background_programs = [program_to_scan_factory(background_program) for background_program in background_programs_types]
 
-process_monitor = process_monitor_factory(process_monitor_type, running_os, program.process_ignore_cond)
-battery_monitor = battery_monitor_factory(battery_monitor_type, running_os)
+processes_resource_usage_recorder = process_resource_usage_recorder_factory(
+    process_monitor_type, running_os, program.process_ignore_cond
+)
+battery_usage_recorder = battery_usage_recorder_factory(battery_monitor_type, running_os)
 
 summary_builder = summary_builder_factory(summary_type)
 

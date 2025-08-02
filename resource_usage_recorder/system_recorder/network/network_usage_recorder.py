@@ -1,11 +1,11 @@
-import dataclasses
+from dataclasses import dataclass
 
 import psutil
 from utils.general_consts import KB
-from resource_monitors import MetricResult, MetricRecorder
+from resource_usage_recorder import MetricResult, MetricRecorder
 
 
-@dataclasses.dataclass
+@dataclass
 class SystemNetworkResults(MetricResult):
     packets_sent: int
     packets_received: int

@@ -8,18 +8,20 @@ import psutil
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from statistics import mean
 
-from resource_monitors import MetricResult, MetricRecorder
+from resource_usage_recorder import MetricResult, MetricRecorder
 from utils.general_consts import LoggerName
+from dataclasses import dataclass
+
 
 logger = logging.getLogger(LoggerName.SYSTEM_METRICS)
 
 
-@dataclasses.dataclass
+@dataclass
 class SystemCPUResults(MetricResult):
     mean_cpu_across_cores_percent: float
     sum_cpu_across_cores_percent: float
     number_of_cores: int
-    per_core_percent: List[float] = field(default_factory=dict)
+    per_core_percent: List[float] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, float]:
         """Flatten the core percentages"""

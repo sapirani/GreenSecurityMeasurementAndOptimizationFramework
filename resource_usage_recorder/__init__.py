@@ -1,16 +1,16 @@
-import abc
 import dataclasses
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import List, Union
+from dataclasses import dataclass
 
 
-@dataclasses.dataclass
+@dataclass
 class MetricResult:
     def to_dict(self):
         return dataclasses.asdict(self)
 
 
 class MetricRecorder(ABC):
-    @abc.abstractmethod
+    @abstractmethod
     def get_current_metrics(self) -> Union[MetricResult, List[MetricResult]]:
         pass
