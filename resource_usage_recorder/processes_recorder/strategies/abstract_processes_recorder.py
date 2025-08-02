@@ -1,22 +1,22 @@
 from abc import ABC, abstractmethod
 import logging
-import time
-from dataclasses import dataclass, asdict, astuple
+from dataclasses import dataclass
 from typing import List, Dict, Tuple, Callable, Iterable
-
-import pandas as pd
 import psutil
 
-from utils.general_consts import MB, KB, NUMBER_OF_CORES
+from resource_usage_recorder import MetricResult
+from resource_usage_recorder.processes_recorder.process_network_usage_recorder import ProcessNetworkUsageRecorder
+from utils.general_consts import MB, KB, NUMBER_OF_CORES, LoggerName
 from operating_systems.abstract_operating_system import AbstractOSFuncs
-from resource_monitors.processes_monitor.process_network_monitor import ProcessNetworkMonitor
 
-logger = logging.getLogger("measurements_logger")
+logger = logging.getLogger(LoggerName.PROCESS_METRICS)
 
 
 @dataclass
-class ProcessMetrics:
-    time_since_start: float
+class ProcessMetrics(MetricResult):
+    pid: int
+    process_name: str
+    arguments: List[str]
     cpu_percent_sum_across_cores: float = 0     # can exceed 100% in case where process utilizes more than one core
     cpu_percent_mean_across_cores: float = 0
     threads_num: int = 0
@@ -27,14 +27,17 @@ class ProcessMetrics:
     disk_read_kb: float = 0
     disk_write_kb: float = 0
     page_faults: int = 0
-    network_kb_sent: int = 0
+    network_kb_sent: float = 0
     packets_sent: int = 0
-    network_kb_received: int = 0
+    network_kb_received: float = 0
     packets_received: int = 0
+    process_of_interest: bool = False
 
     def delta(self, prev_metrics: 'ProcessMetrics') -> 'ProcessMetrics':
         return ProcessMetrics(
-            time_since_start=self.time_since_start,
+            pid=self.pid,
+            process_name=self.process_name,
+            arguments=self.arguments,
             cpu_percent_sum_across_cores=self.cpu_percent_sum_across_cores,
             cpu_percent_mean_across_cores=self.cpu_percent_mean_across_cores,
             threads_num=self.threads_num,
@@ -48,63 +51,49 @@ class ProcessMetrics:
             network_kb_sent=self.network_kb_sent,
             packets_sent=self.packets_sent,
             network_kb_received=self.network_kb_received,
-            packets_received=self.packets_received
+            packets_received=self.packets_received,
+            process_of_interest=self.process_of_interest
         )
 
 
-class AbstractProcessMonitor(ABC):
+class AbstractProcessResourceUsageRecorder(ABC):
     def __init__(
             self,
-            process_network_monitor: ProcessNetworkMonitor,
+            process_network_usage_recorder: ProcessNetworkUsageRecorder,
             running_os: AbstractOSFuncs,
             should_ignore_process: Callable[[psutil.Process], bool]
     ):
-        self.process_network_monitor = process_network_monitor
+        self.process_network_usage_recorder = process_network_usage_recorder
         self.running_os = running_os
         self.prev_data_per_process: Dict[Tuple[int, str], ProcessMetrics] = {}
         self.mark_processes = []
         self.should_ignore_process = should_ignore_process
-        self.start_time = 0
-
-        # TODO: REMOVE THIS FUNCTIONALITY FROM THIS CLASS INTO A DEDICATED CLASS FOR SAVING RESULTS
-        self.processes_df = pd.DataFrame()
 
     def __enter__(self):
-        self.process_network_monitor.start()
+        self.process_network_usage_recorder.start()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.process_network_monitor.stop()
+        self.process_network_usage_recorder.stop()
 
     def set_processes_to_mark(self, processes: List[psutil.Process]):
         self.mark_processes = processes
 
-    def set_start_time(self, start_time):
-        self.start_time = start_time
-
-    # TODO: REMOVE THIS FUNCTIONALITY FROM THIS CLASS INTO A DEDICATED CLASS FOR SAVING RESULTS
-    def set_processes_df(self, processes_df: pd.DataFrame):
-        self.processes_df = processes_df
-
-    @property
-    def time_since_start(self) -> float:
-        return time.time() - self.start_time
-
     @abstractmethod
-    def save_current_processes_statistics(self):
+    def get_current_metrics(self) -> List[ProcessMetrics]:
         """
-        This function gets all processes running in the system and order them by their cpu usage
+        This function gets telemetry from all desired processes.
         """
-        # TODO: RETURN PROCESS STATISTICS AND SAVE IT ELSEWHERE
         pass
 
-    # TODO: RENAME THIS FUNCTION WHEN SAVING INTO DATAFRAME GETS OUT OF THIS CLASS
-    def monitor_relevant_processes(self, candidate_processes: Iterable[psutil.Process]):
+    def _get_current_metrics(self, candidate_processes: Iterable[psutil.Process]) -> List[ProcessMetrics]:
         """
-        This function saves the relevant data from the process in dataframe (will be saved later as csv files)
+        This function Returns telemetry about processes.
         :param candidate_processes: list of all processes to extract metrics from. They may be filtered by the
             should_ignore_process predicate
         """
+        processes_results = []
+
         for p in candidate_processes:
             try:
                 if self.should_ignore_process(p) and not (p in self.mark_processes):
@@ -119,16 +108,19 @@ class AbstractProcessMonitor(ABC):
                 with p.oneshot():
                     pid = p.pid
                     process_name = p.name()
-                    # TODO: CHECK IF IT HOLDS TRUE INSIDE CONTAINERS
+                    process_args = p.cmdline()[1:]
+                    process_of_interest = True if p in self.mark_processes else False
                     cpu_percent_sum_across_cores = round(p.cpu_percent(), 2)
-                    process_traffic = self.process_network_monitor.get_current_network_stats(p)
+                    process_traffic = self.process_network_usage_recorder.get_current_network_stats(p)
 
                     io_stat = p.io_counters()
                     page_faults = self.running_os.get_page_faults(p)
 
                     if (pid, process_name) not in self.prev_data_per_process:
                         self.prev_data_per_process[(pid, process_name)] = ProcessMetrics(
-                            time_since_start=self.time_since_start,
+                            pid=pid,
+                            process_name=process_name,
+                            arguments=process_args,
                             disk_read_kb=io_stat.read_bytes / KB,
                             disk_read_count=io_stat.read_count,
                             disk_write_kb=io_stat.write_bytes / KB,
@@ -140,7 +132,9 @@ class AbstractProcessMonitor(ABC):
                     prev_raw_metrics = self.prev_data_per_process[(pid, process_name)]
 
                     current_raw_metrics = ProcessMetrics(
-                        time_since_start=self.time_since_start,
+                        pid=pid,
+                        process_name=process_name,
+                        arguments=process_args,
                         cpu_percent_sum_across_cores=cpu_percent_sum_across_cores,
                         cpu_percent_mean_across_cores=cpu_percent_sum_across_cores / NUMBER_OF_CORES,
                         threads_num=p.num_threads(),
@@ -155,34 +149,17 @@ class AbstractProcessMonitor(ABC):
                         network_kb_sent=process_traffic.bytes_sent / KB,
                         packets_sent=process_traffic.packets_sent,
                         network_kb_received=process_traffic.bytes_received / KB,
-                        packets_received=process_traffic.packets_received
+                        packets_received=process_traffic.packets_received,
+                        process_of_interest=process_of_interest
                     )
 
                     current_metrics = current_raw_metrics.delta(prev_raw_metrics)
-                    # TODO: REMOVE THIS FUNCTIONALITY FROM THIS CLASS INTO A DEDICATED CLASS FOR SAVING RESULTS
-                    self.processes_df.loc[len(self.processes_df.index)] = [
-                        current_metrics.time_since_start,
-                        pid,
-                        process_name,
-                        *astuple(current_metrics)[1:],  # skip time_since_start
-                        True if p in self.mark_processes else False
-                    ]
-
-                    logger.info(
-                        "Process measurements",
-                        extra={
-                            "pid": pid,
-                            "process_name": process_name,
-                            "arguments": p.cmdline()[1:],
-                            **asdict(current_metrics),
-                            **({"process_of_interest": True} if p in self.mark_processes else {})
-                        }
-                    )
-
+                    processes_results.append(current_metrics)
                     self.prev_data_per_process[(pid, process_name)] = current_raw_metrics  # after finishing loop
-
 
             # Note, we are just ignoring access denied and other exceptions and do not handle them.
             # There will be no results for those processes
             except (psutil.NoSuchProcess, psutil.AccessDenied, ChildProcessError):
                 pass
+
+        return processes_results

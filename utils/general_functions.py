@@ -1,8 +1,5 @@
 from dataclasses import dataclass
 
-from utils.general_consts import BatteryColumns
-
-
 def get_powershell_result_list_format(result: bytes):
     """
     This function parse bytes result returned from powershell
@@ -49,6 +46,7 @@ class EnvironmentImpact:
         )
 
 
+# TODO: FIX BATTERY TO NOT RELY ON DATAFRAMES
 @dataclass
 class BatteryDeltaDrain:
     mwh_drain: float
@@ -59,11 +57,11 @@ class BatteryDeltaDrain:
         if battery_df.empty:
             return BatteryDeltaDrain(mwh_drain=0, percent_drain=0)
 
-        before_scanning_capacity = battery_df.iloc[0].at[BatteryColumns.CAPACITY]
-        current_capacity = battery_df.iloc[len(battery_df) - 1].at[BatteryColumns.CAPACITY]
+        before_scanning_capacity = battery_df.iloc[0].at["battery_remaining_capacity_mWh"]
+        current_capacity = battery_df.iloc[len(battery_df) - 1].at["battery_remaining_capacity_mWh"]
 
-        before_scanning_percent = battery_df.iloc[0].at[BatteryColumns.PERCENTS]
-        current_capacity_percent = battery_df.iloc[len(battery_df) - 1].at[BatteryColumns.PERCENTS]
+        before_scanning_percent = battery_df.iloc[0].at["battery_percent"]
+        current_capacity_percent = battery_df.iloc[len(battery_df) - 1].at["battery_percent"]
 
         return BatteryDeltaDrain(
             mwh_drain=before_scanning_capacity - current_capacity,
