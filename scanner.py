@@ -54,18 +54,18 @@ start_date: datetime = datetime.now(timezone.utc)
 processes_ids = []
 processes_names = []
 
-# TODO: maybe its better to calculate MEMORY(%) in the end of scan in order to reduce calculations during scanning
-processes_df = pd.DataFrame()
+processes_df = pd.DataFrame(columns=processes_columns_list)
+processes_df = processes_df.astype({ProcessesColumns.PROCESS_OF_INTEREST: "bool"})
 
-memory_df = pd.DataFrame()
+memory_df = pd.DataFrame(columns=memory_columns_list)
 
-disk_io_each_moment_df = pd.DataFrame()
+disk_io_each_moment_df = pd.DataFrame(columns=disk_io_columns_list)
 
-network_io_each_moment_df = pd.DataFrame()
+network_io_each_moment_df = pd.DataFrame(columns=network_io_columns_list)
 
-battery_df = pd.DataFrame()
+battery_df = pd.DataFrame(columns=battery_columns_list)
 
-cpu_df = pd.DataFrame()
+cpu_df = pd.DataFrame(columns=cpu_columns_list)
 
 finished_scanning_time = []
 
@@ -398,8 +398,8 @@ def ignore_last_results():
     if processes_df.empty:
         processes_num_last_measurement = 0
     else:
-        processes_num_last_measurement = processes_df["seconds_from_start"].value_counts()[
-            processes_df["seconds_from_start"].max()]
+        processes_num_last_measurement = processes_df[ProcessesColumns.TIME].value_counts()[
+            processes_df[ProcessesColumns.TIME].max()]
     processes_df = processes_df.iloc[:-processes_num_last_measurement, :]
     memory_df = memory_df.iloc[:-1, :]
     disk_io_each_moment_df = disk_io_each_moment_df.iloc[:-1, :]

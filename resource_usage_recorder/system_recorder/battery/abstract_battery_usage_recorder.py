@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import TextIO, Optional
 
-from resource_usage_recorder import MetricResult
+from resource_usage_recorder import MetricResult, MetricRecorder
 
 
-class AbstractBatteryUsageRecorder(ABC):
+class AbstractBatteryUsageRecorder(MetricRecorder, ABC):
     @abstractmethod
     def check_if_battery_plugged(self):
         pass

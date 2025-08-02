@@ -136,7 +136,6 @@ class CPUColumns(str, Enum):
     TIME = "seconds_from_start"
     SUM_ACROSS_CORES_PERCENT = "sum_cpu_across_cores_percent"
     MEAN_ACROSS_CORES_PERCENT = "mean_cpu_across_cores_percent"
-    # CORE = "Core"
 
 
 class MemoryColumns(str, Enum):
