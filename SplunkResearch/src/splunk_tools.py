@@ -533,7 +533,10 @@ class SplunkTools(object):
                     df = pd.read_csv(f'{PREFIX_PATH}resources/output_buckets/{file}')
                     df['_time'] = pd.to_datetime(df['_time'], format='%Y-%m-%d %H:%M:%S',  errors='coerce')
                     df = df.dropna(subset=['_time'])
-                    
+                    for col in df.select_dtypes(include=['float64']).columns:
+                        df[col] = df[col].astype('float32')
+                    for col in df.select_dtypes(include=['int64']).columns:
+                        df[col] = df[col].astype('int32')
                     # Filter data for current time slice
                     # mask = (df['_time'] >= current_ts)
                     # if current_ts + (end_date_time_file - start_date_time_file) > ts_end_time:
@@ -548,6 +551,7 @@ class SplunkTools(object):
             if not bucket_found:
                 self.create_new_distribution_bucket(current_ts, ts_end_time)
                 continue
+            
         
         if all_data:
             self.real_logs_distribution = pd.concat(all_data, ignore_index=True)
@@ -555,6 +559,8 @@ class SplunkTools(object):
             self.real_logs_distribution = self.real_logs_distribution[
                 self.real_logs_distribution['source'].str.contains('Security|System', case=False, regex=True)
             ]
+            self.real_logs_distribution = self.real_logs_distribution.set_index('_time').sort_index()
+
             return
         
 
@@ -631,21 +637,23 @@ class SplunkTools(object):
         #     self.real_logs_distribution['_time'] = self.real_logs_distribution['_time'].dt.tz_localize('UTC')
         
         # Now compare the timezone-aware datetimes
-        relevant_logs = self.real_logs_distribution[
-            (self.real_logs_distribution['_time'] >= pd.Timestamp(start_time, unit='s') ) & 
-            (self.real_logs_distribution['_time'] <= pd.Timestamp(end_time, unit='s') )
-        ]
+        # Then your lookup becomes:
+        start_ts = pd.Timestamp(start_time, unit='s')
+        end_ts = pd.Timestamp(end_time, unit='s')
+        relevant_logs = self.real_logs_distribution.loc[start_ts:end_ts]
         
         # Check if we have full coverage
         if len(relevant_logs) == 0 or \
-        relevant_logs['_time'].min() > start_time or \
-        relevant_logs['_time'].max() < end_time:
+        relevant_logs.index.min() > start_time or \
+        relevant_logs.index.max() < end_time:
             logger.info('Loading missing distribution data from disk.')
             self.load_real_logs_distribution_bucket(start_time, end_time)
-            relevant_logs = pd.concat((relevant_logs, self.real_logs_distribution[
-                (self.real_logs_distribution['_time'] >= pd.Timestamp(start_time, unit='s')) & 
-                (self.real_logs_distribution['_time'] <= pd.Timestamp(end_time, unit='s'))
-            ]))
+            new_logs = self.real_logs_distribution.loc[
+                pd.Timestamp(start_time, unit='s'):pd.Timestamp(end_time, unit='s')
+            ]
+
+            # Concatenate with existing
+            relevant_logs = pd.concat([relevant_logs, new_logs])
         relevant_logs.loc[:, 'count'] = relevant_logs['count'].astype(int)
         
         return relevant_logs       

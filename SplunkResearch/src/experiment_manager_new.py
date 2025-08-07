@@ -302,6 +302,7 @@ class ExperimentManager:
             eval_config.env_config.rule_frequency = 2880
             eval_config.env_config.end_time = "04/26/2025:23:59:59"
             self.eval_env = self.create_environment(eval_config)
+            self.eval_env.splunk_tools.load_real_logs_distribution_bucket(datetime.datetime.strptime(env.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(self.eval_env.time_manager.end_time, '%m/%d/%Y:%H:%M:%S'))
 
             if "test_experiment" not  in config.experiment_name:
                 # clean and warm up the env
@@ -561,7 +562,8 @@ if __name__ == "__main__":
     action_type = "Action8"
     for steps in range(45000, 160000, 500000):
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250626010440_{steps}_steps.zip"
-        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250726233927_243000_steps.zip"
+        # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250726233927_243000_steps.zip"
+        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250806144736_355000_steps.zip"
         print(f"Model path: {model_path}")
         for learning_rate in [0.0001]:
             for n_steps in [72]:
@@ -576,7 +578,7 @@ if __name__ == "__main__":
                             logs_per_minute=150,
                             additional_percentage=1,
                             action_duration=7200, 
-                            num_of_measurements=2,
+                            num_of_measurements=1,
                             baseline_num_of_measurements=2,
                             env_id="splunk_train-v32",
                             end_time="12/31/2024:23:59:59"       

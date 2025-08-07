@@ -349,27 +349,42 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # info['alert_reward'] = predicted_alert_reward
             if not self.use_alert:
                 predicted_alert_reward = 0
-            dist_reward = -200*(info['ac_distribution_value'] ** 2)
-            info['ac_distribution_reward'] = dist_reward
-            reward = 1
-            if info.get('ac_distribution_value', 0) > self.env.distribution_threshold:
-                    reward = dist_reward
-                    if predicted_alert_reward > sum(self.expected_alerts.values())+std:
-                        info['alert_reward'] = - 2**((predicted_alert_reward - sum(self.expected_alerts.values()))//std)
-                        # info['alert_reward'] = -((predicted_alert_reward - sum(self.expected_alerts.values()))/ (sum(self.expected_alerts.values()) + self.epsilon))**((predicted_alert_reward - sum(self.expected_alerts.values()))//std)
-                        reward += info['alert_reward']
-
-                    # if predicted_alert_reward < self.alert_threshold:
-                    #     reward += predicted_alert_reward
-            else:
-                # if predicted_alert_reward < self.alert_threshold:
-                #     reward = predicted_alert_reward
+            # dist_reward = -(2**(10*info['ac_distribution_value']))
+            # # dist_reward = -200*(info['ac_distribution_value'] ** 2)
+            # info['ac_distribution_reward'] = dist_reward
+            info['ac_distribution_reward'] = 30*info['ac_distribution_value']
+            info['alert_reward'] = ((predicted_alert_reward - sum(self.expected_alerts.values()))/std)
+            
+            reward = 0
+            if info.get('ac_distribution_value', 0) > self.env.distribution_threshold or predicted_alert_reward > sum(self.expected_alerts.values())+std:
+                if info.get('ac_distribution_value', 0) > self.env.distribution_threshold:
+                    reward += -(2**info['ac_distribution_reward'])
+                        
                 if predicted_alert_reward > sum(self.expected_alerts.values())+std:
-                    info['alert_reward'] = - 2**((predicted_alert_reward - sum(self.expected_alerts.values()))//std)
-                    # info['alert_reward'] = -((predicted_alert_reward - sum(self.expected_alerts.values()))/ (sum(self.expected_alerts.values()) + self.epsilon))**((predicted_alert_reward - sum(self.expected_alerts.values()))//std)
-                    reward += info['alert_reward']
-                else:
-                    reward = 1
+                    reward += -(2**info['alert_reward'])
+            else:
+                reward = 1
+                    
+
+            
+            # if info.get('ac_distribution_value', 0) > self.env.distribution_threshold:
+            #         reward = dist_reward
+            #         info['alert_reward'] = - 2**((predicted_alert_reward - sum(self.expected_alerts.values()))/std)
+            #         if predicted_alert_reward > sum(self.expected_alerts.values())+std:
+            #             # info['alert_reward'] = -((predicted_alert_reward - sum(self.expected_alerts.values()))/ (sum(self.expected_alerts.values()) + self.epsilon))**((predicted_alert_reward - sum(self.expected_alerts.values()))//std)
+            #             reward += info['alert_reward']
+
+            #         # if predicted_alert_reward < self.alert_threshold:
+            #         #     reward += predicted_alert_reward
+            # else:
+            #     # if predicted_alert_reward < self.alert_threshold:
+            #     #     reward = predicted_alert_reward
+            #     info['alert_reward'] = - 2**((predicted_alert_reward - sum(self.expected_alerts.values()))/std)
+            #     if predicted_alert_reward > sum(self.expected_alerts.values())+std:
+            #         # info['alert_reward'] = -((predicted_alert_reward - sum(self.expected_alerts.values()))/ (sum(self.expected_alerts.values()) + self.epsilon))**((predicted_alert_reward - sum(self.expected_alerts.values()))//std)
+            #         reward += info['alert_reward']
+            #     else:
+            #         reward = 1
 
             
             # Store in info for other wrappers to use
@@ -431,6 +446,11 @@ class EnergyRewardWrapper(RewardWrapper):
             if reward != 1:
                 return obs, reward, terminated, truncated, info
             reward = max(energy_reward, 0) * 100
+            if energy_reward > 0.6:
+                reward **= 3
+            elif energy_reward > 0.4:
+                reward **= 2
+            
             # reward += self.unwrapped.total_steps*self.alpha*energy_reward
         # reward = energy_reward/(reward + self.epsilon)
             # reward += self.alpha * energy_reward
@@ -592,12 +612,12 @@ class DistributionRewardWrapper(RewardWrapper):
             self.unwrapped.ac_fake_state
         )
         info['ac_distribution_value'] = dist_value
-        if not info.get('done', True):
+        # if not info.get('done', True):
             # dist_value = self._calculate_distribution_value(
             #     self.unwrapped.real_state,
             #     self.unwrapped.fake_state
             # )
-            reward = -self.unwrapped.step_counter*(dist_value ** 2)
+            # reward = -self.unwrapped.step_counter*(dist_value ** 2)
             # dist_reward = self._calculate_distribution_reward(dist_value)
             # dist_reward /= 0.6 # NOrmalize the reward
         #     info['ac_distribution_reward'] = dist_reward

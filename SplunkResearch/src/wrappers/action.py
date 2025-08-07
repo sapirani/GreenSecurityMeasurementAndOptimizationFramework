@@ -135,7 +135,7 @@ class Action(ActionWrapper):
                 f"inserted {len(fake_logs)} logs of type {logsource} "
                 f"{eventcode} {is_trigger} with diversity {diversity}"
             )
-            sleep(count/2500)  # wait for logs to be written
+            sleep(count/4000)  # wait for logs to be written
 
     def inject_episodic_logs(self):
         """Inject episodic logs into environment"""
