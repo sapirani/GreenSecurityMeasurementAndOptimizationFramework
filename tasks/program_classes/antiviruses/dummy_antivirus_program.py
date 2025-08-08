@@ -12,7 +12,7 @@ class DummyAntivirusProgram(ProgramInterface):
         return "Dummy Antivirus"
 
     def get_command(self) -> str:
-        return f"python {os.path.join('tasks/DummyPrograms', 'FilesReader.py')} {self.scan_path}"
+        return f"python {os.path.join('tasks/DummyPrograms', 'DummyAntivirus.py')} {self.scan_path}"
 
     def general_information_before_measurement(self, f):
         f.write(f'Scan Path: {self.scan_path}\n\n')
