@@ -79,3 +79,8 @@ network_buffer_size = None
 # For Network Sender
 time_interval = 0.2
 network_packet_size = None
+
+# For Disk IO tasks
+path_to_directory_with_files = <path_to_your_directory>
+# For Disk IO Write
+number_of_files_to_generate = 10000

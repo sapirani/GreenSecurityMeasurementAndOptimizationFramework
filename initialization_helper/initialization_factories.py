@@ -12,13 +12,14 @@ from program_parameters import antivirus_type, scan_type, custom_scan_path, recu
     should_mitigate_timestomping, ids_type, interface_name, pcap_list_dirs, log_path, configuration_file_path, \
     model_name, model_action, script_relative_path, installation_dir, cpu_percent_to_consume, RUNNING_TIME, \
     memory_chunk_size, consumption_speed, time_interval, network_ip_address, network_port, network_buffer_size, \
-    network_packet_size, path_to_save_files, number_of_files_to_generate
+    network_packet_size, path_to_directory_with_files, number_of_files_to_generate
 from resource_monitors.processes_monitor.strategies.abstract_processes_monitor import AbstractProcessMonitor
 from resource_monitors.processes_monitor.strategies.all_processes_monitor import AllProcessesMonitor
 from resource_monitors.processes_monitor.strategies.process_of_interest_only_monitor import ProcessesOfInterestOnlyMonitor
 from resource_monitors.system_monitor.battery.battery_monitor import BatteryMonitor
 from resource_monitors.system_monitor.battery.null_battery_monitor import NullBatteryMonitor
 from summary_builder import SystemResourceIsolationSummaryBuilder, NativeSummaryBuilder
+from tasks.program_classes.resources_consumers_programs.disk_io_read_program import DiskIOReadConsumer
 from tasks.program_classes.resources_consumers_programs.disk_io_write_program import DiskIOWriteConsumer
 from utils.general_consts import SummaryType, ProgramToScan, AntivirusType, IDSType, ProcessMonitorType, BatteryMonitorType
 from tasks.program_classes.abstract_program import ProgramInterface
@@ -118,7 +119,9 @@ def program_to_scan_factory(program_type: ProgramToScan) -> ProgramInterface:
     if program_type == ProgramToScan.MemoryConsumer:
         return MemoryConsumer(memory_chunk_size, consumption_speed, RUNNING_TIME)
     if program_type == ProgramToScan.DiskIOWriteConsumer:
-        return DiskIOWriteConsumer(path_to_save_files, number_of_files_to_generate)
+        return DiskIOWriteConsumer(path_to_directory_with_files, number_of_files_to_generate)
+    if program_type == ProgramToScan.DiskIOReadConsumer:
+        return DiskIOReadConsumer(path_to_directory_with_files)
     if program_type == ProgramToScan.PythonServer:
         return PythonServer()
     if program_type == ProgramToScan.NetworkReceiver:

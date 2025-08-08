@@ -55,9 +55,10 @@ class ProgramToScan(Enum):
     CPUConsumer = 9
     MemoryConsumer = 10
     DiskIOWriteConsumer = 11
-    PythonServer = 12
-    NetworkReceiver = 13
-    NetworkSender = 14
+    DiskIOReadConsumer = 12
+    PythonServer = 13
+    NetworkReceiver = 14
+    NetworkSender = 15
 
 
 class ScanMode(Enum):
