@@ -42,6 +42,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    cpu_consumption = args.cpu_consumption
-
     receive_udp_packets(ip=args.ip_address, port=args.port, buffer_size=args.buffer_size)

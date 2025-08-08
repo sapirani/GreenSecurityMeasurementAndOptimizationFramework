@@ -11,7 +11,8 @@ from resource_monitors.processes_monitor.process_network_monitor import ProcessN
 from program_parameters import antivirus_type, scan_type, custom_scan_path, recursive, should_optimize, \
     should_mitigate_timestomping, ids_type, interface_name, pcap_list_dirs, log_path, configuration_file_path, \
     model_name, model_action, script_relative_path, installation_dir, cpu_percent_to_consume, RUNNING_TIME, \
-    memory_chunk_size, consumption_speed, time_interval, network_ip_address, network_port, network_buffer_size
+    memory_chunk_size, consumption_speed, time_interval, network_ip_address, network_port, network_buffer_size, \
+    network_packet_size
 from resource_monitors.processes_monitor.strategies.abstract_processes_monitor import AbstractProcessMonitor
 from resource_monitors.processes_monitor.strategies.all_processes_monitor import AllProcessesMonitor
 from resource_monitors.processes_monitor.strategies.process_of_interest_only_monitor import ProcessesOfInterestOnlyMonitor
@@ -122,6 +123,6 @@ def program_to_scan_factory(program_type: ProgramToScan) -> ProgramInterface:
     if program_type == ProgramToScan.NetworkReceiver:
         return NetworkReceiver(network_ip_address, network_port, network_buffer_size)
     if program_type == ProgramToScan.NetworkSender:
-        return NetworkSender(time_interval=time_interval, running_time=RUNNING_TIME)
+        return NetworkSender(time_interval=time_interval, running_time=RUNNING_TIME, ip_address=network_ip_address, port_number=network_port, packet_size=network_packet_size)
 
     raise Exception("choose program to scan from ProgramToScan enum")
