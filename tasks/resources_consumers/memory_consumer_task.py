@@ -37,7 +37,7 @@ if __name__ == "__main__":
                         help="The speed (bytes per second) of consumption")
 
     parser.add_argument("-c", "--chunk_size",
-                        type=float,
+                        type=int,
                         required=True,
                         help="The chunk size (in bytes) of consumption.")
 
