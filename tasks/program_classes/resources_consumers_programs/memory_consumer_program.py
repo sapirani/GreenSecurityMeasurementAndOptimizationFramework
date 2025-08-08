@@ -5,7 +5,7 @@ from tasks.program_classes.abstract_program import ProgramInterface
 
 
 class MemoryConsumer(ProgramInterface):
-    def __init__(self, memory_chunk_size, consumption_speed, running_time):
+    def __init__(self, memory_chunk_size: int, consumption_speed: float, running_time: float):
         super().__init__()
         self.memory_chunk_size = memory_chunk_size
         self.consumption_speed = consumption_speed
@@ -22,4 +22,4 @@ class MemoryConsumer(ProgramInterface):
         return "Memory Consumer"
 
     def get_command(self) -> str:
-        return fr"python {os.path.join('tasks/DummyPrograms', 'DummyMemoryConsumer.py')} {self.memory_chunk_size} {self.consumption_speed} {self.running_time}"
+        return f"python {os.path.join('tasks/resources_consumers', 'memory_consumer_task.py')} -c {self.memory_chunk_size} -t {self.running_time} -s {self.consumption_speed}"
