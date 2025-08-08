@@ -69,5 +69,13 @@ cpu_percent_to_consume = 20
 memory_chunk_size = 1 * MB
 consumption_speed = 10 * MB / SECOND
 
+# For Network Tasks - Receiver + Sender
+network_ip_address = "192.168.1.145"
+network_port = 12345
+
+# For Network Receiver
+network_buffer_size = None
+
 # For Network Sender
 time_interval = 0.2
+network_packet_size = None
