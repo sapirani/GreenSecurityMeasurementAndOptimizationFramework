@@ -24,7 +24,7 @@ from tasks.program_classes.antiviruses.clam_av_program import ClamAVProgram
 from tasks.program_classes.antiviruses.defender_program import DefenderProgram
 from tasks.program_classes.antiviruses.dummy_antivirus_program import DummyAntivirusProgram
 from tasks.program_classes.antiviruses.sophos_av_program import SophosAVProgram
-from tasks.program_classes.dummy_cpu_consumer_program import CPUConsumer
+from tasks.program_classes.cpu_consumer_program import CPUConsumer
 from tasks.program_classes.dummy_io_writer_consumer_program import IOWriteConsumer
 from tasks.program_classes.dummy_memory_consumer_program import MemoryConsumer
 from tasks.program_classes.ids.snort_program import SnortProgram
