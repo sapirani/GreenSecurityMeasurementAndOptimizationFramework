@@ -1,16 +1,27 @@
 import os.path
+from typing import Type
 
-from initialization_helper.initialization_factories import running_os_factory, process_monitor_factory, \
-    summary_builder_factory, program_to_scan_factory, battery_monitor_factory
+from initialization_helper.initialization_factories import running_os_factory, process_resource_usage_recorder_factory, \
+    summary_builder_factory, program_to_scan_factory, battery_usage_recorder_factory
 from program_parameters import *
 
 # ======= Get Operating System Type =======
+from resource_usage_recorder import MetricResult
+from resource_usage_recorder.processes_recorder.strategies.abstract_processes_recorder import ProcessMetrics
+from resource_usage_recorder.system_recorder.battery.battery_usage_recorder import SystemBatteryResults
+from resource_usage_recorder.system_recorder.cpu.cpu_usage_recorder import SystemCPUResults
+from resource_usage_recorder.system_recorder.disk.disk_usage_recorder import SystemDiskResults
+from resource_usage_recorder.system_recorder.memory.memory_usage_recorder import SystemMemoryResults
+from resource_usage_recorder.system_recorder.network.network_usage_recorder import SystemNetworkResults
+
 running_os = running_os_factory(is_inside_container=is_inside_container)
 program = program_to_scan_factory(main_program_to_scan)
 background_programs = [program_to_scan_factory(background_program) for background_program in background_programs_types]
 
-process_monitor = process_monitor_factory(process_monitor_type, running_os, program.process_ignore_cond)
-battery_monitor = battery_monitor_factory(battery_monitor_type, running_os)
+processes_resource_usage_recorder = process_resource_usage_recorder_factory(
+    process_monitor_type, running_os, program.process_ignore_cond
+)
+battery_usage_recorder = battery_usage_recorder_factory(battery_monitor_type, running_os)
 
 summary_builder = summary_builder_factory(summary_type)
 
@@ -120,22 +131,50 @@ if (scan_option == ScanMode.CONTINUOUS_SCAN or main_program_to_scan == ProgramTo
 if is_inside_container and battery_monitor_type == BatteryMonitorType.FULL:
     raise Exception("Measurement of energy consumption inside container is not supported")
 
+
+def assert_results_columns_and_dataclasses_match(
+        results_columns_class: Type[Enum],
+        metric_result_class: Type[MetricResult]
+):
+    """
+    Assert that the dataframes column names fit the fields names of dataclasses results
+    """
+    column_values = {
+        v for k, v in vars(results_columns_class).items()
+        if not k.startswith("_") and isinstance(v, str)
+    }
+
+    assert "seconds_from_start" in column_values, (
+        f"time column (in {results_columns_class.__name__}) should be called 'seconds_from_start'"
+    )
+
+    column_values.remove("seconds_from_start")
+
+    dataclass_field_names = metric_result_class.get_columns()
+
+    missing = column_values - dataclass_field_names
+
+    assert not missing, (
+        "There is a missmatch between dataframe columns and results dataclasses\n"
+        f"The following column values from {results_columns_class.__name__}: {missing}, "
+        f"are not found as fields in {metric_result_class.__name__}.\n"
+        f"Rename these column values or rename fields {metric_result_class.get_columns()} from "
+        f"{metric_result_class.__name__} to fit the column names."
+    )
+
+
+assert_results_columns_and_dataclasses_match(ProcessesColumns, ProcessMetrics)
+assert_results_columns_and_dataclasses_match(CPUColumns, SystemCPUResults)
+assert_results_columns_and_dataclasses_match(MemoryColumns, SystemMemoryResults)
+assert_results_columns_and_dataclasses_match(DiskIOColumns, SystemDiskResults)
+assert_results_columns_and_dataclasses_match(NetworkIOColumns, SystemNetworkResults)
+assert_results_columns_and_dataclasses_match(BatteryColumns, SystemBatteryResults)
+
+
 # ======= Prepare dataframes titles =======
-battery_columns_list = [BatteryColumns.TIME, BatteryColumns.PERCENTS, BatteryColumns.CAPACITY, BatteryColumns.VOLTAGE]
+def get_core_name(core_number):
+    return f"core_{core_number}_percent"
 
-memory_columns_list = [MemoryColumns.TIME, MemoryColumns.USED_MEMORY, MemoryColumns.USED_PERCENT]
-
-cores_names_list = [get_core_name(i) for i in range(1, NUMBER_OF_CORES + 1)]
-
-cpu_columns_list = [CPUColumns.TIME, CPUColumns.SUM_ACROSS_CORES_PERCENT, CPUColumns.MEAN_ACROSS_CORES_PERCENT] +\
-                   cores_names_list
-
-disk_io_columns_list = [DiskIOColumns.TIME, DiskIOColumns.READ_COUNT, DiskIOColumns.WRITE_COUNT,
-                        DiskIOColumns.READ_BYTES, DiskIOColumns.WRITE_BYTES, DiskIOColumns.READ_TIME,
-                        DiskIOColumns.WRITE_TIME]
-
-network_io_columns_list = [NetworkIOColumns.TIME, NetworkIOColumns.PACKETS_SENT, NetworkIOColumns.PACKETS_RECEIVED,
-                           NetworkIOColumns.KB_SENT, NetworkIOColumns.KB_RECEIVED]
 
 processes_columns_list = [
     ProcessesColumns.TIME, ProcessesColumns.PROCESS_ID, ProcessesColumns.PROCESS_NAME,
@@ -147,3 +186,18 @@ processes_columns_list = [
     ProcessesColumns.BYTES_RECEIVED, ProcessesColumns.PACKETS_RECEIVED,
     ProcessesColumns.PROCESS_OF_INTEREST
 ]
+
+cores_names_list = [get_core_name(i) for i in range(1, NUMBER_OF_CORES + 1)]
+cpu_columns_list = [CPUColumns.TIME, CPUColumns.SUM_ACROSS_CORES_PERCENT, CPUColumns.MEAN_ACROSS_CORES_PERCENT] + \
+                   cores_names_list
+
+memory_columns_list = [MemoryColumns.TIME, MemoryColumns.USED_MEMORY, MemoryColumns.USED_PERCENT]
+network_io_columns_list = [NetworkIOColumns.TIME, NetworkIOColumns.PACKETS_SENT, NetworkIOColumns.PACKETS_RECEIVED,
+                           NetworkIOColumns.KB_SENT, NetworkIOColumns.KB_RECEIVED]
+
+
+disk_io_columns_list = [DiskIOColumns.TIME, DiskIOColumns.READ_COUNT, DiskIOColumns.WRITE_COUNT,
+                        DiskIOColumns.READ_BYTES, DiskIOColumns.WRITE_BYTES, DiskIOColumns.READ_TIME,
+                        DiskIOColumns.WRITE_TIME]
+
+battery_columns_list = [BatteryColumns.TIME, BatteryColumns.PERCENTS, BatteryColumns.CAPACITY, BatteryColumns.VOLTAGE]
