@@ -7,7 +7,7 @@ from elasticsearch_dsl import Search
 
 # --- Config ---
 from aggregative_results.aggregation_manager import AggregationManager
-from aggregative_results.raw_results_dtos import IterationMetadata, IterationRawResults
+from aggregative_results.raw_results_dtos import Metadata, IterationRawResults
 from aggregative_results.raw_results_dtos.system_raw_results import SystemRawResults
 
 ES_URL = "http://127.0.0.1:9200"
@@ -15,10 +15,6 @@ ES_USER = "elastic"
 ES_PASS = "SVR4mUZl"
 INDEX = "system_metrics"
 POLL_INTERVAL = 2  # seconds
-
-
-def parse_time(ts_str):
-    return pd.to_datetime(ts_str)
 
 
 if __name__ == '__main__':
@@ -31,6 +27,7 @@ if __name__ == '__main__':
 
     aggregation_manager = AggregationManager()
     measurement_start_date = None
+    iteration_metadata = None
     last_timestamp = datetime.utcnow().isoformat()
 
     # TODO: GROUP RESULTS BY HOSTNAME and session_id
@@ -45,24 +42,22 @@ if __name__ == '__main__':
             response = s.execute()
             hits = response.hits
 
+            # Assuming there is one document in system metrics in each iteration per (hostname, session_id) pair
             for hit in hits:
                 raw_data = hit.to_dict()
 
-                # TODO: LOG RAW RESULTS TO THE CONSOLE ONLY
-
-                iteration_metadata = IterationMetadata.from_dict(raw_data)
+                metadata = Metadata.from_dict(raw_data)
+                last_timestamp = metadata.timestamp
                 parsed_system_results = SystemRawResults.from_dict(raw_data)
 
-                # TODO: ENSURE ITERATION IS FINISHED
                 iteration_raw_results = IterationRawResults(
-                    metadata=iteration_metadata,
+                    metadata=metadata,
                     system_raw_results=parsed_system_results,
                     processes_raw_results=[]
                 )
 
                 aggregation_manager.feed_full_iteration_raw_data(iteration_raw_results)
 
-            print("iteration finished")
         except KeyboardInterrupt:
             print("Stopped.")
             break

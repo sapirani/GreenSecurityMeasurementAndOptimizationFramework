@@ -4,7 +4,7 @@ from typing import Union, Optional
 
 from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator, EmptyAggregationResults, \
     AggregationResult
-from aggregative_results.raw_results_dtos import IterationMetadata
+from aggregative_results.raw_results_dtos import Metadata
 from aggregative_results.raw_results_dtos.abstract_raw_results import AbstractRawResults
 
 
@@ -27,7 +27,7 @@ class CPUIntegralAggregator(AbstractAggregator):
     def extract_features(
             self,
             raw_results: AbstractRawResults,
-            iteration_metadata: IterationMetadata
+            iteration_metadata: Metadata
     ) -> CPUIntegralFeatures:
         return CPUIntegralFeatures(
             date=iteration_metadata.timestamp,

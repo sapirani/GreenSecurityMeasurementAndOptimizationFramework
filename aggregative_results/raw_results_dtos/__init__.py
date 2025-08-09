@@ -12,8 +12,9 @@ def parse_time(ts_str: str) -> datetime:
     return pd.to_datetime(ts_str)
 
 
+# TODO: RENAME
 @dataclass
-class IterationMetadata:
+class Metadata:
     timestamp: datetime
     start_date: datetime
     hostname: str
@@ -23,7 +24,7 @@ class IterationMetadata:
         self.seconds_from_starting_measurement: timedelta = self.timestamp - self.start_date
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'IterationMetadata':
+    def from_dict(cls, data: Dict[str, Any]) -> 'Metadata':
         init_kwargs = {}
 
         for f in fields(cls):
@@ -38,11 +39,11 @@ class IterationMetadata:
             except KeyError:
                 raise ValueError(f"Missing required field: {f.name}")
 
-        return IterationMetadata(**init_kwargs)
+        return Metadata(**init_kwargs)
 
 
 @dataclass
 class IterationRawResults:
-    metadata: IterationMetadata
+    metadata: Metadata
     system_raw_results: SystemRawResults
     processes_raw_results: List[ProcessRawResults]

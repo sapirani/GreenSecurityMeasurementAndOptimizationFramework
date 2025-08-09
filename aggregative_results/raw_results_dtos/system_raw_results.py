@@ -1,8 +1,5 @@
 from dataclasses import dataclass, field, fields, MISSING
-from datetime import datetime
 from typing import Dict, Any, List, Optional
-import pandas as pd
-
 from aggregative_results.raw_results_dtos.abstract_raw_results import AbstractRawResults
 
 
@@ -73,7 +70,7 @@ class SystemRawResults(AbstractRawResults):
                 raise ValueError(f"Missing required field: {f.name}")
 
         # Create object and compute duration
-        obj = SystemRawResults(**init_kwargs)
-        obj.core_percents = get_cores_metrics(data)
+        system_raw_results = SystemRawResults(**init_kwargs)
+        system_raw_results.core_percents = get_cores_metrics(data)
 
-        return obj
+        return system_raw_results

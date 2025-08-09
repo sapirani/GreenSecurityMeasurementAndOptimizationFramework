@@ -1,12 +1,14 @@
 from dataclasses import asdict
 from datetime import datetime
+from logging import StreamHandler
 from typing import List
 
 from aggregative_results.aggregators.abstract_aggregator import AggregationResult, AbstractAggregator
 from aggregative_results.aggregators.cpu_integral_aggregator import CPUIntegralAggregator
-from aggregative_results.raw_results_dtos import IterationRawResults, SystemRawResults, IterationMetadata
+from aggregative_results.raw_results_dtos import IterationRawResults, SystemRawResults, Metadata
 from aggregative_results.raw_results_dtos.abstract_raw_results import AbstractRawResults
 from application_logging import get_measurement_logger, get_elastic_logging_handler
+from application_logging.formatters.pretty_extra_formatter import PrettyExtrasFormatter
 from utils.general_consts import LoggerName, IndexName
 
 # TODO: REMOVE
@@ -16,10 +18,14 @@ ES_URL = "http://127.0.0.1:9200"
 
 # TODO: ADD STREAM HANDLER
 logger = get_measurement_logger(
-        logger_name=LoggerName.METRICS_AGGREGATIONS,
-        # TODO: REMOVE TIMESTAMP
-        logger_handler=get_elastic_logging_handler(ES_USER, ES_PASS, ES_URL, IndexName.METRICS_AGGREGATIONS, datetime.now().timestamp())
-    )
+    logger_name=LoggerName.METRICS_AGGREGATIONS,
+    # TODO: REMOVE TIMESTAMP
+    logger_handler=get_elastic_logging_handler(ES_USER, ES_PASS, ES_URL, IndexName.METRICS_AGGREGATIONS, datetime.now().timestamp()),
+)
+
+handler = StreamHandler()
+handler.setFormatter(PrettyExtrasFormatter())
+logger.addHandler(handler)
 
 
 class AggregationManager:
@@ -62,12 +68,6 @@ class AggregationManager:
         #         }
         #     )
 
-        # TODO: REMOVE
-        print({
-                **asdict(iteration_raw_results.metadata),
-                **{key: value for aggregation_result in system_aggregated_results for key, value in
-                   asdict(aggregation_result).items()}
-            })
         logger.info(
             "System Aggregation Results",
             extra=
@@ -81,7 +81,7 @@ class AggregationManager:
     def _feed_system_aggregators(
             self,
             system_iteration_input: SystemRawResults,
-            iteration_metadata: IterationMetadata
+            iteration_metadata: Metadata
     ) -> List[AggregationResult]:
 
         system_aggregation_results = []
@@ -106,7 +106,7 @@ class AggregationManager:
     def _process(
             aggregator: AbstractAggregator,
             raw_results: AbstractRawResults,
-            iteration_metadata: IterationMetadata
+            iteration_metadata: Metadata
     ) -> AggregationResult:
         relevant_sample_features = aggregator.extract_features(raw_results, iteration_metadata)
         return aggregator.process_sample(relevant_sample_features)
