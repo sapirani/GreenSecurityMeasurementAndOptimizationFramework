@@ -18,8 +18,8 @@ logger = logging.getLogger(LoggerName.SYSTEM_METRICS)
 
 @dataclass
 class SystemCPUResults(MetricResult):
-    mean_cpu_across_cores_percent: float
-    sum_cpu_across_cores_percent: float
+    cpu_percent_mean_across_cores: float
+    cpu_percent_sum_across_cores: float
     number_of_cores: int
     per_core_percent: List[float] = field(default_factory=list)
 
@@ -29,7 +29,7 @@ class SystemCPUResults(MetricResult):
         # Flatten per_core_percent: core0_percent, core1_percent, ...
         per_core = {
             # CHANGE get_core_name in general consts if you change this variable name
-            f"core{idx}_percent": val for idx, val in enumerate(flat.pop("per_core_percent"))
+            f"core_{idx}_percent": val for idx, val in enumerate(flat.pop("per_core_percent"))
         }
         flat.update(per_core)
         return flat
@@ -63,12 +63,12 @@ class SystemCpuUsageRecorder(MetricRecorder):
             cpu_mean_across_cores = mean(cpu_per_core)
             cpu_sum_across_cores = sum(cpu_per_core)
 
-        cpu_sum_across_cores = round(cpu_sum_across_cores, 2)
-        cpu_mean_across_cores = round(cpu_mean_across_cores, 2)
+        cpu_percent_sum_across_cores = round(cpu_sum_across_cores, 2)
+        cpu_percent_mean_across_cores = round(cpu_mean_across_cores, 2)
 
         return SystemCPUResults(
-            mean_cpu_across_cores_percent=cpu_mean_across_cores,
-            sum_cpu_across_cores_percent=cpu_sum_across_cores,
+            cpu_percent_mean_across_cores=cpu_percent_mean_across_cores,
+            cpu_percent_sum_across_cores=cpu_percent_sum_across_cores,
             number_of_cores=self.number_of_cores,
             per_core_percent=cpu_per_core
         )

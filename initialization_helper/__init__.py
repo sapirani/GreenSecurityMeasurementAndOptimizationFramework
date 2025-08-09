@@ -173,7 +173,7 @@ assert_results_columns_and_dataclasses_match(BatteryColumns, SystemBatteryResult
 
 # ======= Prepare dataframes titles =======
 def get_core_name(core_number):
-    return f"core{core_number}_percent"
+    return f"core_{core_number}_percent"
 
 
 processes_columns_list = [

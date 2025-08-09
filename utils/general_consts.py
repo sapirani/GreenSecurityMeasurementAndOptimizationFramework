@@ -134,8 +134,8 @@ class ProcessesColumns(str, Enum):
 
 class CPUColumns(str, Enum):
     TIME = "seconds_from_start"
-    SUM_ACROSS_CORES_PERCENT = "sum_cpu_across_cores_percent"
-    MEAN_ACROSS_CORES_PERCENT = "mean_cpu_across_cores_percent"
+    SUM_ACROSS_CORES_PERCENT = "cpu_percent_sum_across_cores"
+    MEAN_ACROSS_CORES_PERCENT = "cpu_percent_mean_across_cores"
 
 
 class MemoryColumns(str, Enum):
@@ -173,12 +173,14 @@ class LoggerName:
     SYSTEM_METRICS = "system_metrics"
     PROCESS_METRICS = "process_metrics"
     APPLICATION_FLOW = "system_metrics"
+    METRICS_AGGREGATIONS = "metrics_aggregations"
 
 
 class IndexName:
     SYSTEM_METRICS = "system_metrics"
     PROCESS_METRICS = "process_metrics"
     APPLICATION_FLOW = "system_metrics"
+    METRICS_AGGREGATIONS = "metrics_aggregations"
 
 
 def get_scanner_version_name(battery_monitor_type: BatteryMonitorType, process_monitor_type: ProcessMonitorType) -> str:

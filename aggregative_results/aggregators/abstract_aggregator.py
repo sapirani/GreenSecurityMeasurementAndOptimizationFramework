@@ -1,11 +1,17 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import TypeVar, Generic
 
+from aggregative_results.raw_results_dtos import IterationMetadata
+from aggregative_results.raw_results_dtos.abstract_raw_results import AbstractRawResults
 
+
+@dataclass
 class AggregationResult:
     pass
 
 
+@dataclass
 class EmptyAggregationResults(AggregationResult):
     pass
 
@@ -30,7 +36,7 @@ class AbstractAggregator(ABC, Generic[T]):
     @abstractmethod
     # TODO: CREATE TYPING FOR THE RAW INPUT
     # TODO: MAYBE SEPARATE THEM PER TYPE OF AGGREGATION (SYSTEM, PROCESS, SYSTEM-PROCESS, CROSS-PROCESSES)
-    def extract_features(self, raw_input) -> T:
+    def extract_features(self, raw_results: AbstractRawResults, iteration_metadata: IterationMetadata) -> T:
         """
         This function aims to extract the relevant features only per aggregator
         :return: the extracted features relevant to the aggregator
