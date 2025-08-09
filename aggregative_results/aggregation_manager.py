@@ -16,7 +16,6 @@ ES_USER = "elastic"
 ES_PASS = "SVR4mUZl"
 ES_URL = "http://127.0.0.1:9200"
 
-# TODO: ADD STREAM HANDLER
 logger = get_measurement_logger(
     logger_name=LoggerName.METRICS_AGGREGATIONS,
     # TODO: REMOVE TIMESTAMP
@@ -43,9 +42,9 @@ class AggregationManager:
 
     def feed_full_iteration_raw_data(self, iteration_raw_results: IterationRawResults):
         # TODO: think about how to print all process-related aggregations in one document per process
-        # TODO: think about how to print system-related in a separate document
         # TODO: all aggregations should be sent to the same index.
 
+        print(iteration_raw_results.processes_raw_results)
 
 
         # both can use the same aggregators, just different instances per process and a separate one for the system

@@ -1,19 +1,21 @@
 import time
+from collections import defaultdict
 from datetime import datetime
+from typing import Tuple, DefaultDict
 
-import pandas as pd
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import Search
 
 # --- Config ---
 from aggregative_results.aggregation_manager import AggregationManager
-from aggregative_results.raw_results_dtos import Metadata, IterationRawResults
+from aggregative_results.raw_results_dtos import Metadata, IterationRawResults, ProcessRawResults
 from aggregative_results.raw_results_dtos.system_raw_results import SystemRawResults
 
 ES_URL = "http://127.0.0.1:9200"
 ES_USER = "elastic"
 ES_PASS = "SVR4mUZl"
-INDEX = "system_metrics"
+INDEX_SYSTEM = "system_metrics"
+INDEX_PROCESS = "process_metrics"
 POLL_INTERVAL = 2  # seconds
 
 
@@ -28,15 +30,22 @@ if __name__ == '__main__':
     aggregation_manager = AggregationManager()
     measurement_start_date = None
     iteration_metadata = None
-    last_timestamp = datetime.utcnow().isoformat()
+    default_fetching_timestamp = datetime.utcnow()  # TODO: RENAME?
+    last_iteration_timestamps: DefaultDict[Tuple[str, str], datetime] = defaultdict(lambda: default_fetching_timestamp)
 
-    # TODO: GROUP RESULTS BY HOSTNAME and session_id
     while True:
         time.sleep(POLL_INTERVAL)
 
         try:
-            s = Search(using=client, index=INDEX).filter(
-                'range', timestamp={'gt': last_timestamp}
+            s = Search(using=client, index=INDEX_SYSTEM).filter(
+                'range',
+                timestamp=
+                {
+                    'gt': max(
+                        last_iteration_timestamps.values(),
+                        default=default_fetching_timestamp
+                    ).isoformat()
+                }
             ).sort('timestamp')
 
             response = s.execute()
@@ -47,16 +56,31 @@ if __name__ == '__main__':
                 raw_data = hit.to_dict()
 
                 metadata = Metadata.from_dict(raw_data)
-                last_timestamp = metadata.timestamp
                 parsed_system_results = SystemRawResults.from_dict(raw_data)
+
+                # --- Fetch corresponding process_metrics ---
+                process_search = Search(using=client, index=INDEX_PROCESS).filter(
+                    'range',
+                    timestamp={
+                        'gt': last_iteration_timestamps[(metadata.hostname, metadata.session_id)].isoformat(),
+                        'lte': metadata.timestamp.isoformat()
+                    }
+                ).sort('timestamp')
+
+                process_response = process_search.execute()
+                process_results = [
+                    ProcessRawResults.from_dict(hit.to_dict())
+                    for hit in process_response.hits
+                ]
 
                 iteration_raw_results = IterationRawResults(
                     metadata=metadata,
                     system_raw_results=parsed_system_results,
-                    processes_raw_results=[]
+                    processes_raw_results=process_results
                 )
 
                 aggregation_manager.feed_full_iteration_raw_data(iteration_raw_results)
+                last_iteration_timestamps[(metadata.hostname, metadata.session_id)] = metadata.timestamp
 
         except KeyboardInterrupt:
             print("Stopped.")

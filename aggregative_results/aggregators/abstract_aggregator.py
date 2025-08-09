@@ -34,7 +34,6 @@ class AbstractAggregator(ABC, Generic[T]):
     """
 
     @abstractmethod
-    # TODO: CREATE TYPING FOR THE RAW INPUT
     # TODO: MAYBE SEPARATE THEM PER TYPE OF AGGREGATION (SYSTEM, PROCESS, SYSTEM-PROCESS, CROSS-PROCESSES)
     def extract_features(self, raw_results: AbstractRawResults, iteration_metadata: Metadata) -> T:
         """

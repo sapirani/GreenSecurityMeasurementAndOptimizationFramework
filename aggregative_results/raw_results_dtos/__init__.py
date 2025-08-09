@@ -1,4 +1,4 @@
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, field
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 
@@ -8,8 +8,8 @@ from aggregative_results.raw_results_dtos.process_raw_results import ProcessRawR
 from aggregative_results.raw_results_dtos.system_raw_results import SystemRawResults
 
 
-def parse_time(ts_str: str) -> datetime:
-    return pd.to_datetime(ts_str)
+def parse_time(date: str) -> datetime:
+    return pd.to_datetime(date)
 
 
 # TODO: RENAME
@@ -20,14 +20,19 @@ class Metadata:
     hostname: str
     session_id: str
 
+    seconds_from_starting_measurement: timedelta = field(init=False)
+
     def __post_init__(self):
-        self.seconds_from_starting_measurement: timedelta = self.timestamp - self.start_date
+        self.seconds_from_starting_measurement: float = (self.timestamp - self.start_date).total_seconds()
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Metadata':
         init_kwargs = {}
 
         for f in fields(cls):
+            if not f.init:
+                continue  # Skip fields not set through constructor
+
             try:
                 value = data[f.name]
 
