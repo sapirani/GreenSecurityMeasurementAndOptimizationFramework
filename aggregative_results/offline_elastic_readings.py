@@ -1,3 +1,6 @@
+# TODO: REMOVE THIS FILE AND ADD THE CAPABILITY OF CALCULATING AGGREGATIONS OVER A PREDEFINED INTERVAL IN THE SECOND FILE
+
+
 # elastic_to_dataframes.py
 
 from elasticsearch import Elasticsearch

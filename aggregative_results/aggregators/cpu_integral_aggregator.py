@@ -4,8 +4,7 @@ from typing import Union, Optional
 
 from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator, EmptyAggregationResults, \
     AggregationResult
-from aggregative_results.raw_results_dtos import Metadata
-from aggregative_results.raw_results_dtos.abstract_raw_results import AbstractRawResults
+from aggregative_results.raw_results_dtos import Metadata, SystemRawResults, ProcessRawResults
 
 
 @dataclass
@@ -26,12 +25,11 @@ class CPUIntegralAggregator(AbstractAggregator):
     # TODO: ADD TYPING FOR raw_results
     def extract_features(
             self,
-            raw_results: AbstractRawResults,
+            raw_results: SystemRawResults | ProcessRawResults,
             iteration_metadata: Metadata
     ) -> CPUIntegralFeatures:
         return CPUIntegralFeatures(
             date=iteration_metadata.timestamp,
-            # TODO: FIX TYPING
             cpu_percent_sum_across_cores=raw_results.cpu_percent_sum_across_cores
         )
 

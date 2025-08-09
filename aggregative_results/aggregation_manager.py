@@ -1,17 +1,22 @@
+from collections import defaultdict
 from dataclasses import asdict
 from datetime import datetime
 from logging import StreamHandler
-from typing import List
+from typing import List, Dict, Tuple
 
 from aggregative_results.aggregators.abstract_aggregator import AggregationResult, AbstractAggregator
 from aggregative_results.aggregators.cpu_integral_aggregator import CPUIntegralAggregator
-from aggregative_results.raw_results_dtos import IterationRawResults, SystemRawResults, Metadata
+from aggregative_results.aggregators.process_system_usage_fraction_aggregator import \
+    ProcessSystemUsageFractionAggregator
+from aggregative_results.raw_results_dtos import IterationRawResults, SystemRawResults, Metadata, ProcessRawResults
 from aggregative_results.raw_results_dtos.abstract_raw_results import AbstractRawResults
+from aggregative_results.raw_results_dtos.system_process_raw_results import SystemProcessRawResults
+from aggregative_results.raw_results_dtos.system_processes_raw_results import SystemProcessesRawResults
 from application_logging import get_measurement_logger, get_elastic_logging_handler
 from application_logging.formatters.pretty_extra_formatter import PrettyExtrasFormatter
 from utils.general_consts import LoggerName, IndexName
 
-# TODO: REMOVE
+# TODO: REMOVE FROM HERE
 ES_USER = "elastic"
 ES_PASS = "SVR4mUZl"
 ES_URL = "http://127.0.0.1:9200"
@@ -35,37 +40,44 @@ class AggregationManager:
     """
 
     def __init__(self):
-        self.system_aggregators = [CPUIntegralAggregator()]    # TODO: ADD SYSTEM AGGREGATORS
-        self.basic_process_aggregators = {}     # TODO: ADD MAPPINGS FROM PID TO AGGREGATORS
-        self.system_process_aggregators = {}    # TODO: ADD MAPPINGS FROM PID TO AGGREGATORS
-        self.cross_processes_aggregators = {}   # TODO: ADD MAPPINGS FROM PID TO AGGREGATORS
+        self.system_aggregators = [CPUIntegralAggregator()]    # TODO: ADD SYSTEM AGGREGATORS (E.G., MEMORY INTEGRAL)
+
+        # TODO: TRY TO FIND MORE DYNAMIC WAY TO INITIALIZE THESE LISTS
+        basic_process_aggregators_types = [CPUIntegralAggregator]   # TODO: ADD MEMORY INTEGRAL (MAYBE COMBINE THE CPU AND MEMTORT INSTANCES BY CREATING AN ABSTRACT INTEGRAL CACULATOR)
+        system_process_aggregators_types = []
+        system_processes_aggregators_types = [ProcessSystemUsageFractionAggregator]
+
+        self.basic_process_aggregators = defaultdict(lambda: [cls() for cls in basic_process_aggregators_types])
+        self.system_process_aggregators = defaultdict(lambda: [cls() for cls in system_process_aggregators_types])   # TODO: ADD ENERGY ESTIMATIONS
+        self.system_processes_aggregators = defaultdict(lambda: [cls() for cls in system_processes_aggregators_types])
 
     def feed_full_iteration_raw_data(self, iteration_raw_results: IterationRawResults):
-        # TODO: think about how to print all process-related aggregations in one document per process
-        # TODO: all aggregations should be sent to the same index.
-
-        print(iteration_raw_results.processes_raw_results)
-
-
-        # both can use the same aggregators, just different instances per process and a separate one for the system
         system_aggregated_results = self._feed_system_aggregators(iteration_raw_results.system_raw_results, iteration_raw_results.metadata)
-        # processes_basic_aggregated_results = self.feed_processes_basic_aggregators(iteration_raw_results.raw_process_samples)
-        #
-        # feed_system_process_aggregators(iteration_raw_results)   # will be logged as process document
-        # feed_cross_processes_aggregators(iteration_raw_results)   # will be logged as process document
 
-        # TODO: chain all process results together here. Probably through taking all values from the pid key of all results dictionaries
-        # for process_results in processes_basic_aggregated_results:
-        #     logger.info(
-        #         "Process Aggregation Results",
-        #         extra=
-        #         {
-        #             "date": iteration_raw_results.date,
-        #             "pid": pid,  # TODO: extract process identifier somehow
-        #             **{key: value for aggregation_result in process_results for key, value in
-        #                asdict(processes_basic_aggregated_results).items()}
-        #         }
-        #     )
+        # TODO: WE MIGHT IMPLEMENT A COMBINED FUNCTION FOR ALL 'feed' FUNCTIONS AND JUST SEND THE RELEVANT PARAMETERS
+        processes_basic_aggregated_results = self._feed_processes_basic_aggregators(iteration_raw_results.processes_raw_results, iteration_raw_results.metadata)
+        system_process_aggregated_results = self._feed_system_process_aggregators(iteration_raw_results)
+        system_processes_aggregated_results = self._feed_system_processes_aggregators(iteration_raw_results)
+
+        combined_process_results = self._combine_process_results(
+            processes_basic_aggregated_results,
+            system_process_aggregated_results,
+            system_processes_aggregated_results
+        )
+
+        for (pid, process_name), process_results in combined_process_results.items():
+            logger.info(
+                "Process Aggregation Results",
+                extra=
+                {
+                    **asdict(iteration_raw_results.metadata),
+                    "pid": pid,
+                    "process_name": process_name,
+                    # TODO: ADD PROCESS_OF_INTEREST AND MAYBE PROGRAM ARGUMENTS
+                    **{key: value for aggregation_result in process_results for key, value in
+                       asdict(aggregation_result).items()}
+                }
+            )
 
         logger.info(
             "System Aggregation Results",
@@ -79,25 +91,81 @@ class AggregationManager:
 
     def _feed_system_aggregators(
             self,
-            system_iteration_input: SystemRawResults,
+            system_iteration_results: SystemRawResults,
             iteration_metadata: Metadata
     ) -> List[AggregationResult]:
 
         system_aggregation_results = []
         for aggregator in self.system_aggregators:
-            system_aggregation_results.append(self._process(aggregator, system_iteration_input, iteration_metadata))
+            system_aggregation_results.append(self._process(aggregator, system_iteration_results, iteration_metadata))
 
         return system_aggregation_results
 
-    def feed_processes_basic_aggregators(self, processes_iteration_input):
-        processes_aggregation_results = []
-        for raw_sample in processes_iteration_input:
+    def _feed_processes_basic_aggregators(
+            self, processes_iteration_results: List[ProcessRawResults],
+            iteration_metadata: Metadata
+    ) -> Dict[Tuple[int, str], List[AggregationResult]]:     # TODO: REPLACE TYPING WITH DATACLASS
+        """
+        Assuming pid and process_name are unique
+        """
+        processes_aggregation_results = {}
+        for raw_process_results in processes_iteration_results:
             process_aggregation_results = []
-            for aggregator in self.get_process_aggregators(raw_sample.pid):
-                process_aggregation_results.append(self._process(aggregator, raw_sample))
+            for aggregator in self.basic_process_aggregators[raw_process_results.pid, raw_process_results.process_name]:
+                process_aggregation_results.append(self._process(aggregator, raw_process_results, iteration_metadata))
 
-            # TODO: append the pid of the process here somehow, maybe a dictionary that maps pid to results
-            processes_aggregation_results.append(process_aggregation_results)
+            processes_aggregation_results[raw_process_results.pid, raw_process_results.process_name] = process_aggregation_results
+
+        return processes_aggregation_results
+
+    def _feed_system_process_aggregators(
+            self, iteration_raw_results: IterationRawResults,
+    ) -> Dict[Tuple[int, str], List[AggregationResult]]:     # TODO: REPLACE TYPING WITH DATACLASS
+        """
+        Assuming pid and process_name are unique
+        """
+        processes_aggregation_results = {}
+        for raw_process_results in iteration_raw_results.processes_raw_results:
+            process_aggregation_results = []
+            for aggregator in self.system_process_aggregators[raw_process_results.pid, raw_process_results.process_name]:
+                process_aggregation_results.append(
+                    self._process(
+                        aggregator,
+                        SystemProcessRawResults(
+                            processes_raw_results=raw_process_results,
+                            system_raw_results=iteration_raw_results.system_raw_results
+                        ),
+                        iteration_raw_results.metadata
+                    )
+                )
+
+            processes_aggregation_results[raw_process_results.pid, raw_process_results.process_name] = process_aggregation_results
+
+        return processes_aggregation_results
+
+    def _feed_system_processes_aggregators(
+            self, iteration_raw_results: IterationRawResults,
+    ) -> Dict[Tuple[int, str], List[AggregationResult]]:     # TODO: REPLACE TYPING WITH DATACLASS
+        """
+        Assuming pid and process_name are unique
+        """
+        processes_aggregation_results = {}
+        for raw_process_results in iteration_raw_results.processes_raw_results:
+            process_aggregation_results = []
+            for aggregator in self.system_processes_aggregators[raw_process_results.pid, raw_process_results.process_name]:
+                process_aggregation_results.append(
+                    self._process(
+                        aggregator,
+                        SystemProcessesRawResults(
+                            desired_process_raw_results=raw_process_results,
+                            processes_raw_results=iteration_raw_results.processes_raw_results,
+                            system_raw_results=iteration_raw_results.system_raw_results
+                        ),
+                        iteration_raw_results.metadata
+                    )
+                )
+
+            processes_aggregation_results[raw_process_results.pid, raw_process_results.process_name] = process_aggregation_results
 
         return processes_aggregation_results
 
@@ -109,4 +177,23 @@ class AggregationManager:
     ) -> AggregationResult:
         relevant_sample_features = aggregator.extract_features(raw_results, iteration_metadata)
         return aggregator.process_sample(relevant_sample_features)
+
+    @staticmethod
+    def _combine_process_results(
+            processes_basic_aggregated_results: Dict[Tuple[int, str], List[AggregationResult]],
+            system_process_aggregated_results: Dict[Tuple[int, str], List[AggregationResult]],
+            system_processes_aggregated_results: Dict[Tuple[int, str], List[AggregationResult]]
+    ) -> Dict[Tuple[int, str], List[AggregationResult]]:
+        all_dicts = (
+            processes_basic_aggregated_results,
+            system_process_aggregated_results,
+            system_processes_aggregated_results
+        )
+
+        combined_results = defaultdict(list)
+        for process_aggregations_dict in all_dicts:
+            for (pid, process_name), aggregated_results in process_aggregations_dict.items():
+                combined_results[(pid, process_name)].extend(aggregated_results)
+
+        return combined_results
 

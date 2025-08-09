@@ -16,6 +16,7 @@ ES_USER = "elastic"
 ES_PASS = "SVR4mUZl"
 INDEX_SYSTEM = "system_metrics"
 INDEX_PROCESS = "process_metrics"
+# TODO: CHECK WHAT IS GOING WRONG WHEN THIS INTERVAL IS INCREASED
 POLL_INTERVAL = 2  # seconds
 
 
@@ -48,8 +49,7 @@ if __name__ == '__main__':
                 }
             ).sort('timestamp')
 
-            response = s.execute()
-            hits = response.hits
+            hits = s.scan()     # <--- Fetches all documents lazily1
 
             # Assuming there is one document in system metrics in each iteration per (hostname, session_id) pair
             for hit in hits:
@@ -67,10 +67,11 @@ if __name__ == '__main__':
                     }
                 ).sort('timestamp')
 
-                process_response = process_search.execute()
+                process_response = process_search.scan()  # <--- Fetches all documents lazily
+
                 process_results = [
                     ProcessRawResults.from_dict(hit.to_dict())
-                    for hit in process_response.hits
+                    for hit in process_response
                 ]
 
                 iteration_raw_results = IterationRawResults(
