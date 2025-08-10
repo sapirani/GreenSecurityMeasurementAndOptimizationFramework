@@ -26,7 +26,7 @@ if __name__ == '__main__':
     if not client.ping():
         raise RuntimeError("Failed to connect to Elasticsearch")
 
-    print("Connected. Watching for new CPU measurements...\n")
+    print("Connected. Watching for new measurements...\n")
 
     aggregation_manager = AggregationManager()
     measurement_start_date = None
@@ -47,12 +47,12 @@ if __name__ == '__main__':
                         default=default_fetching_timestamp
                     ).isoformat()
                 }
-            ).sort('timestamp')
+            ).sort('timestamp').extra(size=1000)
 
-            hits = s.scan()     # <--- Fetches all documents lazily1
+            response = s.execute()
 
             # Assuming there is one document in system metrics in each iteration per (hostname, session_id) pair
-            for hit in hits:
+            for hit in response.hits:
                 raw_data = hit.to_dict()
 
                 metadata = Metadata.from_dict(raw_data)
@@ -65,9 +65,9 @@ if __name__ == '__main__':
                         'gt': last_iteration_timestamps[(metadata.hostname, metadata.session_id)].isoformat(),
                         'lte': metadata.timestamp.isoformat()
                     }
-                ).sort('timestamp')
+                ).sort('timestamp').extra(size=10000)
 
-                process_response = process_search.scan()  # <--- Fetches all documents lazily
+                process_response = process_search.execute()  # <--- Fetches all documents lazily
 
                 process_results = [
                     ProcessRawResults.from_dict(hit.to_dict())
