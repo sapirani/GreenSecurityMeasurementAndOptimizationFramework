@@ -300,7 +300,7 @@ class SplunkTools(object):
             None,
             lambda: [result for result in splunk_results.JSONResultsReader(response) if isinstance(result, dict)]
         )
-        
+        print(response)
         # Get results count
         results_count = len(results)
         
@@ -337,42 +337,41 @@ class SplunkTools(object):
         Just needed the execute_query to be truly async
         """
         # Start CPU monitoring
-        self.start_cpu_monitoring()
+        # self.start_cpu_monitoring()
         
-        try:
-            all_tasks = []
-            if running_plan is None:
-                running_plan = {search: num_measurements for search in self.active_saved_searches}
-            
-            for search_name, num_measurements in running_plan.items():
-                for i in range(num_measurements):
-                    # Create a task for each measurement
-                    task = asyncio.create_task(self.run_saved_search(
-                        search_name, time_range))
-                    all_tasks.append(task)
+        all_tasks = []
+        if running_plan is None:
+            running_plan = {search: num_measurements for search in self.active_saved_searches}
+        
+        for search_name, num_measurements in running_plan.items():
+            for i in range(num_measurements):
+                # Create a task for each measurement
+                task = asyncio.create_task(self.run_saved_search(
+                    search_name, time_range))
+                all_tasks.append(task)
 
-            results = await asyncio.gather(*all_tasks)
+        results = await asyncio.gather(*all_tasks)
+        
+        # Filter out any failed measurements
+        valid_results = [m for m, r in results if isinstance(m, QueryMetrics)]
+        for result in valid_results:
+            result.start_time = time_range[0]
+            result.end_time = time_range[1]
+        
+        if len(valid_results) < len(results):
+            logger.warning(f"Some measurements failed: {len(results) - len(valid_results)} failures")
+        # log each res in line
+        for result in valid_results:
+            logger.info(f"Search: {result.search_name}, "
+                        f"Results: {result.results_count}, "
+                        f"Execution Time: {result.execution_time:.2f}s, "
+                        f"CPU: {result.cpu:.2f}s, ")
+                    #   f"IO Metrics: {result.io_metrics}")
+        return valid_results, self.total_cpu_time
             
-            # Filter out any failed measurements
-            valid_results = [m for m, r in results if isinstance(m, QueryMetrics)]
-            for result in valid_results:
-                result.start_time = time_range[0]
-                result.end_time = time_range[1]
-            
-            if len(valid_results) < len(results):
-                logger.warning(f"Some measurements failed: {len(results) - len(valid_results)} failures")
-            # log each res in line
-            for result in valid_results:
-                logger.info(f"Search: {result.search_name}, "
-                          f"Results: {result.results_count}, "
-                          f"Execution Time: {result.execution_time:.2f}s, "
-                          f"CPU: {result.cpu:.2f}s, ")
-                        #   f"IO Metrics: {result.io_metrics}")
-            return valid_results, self.total_cpu_time
-            
-        finally:
-            # Stop CPU monitoring
-            self.stop_cpu_monitoring()
+        # finally:
+        #     # Stop CPU monitoring
+        #     self.stop_cpu_monitoring()
 
     def monitor_total_cpu(self):
         """Monitor total CPU usage across all Splunk processes"""

@@ -77,7 +77,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
     
     def __init__(self, env, baseline_dir: str = "baselines", is_mock: bool = False,
                  enable_prediction: bool = True, alert_threshold: float = -0.5,
-                 skip_on_low_alert: bool = True, use_energy: bool = True,use_alert: bool = True, is_eval: bool = False):
+                 skip_on_low_alert: bool = True, use_energy: bool = True,use_alert: bool = True, is_eval: bool = False, is_train: bool = False):
         super().__init__(env)
         self.baseline_dir = Path(baseline_dir)
         self.baseline_dir.mkdir(parents=True, exist_ok=True)
@@ -114,6 +114,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         self.alert_predictor = AlertPredictor(self.expected_alerts)
         self.execution_decisions = []
         self.is_eval = is_eval
+        self.is_train = is_train
         
     def _get_baseline_path(self) -> Path:
         """Get path for baseline data based on environment config"""
@@ -195,7 +196,8 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         # Decide whether to execute
         should_execute = True
         if self.enable_prediction and self.skip_on_low_alert:
-            should_execute = ((predicted_reward <= (sum(self.expected_alerts.values()) + std)) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval
+            should_execute =  ((predicted_reward <= (sum(self.expected_alerts.values()) + (2.5*std))) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval
+            # (((self.all_steps_counter > 40000) or not self.is_train) and
             # should_execute = ((predicted_reward >= self.alert_threshold) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval
             self.unwrapped.should_delete = should_execute
             
@@ -360,7 +362,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 if info.get('ac_distribution_value', 0) > self.env.distribution_threshold:
                     reward += -(2**info['ac_distribution_reward'])
                         
-                if predicted_alert_reward > sum(self.expected_alerts.values())+std:
+                if predicted_alert_reward > sum(self.expected_alerts.values())+(2.5*std):
                     reward += -(2**info['alert_reward'])
             else:
                 reward = 1
@@ -588,7 +590,7 @@ class DistributionRewardWrapper(RewardWrapper):
         self.gamma = gamma
         self.epsilon = epsilon
         self.distribution_reward_freq = distribution_freq
-        self.distribution_threshold = 0.12 #0.18 #0.22
+        self.distribution_threshold = 0.22 #0.18 #0.22
         
         
     def step(self, action):

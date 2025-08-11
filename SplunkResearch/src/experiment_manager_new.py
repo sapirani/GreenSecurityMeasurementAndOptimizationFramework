@@ -144,7 +144,7 @@ class ExperimentManager:
                 distribution_freq=1
             )
             
-        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = -2, skip_on_low_alert = True, use_energy = config.use_energy_reward, use_alert = config.use_alert_reward , is_eval = (config.mode == "eval_post_training"))  
+        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = -2, skip_on_low_alert = True, use_energy = config.use_energy_reward, use_alert = config.use_alert_reward, is_train = (config.mode.__contains__('train')) , is_eval = (config.mode == "eval_post_training"))  
         # alert_threshold = -6, -2, -10
         
         if config.use_energy_reward:
@@ -238,8 +238,8 @@ class ExperimentManager:
                 # 'batch_size': config.batch_size,
                 # 'n_epochs': config.n_epochs,
                 'ent_coef': config.ent_coef,
-                'sde_sample_freq': 6,
-                'use_sde': True,
+                # 'sde_sample_freq': 6,
+                # 'use_sde': True,
             })
             
         elif config.model_type in ['sac', 'td3', 'ddpg']:
@@ -304,13 +304,13 @@ class ExperimentManager:
             self.eval_env = self.create_environment(eval_config)
             self.eval_env.splunk_tools.load_real_logs_distribution_bucket(datetime.datetime.strptime(env.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(self.eval_env.time_manager.end_time, '%m/%d/%Y:%H:%M:%S'))
 
-            if "test_experiment" not  in config.experiment_name:
-                # clean and warm up the env
-                clean_env(env.splunk_tools, (env.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
-                env.warmup()
-            else:
-                env.disable_injection()
-                self.eval_env.disable_injection()
+            # if "test_experiment" not  in config.experiment_name:
+            #     # clean and warm up the env
+            #     clean_env(env.splunk_tools, (env.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
+            #     env.warmup()
+            # else:
+            #     env.disable_injection()
+            #     self.eval_env.disable_injection()
             # Setup callbacks
             config.experiment_name = experiment_name
             callbacks = self._setup_callbacks(config)
@@ -558,12 +558,13 @@ if __name__ == "__main__":
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250620175311_35000_steps"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250623144601_43000_steps.zip"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250711001649_264000_steps.zip"
-    num_episodes = 100000
+    num_episodes = 1000000
     action_type = "Action8"
     for steps in range(45000, 160000, 500000):
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250626010440_{steps}_steps.zip"
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250726233927_243000_steps.zip"
-        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250806144736_355000_steps.zip"
+        # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250806144736_355000_steps.zip"
+        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/retrain_20250809221046_64000_steps.zip"
         print(f"Model path: {model_path}")
         for learning_rate in [0.0001]:
             for n_steps in [72]:
@@ -607,7 +608,7 @@ if __name__ == "__main__":
                         )
                         
                         #retrain model
-                        experiment_config.mode = "retrain"#"eval_post_training"  # eval after training
+                        experiment_config.mode = "train"#"eval_post_training"  # eval after training
                         manager = ExperimentManager(base_dir="experiments")
                         results = manager.run_experiment(experiment_config)
 

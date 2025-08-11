@@ -25,6 +25,7 @@ class Action(ActionWrapper):
         self.episodic_logs_to_inject = []
         # Track injected logs
         self.current_logs = {}
+        
         self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.relevant_logtypes for istrigger in [0, 1]}
         self.remaining_quota = 0
         self.inserted_logs = 0
@@ -135,7 +136,6 @@ class Action(ActionWrapper):
                 f"inserted {len(fake_logs)} logs of type {logsource} "
                 f"{eventcode} {is_trigger} with diversity {diversity}"
             )
-            sleep(count/4000)  # wait for logs to be written
 
     def inject_episodic_logs(self):
         """Inject episodic logs into environment"""
@@ -145,6 +145,9 @@ class Action(ActionWrapper):
         for logs_to_inject, time_range in self.episodic_logs_to_inject:
             logger.info(f"Injecting episodic logs: {logs_to_inject} at time range {time_range}")
             self.inject_logs(logs_to_inject, time_range)
+        logger.info(f"Waiting for {sum(self.episode_logs.values())} logs to be written")
+        sleep(sum(self.episode_logs.values())/4500)  # wait for logs to be written
+        
         
         
     def step(self, action):
@@ -587,12 +590,15 @@ class Action8(Action):
             super().__init__(env, test_random)
             low_bounds = np.zeros(len(self.top_logtypes) + len(self.relevant_logtypes))
             # low_bounds[-1] = 0.1
-            self.action_space = spaces.Box(
-                low=low_bounds,
-                high=np.ones(len(self.top_logtypes) + len(self.relevant_logtypes)),
-                shape=(len(self.top_logtypes)+ len(self.relevant_logtypes),),
-                dtype=np.float32
+            self.action_space = spaces.MultiDiscrete(
+                [10] * len(self.top_logtypes) + [31] * len(self.relevant_logtypes)
             )
+            # self.action_space = spaces.Box(
+            #     low=low_bounds,
+            #     high=np.ones(len(self.top_logtypes) + len(self.relevant_logtypes)),
+            #     shape=(len(self.top_logtypes)+ len(self.relevant_logtypes),),
+            #     dtype=np.float32
+            # )
             self.diversity_episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
             self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
             self.diversity_factor = 31
@@ -602,15 +608,16 @@ class Action8(Action):
             """Convert raw action to log injection dictionary"""
             # Split action into quota and distribution
             # check zero action 
-            distribution = action[:len(self.top_logtypes)]
+            distribution = action[:len(self.top_logtypes)]/10
             # softmax normalization
             # distribution = np.exp(distribution) / np.sum(np.exp(distribution))
-            distribution /= (np.sum(distribution) + 1e-8) 
+            # distribution /= (np.sum(distribution) + 1e-8) 
             
             diversity_list = action[len(self.top_logtypes):]
             # current_quota = action[-1]
             # num_logs = 20000
-            num_logs = self.config.additional_percentage * self.current_real_quantity
+            # num_logs = self.config.additional_percentage * self.current_real_quantity
+            num_logs = 2000
             self.inserted_logs = 0
             self.current_logs = {}
             # self.remaining_quota = self.quota - num_logs
@@ -632,9 +639,11 @@ class Action8(Action):
                     
                     if logtype in self.relevant_logtypes:
                         diversity = float(diversity_list[self.relevant_logtypes.index(logtype)])
-                        is_trigger = int(np.ceil(diversity))
+                        is_trigger = int(np.ceil(diversity/self.diversity_factor ))
+                        # is_trigger = int(np.ceil(diversity ))
                         
-                        diversity = int(diversity * self.diversity_factor)
+                        diversity = int(diversity)
+                        # diversity = int(diversity * self.diversity_factor)
                     diversity = max(1, min(diversity, log_count))
                         
                         

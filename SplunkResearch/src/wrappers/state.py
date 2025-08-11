@@ -178,7 +178,7 @@ class StateWrapper3(StateWrapper):
         self.observation_space = spaces.Box(
             low=0,
             high=3,
-            shape=(len(self.top_logtypes)*2+1,),  # +1 for 'other' category
+            shape=(len(self.top_logtypes)*2,),  # +1 for 'other' category
             # shape=(len(self.top_logtypes),),  # +1 for 'other' category
             dtype=np.float64
         )
@@ -216,7 +216,7 @@ class StateWrapper3(StateWrapper):
         # sparse_vector = np.zeros(self.env.total_steps)
         # sparse_vector[self.unwrapped.step_counter-1] = 1
         # state = np.append(state, sparse_vector)
-        state = np.append(state, self.action_wrapper.current_real_quantity/500000)  # Normalize by total logs
+        # state = np.append(state, self.action_wrapper.current_real_quantity/100000)  # Normalize by total logs
         # real_total_logs = self.total_current_logs
         # real_total_logs = self.total_episode_logs
         # state = np.append(state, real_total_logs/500000)
@@ -238,7 +238,7 @@ class StateWrapper3(StateWrapper):
     
     def _normalize(self, state):
         """Normalize state vector"""
-        return (state+ 0.0000000001) / (500000)  # Avoid division by zero
+        return (state+ 0.0000000001) / (100000)  # Avoid division by zero
         # return state / (sum(state) + 0.0000000001)
      
 
