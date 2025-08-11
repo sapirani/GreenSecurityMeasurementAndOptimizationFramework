@@ -16,8 +16,8 @@ def receive_udp_packets(ip: int = UDP_IP, port: int = UDP_PORT, buffer_size: int
             print(f"Received packet from {addr}: {data}")
         except socket.timeout:
             continue
-
-    sock.close()
+        finally:
+            sock.close()
 
 
 if __name__ == "__main__":

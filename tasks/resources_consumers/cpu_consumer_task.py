@@ -5,7 +5,7 @@ import multiprocessing
 
 initial_time = time.time()
 
-def consume_cpu(percentage, total_duration: int):
+def consume_cpu(percentage: float, total_duration: int):
     curr_process = psutil.Process()
     curr_process.cpu_percent()
 

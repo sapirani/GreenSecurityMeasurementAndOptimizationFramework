@@ -14,6 +14,7 @@ DURATION_PARAM_INDEX = 1
 INTERVAL_PARAM_INDEX = 2
 
 
+
 def send_udp_packets(duration: float, ip: str = UDP_IP, port: int = UDP_PORT, interval: float = DEFAULT_TIME_INTERVAL, packet_size: int = PACKET_SIZE):
     p = psutil.Process()
     print(p.io_counters())
