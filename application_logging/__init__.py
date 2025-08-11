@@ -1,37 +1,32 @@
+from logging import Handler, Logger
 import logging
-import threading
 from typing import Optional
 
 from application_logging.handlers.elastic_handler import ElasticSearchLogHandler
 
-_logger = None
-_logger_lock = threading.Lock()
-_measurement_session_id: Optional[str] = None
+
+def get_elastic_logging_handler(elastic_username: str, elastic_password: str, elastic_url: str, starting_time: float) -> Optional[Handler]:
+    try:
+        return ElasticSearchLogHandler(elastic_username, elastic_password, elastic_url, start_timestamp=starting_time)
+    except ConnectionError:
+        return None
 
 
-def set_measurement_session_id(measurement_session_id: str) -> None:
-    global _measurement_session_id
-    _measurement_session_id = measurement_session_id
+def get_measurement_logger(custom_filter: Optional[logging.Filter] = None, logger_handler: Optional[Handler] = None) -> Logger:
+    """
+    :param custom_filter: a filter to apply on logs (may be used to insert dynamic fields to the logs)
+    :param logger_handler: a handler to attach to the returned adapter (for example, ElasticSearchLogHandler)
+    """
+    _logger = logging.getLogger("measurements_logger")
+    _logger.setLevel(logging.DEBUG)
 
+    if not _logger.filters and custom_filter:
+        _logger.addFilter(custom_filter)
 
-def get_measurement_logger() -> logging.Logger:
-    if _measurement_session_id is None:
-        raise ValueError("measurement session id must be set before calling the logger retrieval function")
-
-    global _logger
-    with _logger_lock:
-        if _logger is None:
-            _logger = logging.getLogger("measurements_logger")
-            _logger.setLevel(logging.INFO)
-
-            handler = logging.NullHandler()
-            try:
-                handler = ElasticSearchLogHandler(_measurement_session_id)
-            except ConnectionError:
-                pass
-            formatter = logging.Formatter('%(asctime)s - %(levelname)s %(message)s')
-            handler.setFormatter(formatter)
-
-            _logger.addHandler(handler)
+    if not _logger.handlers and logger_handler:
+        handler = logger_handler if logger_handler else logging.NullHandler()
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s %(message)s')
+        handler.setFormatter(formatter)
+        _logger.addHandler(handler)
 
     return _logger

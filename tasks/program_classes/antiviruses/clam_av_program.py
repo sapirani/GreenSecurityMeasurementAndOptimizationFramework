@@ -1,6 +1,6 @@
 from typing import Union
 
-from general_consts import ScanType
+from utils.general_consts import ScanType
 from tasks.program_classes.antiviruses.antivirus_program import AntivirusProgram
 
 
