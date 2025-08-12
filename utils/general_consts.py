@@ -59,6 +59,7 @@ class ProgramToScan(Enum):
     PythonServer = 13
     NetworkReceiver = 14
     NetworkSender = 15
+    MemoryReleaser = 16
 
 
 class ScanMode(Enum):

@@ -20,6 +20,7 @@ from resource_monitors.system_monitor.battery.null_battery_monitor import NullBa
 from summary_builder import SystemResourceIsolationSummaryBuilder, NativeSummaryBuilder
 from tasks.program_classes.resources_consumers_programs.disk_io_read_program import DiskIOReadConsumer
 from tasks.program_classes.resources_consumers_programs.disk_io_write_program import DiskIOWriteConsumer
+from tasks.program_classes.resources_consumers_programs.memory_releaser_program import MemoryReleaser
 from utils.general_consts import SummaryType, ProgramToScan, AntivirusType, IDSType, ProcessMonitorType, BatteryMonitorType
 from tasks.program_classes.abstract_program import ProgramInterface
 from tasks.program_classes.antiviruses.clam_av_program import ClamAVProgram
@@ -117,6 +118,8 @@ def program_to_scan_factory(program_type: ProgramToScan) -> ProgramInterface:
         return CPUConsumer(cpu_percent_to_consume, RUNNING_TIME)
     if program_type == ProgramToScan.MemoryConsumer:
         return MemoryConsumer(consumption_speed=dummy_task_rate, memory_chunk_size=dummy_task_unit_size)
+    if program_type == ProgramToScan.MemoryReleaser:
+        return MemoryReleaser(releasing_speed=dummy_task_rate, memory_chunk_size=dummy_task_unit_size)
     if program_type == ProgramToScan.DiskIOWriteConsumer:
         return DiskIOWriteConsumer(rate=dummy_task_rate, file_size=dummy_task_unit_size)
     if program_type == ProgramToScan.DiskIOReadConsumer:
