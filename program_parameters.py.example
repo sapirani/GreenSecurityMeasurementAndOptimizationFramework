@@ -63,24 +63,8 @@ installation_dir = r"C:\Users\Administrator\Repositories"
 model_action = 'predict'# train or predict
 
 # For CPU CONSUMER program
-cpu_percent_to_consume = 20
+cpu_percent_to_consume = 50
 
-# For MEMORY CONSUMER program
-memory_chunk_size = 1 * MB
-consumption_speed = 10 * MB / SECOND
-
-# For Network Tasks - Receiver + Sender
-network_ip_address = "192.168.1.145"
-network_port = 12345
-
-# For Network Receiver
-network_buffer_size = None
-
-# For Network Sender
-time_interval = 0.2
-network_packet_size = None
-
-# For Disk IO tasks
-path_to_directory_with_files = <path_to_your_directory>
-# For Disk IO Write
-number_of_files_to_generate = 10000
+# For Network, Memory and Disk tasks
+dummy_task_rate = 1 / 5
+dummy_task_unit_size = 1024  # can be None
