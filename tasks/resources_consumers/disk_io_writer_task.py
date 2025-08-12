@@ -1,45 +1,54 @@
-import argparse
 import os
-from pathlib import Path
+import time
 import random
 import string
+from pathlib import Path
+import tempfile
 
-from utils.general_consts import KB
+from tasks.resources_consumers.task_utils import extract_rate_and_size
 
-NUMBER_OF_FILES = 10000
 BASE_FILE_NAME = "file"
 FILE_ENDING = "txt"
-
-RANDOM_STRING_LEN = 0.7 * KB
-RANDOM_STRING = ''.join([random.choice(string.ascii_letters) for i in range(RANDOM_STRING_LEN)])
+FILE_SIZE = 1024
 
 
-def write_files(files_directory: str, number_of_files: int = NUMBER_OF_FILES):
-    Path(files_directory).mkdir(parents=True, exist_ok=True)
-    for i in range(number_of_files):
-        file_path = os.path.join(files_directory, f"{BASE_FILE_NAME}{i}.{FILE_ENDING}")
-        generate_file(file_path)
+def generate_random_string(size: int) -> str:
+    """Generate a random string of given byte size."""
+    return ''.join(random.choice(string.ascii_letters) for _ in range(size))
 
 
-def generate_file(file_path: str):
-    with open(f'{file_path}', 'w') as f:
-        f.write(RANDOM_STRING)
+def write_files(rate: float, file_size: int = FILE_SIZE):
+    """Write files endlessly at a given rate (files/sec) and file size."""
+    # Create a temporary directory for writing
+    output_dir = os.path.join(tempfile.gettempdir(), "disk_io_test")
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    interval = 1.0 / rate
+    counter = 0
+    data = generate_random_string(file_size)
+
+    print(f"Writing {file_size} bytes per file at {rate} files/sec in {output_dir}")
+    try:
+        while True:
+            start_time = time.time()
+            file_path = os.path.join(output_dir, f"{BASE_FILE_NAME}{counter}.{FILE_ENDING}")
+            with open(file_path, 'w') as f:
+                f.write(data)
+            counter += 1
+
+            elapsed = time.time() - start_time
+            sleep_time = interval - elapsed
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+    except KeyboardInterrupt:
+        print("\nStopping disk write operations...")
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description="This program is a dummy task that only writes and consumes Disk"
+    task_description = "Performs Disk I/O write operations endlessly at a given rate and file size."
+    rate, file_size = extract_rate_and_size(task_description, FILE_SIZE)
+
+    write_files(
+        rate=rate,
+        file_size=file_size
     )
-
-    parser.add_argument("-n", "--number_of_files",
-                        type=int,
-                        default=NUMBER_OF_FILES,
-                        help="The number of files to generate.")
-
-    parser.add_argument("-d", "--directory",
-                        type=str,
-                        required=True,
-                        help="The path to the directory where the generated files will be saved.")
-
-    args = parser.parse_args()
-    write_files(args.directory, args.number_of_files)

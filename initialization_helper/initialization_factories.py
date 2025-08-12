@@ -120,7 +120,7 @@ def program_to_scan_factory(program_type: ProgramToScan) -> ProgramInterface:
     if program_type == ProgramToScan.MemoryConsumer:
         return MemoryConsumer(consumption_speed=dummy_task_rate, memory_chunk_size=dummy_task_unit_size)
     if program_type == ProgramToScan.DiskIOWriteConsumer:
-        return DiskIOWriteConsumer(path_to_directory_with_files, number_of_files_to_generate)
+        return DiskIOWriteConsumer(rate=dummy_task_rate, file_size=dummy_task_unit_size)
     if program_type == ProgramToScan.DiskIOReadConsumer:
         return DiskIOReadConsumer(path_to_directory_with_files)
     if program_type == ProgramToScan.PythonServer:

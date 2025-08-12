@@ -5,13 +5,16 @@ from tasks.program_classes.abstract_program import ProgramInterface
 
 
 class DiskIOWriteConsumer(ProgramInterface):
-    def __init__(self, directory_path: str, number_of_files: Optional[int]):
+    def __init__(self, rate: float, file_size: Optional[int]):
         super().__init__()
-        self.__directory_path = directory_path
-        self.__number_of_files = number_of_files
+        self.__rate = rate
+        self.__file_size = file_size
 
     def get_program_name(self):
         return "IO Write Dummy"
 
     def get_command(self) -> str:
-        return rf"python {os.path.join('tasks/resources_consumers', 'disk_io_writer_task.py')} -d {self.__directory_path} -n {self.__number_of_files}"
+        command = rf"python {os.path.join('tasks/resources_consumers', 'disk_io_writer_task.py')} -r {self.__rate} "
+        if self.__file_size is not None:
+            command += f"-n {self.__file_size}"
+        return command
