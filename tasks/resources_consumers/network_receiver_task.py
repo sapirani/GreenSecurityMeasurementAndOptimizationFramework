@@ -1,45 +1,51 @@
-import argparse
 import socket
-UDP_IP = "192.168.1.145"
+import time
+
+from tasks.resources_consumers.task_utils import extract_rate_and_size
+
+UDP_IP = "0.0.0.0"  # Listen on all interfaces
 UDP_PORT = 12345
 TIMEOUT = 2.0
 BUFFER_SIZE = 1024
 
-def receive_udp_packets(ip: int = UDP_IP, port: int = UDP_PORT, buffer_size: int = BUFFER_SIZE):
+
+def receive_udp_packets(rate: float, buffer_size: int = BUFFER_SIZE, ip: str = UDP_IP, port: int = UDP_PORT):
+    """
+    Receives UDP packets endlessly at a specified read rate (packets/sec)
+    and packet size (buffer size).
+    """
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((ip, port))
-    print(f"Listening for UDP packets on {ip}:{port}...")
+    sock.settimeout(TIMEOUT)
 
-    while True:
-        try:
-            data, addr = sock.recvfrom(buffer_size)
-            print(f"Received packet from {addr}: {data}")
-        except socket.timeout:
-            continue
-        finally:
-            sock.close()
+    interval = 1.0 / rate  # expected processing interval
+
+    print(f"Listening for UDP packets on {ip}:{port} (rate: {rate} pps, packet_size: {buffer_size} bytes)...")
+
+    try:
+        while True:
+            start_time = time.time()
+            try:
+                data, addr = sock.recvfrom(buffer_size)
+                print(f"Received packet from {addr}: {len(data)} bytes")
+            except socket.timeout:
+                pass
+
+            elapsed = time.time() - start_time
+            sleep_time = interval - elapsed
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+    except KeyboardInterrupt:
+        print("\nStopping packet receiver...")
+    finally:
+        sock.close()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="This program is a dummy task that only receives packets through network"
+    task_description = "Receives UDP packets endlessly at a given processing rate and packet size."
+    rate, buffer_size = extract_rate_and_size(task_description, BUFFER_SIZE)
+
+    receive_udp_packets(
+        rate=rate,
+        buffer_size=buffer_size
     )
-
-    parser.add_argument("-a", "--ip_address",
-                        type=str,
-                        required=True,
-                        help="The ip address of the device that receives the messages.")
-
-    parser.add_argument("-p", "--port",
-                        type=int,
-                        required=True,
-                        help="The port on which the device is listening.")
-
-    parser.add_argument("-s", "--buffer_size",
-                        type=int,
-                        default=BUFFER_SIZE,
-                        help="The size of the message.")
-
-    args = parser.parse_args()
-
-    receive_udp_packets(ip=args.ip_address, port=args.port, buffer_size=args.buffer_size)

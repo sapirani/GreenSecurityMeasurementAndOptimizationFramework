@@ -126,7 +126,7 @@ def program_to_scan_factory(program_type: ProgramToScan) -> ProgramInterface:
     if program_type == ProgramToScan.PythonServer:
         return PythonServer()
     if program_type == ProgramToScan.NetworkReceiver:
-        return NetworkReceiver(network_ip_address, network_port, network_buffer_size)
+        return NetworkReceiver(rate=dummy_task_rate, buffer_size=dummy_task_unit_size)
     if program_type == ProgramToScan.NetworkSender:
         return NetworkSender(rate=dummy_task_rate, packet_size=dummy_task_unit_size)
 
