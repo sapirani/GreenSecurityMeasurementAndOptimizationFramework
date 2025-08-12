@@ -122,7 +122,7 @@ def program_to_scan_factory(program_type: ProgramToScan) -> ProgramInterface:
     if program_type == ProgramToScan.DiskIOWriteConsumer:
         return DiskIOWriteConsumer(rate=dummy_task_rate, file_size=dummy_task_unit_size)
     if program_type == ProgramToScan.DiskIOReadConsumer:
-        return DiskIOReadConsumer(path_to_directory_with_files)
+        return DiskIOReadConsumer(rate=dummy_task_rate, file_size=dummy_task_unit_size)
     if program_type == ProgramToScan.PythonServer:
         return PythonServer()
     if program_type == ProgramToScan.NetworkReceiver:
