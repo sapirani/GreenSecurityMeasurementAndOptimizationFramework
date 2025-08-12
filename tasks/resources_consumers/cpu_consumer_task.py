@@ -32,8 +32,10 @@ def consume_cpu(percentage: float, total_duration: int):
             adjustments -= 0.01
 
         sleep_time = ((1 - desired_consumption_between_0_to_1) / 5) + adjustments
-        if sleep_time > 0:
+        if sleep_time >= 0:
             time.sleep(sleep_time)
+        else:
+            raise RuntimeError("Received a negative sleep time. The Rate value is too high.")
 
 
 def divide_consumption_to_processes(cpu_consumption: float):

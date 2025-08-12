@@ -33,8 +33,10 @@ def receive_udp_packets(rate: float, buffer_size: int = BUFFER_SIZE, ip: str = U
 
             elapsed = time.time() - start_time
             sleep_time = interval - elapsed
-            if sleep_time > 0:
+            if sleep_time >= 0:
                 time.sleep(sleep_time)
+            else:
+                raise RuntimeError("Received a negative sleep time. The Rate value is too high.")
     except KeyboardInterrupt:
         print("\nStopping packet receiver...")
     finally:

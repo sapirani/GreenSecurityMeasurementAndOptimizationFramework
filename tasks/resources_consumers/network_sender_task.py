@@ -16,8 +16,6 @@ def send_udp_packets(rate: float, message: bytes, ip: str = UDP_IP, port: int = 
     Stops only when the program is terminated externally.
     """
     p = psutil.Process()
-    print("Before sending:", p.io_counters())
-    print(psutil.net_io_counters())
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     interval = 1.0 / rate  # seconds between packets
@@ -30,8 +28,6 @@ def send_udp_packets(rate: float, message: bytes, ip: str = UDP_IP, port: int = 
         print("\nStopping packet sending...")
     finally:
         sock.close()
-        print("After sending:", p.io_counters())
-        print(psutil.net_io_counters())
 
 
 if __name__ == "__main__":

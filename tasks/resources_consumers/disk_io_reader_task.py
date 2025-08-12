@@ -49,8 +49,10 @@ def read_files(rate: float, file_size: int):
 
             elapsed = time.time() - start_time
             sleep_time = interval - elapsed
-            if sleep_time > 0:
+            if sleep_time >= 0:
                 time.sleep(sleep_time)
+            else:
+                raise RuntimeError("Received a negative sleep time. The Rate value is too high.")
     except KeyboardInterrupt:
         print("\nStopping disk read operations...")
 
@@ -63,21 +65,3 @@ if __name__ == '__main__':
         rate=rate,
         file_size=file_size
     )
-
-    parser = argparse.ArgumentParser(
-        description="Performs Disk I/O read operations endlessly at a given rate and read size."
-    )
-
-    parser.add_argument("-r", "--rate",
-                        type=float,
-                        required=True,
-                        help="Number of reads per second.")
-
-    parser.add_argument("-s", "--size",
-                        type=int,
-                        required=True,
-                        help="Number of bytes to read per file.")
-
-    args = parser.parse_args()
-
-    read_files(rate=args.rate, size=args.size)

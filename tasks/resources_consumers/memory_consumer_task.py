@@ -13,12 +13,11 @@ def consume_ram(rate: float, chunk_size: int = CHUNK_SIZE):
             arr += bytearray(chunk_size)
 
         sleep_time = 1 - (time.time() - start_time)
-        if sleep_time > 0:
+        if sleep_time >= 0:
             time.sleep(sleep_time)
+        else:
+            raise RuntimeError("Received a negative sleep time. The Rate value is too high.")
 
-
-# First argument - chunk size
-# Second argument - speed (bytes per second)
 
 if __name__ == "__main__":
     task_description = "This program is a dummy task that only consumes RAM"

@@ -11,7 +11,6 @@ def read_files(directory_path: str):
         file_path = os.path.join(directory_path, file)
         try:
             with open(file_path, 'rb') as f:
-                # print(f.name)
                 x = f.read()
         except Exception as e:
             continue

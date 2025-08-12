@@ -38,8 +38,10 @@ def write_files(rate: float, file_size: int = FILE_SIZE):
 
             elapsed = time.time() - start_time
             sleep_time = interval - elapsed
-            if sleep_time > 0:
+            if sleep_time >= 0:
                 time.sleep(sleep_time)
+            else:
+                raise RuntimeError("Received a negative sleep time. The Rate value is too high.")
     except KeyboardInterrupt:
         print("\nStopping disk write operations...")
 
