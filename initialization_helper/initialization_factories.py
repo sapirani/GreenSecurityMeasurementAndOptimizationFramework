@@ -118,7 +118,7 @@ def program_to_scan_factory(program_type: ProgramToScan) -> ProgramInterface:
     if program_type == ProgramToScan.CPUConsumer:
         return CPUConsumer(cpu_percent_to_consume, RUNNING_TIME)
     if program_type == ProgramToScan.MemoryConsumer:
-        return MemoryConsumer(memory_chunk_size, consumption_speed)
+        return MemoryConsumer(consumption_speed=dummy_task_rate, memory_chunk_size=dummy_task_unit_size)
     if program_type == ProgramToScan.DiskIOWriteConsumer:
         return DiskIOWriteConsumer(path_to_directory_with_files, number_of_files_to_generate)
     if program_type == ProgramToScan.DiskIOReadConsumer:

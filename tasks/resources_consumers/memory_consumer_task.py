@@ -1,12 +1,15 @@
-import argparse
 import time
 
+from tasks.resources_consumers.task_utils import extract_rate_and_size
 
-def consume_ram(speed: float, chunk_size: int):
+CHUNK_SIZE = 2 ** 10
+
+
+def consume_ram(rate: float, chunk_size: int = CHUNK_SIZE):
     arr = b''
     while True:
         start_time = time.time()
-        for _ in range(int(speed / chunk_size)):
+        for _ in range(int(rate / chunk_size)):
             arr += bytearray(chunk_size)
 
         sleep_time = 1 - (time.time() - start_time)
@@ -18,19 +21,10 @@ def consume_ram(speed: float, chunk_size: int):
 # Second argument - speed (bytes per second)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="This program is a dummy task that only consumes RAM"
+    task_description = "This program is a dummy task that only consumes RAM"
+    rate, chunk_size = extract_rate_and_size(task_description, CHUNK_SIZE)
+
+    consume_ram(
+        rate=rate,
+        chunk_size=chunk_size
     )
-
-    parser.add_argument("-s", "--speed",
-                        type=float,
-                        required=True,
-                        help="The speed (bytes per second) of consumption")
-
-    parser.add_argument("-c", "--chunk_size",
-                        type=int,
-                        required=True,
-                        help="The chunk size (in bytes) of consumption.")
-
-    args = parser.parse_args()
-    consume_ram(speed=args.speed, chunk_size=args.chunk_size)
