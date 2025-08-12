@@ -1,8 +1,8 @@
 import argparse
 import time
 
-def consume_ram(speed: float, chunk_size: int, running_time: float):
-    global_start_time = time.time()
+
+def consume_ram(speed: float, chunk_size: int):
     arr = b''
     while True:
         start_time = time.time()
@@ -13,23 +13,14 @@ def consume_ram(speed: float, chunk_size: int, running_time: float):
         if sleep_time > 0:
             time.sleep(sleep_time)
 
-        if time.time() - global_start_time > running_time:
-            return
-
 
 # First argument - chunk size
 # Second argument - speed (bytes per second)
-# Third argument - running time
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="This program is a dummy task that only consumes RAM"
     )
-
-    parser.add_argument("-t", "--duration",
-                        type=int,
-                        required=True,
-                        help="The duration of executing the task")
 
     parser.add_argument("-s", "--speed",
                         type=float,
@@ -42,5 +33,4 @@ if __name__ == "__main__":
                         help="The chunk size (in bytes) of consumption.")
 
     args = parser.parse_args()
-    consume_ram(speed=args.speed, chunk_size=args.chunk_size, running_time=args.duration)
-
+    consume_ram(speed=args.speed, chunk_size=args.chunk_size)

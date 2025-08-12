@@ -5,14 +5,10 @@ from tasks.program_classes.abstract_program import ProgramInterface
 
 
 class MemoryConsumer(ProgramInterface):
-    def __init__(self, memory_chunk_size: int, consumption_speed: float, running_time: float):
+    def __init__(self, memory_chunk_size: int, consumption_speed: float):
         super().__init__()
         self.memory_chunk_size = memory_chunk_size
         self.consumption_speed = consumption_speed
-        if running_time is None:
-            self.running_time = 10 * MINUTE
-        else:
-            self.running_time = running_time
 
     def general_information_before_measurement(self, f):
         f.write(f"Memory Consumer - chunk size: {self.memory_chunk_size} bytes,"
@@ -22,4 +18,4 @@ class MemoryConsumer(ProgramInterface):
         return "Memory Consumer"
 
     def get_command(self) -> str:
-        return f"python {os.path.join('tasks/resources_consumers', 'memory_consumer_task.py')} -c {self.memory_chunk_size} -t {self.running_time} -s {self.consumption_speed}"
+        return f"python {os.path.join('tasks/resources_consumers', 'memory_consumer_task.py')} -c {self.memory_chunk_size} -s {self.consumption_speed}"
