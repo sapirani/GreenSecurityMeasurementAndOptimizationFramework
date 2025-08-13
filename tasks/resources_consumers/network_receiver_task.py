@@ -6,10 +6,10 @@ from tasks.resources_consumers.task_utils import extract_rate_and_size
 UDP_IP = "0.0.0.0"  # Listen on all interfaces
 UDP_PORT = 12345
 TIMEOUT = 2.0
-BUFFER_SIZE = 1024
+DEFAULT_BUFFER_SIZE_IN_BYTES = 1024
 
 
-def receive_udp_packets(rate: float, buffer_size: int = BUFFER_SIZE, ip: str = UDP_IP, port: int = UDP_PORT):
+def receive_udp_packets(rate: float, buffer_size: int = DEFAULT_BUFFER_SIZE_IN_BYTES, ip: str = UDP_IP, port: int = UDP_PORT):
     """
     Receives UDP packets endlessly at a specified read rate (packets/sec)
     and packet size (buffer size).
@@ -45,7 +45,7 @@ def receive_udp_packets(rate: float, buffer_size: int = BUFFER_SIZE, ip: str = U
 
 if __name__ == "__main__":
     task_description = "Receives UDP packets endlessly at a given processing rate and packet size."
-    rate, buffer_size = extract_rate_and_size(task_description, BUFFER_SIZE)
+    rate, buffer_size = extract_rate_and_size(task_description, DEFAULT_BUFFER_SIZE_IN_BYTES)
 
     receive_udp_packets(
         rate=rate,

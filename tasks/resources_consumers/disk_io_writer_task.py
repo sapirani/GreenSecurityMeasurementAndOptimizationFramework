@@ -10,7 +10,7 @@ from tasks.resources_consumers.task_utils import extract_rate_and_size
 TEMP_OUTPUT_DIRECTORY = os.path.join(tempfile.gettempdir(), "disk_io_test")
 BASE_FILE_NAME = "file"
 FILE_ENDING = "txt"
-FILE_SIZE = 1024
+DEFALUT_FILE_SIZE_IN_BYTES = 1024
 
 
 def generate_random_string(size: int) -> str:
@@ -18,7 +18,7 @@ def generate_random_string(size: int) -> str:
     return ''.join(random.choice(string.ascii_letters) for _ in range(size))
 
 
-def write_files(rate: float, file_size: int = FILE_SIZE):
+def write_files(rate: float, file_size: int = DEFALUT_FILE_SIZE_IN_BYTES):
     """Write files endlessly at a given rate (files/sec) and file size."""
     # Create a temporary directory for writing
     Path(TEMP_OUTPUT_DIRECTORY).mkdir(parents=True, exist_ok=True)
@@ -48,7 +48,7 @@ def write_files(rate: float, file_size: int = FILE_SIZE):
 
 if __name__ == '__main__':
     task_description = "Performs Disk I/O write operations endlessly at a given rate and file size."
-    rate, file_size = extract_rate_and_size(task_description, FILE_SIZE)
+    rate, file_size = extract_rate_and_size(task_description, DEFALUT_FILE_SIZE_IN_BYTES)
 
     write_files(
         rate=rate,

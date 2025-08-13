@@ -9,11 +9,11 @@ from tasks.resources_consumers.task_utils import extract_rate_and_size
 TEMP_DIRECTORY_NAME = os.path.join(tempfile.gettempdir(), "disk_io_test")
 BASE_FILE_NAME = "file"
 FILE_ENDING = "txt"
-FILE_SIZE = 1024
+DEFALUT_FILE_SIZE_IN_BYTES = 1024
 NUM_FILES = 100
 
 
-def prepare_test_files(directory: str, file_size: int = FILE_SIZE, num_files: int = NUM_FILES):
+def prepare_test_files(directory: str, file_size: int = DEFALUT_FILE_SIZE_IN_BYTES, num_files: int = NUM_FILES):
     """Create a few files with given size so we can read from them."""
     Path(directory).mkdir(parents=True, exist_ok=True)
     data = os.urandom(file_size)
@@ -59,7 +59,7 @@ def read_files(rate: float, file_size: int):
 
 if __name__ == '__main__':
     task_description = "Performs Disk I/O read operations endlessly at a given rate and read size."
-    rate, file_size = extract_rate_and_size(task_description, FILE_SIZE)
+    rate, file_size = extract_rate_and_size(task_description, DEFALUT_FILE_SIZE_IN_BYTES)
 
     read_files(
         rate=rate,
