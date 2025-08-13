@@ -7,12 +7,14 @@ CHUNK_SIZE = 2 ** 10
 
 def consume_ram(rate: float, chunk_size: int = CHUNK_SIZE):
     arr = b''
+    interval = 1.0 / rate
     while True:
         start_time = time.time()
-        for _ in range(int(rate / chunk_size)):
+        for _ in range(int(rate)):
             arr += bytearray(chunk_size)
 
-        sleep_time = 1 - (time.time() - start_time)
+        elapsed = time.time() - start_time
+        sleep_time = interval - elapsed
         if sleep_time >= 0:
             time.sleep(sleep_time)
         else:
