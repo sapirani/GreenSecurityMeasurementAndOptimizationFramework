@@ -1,3 +1,4 @@
+import argparse
 import socket
 import time
 
@@ -9,7 +10,7 @@ TIMEOUT = 2.0
 DEFAULT_BUFFER_SIZE_IN_BYTES = 1024
 
 
-def receive_udp_packets(rate: float, buffer_size: int = DEFAULT_BUFFER_SIZE_IN_BYTES, ip: str = UDP_IP, port: int = UDP_PORT):
+def receive_udp_packets(buffer_size: int = DEFAULT_BUFFER_SIZE_IN_BYTES, ip: str = UDP_IP, port: int = UDP_PORT):
     """
     Receives UDP packets endlessly at a specified read rate (packets/sec)
     and packet size (buffer size).
@@ -18,25 +19,17 @@ def receive_udp_packets(rate: float, buffer_size: int = DEFAULT_BUFFER_SIZE_IN_B
     sock.bind((ip, port))
     sock.settimeout(TIMEOUT)
 
-    interval = 1.0 / rate  # expected processing interval
 
-    print(f"Listening for UDP packets on {ip}:{port} (rate: {rate} pps, packet_size: {buffer_size} bytes)...")
+    print(f"Listening for UDP packets on {ip}:{port} (packet_size: {buffer_size} bytes)...")
 
     try:
         while True:
-            start_time = time.time()
             try:
                 data, addr = sock.recvfrom(buffer_size)
                 print(f"Received packet from {addr}: {len(data)} bytes")
             except socket.timeout:
                 pass
 
-            elapsed = time.time() - start_time
-            sleep_time = interval - elapsed
-            if sleep_time >= 0:
-                time.sleep(sleep_time)
-            else:
-                raise RuntimeError("Received a negative sleep time. The Rate value is too high.")
     except KeyboardInterrupt:
         print("\nStopping packet receiver...")
     finally:
@@ -45,9 +38,14 @@ def receive_udp_packets(rate: float, buffer_size: int = DEFAULT_BUFFER_SIZE_IN_B
 
 if __name__ == "__main__":
     task_description = "Receives UDP packets endlessly at a given processing rate and packet size."
-    rate, buffer_size = extract_rate_and_size(task_description, DEFAULT_BUFFER_SIZE_IN_BYTES)
+    parser = argparse.ArgumentParser(description=task_description)
+
+    parser.add_argument("-s", "--buffer_size",
+                        type=int,
+                        default=DEFAULT_BUFFER_SIZE_IN_BYTES,
+                        help="The size of the buffer in bytes.")
+
 
     receive_udp_packets(
-        rate=rate,
-        buffer_size=buffer_size
+        buffer_size=parser.parse_args().buffer_size
     )

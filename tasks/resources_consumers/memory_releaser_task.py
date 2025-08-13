@@ -13,8 +13,8 @@ def release_ram(rate: float, chunk_size: int = DEFAULT_CHUNK_SIZE_IN_BYTES):
     Gradually releases memory from a pre-allocated buffer
     at the given rate (chunks/sec) and chunk size.
     """
-
-    while True:
+    done_release = False
+    while not done_release:
         start_time = time.time()
 
         for _ in range(int(rate)):
@@ -22,6 +22,7 @@ def release_ram(rate: float, chunk_size: int = DEFAULT_CHUNK_SIZE_IN_BYTES):
                 del BUFFER[-chunk_size:]
             else:
                 print(f"finished releasing {INITIAL_BUFFER_SIZE} GB.")
+                done_release = True
                 break
 
         sleep_time = 1 - (time.time() - start_time)
