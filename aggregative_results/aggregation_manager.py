@@ -1,35 +1,23 @@
 from collections import defaultdict
 from dataclasses import asdict
-from datetime import datetime
-from logging import StreamHandler
-from typing import List, Dict, Tuple
+from logging import getLogger
+from typing import List, Dict
 
-from aggregative_results.aggregators.abstract_aggregator import AggregationResult, AbstractAggregator
+from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator
+from aggregative_results.dtos import ProcessIdentity, ProcessMetadata
+from aggregative_results.dtos.aggregated_results_dtos.aggregated_process_results import AggregatedProcessResults
+from aggregative_results.dtos.aggregated_results_dtos import AggregationResult
 from aggregative_results.aggregators.cpu_integral_aggregator import CPUIntegralAggregator
 from aggregative_results.aggregators.process_system_usage_fraction_aggregator import \
     ProcessSystemUsageFractionAggregator
-from aggregative_results.raw_results_dtos import IterationRawResults, SystemRawResults, Metadata, ProcessRawResults
-from aggregative_results.raw_results_dtos.abstract_raw_results import AbstractRawResults
-from aggregative_results.raw_results_dtos.system_process_raw_results import SystemProcessRawResults
-from aggregative_results.raw_results_dtos.system_processes_raw_results import SystemProcessesRawResults
-from application_logging import get_measurement_logger, get_elastic_logging_handler
-from application_logging.formatters.pretty_extra_formatter import PrettyExtrasFormatter
-from utils.general_consts import LoggerName, IndexName
+from aggregative_results.dtos.raw_results_dtos import ProcessRawResults, IterationMetadata, IterationRawResults, \
+    SystemRawResults
+from aggregative_results.dtos.raw_results_dtos.abstract_raw_results import AbstractRawResults
+from aggregative_results.dtos.raw_results_dtos.system_process_raw_results import SystemProcessRawResults
+from aggregative_results.dtos.raw_results_dtos.system_processes_raw_results import SystemProcessesRawResults
+from utils.general_consts import LoggerName
 
-# TODO: REMOVE FROM HERE
-ES_USER = "elastic"
-ES_PASS = "SVR4mUZl"
-ES_URL = "http://127.0.0.1:9200"
-
-logger = get_measurement_logger(
-    logger_name=LoggerName.METRICS_AGGREGATIONS,
-    # TODO: REMOVE TIMESTAMP
-    logger_handler=get_elastic_logging_handler(ES_USER, ES_PASS, ES_URL, IndexName.METRICS_AGGREGATIONS, datetime.now().timestamp()),
-)
-
-handler = StreamHandler()
-handler.setFormatter(PrettyExtrasFormatter())
-logger.addHandler(handler)
+logger = getLogger(LoggerName.METRICS_AGGREGATIONS)
 
 
 class AggregationManager:
@@ -65,17 +53,19 @@ class AggregationManager:
             system_processes_aggregated_results
         )
 
-        for (pid, process_name), process_results in combined_process_results.items():
+        for process_identity, process_results in combined_process_results.items():
             logger.info(
                 "Process Aggregation Results",
                 extra=
                 {
                     **asdict(iteration_raw_results.metadata),
-                    "pid": pid,
-                    "process_name": process_name,
-                    # TODO: ADD PROCESS_OF_INTEREST AND MAYBE PROGRAM ARGUMENTS
-                    **{key: value for aggregation_result in process_results for key, value in
-                       asdict(aggregation_result).items()}
+                    **asdict(process_identity),
+                    **asdict(process_results.process_metadata),
+                    **{
+                        result_name: result_val
+                        for aggregation_result in process_results.aggregation_results for result_name, result_val in
+                        asdict(aggregation_result).items()
+                    }
                 }
             )
 
@@ -92,7 +82,7 @@ class AggregationManager:
     def _feed_system_aggregators(
             self,
             system_iteration_results: SystemRawResults,
-            iteration_metadata: Metadata
+            iteration_metadata: IterationMetadata
     ) -> List[AggregationResult]:
 
         system_aggregation_results = []
@@ -103,31 +93,39 @@ class AggregationManager:
 
     def _feed_processes_basic_aggregators(
             self, processes_iteration_results: List[ProcessRawResults],
-            iteration_metadata: Metadata
-    ) -> Dict[Tuple[int, str], List[AggregationResult]]:     # TODO: REPLACE TYPING WITH DATACLASS
+            iteration_metadata: IterationMetadata
+    ) -> Dict[ProcessIdentity, AggregatedProcessResults]:
         """
         Assuming pid and process_name are unique
         """
         processes_aggregation_results = {}
         for raw_process_results in processes_iteration_results:
+            process_identity = ProcessIdentity.from_raw_results(raw_process_results)
             process_aggregation_results = []
-            for aggregator in self.basic_process_aggregators[raw_process_results.pid, raw_process_results.process_name]:
+            for aggregator in self.basic_process_aggregators[process_identity]:
                 process_aggregation_results.append(self._process(aggregator, raw_process_results, iteration_metadata))
 
-            processes_aggregation_results[raw_process_results.pid, raw_process_results.process_name] = process_aggregation_results
+            processes_aggregation_results[process_identity] = AggregatedProcessResults(
+                process_metadata=ProcessMetadata(
+                    process_of_interest=raw_process_results.process_of_interest,
+                    arguments=raw_process_results.arguments
+                ),
+                aggregation_results=process_aggregation_results
+            )
 
         return processes_aggregation_results
 
     def _feed_system_process_aggregators(
             self, iteration_raw_results: IterationRawResults,
-    ) -> Dict[Tuple[int, str], List[AggregationResult]]:     # TODO: REPLACE TYPING WITH DATACLASS
+    ) -> Dict[ProcessIdentity, AggregatedProcessResults]:
         """
         Assuming pid and process_name are unique
         """
         processes_aggregation_results = {}
         for raw_process_results in iteration_raw_results.processes_raw_results:
+            process_identity = ProcessIdentity.from_raw_results(raw_process_results)
             process_aggregation_results = []
-            for aggregator in self.system_process_aggregators[raw_process_results.pid, raw_process_results.process_name]:
+            for aggregator in self.system_process_aggregators[process_identity]:
                 process_aggregation_results.append(
                     self._process(
                         aggregator,
@@ -139,20 +137,27 @@ class AggregationManager:
                     )
                 )
 
-            processes_aggregation_results[raw_process_results.pid, raw_process_results.process_name] = process_aggregation_results
+            processes_aggregation_results[process_identity] = AggregatedProcessResults(
+                process_metadata=ProcessMetadata(
+                    process_of_interest=raw_process_results.process_of_interest,
+                    arguments=raw_process_results.arguments
+                ),
+                aggregation_results=process_aggregation_results
+            )
 
         return processes_aggregation_results
 
     def _feed_system_processes_aggregators(
             self, iteration_raw_results: IterationRawResults,
-    ) -> Dict[Tuple[int, str], List[AggregationResult]]:     # TODO: REPLACE TYPING WITH DATACLASS
+    ) -> Dict[ProcessIdentity, AggregatedProcessResults]:
         """
         Assuming pid and process_name are unique
         """
         processes_aggregation_results = {}
         for raw_process_results in iteration_raw_results.processes_raw_results:
+            process_identity = ProcessIdentity.from_raw_results(raw_process_results)
             process_aggregation_results = []
-            for aggregator in self.system_processes_aggregators[raw_process_results.pid, raw_process_results.process_name]:
+            for aggregator in self.system_processes_aggregators[process_identity]:
                 process_aggregation_results.append(
                     self._process(
                         aggregator,
@@ -165,7 +170,13 @@ class AggregationManager:
                     )
                 )
 
-            processes_aggregation_results[raw_process_results.pid, raw_process_results.process_name] = process_aggregation_results
+            processes_aggregation_results[process_identity] = AggregatedProcessResults(
+                process_metadata=ProcessMetadata(
+                    process_of_interest=raw_process_results.process_of_interest,
+                    arguments=raw_process_results.arguments
+                ),
+                aggregation_results=process_aggregation_results
+            )
 
         return processes_aggregation_results
 
@@ -173,27 +184,29 @@ class AggregationManager:
     def _process(
             aggregator: AbstractAggregator,
             raw_results: AbstractRawResults,
-            iteration_metadata: Metadata
+            iteration_metadata: IterationMetadata
     ) -> AggregationResult:
         relevant_sample_features = aggregator.extract_features(raw_results, iteration_metadata)
         return aggregator.process_sample(relevant_sample_features)
 
     @staticmethod
     def _combine_process_results(
-            processes_basic_aggregated_results: Dict[Tuple[int, str], List[AggregationResult]],
-            system_process_aggregated_results: Dict[Tuple[int, str], List[AggregationResult]],
-            system_processes_aggregated_results: Dict[Tuple[int, str], List[AggregationResult]]
-    ) -> Dict[Tuple[int, str], List[AggregationResult]]:
+            processes_basic_aggregated_results: Dict[ProcessIdentity, AggregatedProcessResults],
+            system_process_aggregated_results: Dict[ProcessIdentity, AggregatedProcessResults],
+            system_processes_aggregated_results: Dict[ProcessIdentity, AggregatedProcessResults]
+    ) -> Dict[ProcessIdentity, AggregatedProcessResults]:
         all_dicts = (
             processes_basic_aggregated_results,
             system_process_aggregated_results,
             system_processes_aggregated_results
         )
 
-        combined_results = defaultdict(list)
+        combined_results = {}
         for process_aggregations_dict in all_dicts:
-            for (pid, process_name), aggregated_results in process_aggregations_dict.items():
-                combined_results[(pid, process_name)].extend(aggregated_results)
+            for process_identity, aggregated_results in process_aggregations_dict.items():
+                if process_identity in combined_results:
+                    combined_results[process_identity].merge(aggregated_results)
+                else:
+                    combined_results[process_identity] = aggregated_results
 
         return combined_results
-

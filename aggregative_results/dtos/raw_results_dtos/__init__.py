@@ -4,17 +4,16 @@ from typing import List, Dict, Any
 
 import pandas as pd
 
-from aggregative_results.raw_results_dtos.process_raw_results import ProcessRawResults
-from aggregative_results.raw_results_dtos.system_raw_results import SystemRawResults
+from aggregative_results.dtos.raw_results_dtos.process_raw_results import ProcessRawResults
+from aggregative_results.dtos.raw_results_dtos.system_raw_results import SystemRawResults
 
 
 def parse_time(date: str) -> datetime:
     return pd.to_datetime(date)
 
 
-# TODO: RENAME
 @dataclass
-class Metadata:
+class IterationMetadata:
     timestamp: datetime
     start_date: datetime
     hostname: str
@@ -26,7 +25,7 @@ class Metadata:
         self.seconds_from_starting_measurement: float = (self.timestamp - self.start_date).total_seconds()
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Metadata':
+    def from_dict(cls, data: Dict[str, Any]) -> 'IterationMetadata':
         init_kwargs = {}
 
         for f in fields(cls):
@@ -44,11 +43,11 @@ class Metadata:
             except KeyError:
                 raise ValueError(f"Missing required field: {f.name}")
 
-        return Metadata(**init_kwargs)
+        return IterationMetadata(**init_kwargs)
 
 
 @dataclass
 class IterationRawResults:
-    metadata: Metadata
+    metadata: IterationMetadata
     system_raw_results: SystemRawResults
     processes_raw_results: List[ProcessRawResults]

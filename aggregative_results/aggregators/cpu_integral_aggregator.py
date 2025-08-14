@@ -2,9 +2,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Union, Optional
 
-from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator, EmptyAggregationResults, \
-    AggregationResult
-from aggregative_results.raw_results_dtos import Metadata, SystemRawResults, ProcessRawResults
+from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator
+from aggregative_results.dtos import ProcessRawResults
+from aggregative_results.dtos.aggregated_results_dtos import AggregationResult, EmptyAggregationResults
+from aggregative_results.dtos.raw_results_dtos import IterationMetadata, SystemRawResults
 
 
 @dataclass
@@ -22,11 +23,10 @@ class CPUIntegralAggregator(AbstractAggregator):
     def __init__(self):
         self.previous_sample: Optional[CPUIntegralFeatures] = None
 
-    # TODO: ADD TYPING FOR raw_results
     def extract_features(
             self,
             raw_results: SystemRawResults | ProcessRawResults,
-            iteration_metadata: Metadata
+            iteration_metadata: IterationMetadata
     ) -> CPUIntegralFeatures:
         return CPUIntegralFeatures(
             date=iteration_metadata.timestamp,

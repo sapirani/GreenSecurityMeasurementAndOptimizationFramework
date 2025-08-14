@@ -1,3 +1,4 @@
+import time
 from logging import Handler, Logger
 import logging
 from typing import Optional
@@ -10,7 +11,7 @@ def get_elastic_logging_handler(
         elastic_password: str,
         elastic_url: str,
         index_name: str,
-        starting_time: float
+        starting_time: float = time.time()
 ) -> Handler:
     try:
         return ElasticSearchLogHandler(

@@ -1,14 +1,14 @@
 from dataclasses import dataclass, fields
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
-from aggregative_results.raw_results_dtos.abstract_raw_results import AbstractRawResults
+from aggregative_results.dtos.raw_results_dtos.abstract_raw_results import AbstractRawResults
 
 
 @dataclass
 class ProcessRawResults(AbstractRawResults):
     pid: int
     process_name: str
-    arguments: List[str]
+    arguments: Optional[List[str]]
     cpu_percent_sum_across_cores: float
     cpu_percent_mean_across_cores: float
     threads_num: int

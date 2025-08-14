@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from typing import List
 
-from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator, AggregationResult
-from aggregative_results.raw_results_dtos import Metadata
-from aggregative_results.raw_results_dtos.system_processes_raw_results import SystemProcessesRawResults
+from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator
+from aggregative_results.dtos.aggregated_results_dtos import AggregationResult
+from aggregative_results.dtos.raw_results_dtos import IterationMetadata
+from aggregative_results.dtos.raw_results_dtos.system_processes_raw_results import SystemProcessesRawResults
 
 
 @dataclass
@@ -60,7 +61,7 @@ class ProcessSystemUsageFractionAggregator(AbstractAggregator):
     def extract_features(
             self,
             raw_results: SystemProcessesRawResults,
-            iteration_metadata: Metadata
+            iteration_metadata: IterationMetadata
     ) -> ProcessSystemUsageFractionFeatures:
         return ProcessSystemUsageFractionFeatures(
             desired_process_cpu=raw_results.desired_process_raw_results.cpu_percent_sum_across_cores,

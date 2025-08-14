@@ -7,18 +7,10 @@ from elasticsearch import Elasticsearch
 from elasticsearch_dsl import Search
 
 # --- Config ---
+from aggregative_results import ES_URL, ES_USER, ES_PASS, INDEX_SYSTEM, INDEX_PROCESS, PULL_INTERVAL_SECONDS
 from aggregative_results.aggregation_manager import AggregationManager
-from aggregative_results.raw_results_dtos import Metadata, IterationRawResults, ProcessRawResults
-from aggregative_results.raw_results_dtos.system_raw_results import SystemRawResults
-
-ES_URL = "http://127.0.0.1:9200"
-ES_USER = "elastic"
-ES_PASS = "SVR4mUZl"
-INDEX_SYSTEM = "system_metrics"
-INDEX_PROCESS = "process_metrics"
-# TODO: CHECK WHAT IS GOING WRONG WHEN THIS INTERVAL IS INCREASED
-POLL_INTERVAL = 2  # seconds
-
+from aggregative_results.dtos import ProcessRawResults
+from aggregative_results.dtos.raw_results_dtos import IterationMetadata, SystemRawResults, IterationRawResults
 
 if __name__ == '__main__':
     # --- Connect to Elasticsearch ---
@@ -30,12 +22,11 @@ if __name__ == '__main__':
 
     aggregation_manager = AggregationManager()
     measurement_start_date = None
-    iteration_metadata = None
     default_fetching_timestamp = datetime.utcnow()  # TODO: RENAME?
     last_iteration_timestamps: DefaultDict[Tuple[str, str], datetime] = defaultdict(lambda: default_fetching_timestamp)
 
     while True:
-        time.sleep(POLL_INTERVAL)
+        time.sleep(PULL_INTERVAL_SECONDS)
 
         try:
             s = Search(using=client, index=INDEX_SYSTEM).filter(
@@ -55,19 +46,19 @@ if __name__ == '__main__':
             for hit in response.hits:
                 raw_data = hit.to_dict()
 
-                metadata = Metadata.from_dict(raw_data)
+                iteration_metadata = IterationMetadata.from_dict(raw_data)
                 parsed_system_results = SystemRawResults.from_dict(raw_data)
 
                 # --- Fetch corresponding process_metrics ---
                 process_search = Search(using=client, index=INDEX_PROCESS).filter(
                     'range',
                     timestamp={
-                        'gt': last_iteration_timestamps[(metadata.hostname, metadata.session_id)].isoformat(),
-                        'lte': metadata.timestamp.isoformat()
+                        'gt': last_iteration_timestamps[(iteration_metadata.hostname, iteration_metadata.session_id)].isoformat(),
+                        'lte': iteration_metadata.timestamp.isoformat()
                     }
                 ).sort('timestamp').extra(size=10000)
 
-                process_response = process_search.execute()  # <--- Fetches all documents lazily
+                process_response = process_search.execute()
 
                 process_results = [
                     ProcessRawResults.from_dict(hit.to_dict())
@@ -75,13 +66,13 @@ if __name__ == '__main__':
                 ]
 
                 iteration_raw_results = IterationRawResults(
-                    metadata=metadata,
+                    metadata=iteration_metadata,
                     system_raw_results=parsed_system_results,
                     processes_raw_results=process_results
                 )
 
                 aggregation_manager.feed_full_iteration_raw_data(iteration_raw_results)
-                last_iteration_timestamps[(metadata.hostname, metadata.session_id)] = metadata.timestamp
+                last_iteration_timestamps[(iteration_metadata.hostname, iteration_metadata.session_id)] = iteration_metadata.timestamp
 
         except KeyboardInterrupt:
             print("Stopped.")

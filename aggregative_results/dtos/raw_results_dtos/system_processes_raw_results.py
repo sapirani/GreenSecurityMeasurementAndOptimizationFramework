@@ -1,0 +1,13 @@
+from dataclasses import dataclass
+from typing import List
+
+from aggregative_results.dtos.raw_results_dtos.process_raw_results import ProcessRawResults
+from aggregative_results.dtos.raw_results_dtos.system_raw_results import SystemRawResults
+from aggregative_results.dtos.raw_results_dtos.abstract_raw_results import AbstractRawResults
+
+
+@dataclass
+class SystemProcessesRawResults(AbstractRawResults):
+    desired_process_raw_results: ProcessRawResults
+    processes_raw_results: List[ProcessRawResults]
+    system_raw_results: SystemRawResults
