@@ -5,11 +5,12 @@ from typing import Dict, Any
 import numpy as np
 from collections import defaultdict
 from stable_baselines3.common.evaluation import evaluate_policy
+from torch.utils.tensorboard import SummaryWriter
 
 class MetricsLoggerCallback:
     """Base class containing shared logging logic"""
     
-    def __init__(self, phase="train"):
+    def __init__(self, phase="train", log_dir=None, rules=None, event_types=None, writers=None):
         self.phase = phase
         self.episodic_metrics = [
             "alert", "duration", "cpu"]
@@ -17,7 +18,12 @@ class MetricsLoggerCallback:
         #     "read_bytes", "read_count", "write_bytes", "write_count",
         #     "total_cpu_usage"
         # ]
+        self.log_dir = log_dir
+        self.rules = rules
+        self.event_types = event_types
 
+        self.writers = writers if writers else {}
+        
     def _log_metrics(self, key: str, value, exclude_from_csv=True):
         """Safely log metrics to tensorboard"""
         if value is not None:
@@ -31,7 +37,7 @@ class MetricsLoggerCallback:
             self._log_metrics('action_window', f"{action_window}")
 
         # Log reward components
-        for reward_type in ['distribution_reward', 'energy_reward', 'alert_reward']:
+        for reward_type in ['distribution_reward']:
             if reward_type in info:
                 self._log_metrics(reward_type, info[reward_type])
         
@@ -69,6 +75,9 @@ class MetricsLoggerCallback:
         self._log_metrics('final_distribution_value', info.get('distribution_value'))
         self._log_metrics('ac_distribution_value', info.get('ac_distribution_value'))
         self._log_metrics('ac_distribution_reward', info.get('ac_distribution_reward'))
+        self._log_metrics('energy_reward', info.get('energy_reward'))
+        self._log_metrics('alert_reward', info.get('alert_reward'))
+        
         self._log_metrics('total_episode_logs', info.get('total_episode_logs'))
         
         if current_metrics and baseline_metrics:
@@ -77,6 +86,7 @@ class MetricsLoggerCallback:
                 current_val = current_metrics.get(metric)
                 baseline_val = baseline_metrics.get(metric)
                 if current_val is not None and baseline_val is not None:
+                    
                     self._log_metrics(f'{metric}', current_val)
                     self._log_metrics(f'baseline_{metric}', baseline_val)
                     self._log_metrics(f'{metric}_gap', current_val - baseline_val)
@@ -85,27 +95,40 @@ class MetricsLoggerCallback:
             raw_current_metrics = info.get('raw_metrics', {})
             raw_baseline_metrics = info.get('raw_baseline_metrics', {})
             
-            baseline_dict = {metric: {} for metric in self.episodic_metrics}
-            current_dict = {metric: {} for metric in self.episodic_metrics}
-            gap_dict = {metric: {} for metric in self.episodic_metrics}
+            # baseline_dict = {metric: {} for metric in self.episodic_metrics}
+            # current_dict = {metric: {} for metric in self.episodic_metrics}
+            # gap_dict = {metric: {} for metric in self.episodic_metrics}
             
-            for search_name in raw_current_metrics.keys():
+            for search_name in self.rules:
                 for metric in self.episodic_metrics:
-                    current_val = raw_current_metrics[search_name].get(metric)
-                    baseline_val = raw_baseline_metrics[search_name].get(metric)
+                    raw_current_metrics_search = raw_current_metrics.get(search_name, None)
+                    raw_baseline_metrics_search = raw_baseline_metrics.get(search_name, None)
+                    if raw_current_metrics_search is None or raw_baseline_metrics_search is None:
+                        continue
+                    current_val = raw_current_metrics_search.get(metric, None)
+                    baseline_val = raw_baseline_metrics_search.get(metric, None)
                     if current_val is not None and baseline_val is not None:
-                        current_dict[metric][search_name] = current_val
-                        baseline_dict[metric][search_name] = baseline_val
-                        gap_dict[metric][search_name] = current_val - baseline_val
+                        self.writers[search_name].add_scalar(f'{self.phase}/rules_baseline_{metric}', baseline_val, global_step=info['n_calls'])
+                        self.writers[search_name].add_scalar(f'{self.phase}/rules_{metric}', current_val, global_step=info['n_calls'])
+                        # if (metric == 'cpu' and current_val == 0) or (metric == 'duration' and current_val == 0):
+                        #     continue  # Skip logging gaps for zero values                        
+                        self.writers[search_name].add_scalar(f'{self.phase}/rules_{metric}_gap', current_val - baseline_val, global_step=info['n_calls'])
+                        # current_dict[metric][search_name] = current_val
+                        # baseline_dict[metric][search_name] = baseline_val
+                        # gap_dict[metric][search_name] = current_val - baseline_val
                         
-            for metric in self.episodic_metrics:
-                self._log_metrics(f'{metric}_rules_metrics', current_dict[metric], exclude_from_csv=True)
-                self._log_metrics(f'baseline_{metric}_rules_metrics', baseline_dict[metric], exclude_from_csv=True)
-                self._log_metrics(f'{metric}_gap_rules_metrics', gap_dict[metric], exclude_from_csv=True)
+            # for metric in self.episodic_metrics:
+            #     self._log_metrics(f'{metric}_rules_metrics', current_dict[metric], exclude_from_csv=True)
+            #     self._log_metrics(f'baseline_{metric}_rules_metrics', baseline_dict[metric], exclude_from_csv=True)
+            #     self._log_metrics(f'{metric}_gap_rules_metrics', gap_dict[metric], exclude_from_csv=True)
 
         # Log episodic policy
-        if 'episode_logs' in info:
-            self._log_metrics('episodic_policy', info['episode_logs'], exclude_from_csv=True)
+        for event_type in info.get('episode_logs', {}):
+            self.writers[f"{event_type}"].add_scalar(f'{self.phase}/episodic_policy', info['episode_logs'][f"{event_type}"], global_step=info['n_calls'])
+            self.writers[f"{event_type}"].add_scalar(f'{self.phase}/diversity_policy', info['diversity_episode_logs'][f"{event_type}"], global_step=info['n_calls'])
+        
+        # if 'episode_logs' in info:
+        #     self._log_metrics('episodic_policy', info['episode_logs'], exclude_from_csv=True)
         
         if 'episodic_inserted_logs' in info:
             self._log_metrics('episodic_inserted_logs', info['episodic_inserted_logs'], exclude_from_csv=True)
@@ -113,31 +136,37 @@ class MetricsLoggerCallback:
         if 'episodic_inserted_logs' in info and 'episode_logs' in info:
             self._log_metrics('actual_quota', info['episodic_inserted_logs']/info['total_episode_logs'])
         
-        if 'diversity_episode_logs' in info:
-            self._log_metrics('diversity_episode_logs', info['diversity_episode_logs'], exclude_from_csv=True)
+        # if 'diversity_episode_logs' in info:
+        #     self._log_metrics('diversity_episode_logs', info['diversity_episode_logs'], exclude_from_csv=True)
         
-        if 'real_relevant_distribution' in info:
-            current_sum = np.sum(list(info['real_relevant_distribution'].values()))
-            for k,v in info['real_relevant_distribution'].items():
-                info['real_relevant_distribution'][k] = v / current_sum
-            self._log_metrics('real_relevant_distribution', info['real_relevant_distribution'], exclude_from_csv=True)
+        for event_type in self.event_types:
+            self.writers[event_type].add_scalar(f'{self.phase}/real_relevant_distribution', info['real_relevant_distribution'].get(event_type, 0), global_step=info['n_calls'])
+            self.writers[event_type].add_scalar(f'{self.phase}/fake_relevant_distribution', info['fake_relevant_distribution'].get(event_type, 0), global_step=info['n_calls'])
         
-        if 'fake_relevant_distribution' in info:
-            current_sum = np.sum(list(info['fake_relevant_distribution'].values()))
-            for k,v in info['fake_relevant_distribution'].items():
-                info['fake_relevant_distribution'][k] = v / current_sum
-            self._log_metrics('fake_relevant_distribution', info['fake_relevant_distribution'], exclude_from_csv=True)
+        # if 'real_relevant_distribution' in info:
+        #     current_sum = np.sum(list(info['real_relevant_distribution'].values()))
+        #     for k,v in info['real_relevant_distribution'].items():
+        #         info['real_relevant_distribution'][k] = v / current_sum
+        #     self._log_metrics('real_relevant_distribution', info['real_relevant_distribution'], exclude_from_csv=True)
+        
+        # if 'fake_relevant_distribution' in info:
+        #     current_sum = np.sum(list(info['fake_relevant_distribution'].values()))
+        #     for k,v in info['fake_relevant_distribution'].items():
+        #         info['fake_relevant_distribution'][k] = v / current_sum
+        #     self._log_metrics('fake_relevant_distribution', info['fake_relevant_distribution'], exclude_from_csv=True)
+        for writer in self.writers.values():
+            writer.flush()
 
-
-class CustomTensorboardCallback(BaseCallback, MetricsLoggerCallback):
-    def __init__(self, verbose=1):
+class CustomTensorboardCallback(MetricsLoggerCallback, BaseCallback):
+    def __init__(self, log_dir, rules, event_types, verbose=1, writers=None):
         BaseCallback.__init__(self, verbose)
-        MetricsLoggerCallback.__init__(self, phase="train")
+        MetricsLoggerCallback.__init__(self, "train", log_dir, rules, event_types, writers=writers)
+
 
     def _on_step(self) -> bool:
         """Log metrics at each step"""
         info = self.locals['infos'][0]  # Get info from environment step
-        num_time_steps = self.num_timesteps
+        info['n_calls'] = self.n_calls  # Add current step count to info
         self.log_step_metrics(info)
 
         # Log episode end metrics
@@ -145,20 +174,22 @@ class CustomTensorboardCallback(BaseCallback, MetricsLoggerCallback):
             self.log_episode_metrics(info, self.training_env)
             
         all_steps = info.get('all_steps_counter', 0)
-        self.logger.dump(all_steps)
+        self.logger.dump(self.n_calls)
         return True
 
 
-class CustomEvalCallback3(EvalCallback, MetricsLoggerCallback):
+class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
     def __init__(self, 
                  eval_env,
+                 log_dir, rules, event_types,
                  n_eval_episodes: int = 5,
                  eval_freq: int = 10000,
                  log_path: str = None,
                  best_model_save_path: str = None,
                  deterministic: bool = True,
                  render: bool = False,
-                 verbose: int = 1):
+                 verbose: int = 1,
+                 writers=None):
         
         EvalCallback.__init__(
             self,
@@ -171,7 +202,7 @@ class CustomEvalCallback3(EvalCallback, MetricsLoggerCallback):
             render=render,
             verbose=verbose
         )
-        MetricsLoggerCallback.__init__(self, phase="eval")
+        MetricsLoggerCallback.__init__(self, "eval", log_dir, rules, event_types, writers=writers)
         
     def evaluate_policy(self, *args, **kwargs):
         """Override evaluate_policy to collect info during evaluation"""
@@ -179,6 +210,7 @@ class CustomEvalCallback3(EvalCallback, MetricsLoggerCallback):
         
         def _log_info_callback(locals_, globals_):
             info = locals_['info']
+            info['n_calls'] = self.n_calls  # Add current step count to info
             self.eval_infos.append(info)
             return True
             
@@ -202,8 +234,10 @@ class CustomEvalCallback3(EvalCallback, MetricsLoggerCallback):
                     
         # Log mean metrics
         for metric, values in mean_metrics.items():
-            if values:
+            try:
                 self._log_metrics(f'mean_{metric}', np.mean(values))
+            except Exception as e:
+                print(f"Error logging metric {metric}: {e}")
         
         # Log the final episode metrics using the base class method
         self.log_episode_metrics(last_info, self.eval_env)
