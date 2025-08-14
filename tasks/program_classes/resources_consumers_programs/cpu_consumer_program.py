@@ -17,4 +17,4 @@ class CPUConsumer(ProgramInterface):
         return "CPU Consumer"
 
     def get_command(self) -> str:
-        return rf"python {os.path.join('tasks/DummyPrograms', 'CPUConsumer.py')} {self.cpu_percent_to_consume} {self.running_time}"
+        return rf"python {os.path.join('tasks/resources_consumers', 'cpu_consumer_task.py')} -c {self.cpu_percent_to_consume} -t {self.running_time}"

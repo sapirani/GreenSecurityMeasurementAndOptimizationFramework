@@ -11,27 +11,30 @@ from resource_monitors.processes_monitor.process_network_monitor import ProcessN
 from program_parameters import antivirus_type, scan_type, custom_scan_path, recursive, should_optimize, \
     should_mitigate_timestomping, ids_type, interface_name, pcap_list_dirs, log_path, configuration_file_path, \
     model_name, model_action, script_relative_path, installation_dir, cpu_percent_to_consume, RUNNING_TIME, \
-    memory_chunk_size, consumption_speed, time_interval
+    dummy_task_rate, dummy_task_unit_size
 from resource_monitors.processes_monitor.strategies.abstract_processes_monitor import AbstractProcessMonitor
 from resource_monitors.processes_monitor.strategies.all_processes_monitor import AllProcessesMonitor
 from resource_monitors.processes_monitor.strategies.process_of_interest_only_monitor import ProcessesOfInterestOnlyMonitor
 from resource_monitors.system_monitor.battery.battery_monitor import BatteryMonitor
 from resource_monitors.system_monitor.battery.null_battery_monitor import NullBatteryMonitor
 from summary_builder import SystemResourceIsolationSummaryBuilder, NativeSummaryBuilder
+from tasks.program_classes.resources_consumers_programs.disk_io_read_program import DiskIOReadConsumer
+from tasks.program_classes.resources_consumers_programs.disk_io_write_program import DiskIOWriteConsumer
+from tasks.program_classes.resources_consumers_programs.memory_releaser_program import MemoryReleaser
 from utils.general_consts import SummaryType, ProgramToScan, AntivirusType, IDSType, ProcessMonitorType, BatteryMonitorType
 from tasks.program_classes.abstract_program import ProgramInterface
 from tasks.program_classes.antiviruses.clam_av_program import ClamAVProgram
 from tasks.program_classes.antiviruses.defender_program import DefenderProgram
 from tasks.program_classes.antiviruses.dummy_antivirus_program import DummyAntivirusProgram
 from tasks.program_classes.antiviruses.sophos_av_program import SophosAVProgram
-from tasks.program_classes.dummy_cpu_consumer_program import CPUConsumer
+from tasks.program_classes.resources_consumers_programs.cpu_consumer_program import CPUConsumer
 from tasks.program_classes.dummy_io_writer_consumer_program import IOWriteConsumer
-from tasks.program_classes.dummy_memory_consumer_program import MemoryConsumer
+from tasks.program_classes.resources_consumers_programs.memory_consumer_program import MemoryConsumer
 from tasks.program_classes.ids.snort_program import SnortProgram
 from tasks.program_classes.ids.suricata_program import SuricataProgram
 from tasks.program_classes.log_anomaly_detection_program import LogAnomalyDetection
-from tasks.program_classes.network_receiver_program import NetworkReceiver
-from tasks.program_classes.network_sender_program import NetworkSender
+from tasks.program_classes.resources_consumers_programs.network_receiver_program import NetworkReceiver
+from tasks.program_classes.resources_consumers_programs.network_sender_program import NetworkSender
 from tasks.program_classes.baseline_measurement_program import BaselineMeasurementProgram
 from tasks.program_classes.perfmon_monitoring_program import PerfmonProgram
 from tasks.program_classes.server_program import PythonServer
@@ -114,14 +117,18 @@ def program_to_scan_factory(program_type: ProgramToScan) -> ProgramInterface:
     if program_type == ProgramToScan.CPUConsumer:
         return CPUConsumer(cpu_percent_to_consume, RUNNING_TIME)
     if program_type == ProgramToScan.MemoryConsumer:
-        return MemoryConsumer(memory_chunk_size, consumption_speed, RUNNING_TIME)
-    if program_type == ProgramToScan.IOWriteConsumer:
-        return IOWriteConsumer(custom_scan_path)
+        return MemoryConsumer(consumption_speed=dummy_task_rate, memory_chunk_size=dummy_task_unit_size)
+    if program_type == ProgramToScan.MemoryReleaser:
+        return MemoryReleaser(releasing_speed=dummy_task_rate, memory_chunk_size=dummy_task_unit_size)
+    if program_type == ProgramToScan.DiskIOWriteConsumer:
+        return DiskIOWriteConsumer(rate=dummy_task_rate, file_size=dummy_task_unit_size)
+    if program_type == ProgramToScan.DiskIOReadConsumer:
+        return DiskIOReadConsumer(rate=dummy_task_rate, file_size=dummy_task_unit_size)
     if program_type == ProgramToScan.PythonServer:
         return PythonServer()
     if program_type == ProgramToScan.NetworkReceiver:
-        return NetworkReceiver()
+        return NetworkReceiver(rate=dummy_task_rate, buffer_size=dummy_task_unit_size)
     if program_type == ProgramToScan.NetworkSender:
-        return NetworkSender(time_interval=time_interval, running_time=RUNNING_TIME)
+        return NetworkSender(rate=dummy_task_rate, packet_size=dummy_task_unit_size)
 
     raise Exception("choose program to scan from ProgramToScan enum")

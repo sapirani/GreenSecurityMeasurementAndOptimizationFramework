@@ -54,10 +54,12 @@ class ProgramToScan(Enum):
     Splunk = 8
     CPUConsumer = 9
     MemoryConsumer = 10
-    IOWriteConsumer = 11
-    PythonServer = 12
-    NetworkReceiver = 13
-    NetworkSender = 14
+    DiskIOWriteConsumer = 11
+    DiskIOReadConsumer = 12
+    PythonServer = 13
+    NetworkReceiver = 14
+    NetworkSender = 15
+    MemoryReleaser = 16
 
 
 class ScanMode(Enum):
