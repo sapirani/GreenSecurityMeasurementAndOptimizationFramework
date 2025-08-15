@@ -1,13 +1,14 @@
 from dataclasses import dataclass
 from typing import List
 
-from aggregative_results.DTOs import ProcessMetadata, AggregationResult
+from aggregative_results.DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
+from aggregative_results.DTOs.process_info import ProcessMetadata
 
 
 @dataclass
 class AggregatedProcessResults:
     process_metadata: ProcessMetadata
-    aggregation_results: List[AggregationResult]
+    aggregation_results: List[AbstractAggregationResult]
 
     def merge(self, other: 'AggregatedProcessResults') -> None:
         if self.process_metadata != other.process_metadata:

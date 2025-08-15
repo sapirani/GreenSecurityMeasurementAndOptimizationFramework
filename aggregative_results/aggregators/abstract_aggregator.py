@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import TypeVar, Generic
 
-from aggregative_results.DTOs.raw_results_dtos import IterationMetadata
+from aggregative_results.DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
+from aggregative_results.DTOs.raw_results_dtos.iteration_info import IterationMetadata
 from aggregative_results.DTOs.raw_results_dtos.abstract_raw_results import AbstractRawResults
-from aggregative_results.DTOs.aggregated_results_dtos import AggregationResult
 
 T = TypeVar('T')
 
@@ -31,7 +31,7 @@ class AbstractAggregator(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def process_sample(self, sample: T) -> AggregationResult:
+    def process_sample(self, sample: T) -> AbstractAggregationResult:
         """
         This function receives the relevant features to the aggregation strategy and outputs the aggregation result.
         :param sample: the relevant features to the specific aggregator.

@@ -8,9 +8,13 @@ from elasticsearch_dsl import Search
 
 # --- Config ---
 from aggregative_results import ES_URL, ES_USER, ES_PASS, INDEX_SYSTEM, INDEX_PROCESS, PULL_INTERVAL_SECONDS
+from aggregative_results.DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
+from aggregative_results.DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from aggregative_results.aggregation_manager import AggregationManager
-from aggregative_results.DTOs import ProcessRawResults
-from aggregative_results.DTOs.raw_results_dtos import IterationMetadata, SystemRawResults, IterationRawResults
+from aggregative_results.DTOs.raw_results_dtos.iteration_info import IterationMetadata, IterationRawResults
+
+MAX_SAMPLES_TO_READ = 10000
+TIMESTAMP_FIELD_NAME = "timestamp"
 
 if __name__ == '__main__':
     # --- Connect to Elasticsearch ---
@@ -38,7 +42,7 @@ if __name__ == '__main__':
                         default=default_fetching_timestamp
                     ).isoformat()
                 }
-            ).sort('timestamp').extra(size=1000)
+            ).sort(TIMESTAMP_FIELD_NAME).extra(size=MAX_SAMPLES_TO_READ)
 
             response = s.execute()
 
@@ -56,7 +60,7 @@ if __name__ == '__main__':
                         'gt': last_iteration_timestamps[(iteration_metadata.hostname, iteration_metadata.session_id)].isoformat(),
                         'lte': iteration_metadata.timestamp.isoformat()
                     }
-                ).sort('timestamp').extra(size=10000)
+                ).sort(TIMESTAMP_FIELD_NAME).extra(size=MAX_SAMPLES_TO_READ)
 
                 process_response = process_search.execute()
 

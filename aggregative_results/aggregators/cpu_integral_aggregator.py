@@ -2,14 +2,16 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Union, Optional
 
+from aggregative_results.DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
+from aggregative_results.DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
+from aggregative_results.DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator
-from aggregative_results.DTOs import ProcessRawResults
-from aggregative_results.DTOs.aggregated_results_dtos import AggregationResult, EmptyAggregationResults
-from aggregative_results.DTOs.raw_results_dtos import IterationMetadata, SystemRawResults
+from aggregative_results.DTOs.aggregated_results_dtos.empty_aggregation_results import EmptyAggregationResults
+from aggregative_results.DTOs.raw_results_dtos.iteration_info import IterationMetadata
 
 
 @dataclass
-class CPUIntegralResult(AggregationResult):
+class CPUIntegralResult(AbstractAggregationResult):
     cpu_integral: float
 
 
@@ -21,7 +23,7 @@ class CPUIntegralFeatures:
 
 class CPUIntegralAggregator(AbstractAggregator):
     def __init__(self):
-        self.previous_sample: Optional[CPUIntegralFeatures] = None
+        self._previous_sample: Optional[CPUIntegralFeatures] = None
 
     def extract_features(
             self,
@@ -35,11 +37,11 @@ class CPUIntegralAggregator(AbstractAggregator):
 
     def process_sample(self, sample: CPUIntegralFeatures) -> Union[CPUIntegralResult, EmptyAggregationResults]:
         try:
-            if not self.previous_sample:
+            if not self._previous_sample:
                 return EmptyAggregationResults()
 
-            delta_seconds = (sample.date - self.previous_sample.date).total_seconds()
-            area = (sample.cpu_percent_sum_across_cores + self.previous_sample.cpu_percent_sum_across_cores) * delta_seconds / 2
+            delta_seconds = (sample.date - self._previous_sample.date).total_seconds()
+            area = (sample.cpu_percent_sum_across_cores + self._previous_sample.cpu_percent_sum_across_cores) * delta_seconds / 2
             return CPUIntegralResult(cpu_integral=area)
         finally:
-            self.previous_sample = sample
+            self._previous_sample = sample

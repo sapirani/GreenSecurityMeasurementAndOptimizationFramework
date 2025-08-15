@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 from typing import List
 
+from aggregative_results.DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
 from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator
-from aggregative_results.DTOs.aggregated_results_dtos import AggregationResult
-from aggregative_results.DTOs.raw_results_dtos import IterationMetadata
+from aggregative_results.DTOs.raw_results_dtos.iteration_info import IterationMetadata
 from aggregative_results.DTOs.raw_results_dtos.system_processes_raw_results import FullScopeRawResults
 
 
 @dataclass
-class ProcessShareUsageFromTotal(AggregationResult):
+class ProcessShareUsageFromTotal(AbstractAggregationResult):
     """
     All results are in the range of [0, 1].
     """

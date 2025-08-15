@@ -3,15 +3,17 @@ from dataclasses import asdict
 from logging import getLogger
 from typing import List, Dict, Callable, Type
 
+from aggregative_results.DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
+from aggregative_results.DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
+from aggregative_results.DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator
-from aggregative_results.DTOs import ProcessIdentity, ProcessMetadata
+from aggregative_results.DTOs.process_info import ProcessIdentity, ProcessMetadata
 from aggregative_results.DTOs.aggregated_results_dtos.aggregated_process_results import AggregatedProcessResults
-from aggregative_results.DTOs.aggregated_results_dtos import AggregationResult
 from aggregative_results.aggregators.cpu_integral_aggregator import CPUIntegralAggregator
 from aggregative_results.aggregators.process_system_usage_fraction_aggregator import \
     ProcessSystemUsageFractionAggregator
-from aggregative_results.DTOs.raw_results_dtos import ProcessRawResults, IterationMetadata, IterationRawResults, \
-    SystemRawResults
+
+from aggregative_results.DTOs.raw_results_dtos.iteration_info import IterationMetadata, IterationRawResults
 from aggregative_results.DTOs.raw_results_dtos.abstract_raw_results import AbstractRawResults
 from aggregative_results.DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
 from aggregative_results.DTOs.raw_results_dtos.system_processes_raw_results import FullScopeRawResults
@@ -81,7 +83,7 @@ class AggregationManager:
     @staticmethod
     def _log_aggregated_iteration_results(
             combined_process_results: Dict[ProcessIdentity, AggregatedProcessResults],
-            system_aggregated_results: List[AggregationResult],
+            system_aggregated_results: List[AbstractAggregationResult],
             iteration_raw_results: IterationMetadata
     ):
         for process_identity, process_results in combined_process_results.items():
@@ -113,7 +115,7 @@ class AggregationManager:
             self,
             system_iteration_results: SystemRawResults,
             iteration_metadata: IterationMetadata
-    ) -> List[AggregationResult]:
+    ) -> List[AbstractAggregationResult]:
         """
         This function receives iteration's system raw metrics and metadata, apply all system metrics aggregations,
         and returns all aggregations results.
@@ -226,7 +228,7 @@ class AggregationManager:
             aggregator: AbstractAggregator,
             raw_results: AbstractRawResults,
             iteration_metadata: IterationMetadata
-    ) -> AggregationResult:
+    ) -> AbstractAggregationResult:
         relevant_sample_features = aggregator.extract_features(raw_results, iteration_metadata)
         return aggregator.process_sample(relevant_sample_features)
 
