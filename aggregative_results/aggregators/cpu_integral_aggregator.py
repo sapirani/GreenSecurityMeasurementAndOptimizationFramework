@@ -1,24 +1,12 @@
-from dataclasses import dataclass
-from datetime import datetime
 from typing import Union, Optional
 
-from aggregative_results.DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
+from aggregative_results.DTOs.aggregated_results_dtos.cpu_integral_result import CPUIntegralResult
+from aggregative_results.DTOs.aggregators_features.cpu_integral_features import CPUIntegralFeatures
 from aggregative_results.DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from aggregative_results.DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator
 from aggregative_results.DTOs.aggregated_results_dtos.empty_aggregation_results import EmptyAggregationResults
 from aggregative_results.DTOs.raw_results_dtos.iteration_info import IterationMetadata
-
-
-@dataclass
-class CPUIntegralResult(AbstractAggregationResult):
-    cpu_integral: float
-
-
-@dataclass
-class CPUIntegralFeatures:
-    date: datetime
-    cpu_percent_sum_across_cores: float
 
 
 class CPUIntegralAggregator(AbstractAggregator):
