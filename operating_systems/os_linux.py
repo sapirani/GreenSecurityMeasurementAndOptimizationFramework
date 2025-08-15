@@ -3,18 +3,17 @@ import platform
 import subprocess
 import os
 import signal
-from typing import TextIO, List
+from typing import TextIO, List, Tuple
 
-import pandas as pd
 import psutil
 
-from utils.general_consts import MINUTE, NEVER_GO_TO_SLEEP_MODE, YES_BUTTON, NO_BUTTON, PowerPlan
+from resource_usage_recorder.container_recorder.linux_resources.total_cpu_usage import LinuxContainerCPUReader
+from resource_usage_recorder.container_recorder.linux_resources.total_memory_usage import LinuxContainerMemoryReader
+from utils.general_consts import MINUTE, NEVER_GO_TO_SLEEP_MODE, YES_BUTTON, NO_BUTTON, PowerPlan, LoggerName
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from program_parameters import DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFORE_SLEEP_MODE, power_plan
-from resource_monitors.container_monitor.linux_resources.total_cpu_usage import LinuxContainerCPUReader
-from resource_monitors.container_monitor.linux_resources.total_memory_usage import LinuxContainerMemoryReader
 
-logger = logging.getLogger("measurements_logger")
+logger = logging.getLogger(LoggerName.SYSTEM_METRICS)
 
 
 class LinuxOS(AbstractOSFuncs):
@@ -89,7 +88,7 @@ class LinuxOS(AbstractOSFuncs):
             return YES_BUTTON
         return NO_BUTTON
 
-    def insert_battery_state_to_df(self, battery_df: pd.DataFrame, time_interval: float, battery_percent: int):
+    def get_battery_capacity_and_voltage(self) -> Tuple[float, float]:
         res = subprocess.run("upower -i /org/freedesktop/UPower/devices/battery_BAT0 | grep -E 'energy:|voltage'",
                              capture_output=True, shell=True)
 
@@ -101,21 +100,7 @@ class LinuxOS(AbstractOSFuncs):
         battery_capacity = float(battery_capacity_string.split()[0]) * 1000
         voltage = float(voltage_string.split()[0]) * 1000
 
-        battery_df.loc[len(battery_df.index)] = [
-                time_interval,
-                battery_percent,
-                battery_capacity,
-                voltage
-            ]
-
-        logger.info(
-            "Battery measurements",
-            extra={
-                "battery_percent": battery_percent,
-                "battery_remaining_capacity_mWh": battery_capacity,
-                "battery_voltage_mV": voltage
-            }
-        )
+        return battery_capacity, voltage
 
     def change_power_plan(self, name: str, identifier: str):
         if identifier is None:

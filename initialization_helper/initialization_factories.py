@@ -7,16 +7,17 @@ from scapy.interfaces import get_working_ifaces
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from operating_systems.os_linux import LinuxOS
 from operating_systems.os_windows import WindowsOS
-from resource_monitors.processes_monitor.process_network_monitor import ProcessNetworkMonitor
 from program_parameters import antivirus_type, scan_type, custom_scan_path, recursive, should_optimize, \
     should_mitigate_timestomping, ids_type, interface_name, pcap_list_dirs, log_path, configuration_file_path, \
     model_name, model_action, script_relative_path, installation_dir, cpu_percent_to_consume, RUNNING_TIME, \
     dummy_task_rate, dummy_task_unit_size
-from resource_monitors.processes_monitor.strategies.abstract_processes_monitor import AbstractProcessMonitor
-from resource_monitors.processes_monitor.strategies.all_processes_monitor import AllProcessesMonitor
-from resource_monitors.processes_monitor.strategies.process_of_interest_only_monitor import ProcessesOfInterestOnlyMonitor
-from resource_monitors.system_monitor.battery.battery_monitor import BatteryMonitor
-from resource_monitors.system_monitor.battery.null_battery_monitor import NullBatteryMonitor
+from resource_usage_recorder.processes_recorder.process_network_usage_recorder import ProcessNetworkUsageRecorder
+from resource_usage_recorder.processes_recorder.strategies.abstract_processes_recorder import AbstractProcessResourceUsageRecorder
+from resource_usage_recorder.processes_recorder.strategies.all_processes_recorder import AllProcessesResourceUsageRecorder
+from resource_usage_recorder.processes_recorder.strategies.process_of_interest_only_recorder import \
+    ProcessesOfInterestOnlyRecorder
+from resource_usage_recorder.system_recorder.battery.battery_usage_recorder import SystemBatteryUsageRecorder
+from resource_usage_recorder.system_recorder.battery.null_battery_recorder import NullBatteryUsageRecorder
 from summary_builder import SystemResourceIsolationSummaryBuilder, NativeSummaryBuilder
 from tasks.program_classes.resources_consumers_programs.disk_io_read_program import DiskIOReadConsumer
 from tasks.program_classes.resources_consumers_programs.disk_io_write_program import DiskIOWriteConsumer
@@ -60,27 +61,27 @@ def summary_builder_factory(summary_type: SummaryType):
     raise Exception("Selected summary builder is not supported")
 
 
-def process_monitor_factory(
+def process_resource_usage_recorder_factory(
         process_monitor_type: ProcessMonitorType,
         running_os: AbstractOSFuncs,
         should_ignore_process: Callable[[psutil.Process], bool]
-) -> AbstractProcessMonitor:
+) -> AbstractProcessResourceUsageRecorder:
     interfaces_for_packets_capturing = get_working_ifaces()
-    process_network_monitor = ProcessNetworkMonitor(interfaces_for_packets_capturing)
+    process_network_monitor = ProcessNetworkUsageRecorder(interfaces_for_packets_capturing)
 
     if process_monitor_type == ProcessMonitorType.FULL:
-        return AllProcessesMonitor(process_network_monitor, running_os, should_ignore_process)
+        return AllProcessesResourceUsageRecorder(process_network_monitor, running_os, should_ignore_process)
     elif process_monitor_type == ProcessMonitorType.PROCESSES_OF_INTEREST_ONLY:
-        return ProcessesOfInterestOnlyMonitor(process_network_monitor, running_os, should_ignore_process)
+        return ProcessesOfInterestOnlyRecorder(process_network_monitor, running_os, should_ignore_process)
 
     raise Exception("Selected process monitor type is not supported")
 
 
-def battery_monitor_factory(battery_monitor_type: BatteryMonitorType, running_os: AbstractOSFuncs):
+def battery_usage_recorder_factory(battery_monitor_type: BatteryMonitorType, running_os: AbstractOSFuncs):
     if battery_monitor_type == BatteryMonitorType.FULL:
-        return BatteryMonitor(running_os)
+        return SystemBatteryUsageRecorder(running_os)
     elif battery_monitor_type == BatteryMonitorType.WITHOUT_BATTERY:
-        return NullBatteryMonitor()
+        return NullBatteryUsageRecorder()
 
     raise Exception("Selected process monitor type is not supported")
 

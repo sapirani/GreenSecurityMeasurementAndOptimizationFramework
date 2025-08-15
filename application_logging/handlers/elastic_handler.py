@@ -2,9 +2,30 @@ import time
 from datetime import datetime, timezone
 import logging
 import os
+from logging import Handler
+
 from elasticsearch import Elasticsearch
 
 INDEX_NAME = os.getenv("ELASTIC_INDEX_NAME", "scanner")
+
+
+def get_elastic_logging_handler(
+        elastic_username: str,
+        elastic_password: str,
+        elastic_url: str,
+        index_name: str,
+        starting_time: float = time.time()
+) -> Handler:
+    try:
+        return ElasticSearchLogHandler(
+            elastic_username=elastic_username,
+            elastic_password=elastic_password,
+            elastic_url=elastic_url,
+            index_name=index_name,
+            start_timestamp=starting_time
+        )
+    except ConnectionError:
+        return None
 
 
 class ElasticSearchLogHandler(logging.Handler):
@@ -13,7 +34,7 @@ class ElasticSearchLogHandler(logging.Handler):
             elastic_username: str,
             elastic_password: str,
             elastic_url: str,
-            index_name: str = INDEX_NAME,
+            index_name: str,
             start_timestamp: float = time.time()
     ):
         super().__init__()
@@ -27,7 +48,6 @@ class ElasticSearchLogHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord):
         doc = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "message": record.getMessage(),
             # TODO: try to find a way to avoid sending start_date inside each log
@@ -39,5 +59,8 @@ class ElasticSearchLogHandler(logging.Handler):
         for key, value in record.__dict__.items():
             if key not in reserved:
                 doc[key] = value
+
+        if "timestamp" not in doc:
+            doc["timestamp"]: datetime.now(timezone.utc).isoformat()
 
         self.es.index(index=self.index_name, body=doc)
