@@ -6,6 +6,6 @@ from aggregative_results.dtos.raw_results_dtos.abstract_raw_results import Abstr
 
 
 @dataclass
-class SystemProcessRawResults(AbstractRawResults):
+class ProcessSystemRawResults(AbstractRawResults):
     processes_raw_results: ProcessRawResults
     system_raw_results: SystemRawResults

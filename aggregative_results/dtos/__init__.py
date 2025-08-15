@@ -7,6 +7,9 @@ from aggregative_results.dtos.raw_results_dtos import ProcessRawResults
 
 @dataclass(frozen=True)
 class ProcessIdentity:
+    """
+    Assuming pid and process_name are unique
+    """
     pid: int
     process_name: str
 

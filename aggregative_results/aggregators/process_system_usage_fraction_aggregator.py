@@ -4,7 +4,7 @@ from typing import List
 from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator
 from aggregative_results.dtos.aggregated_results_dtos import AggregationResult
 from aggregative_results.dtos.raw_results_dtos import IterationMetadata
-from aggregative_results.dtos.raw_results_dtos.system_processes_raw_results import SystemProcessesRawResults
+from aggregative_results.dtos.raw_results_dtos.system_processes_raw_results import FullScopeRawResults
 
 
 @dataclass
@@ -60,7 +60,7 @@ class ProcessSystemUsageFractionFeatures:
 class ProcessSystemUsageFractionAggregator(AbstractAggregator):
     def extract_features(
             self,
-            raw_results: SystemProcessesRawResults,
+            raw_results: FullScopeRawResults,
             iteration_metadata: IterationMetadata
     ) -> ProcessSystemUsageFractionFeatures:
         return ProcessSystemUsageFractionFeatures(

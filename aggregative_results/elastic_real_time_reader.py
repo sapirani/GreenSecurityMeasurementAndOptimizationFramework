@@ -71,7 +71,7 @@ if __name__ == '__main__':
                     processes_raw_results=process_results
                 )
 
-                aggregation_manager.feed_full_iteration_raw_data(iteration_raw_results)
+                aggregation_manager.aggregate_iteration_raw_results(iteration_raw_results)
                 last_iteration_timestamps[(iteration_metadata.hostname, iteration_metadata.session_id)] = iteration_metadata.timestamp
 
         except KeyboardInterrupt:
