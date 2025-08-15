@@ -1,7 +1,7 @@
 from collections import defaultdict
 from dataclasses import asdict
 from logging import getLogger
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, Type
 
 from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator
 from aggregative_results.dtos import ProcessIdentity, ProcessMetadata
@@ -26,21 +26,45 @@ class AggregationManager:
     For example, each process will have a separate instance for computing cpu integrals, and this class is responsible
     for choosing the right instance for the incoming sample.
     """
+    SYSTEM_AGGREGATOR_TYPES = [CPUIntegralAggregator]
+    PROCESS_ONLY_AGGREGATOR_TYPES = [CPUIntegralAggregator]
+    PROCESS_SYSTEM_AGGREGATORS_TYPES = []   # TODO: ADD ENERGY ESTIMATIONS
+    FULL_SCOPE_AGGREGATORS_TYPES = [ProcessSystemUsageFractionAggregator]
 
     def __init__(self):
-        self.system_aggregators = [CPUIntegralAggregator()]    # TODO: ADD SYSTEM AGGREGATORS (E.G., MEMORY INTEGRAL)
+        self.system_aggregators = self._get_system_aggregators()
 
-        # TODO: TRY TO FIND MORE DYNAMIC WAY TO INITIALIZE THESE LISTS
-        basic_process_aggregators_types = [CPUIntegralAggregator]   # TODO: ADD MEMORY INTEGRAL (MAYBE COMBINE THE CPU AND MEMTORT INSTANCES BY CREATING AN ABSTRACT INTEGRAL CACULATOR)
-        system_process_aggregators_types = []
-        system_processes_aggregators_types = [ProcessSystemUsageFractionAggregator]
+        self.process_only_aggregators = defaultdict(self._get_process_only_aggregators)
+        self.process_system_aggregators = defaultdict(self._get_process_system_aggregators)
+        self.full_scope_aggregators = defaultdict(self._get_full_scope_aggregators)
 
-        self.basic_process_aggregators = defaultdict(lambda: [cls() for cls in basic_process_aggregators_types])
-        self.system_process_aggregators = defaultdict(lambda: [cls() for cls in system_process_aggregators_types])   # TODO: ADD ENERGY ESTIMATIONS
-        self.system_processes_aggregators = defaultdict(lambda: [cls() for cls in system_processes_aggregators_types])
+    def _get_system_aggregators(self) -> List[AbstractAggregator]:
+        return self._get_initialized_aggregators(self.SYSTEM_AGGREGATOR_TYPES)
+
+    def _get_process_only_aggregators(self) -> List[AbstractAggregator]:
+        return self._get_initialized_aggregators(self.PROCESS_ONLY_AGGREGATOR_TYPES)
+
+    def _get_process_system_aggregators(self) -> List[AbstractAggregator]:
+        return self._get_initialized_aggregators(self.PROCESS_SYSTEM_AGGREGATORS_TYPES)
+
+    def _get_full_scope_aggregators(self) -> List[AbstractAggregator]:
+        return self._get_initialized_aggregators(self.FULL_SCOPE_AGGREGATORS_TYPES)
+
+    @staticmethod
+    def _get_initialized_aggregators(aggregator_types: List[Type[AbstractAggregator]]) -> List[AbstractAggregator]:
+        return [cls() for cls in aggregator_types]
 
     def aggregate_iteration_raw_results(self, iteration_raw_results: IterationRawResults):
-        system_aggregated_results = self._aggregate_system_metrics(iteration_raw_results.system_raw_results, iteration_raw_results.metadata)
+        """
+        This function receives the full raw metrics measured as part of a full iteration of the scanner (on a specific host).
+        It is accountable for calculating all kinds of aggregations, and log these aggregations into a separate index
+        in Elastic.
+        """
+
+        system_aggregated_results = self._aggregate_system_metrics(
+            iteration_raw_results.system_raw_results,
+            iteration_raw_results.metadata
+        )
 
         combined_process_results = self._combine_process_results(
             self._aggregate_from_process_metrics_only(iteration_raw_results),
@@ -156,7 +180,7 @@ class AggregationManager:
         return self._aggregate_process_metrics_generic(
             iteration_raw_results.processes_raw_results,
             iteration_raw_results.metadata,
-            self.basic_process_aggregators,
+            self.process_only_aggregators,
             lambda raw_process_results: raw_process_results
         )
 
@@ -171,7 +195,7 @@ class AggregationManager:
         return self._aggregate_process_metrics_generic(
             iteration_raw_results.processes_raw_results,
             iteration_raw_results.metadata,
-            self.system_process_aggregators,
+            self.process_system_aggregators,
             lambda raw_process_results: ProcessSystemRawResults(
                             processes_raw_results=raw_process_results,
                             system_raw_results=iteration_raw_results.system_raw_results
@@ -189,7 +213,7 @@ class AggregationManager:
         return self._aggregate_process_metrics_generic(
             iteration_raw_results.processes_raw_results,
             iteration_raw_results.metadata,
-            self.system_processes_aggregators,
+            self.full_scope_aggregators,
             lambda raw_process_results: FullScopeRawResults(
                             desired_process_raw_results=raw_process_results,
                             processes_raw_results=iteration_raw_results.processes_raw_results,

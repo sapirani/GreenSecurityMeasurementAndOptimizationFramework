@@ -96,21 +96,21 @@ class ProcessSystemUsageFractionAggregator(AbstractAggregator):
         )
 
     def process_sample(self, sample: ProcessSystemUsageFractionFeatures) -> ProcessShareUsageFromTotal:
-        def safe_fraction(desired_process_result: float, all_processes_results: List[float]) -> float:
+        def safe_division(desired_process_result: float, all_processes_results: List[float]) -> float:
             all_processes_results_sum = sum(all_processes_results)
             if all_processes_results_sum == 0:
                 return 0.0
             return desired_process_result / all_processes_results_sum
 
         return ProcessShareUsageFromTotal(
-            cpu_usage_share=safe_fraction(sample.desired_process_cpu, sample.processes_cpu),
-            memory_usage_share=safe_fraction(sample.desired_process_memory_mb, sample.processes_memory_mb),
-            disk_read_count_share=safe_fraction(sample.desired_process_disk_read_count, sample.processes_disk_read_count),
-            disk_write_count_share=safe_fraction(sample.desired_process_disk_write_count, sample.processes_disk_write_count),
-            disk_read_volume_share=safe_fraction(sample.desired_process_disk_read_kb, sample.processes_disk_read_kb),
-            disk_write_volume_share=safe_fraction(sample.desired_process_disk_write_kb, sample.processes_disk_write_kb),
-            network_volume_sent_share=safe_fraction(sample.desired_process_network_kb_sent, sample.processes_network_kb_sent),
-            packets_sent_share=safe_fraction(sample.desired_process_packets_sent, sample.processes_packets_sent),
-            network_volume_received_share=safe_fraction(sample.desired_process_network_kb_received, sample.processes_network_kb_received),
-            packets_received_share=safe_fraction(sample.desired_process_packets_received, sample.processes_packets_received),
+            cpu_usage_share=safe_division(sample.desired_process_cpu, sample.processes_cpu),
+            memory_usage_share=safe_division(sample.desired_process_memory_mb, sample.processes_memory_mb),
+            disk_read_count_share=safe_division(sample.desired_process_disk_read_count, sample.processes_disk_read_count),
+            disk_write_count_share=safe_division(sample.desired_process_disk_write_count, sample.processes_disk_write_count),
+            disk_read_volume_share=safe_division(sample.desired_process_disk_read_kb, sample.processes_disk_read_kb),
+            disk_write_volume_share=safe_division(sample.desired_process_disk_write_kb, sample.processes_disk_write_kb),
+            network_volume_sent_share=safe_division(sample.desired_process_network_kb_sent, sample.processes_network_kb_sent),
+            packets_sent_share=safe_division(sample.desired_process_packets_sent, sample.processes_packets_sent),
+            network_volume_received_share=safe_division(sample.desired_process_network_kb_received, sample.processes_network_kb_received),
+            packets_received_share=safe_division(sample.desired_process_packets_received, sample.processes_packets_received),
         )
