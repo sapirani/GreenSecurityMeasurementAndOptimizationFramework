@@ -220,19 +220,12 @@ def continuously_measure():
             # Create a delay
             time.sleep(SLEEP_BETWEEN_ITERATIONS_SECONDS)
 
-            print("iteration starts:", time_since_start())
             processes_results = processes_resource_usage_recorder.get_current_metrics()
-            print("after processes starts:", time_since_start())
             system_cpu_results = system_cpu_monitor.get_current_metrics()
-            print("after cpu starts:", time_since_start())
             system_memory_results = system_memory_monitor.get_current_metrics()
-            print("after memory starts:", time_since_start())
             system_disk_results = system_disk_usage_recorder.get_current_metrics()
-            print("after disk starts:", time_since_start())
             system_network_results = system_network_usage_recorder.get_current_metrics()
-            print("after network starts:", time_since_start())
             system_battery_results = battery_usage_recorder.get_current_metrics()
-            print("after battery starts:", time_since_start())
 
             save_metrics_results(
                 processes_results,
