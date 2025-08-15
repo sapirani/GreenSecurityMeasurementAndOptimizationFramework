@@ -2,9 +2,30 @@ import time
 from datetime import datetime, timezone
 import logging
 import os
+from logging import Handler
+
 from elasticsearch import Elasticsearch
 
 INDEX_NAME = os.getenv("ELASTIC_INDEX_NAME", "scanner")
+
+
+def get_elastic_logging_handler(
+        elastic_username: str,
+        elastic_password: str,
+        elastic_url: str,
+        index_name: str,
+        starting_time: float = time.time()
+) -> Handler:
+    try:
+        return ElasticSearchLogHandler(
+            elastic_username=elastic_username,
+            elastic_password=elastic_password,
+            elastic_url=elastic_url,
+            index_name=index_name,
+            start_timestamp=starting_time
+        )
+    except ConnectionError:
+        return None
 
 
 class ElasticSearchLogHandler(logging.Handler):

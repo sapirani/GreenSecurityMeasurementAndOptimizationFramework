@@ -34,26 +34,26 @@ class AggregationManager:
     FULL_SCOPE_AGGREGATORS_TYPES = [ProcessSystemUsageFractionAggregator]
 
     def __init__(self):
-        self.system_aggregators = self._get_system_aggregators()
+        self.system_aggregators = self.__get_system_aggregators()
 
-        self.process_only_aggregators = defaultdict(self._get_process_only_aggregators)
-        self.process_system_aggregators = defaultdict(self._get_process_system_aggregators)
-        self.full_scope_aggregators = defaultdict(self._get_full_scope_aggregators)
+        self.process_only_aggregators = defaultdict(self.__get_process_only_aggregators)
+        self.process_system_aggregators = defaultdict(self.__get_process_system_aggregators)
+        self.full_scope_aggregators = defaultdict(self.__get_full_scope_aggregators)
 
-    def _get_system_aggregators(self) -> List[AbstractAggregator]:
-        return self._get_initialized_aggregators(self.SYSTEM_AGGREGATOR_TYPES)
+    def __get_system_aggregators(self) -> List[AbstractAggregator]:
+        return self.__get_initialized_aggregators(self.SYSTEM_AGGREGATOR_TYPES)
 
-    def _get_process_only_aggregators(self) -> List[AbstractAggregator]:
-        return self._get_initialized_aggregators(self.PROCESS_ONLY_AGGREGATOR_TYPES)
+    def __get_process_only_aggregators(self) -> List[AbstractAggregator]:
+        return self.__get_initialized_aggregators(self.PROCESS_ONLY_AGGREGATOR_TYPES)
 
-    def _get_process_system_aggregators(self) -> List[AbstractAggregator]:
-        return self._get_initialized_aggregators(self.PROCESS_SYSTEM_AGGREGATORS_TYPES)
+    def __get_process_system_aggregators(self) -> List[AbstractAggregator]:
+        return self.__get_initialized_aggregators(self.PROCESS_SYSTEM_AGGREGATORS_TYPES)
 
-    def _get_full_scope_aggregators(self) -> List[AbstractAggregator]:
-        return self._get_initialized_aggregators(self.FULL_SCOPE_AGGREGATORS_TYPES)
+    def __get_full_scope_aggregators(self) -> List[AbstractAggregator]:
+        return self.__get_initialized_aggregators(self.FULL_SCOPE_AGGREGATORS_TYPES)
 
     @staticmethod
-    def _get_initialized_aggregators(aggregator_types: List[Type[AbstractAggregator]]) -> List[AbstractAggregator]:
+    def __get_initialized_aggregators(aggregator_types: List[Type[AbstractAggregator]]) -> List[AbstractAggregator]:
         return [cls() for cls in aggregator_types]
 
     def aggregate_iteration_raw_results(self, iteration_raw_results: IterationRawResults):
@@ -63,25 +63,25 @@ class AggregationManager:
         in Elastic.
         """
 
-        system_aggregated_results = self._aggregate_system_metrics(
+        system_aggregated_results = self.__aggregate_system_metrics(
             iteration_raw_results.system_raw_results,
             iteration_raw_results.metadata
         )
 
-        combined_process_results = self._combine_process_results(
-            self._aggregate_from_process_metrics_only(iteration_raw_results),
-            self._aggregate_from_process_and_system_metrics(iteration_raw_results),
-            self._aggregate_from_full_scope_metrics(iteration_raw_results)
+        combined_process_results = self.__combine_process_results(
+            self.__aggregate_from_process_metrics_only(iteration_raw_results),
+            self.__aggregate_from_process_and_system_metrics(iteration_raw_results),
+            self.__aggregate_from_full_scope_metrics(iteration_raw_results)
         )
 
-        self._log_aggregated_iteration_results(
+        self.__log_aggregated_iteration_results(
             combined_process_results,
             system_aggregated_results,
             iteration_raw_results.metadata
         )
 
     @staticmethod
-    def _log_aggregated_iteration_results(
+    def __log_aggregated_iteration_results(
             combined_process_results: Dict[ProcessIdentity, AggregatedProcessResults],
             system_aggregated_results: List[AbstractAggregationResult],
             iteration_raw_results: IterationMetadata
@@ -111,7 +111,7 @@ class AggregationManager:
             }
         )
 
-    def _aggregate_system_metrics(
+    def __aggregate_system_metrics(
             self,
             system_iteration_results: SystemRawResults,
             iteration_metadata: IterationMetadata
@@ -123,11 +123,11 @@ class AggregationManager:
 
         system_aggregation_results = []
         for aggregator in self.system_aggregators:
-            system_aggregation_results.append(self._process(aggregator, system_iteration_results, iteration_metadata))
+            system_aggregation_results.append(self.__process(aggregator, system_iteration_results, iteration_metadata))
 
         return system_aggregation_results
 
-    def _aggregate_process_metrics_generic(
+    def __aggregate_process_metrics_generic(
             self,
             processes_iteration_results: List[ProcessRawResults],
             iteration_metadata: IterationMetadata,
@@ -152,7 +152,7 @@ class AggregationManager:
             process_aggregation_results = []
             for aggregator in aggregators_dict[process_identity]:
                 process_aggregation_results.append(
-                    self._process(
+                    self.__process(
                         aggregator,
                         raw_results_combiner(raw_process_results),
                         iteration_metadata
@@ -169,7 +169,7 @@ class AggregationManager:
 
         return processes_aggregation_results
 
-    def _aggregate_from_process_metrics_only(
+    def __aggregate_from_process_metrics_only(
             self,
             iteration_raw_results: IterationRawResults,
     ) -> Dict[ProcessIdentity, AggregatedProcessResults]:
@@ -179,14 +179,14 @@ class AggregationManager:
         without relying on any additional context.
         """
 
-        return self._aggregate_process_metrics_generic(
+        return self.__aggregate_process_metrics_generic(
             iteration_raw_results.processes_raw_results,
             iteration_raw_results.metadata,
             self.process_only_aggregators,
             lambda raw_process_results: raw_process_results
         )
 
-    def _aggregate_from_process_and_system_metrics(
+    def __aggregate_from_process_and_system_metrics(
             self, iteration_raw_results: IterationRawResults,
     ) -> Dict[ProcessIdentity, AggregatedProcessResults]:
         """
@@ -194,7 +194,7 @@ class AggregationManager:
         while taking the raw system metrics as an additional context
         """
 
-        return self._aggregate_process_metrics_generic(
+        return self.__aggregate_process_metrics_generic(
             iteration_raw_results.processes_raw_results,
             iteration_raw_results.metadata,
             self.process_system_aggregators,
@@ -204,7 +204,7 @@ class AggregationManager:
                         ),
         )
 
-    def _aggregate_from_full_scope_metrics(
+    def __aggregate_from_full_scope_metrics(
             self, iteration_raw_results: IterationRawResults,
     ) -> Dict[ProcessIdentity, AggregatedProcessResults]:
         """
@@ -212,7 +212,7 @@ class AggregationManager:
         while taking the raw system metrics and other processes' raw metrics as an additional context
         """
 
-        return self._aggregate_process_metrics_generic(
+        return self.__aggregate_process_metrics_generic(
             iteration_raw_results.processes_raw_results,
             iteration_raw_results.metadata,
             self.full_scope_aggregators,
@@ -224,7 +224,7 @@ class AggregationManager:
         )
 
     @staticmethod
-    def _process(
+    def __process(
             aggregator: AbstractAggregator,
             raw_results: AbstractRawResults,
             iteration_metadata: IterationMetadata
@@ -233,7 +233,7 @@ class AggregationManager:
         return aggregator.process_sample(relevant_sample_features)
 
     @staticmethod
-    def _combine_process_results(
+    def __combine_process_results(
             processes_basic_aggregated_results: Dict[ProcessIdentity, AggregatedProcessResults],
             system_process_aggregated_results: Dict[ProcessIdentity, AggregatedProcessResults],
             system_processes_aggregated_results: Dict[ProcessIdentity, AggregatedProcessResults]

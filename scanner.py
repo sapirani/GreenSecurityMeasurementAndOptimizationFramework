@@ -14,7 +14,8 @@ from prettytable import PrettyTable
 from threading import Thread, Timer
 import pandas as pd
 
-from application_logging import get_measurement_logger, get_elastic_logging_handler
+from application_logging.logging_utils import get_measurement_logger
+from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 from application_logging.filters.scanner_filter import ScannerLoggerFilter
 from initialization_helper import *
 from datetime import date, datetime, timezone

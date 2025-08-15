@@ -1,6 +1,7 @@
 from logging import StreamHandler
 
-from application_logging import get_measurement_logger, get_elastic_logging_handler
+from application_logging.logging_utils import get_measurement_logger
+from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 from application_logging.formatters.pretty_extra_formatter import PrettyExtrasFormatter
 from utils.general_consts import LoggerName, IndexName
 
