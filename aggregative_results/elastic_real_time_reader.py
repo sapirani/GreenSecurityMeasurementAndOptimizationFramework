@@ -9,8 +9,8 @@ from elasticsearch_dsl import Search
 # --- Config ---
 from aggregative_results import ES_URL, ES_USER, ES_PASS, INDEX_SYSTEM, INDEX_PROCESS, PULL_INTERVAL_SECONDS
 from aggregative_results.aggregation_manager import AggregationManager
-from aggregative_results.dtos import ProcessRawResults
-from aggregative_results.dtos.raw_results_dtos import IterationMetadata, SystemRawResults, IterationRawResults
+from aggregative_results.DTOs import ProcessRawResults
+from aggregative_results.DTOs.raw_results_dtos import IterationMetadata, SystemRawResults, IterationRawResults
 
 if __name__ == '__main__':
     # --- Connect to Elasticsearch ---

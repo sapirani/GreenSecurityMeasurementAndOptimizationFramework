@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
-from aggregative_results.dtos import ProcessMetadata, AggregationResult
+from aggregative_results.DTOs import ProcessMetadata, AggregationResult
 
 
 @dataclass

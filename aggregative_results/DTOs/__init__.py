@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional, List
 
-from aggregative_results.dtos.aggregated_results_dtos import AggregationResult
-from aggregative_results.dtos.raw_results_dtos import ProcessRawResults
+from aggregative_results.DTOs.aggregated_results_dtos import AggregationResult
+from aggregative_results.DTOs.raw_results_dtos import ProcessRawResults
 
 
 @dataclass(frozen=True)

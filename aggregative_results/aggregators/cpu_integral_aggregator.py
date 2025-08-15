@@ -3,9 +3,9 @@ from datetime import datetime
 from typing import Union, Optional
 
 from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator
-from aggregative_results.dtos import ProcessRawResults
-from aggregative_results.dtos.aggregated_results_dtos import AggregationResult, EmptyAggregationResults
-from aggregative_results.dtos.raw_results_dtos import IterationMetadata, SystemRawResults
+from aggregative_results.DTOs import ProcessRawResults
+from aggregative_results.DTOs.aggregated_results_dtos import AggregationResult, EmptyAggregationResults
+from aggregative_results.DTOs.raw_results_dtos import IterationMetadata, SystemRawResults
 
 
 @dataclass
