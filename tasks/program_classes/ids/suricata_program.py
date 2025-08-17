@@ -1,4 +1,4 @@
-from general_consts import IDSType
+from utils.general_consts import IDSType
 from tasks.program_classes.ids.ids_program import IDSProgram
 
 

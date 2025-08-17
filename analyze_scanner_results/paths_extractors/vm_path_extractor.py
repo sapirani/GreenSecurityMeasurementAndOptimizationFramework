@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import List
 
-from general_consts import MEASUREMENT_NAME_DIR
+from utils.general_consts import MEASUREMENT_NAME_DIR
 from analyze_scanner_results.analyzer_utils import is_results_dir
 from analyze_scanner_results.paths_extractors.abstract_path_extractor import PathExtractor
 
