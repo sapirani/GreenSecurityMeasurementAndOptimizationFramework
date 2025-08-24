@@ -12,11 +12,11 @@ class SystemEnergyModelFeatures:
     disk_write_count_usage_system: int
     disk_read_time_system_ms_sum: float
     disk_write_time_system_ms_sum: float
-    network_bytes_kb_sum_sent_system: float
-    network_packets_sum_sent_system: int
-    network_bytes_kb_sum_received_system: float
-    network_packets_sum_received_system: int
     number_of_page_faults_system: int
+    network_bytes_kb_sum_sent_system: Optional[float] = None
+    network_packets_sum_sent_system: Optional[int] = None
+    network_bytes_kb_sum_received_system: Optional[float] = None
+    network_packets_sum_received_system: Optional[int] = None
 
     duration_system: Optional[float] = None  # ??? maybe give up
 

@@ -10,14 +10,14 @@ from measurements_model.dataset_creation.data_extractors.hardware_extractor impo
 from measurements_model.dataset_creation.data_extractors.process_extractor import ProcessExtractor
 from measurements_model.dataset_creation.data_extractors.summary_extractors.abstract_summary_extractor import \
     AbstractSummaryExtractor
-from measurements_model.dataset_creation.data_extractors.summary_extractors.native_summary_extractor import \
-    NativeSummaryExtractor
+from measurements_model.dataset_creation.data_extractors.summary_extractors.system_resources_isolation_summary_extractor import \
+    SystemResourcesIsolationSummaryExtractor
 
 ALL_PROCESSES_CSV = fr"processes_data.csv"
 SUMMARY_CSV = fr"summary.xlsx"
 NETWORK_IO_PER_TIMESTAMP_CSV = fr"network_io_each_moment.csv"
 HARDWARE_DETAILS_CSV = fr""
-DEFAULT_SUMMARY_EXTRACTOR = NativeSummaryExtractor()
+DEFAULT_SUMMARY_EXTRACTOR = SystemResourcesIsolationSummaryExtractor()
 
 class MeasurementExtractor:
     def __init__(self, measurement_dir: str, summary_extractor: AbstractSummaryExtractor = DEFAULT_SUMMARY_EXTRACTOR):

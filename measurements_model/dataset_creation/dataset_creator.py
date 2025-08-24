@@ -7,8 +7,8 @@ from aggregative_results.DTOs.aggregators_features.energy_model_features.idle_en
 from measurements_model.config import ProcessColumns, NO_ENERGY_MEASURED
 from measurements_model.dataset_creation.data_extractors.idle_extractor import IdleExtractor
 from measurements_model.dataset_creation.data_extractors.measurement_extractor import MeasurementExtractor
-from measurements_model.dataset_creation.data_extractors.summary_extractors.native_summary_extractor import \
-    NativeSummaryExtractor
+from measurements_model.dataset_creation.data_extractors.summary_extractors.system_resources_isolation_summary_extractor import \
+    SystemResourcesIsolationSummaryExtractor
 from measurements_model.main_model_configuration import PROCESS_NAME
 
 
@@ -18,7 +18,7 @@ class DatasetCreator:
         self.__measurements_dir_path = measurements_dir_path
 
     def __read_idle_stats(self) -> IdleEnergyModelFeatures:
-        idle_extractor = IdleExtractor(NativeSummaryExtractor())
+        idle_extractor = IdleExtractor(SystemResourcesIsolationSummaryExtractor())
         idle_results = idle_extractor.extract(self.__idle_dir_path)
         return idle_results
 
