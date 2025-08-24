@@ -18,7 +18,7 @@ class DatasetCreator:
         self.__measurements_dir_path = measurements_dir_path
 
     def __read_idle_stats(self) -> IdleEnergyModelFeatures:
-        idle_extractor = IdleExtractor(SystemResourcesIsolationSummaryExtractor())
+        idle_extractor = IdleExtractor()
         idle_results = idle_extractor.extract(self.__idle_dir_path)
         return idle_results
 
@@ -44,6 +44,7 @@ class DatasetCreator:
         for measurement_dir in Path(self.__measurements_dir_path).iterdir():
             if measurement_dir.is_dir():
                 print("Collecting info from " + measurement_dir.name)
+                samples = self.__extract_samples(measurement_dir=measurement_dir)
                 new_sample = self.__extract_sample(measurement_dir=measurement_dir, idle_results=idle_results)
                 df_rows.append(new_sample)
 

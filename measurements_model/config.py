@@ -1,3 +1,13 @@
+# Files names in measurement directory
+
+ALL_PROCESSES_CSV = fr"processes_data.csv"
+SUMMARY_CSV = fr"summary.xlsx"
+NETWORK_IO_PER_TIMESTAMP_CSV = fr"network_io_each_moment.csv"
+BATTERY_STATUS_CSV = fr"battery_status.csv"
+DISK_IO_PER_TIMESTAMP_CSV = fr"disk_io_each_moment.csv"
+TOTAL_CPU_CSV = fr"total_cpu.csv"
+TOTAL_MEMORY_CSV = fr"total_memory_each_moment.csv"
+
 SCORING_METHODS_FOR_MODEL = ['neg_mean_absolute_error', 'neg_root_mean_squared_error']
 
 NO_ENERGY_MEASURED = -1

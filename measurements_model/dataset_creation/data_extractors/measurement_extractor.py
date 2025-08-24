@@ -13,10 +13,7 @@ from measurements_model.dataset_creation.data_extractors.summary_extractors.abst
 from measurements_model.dataset_creation.data_extractors.summary_extractors.system_resources_isolation_summary_extractor import \
     SystemResourcesIsolationSummaryExtractor
 
-ALL_PROCESSES_CSV = fr"processes_data.csv"
-SUMMARY_CSV = fr"summary.xlsx"
-NETWORK_IO_PER_TIMESTAMP_CSV = fr"network_io_each_moment.csv"
-HARDWARE_DETAILS_CSV = fr""
+
 DEFAULT_SUMMARY_EXTRACTOR = SystemResourcesIsolationSummaryExtractor()
 
 class MeasurementExtractor:
