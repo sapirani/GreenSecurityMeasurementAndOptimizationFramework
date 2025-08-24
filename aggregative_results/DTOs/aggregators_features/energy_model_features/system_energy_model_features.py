@@ -13,12 +13,10 @@ class SystemEnergyModelFeatures:
     disk_read_time_system_ms_sum: float
     disk_write_time_system_ms_sum: float
     number_of_page_faults_system: int
-    network_bytes_kb_sum_sent_system: Optional[float] = None
-    network_packets_sum_sent_system: Optional[int] = None
-    network_bytes_kb_sum_received_system: Optional[float] = None
-    network_packets_sum_received_system: Optional[int] = None
-
-    duration_system: Optional[float] = None  # ??? maybe give up
+    network_bytes_kb_sum_sent_system: float
+    network_packets_sum_sent_system: int
+    network_bytes_kb_sum_received_system: float
+    network_packets_sum_received_system: int
 
     # necessary only for train-test and generating process consumption
     total_energy_consumption_system_mWh: Optional[float] = None

@@ -66,7 +66,6 @@ class EnergyModelAggregator(AbstractAggregator):
             network_packets_sum_received_system=system_data.packets_received,
             disk_read_time_system_ms_sum=system_data.disk_read_time,
             disk_write_time_system_ms_sum=system_data.disk_write_time
-            # todo: what about duration and energy?
         )
         return EnergyModelFeatures(
             timestamp=iteration_metadata.timestamp,
@@ -81,9 +80,11 @@ class EnergyModelAggregator(AbstractAggregator):
             if self.__previous_sample is None:
                 return EmptyAggregationResults()
 
-            # todo: maybe change cpu column to be with the integrals value
-            sample_as_df = pd.DataFrame([asdict(sample)])
-            sample_as_df[DURATION_COLUMN] = sample.timestamp - sample.timestamp
+            duration = sample.timestamp - self.__previous_sample.timestamp
+            sample_dict = asdict(sample)
+            sample_dict[DURATION_COLUMN] = duration
+
+            sample_as_df = pd.DataFrame([sample_dict])
             energy_prediction = self.__model.predict(sample_as_df)
             return EnergyModelResult(energy_mwh=energy_prediction)
         except Exception as e:

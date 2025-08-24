@@ -51,7 +51,7 @@ class SystemRawResults(AbstractRawResults):
     battery_percent: Optional[float] = None
     battery_remaining_capacity_mWh: Optional[float] = None
     battery_voltage_mV: Optional[float] = None
-
+    #todo: add page faults
     core_percents: List[float] = field(default_factory=list)
 
     @classmethod
