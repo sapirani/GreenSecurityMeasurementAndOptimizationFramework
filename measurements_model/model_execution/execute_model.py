@@ -1,3 +1,4 @@
+import joblib
 import pandas as pd
 
 from measurements_model.config import TRAIN_SET_PATH, TEST_SET_PATH, FULL_PREPROCESSED_DATASET_PATH, IDLE_DIR_PATH, \
@@ -7,8 +8,9 @@ from measurements_model.dataset_processing.feature_selection.process_and_system_
     ProcessAndSystemNoHardware
 from measurements_model.dataset_processing.split_data.regular_spliter import RegularDatasetSplitter
 from measurements_model.model_execution.main_model import MeasurementsModel
-from measurements_model.model_execution.main_model_configuration import ALL_MEASUREMENTS_DIRS_PATH, NETWORK_SENT_BYTES_COLUMN_NAME, \
-    NETWORK_RECEIVED_BYTES_COLUMN_NAME
+from measurements_model.model_execution.main_model_configuration import ALL_MEASUREMENTS_DIRS_PATH, \
+    NETWORK_SENT_BYTES_COLUMN_NAME, \
+    NETWORK_RECEIVED_BYTES_COLUMN_NAME, MODEL_FILE_NAME
 from measurements_model.model_training.utils import calculate_and_print_scores
 
 
@@ -33,6 +35,8 @@ def run_model():
     y_pred = model.predict(X_test)
     y_pred = pd.Series(y_pred).reset_index(drop=True)
     calculate_and_print_scores(y_test, y_pred)
+
+    joblib.dump(model, MODEL_FILE_NAME)
 
 
 if __name__ == '__main__':
