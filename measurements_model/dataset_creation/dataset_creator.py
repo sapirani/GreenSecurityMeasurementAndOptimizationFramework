@@ -13,15 +13,12 @@ from aggregative_results.DTOs.aggregators_features.energy_model_features.process
     ProcessEnergyModelFeatures
 from aggregative_results.DTOs.aggregators_features.energy_model_features.system_energy_model_features import \
     SystemEnergyModelFeatures
-from measurements_model.config import ProcessColumns, NO_ENERGY_MEASURED, DEFAULT_HARDWARE_FILE_PATH, IDLEColumns, \
-    SystemColumns
+from measurements_model.config import DEFAULT_HARDWARE_FILE_PATH
 from measurements_model.dataset_creation.data_extractors.hardware_extractor import HardwareExtractor
 from measurements_model.dataset_creation.data_extractors.idle_extractor import IdleExtractor
 from measurements_model.dataset_creation.data_extractors.measurement_extractor import MeasurementExtractor
-from measurements_model.dataset_creation.data_extractors.summary_extractors.system_resources_isolation_summary_extractor import \
-    SystemResourcesIsolationSummaryExtractor
 from measurements_model.dataset_creation.data_extractors.utils import merge_dfs
-from measurements_model.model_execution.main_model_configuration import PROCESS_NAME
+
 
 class DatasetCreator:
     def __init__(self, idle_dir_path: str, measurements_dir_path: str):
@@ -36,7 +33,7 @@ class DatasetCreator:
     def __read_hardware_stats(self) -> HardwareEnergyModelFeatures:
         return self.__hardware_extractor.extract(DEFAULT_HARDWARE_FILE_PATH)
 
-    def __read_all_usage(self, measurement_dir: str)-> pd.DataFrame:
+    def __read_all_usage(self, measurement_dir: str) -> pd.DataFrame:
         measurement_extractor = MeasurementExtractor(measurement_dir=measurement_dir)
         total_cpu = measurement_extractor.extract_total_cpu_usage()
         total_memory = measurement_extractor.extract_total_memory_usage()
@@ -51,11 +48,6 @@ class DatasetCreator:
 
     def __extract_samples_from_measurement(self, measurement_dir: str) -> list[EnergyModelFeatures]:
         full_usage_df = self.__read_all_usage(measurement_dir)
-        
-
-
-
-
 
     # def __extract_sample(self, measurement_dir: str, idle_results: IdleEnergyModelFeatures) -> pd.Series:
     #     measurement_extractor = MeasurementExtractor(measurement_dir=measurement_dir)
