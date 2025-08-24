@@ -34,7 +34,7 @@ class EnergyModelAggregator(AbstractAggregator):
         self.__model = EnergyModel()
         self.__previous_sample: Optional[EnergyModelFeatures] = None
         self.__default_hardware_features = HardwareExtractor().extract("")
-        self.__default_idle_features = IdleExtractor(DEFAULT_IDLE_SUMMARY_EXTRACTOR).extract(DEFAULT_IDLE_DIR)
+        self.__default_idle_features = None # todo: can be changed if idle will be part of the model dataset
 
     def extract_features(self, raw_results: ProcessSystemRawResults,
                          iteration_metadata: IterationMetadata) -> EnergyModelFeatures:
