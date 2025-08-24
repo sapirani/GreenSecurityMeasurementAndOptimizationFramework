@@ -7,9 +7,7 @@ from measurements_model.dataset_processing.feature_selection.process_and_system_
     ProcessAndSystemNoHardware
 from measurements_model.dataset_processing.split_data.regular_spliter import RegularDatasetSplitter
 from measurements_model.main_model import BestModelConfig
-from measurements_model.main_model_configuration import ALL_MEASUREMENTS_DIRS_PATH
-
-MODEL_FILE_NAME = "energy_prediction_model.pkl"
+from measurements_model.main_model_configuration import ALL_MEASUREMENTS_DIRS_PATH, MODEL_FILE_NAME
 
 if __name__ == '__main__':
     feature_selector = ProcessAndSystemNoHardware()

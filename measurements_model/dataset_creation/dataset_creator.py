@@ -58,4 +58,6 @@ class DatasetCreator:
         return pd.DataFrame(df_rows)
 
     def create_dataset(self) -> pd.DataFrame:
+        measurements = self.__read_measurements()
+        dataset = self.__convert_measurements_to_df(measurements)
         return self.__read_measurements()

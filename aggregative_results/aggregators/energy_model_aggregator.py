@@ -4,7 +4,8 @@ from typing import Union, Optional
 import pandas as pd
 
 from aggregative_results.DTOs.aggregated_results_dtos.energy_model_result import EnergyModelResult
-from aggregative_results.DTOs.aggregators_features.energy_model_features import EnergyModelFeatures
+from aggregative_results.DTOs.aggregators_features.energy_model_features.full_energy_model_features import \
+    EnergyModelFeatures
 from aggregative_results.DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
 from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator
 from aggregative_results.DTOs.aggregated_results_dtos.empty_aggregation_results import EmptyAggregationResults
