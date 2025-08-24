@@ -10,7 +10,7 @@ class ProcessEnergyModelFeatures:
     disk_read_count_usage_process: int
     disk_write_bytes_kb_usage_process: float
     disk_write_count_usage_process: int
-    network_bytes_sum_kb_sent_process: float
-    network_packets_sum_sent_process: int
-    network_bytes_sum_kb_received_process: float
-    network_packets_sum_received_process: int
+    network_bytes_sum_kb_sent_process: Optional[float]
+    network_packets_sum_sent_process: Optional[int]
+    network_bytes_sum_kb_received_process: Optional[float]
+    network_packets_sum_received_process: Optional[int]
