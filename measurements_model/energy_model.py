@@ -7,6 +7,10 @@ from measurements_model.model_execution.main_model_configuration import MODEL_FI
 
 
 class EnergyModel:
+    """
+    This class is the measurement model after loading it from a pickle file.
+    The model (after loading) should be of type 'MeasurememtModel', after calling 'fit' and training the model.
+    """
     def __init__(self):
         self.__model = None
 
