@@ -821,7 +821,7 @@ def main(user_args):
     process_metrics_logger = get_measurement_logger(
         logger_name=LoggerName.PROCESS_METRICS,
         custom_filter=logger_filter,
-        logger_handler=get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, IndexName.PROCESS_METRICS, starting_time)
+        logger_handler=get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, IndexName.PROCESS_METRICS, starting_time, "search_name_enrich")
     )
 
     application_flow_logger = get_measurement_logger(

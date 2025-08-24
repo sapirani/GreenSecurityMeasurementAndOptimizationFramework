@@ -107,7 +107,8 @@ class AggregationManager:
             {
                 **asdict(iteration_raw_results),
                 **{key: value for aggregation_result in system_aggregated_results for key, value in
-                   asdict(aggregation_result).items()}
+                   asdict(aggregation_result).items()},
+                "pid": 0
             }
         )
 
@@ -132,7 +133,7 @@ class AggregationManager:
             processes_iteration_results: List[ProcessRawResults],
             iteration_metadata: IterationMetadata,
             aggregators_dict: Dict[ProcessIdentity, List[AbstractAggregator]],
-            raw_results_combiner: Callable[[ProcessRawResults], ProcessRawResults | ProcessSystemRawResults | FullScopeRawResults]
+            raw_results_combiner
     ) -> Dict[ProcessIdentity, AggregatedProcessResults]:
         """
         This is a generic function that iterates over all processes metrics, 

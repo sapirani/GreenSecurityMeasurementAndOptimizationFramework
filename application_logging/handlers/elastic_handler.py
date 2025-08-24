@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 import logging
 import os
 from logging import Handler
+from typing import Optional
 
 from elasticsearch import Elasticsearch
 
@@ -14,7 +15,8 @@ def get_elastic_logging_handler(
         elastic_password: str,
         elastic_url: str,
         index_name: str,
-        starting_time: float = time.time()
+        starting_time: float = time.time(),
+        pipeline_name: Optional[str] = None
 ) -> Handler:
     try:
         return ElasticSearchLogHandler(
@@ -22,7 +24,8 @@ def get_elastic_logging_handler(
             elastic_password=elastic_password,
             elastic_url=elastic_url,
             index_name=index_name,
-            start_timestamp=starting_time
+            start_timestamp=starting_time,
+            pipeline_name=pipeline_name
         )
     except ConnectionError:
         return None
@@ -35,12 +38,14 @@ class ElasticSearchLogHandler(logging.Handler):
             elastic_password: str,
             elastic_url: str,
             index_name: str,
-            start_timestamp: float = time.time()
+            start_timestamp: float = time.time(),
+            pipeline_name: Optional[str] = None
     ):
         super().__init__()
         self.es = Elasticsearch(elastic_url, basic_auth=(elastic_username, elastic_password))
         self.index_name = index_name
         self.start_date = datetime.fromtimestamp(start_timestamp, tz=timezone.utc).isoformat()
+        self.pipeline_name = pipeline_name
 
         if not self.es.ping():
             print("Cannot connect to Elastic")
@@ -63,4 +68,7 @@ class ElasticSearchLogHandler(logging.Handler):
         if "timestamp" not in doc:
             doc["timestamp"]: datetime.now(timezone.utc).isoformat()
 
-        self.es.index(index=self.index_name, body=doc)
+        if self.pipeline_name:
+            self.es.index(index=self.index_name, body=doc, pipeline=self.pipeline_name)
+        else:
+            self.es.index(index=self.index_name, body=doc)

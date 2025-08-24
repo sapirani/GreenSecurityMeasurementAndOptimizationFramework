@@ -123,6 +123,7 @@ class AbstractOSFuncs:
         :param f_stderr: fd for directing the stderr of the opened process
         :return: opened process and pid
         """
+        print("Running command:")
         print(command)
         def process_obj_and_pid(command_lst):
             popen_creation_flags = 0 if is_posix else subprocess.CREATE_NEW_PROCESS_GROUP
@@ -131,6 +132,7 @@ class AbstractOSFuncs:
 
             if should_use_powershell or should_find_child_id:
                 pid = find_child_id_func(p, is_posix)
+                print("HERE!")
                 print(pid)
                 if pid is not None and not should_use_powershell:
                     p = psutil.Process(pid)
@@ -210,7 +212,7 @@ class AbstractOSFuncs:
         pass
 
     @abstractmethod
-    def get_container_total_memory_usage(self) -> tuple[float, float]:
+    def get_container_total_memory_usage(self):
         """
         :return: total memory consumption in bytes and as a percentage from memory size allocated to the docker container
         """

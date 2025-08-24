@@ -7,7 +7,7 @@ from utils.general_consts import LoggerName, IndexName
 
 ES_URL = "http://127.0.0.1:9200"
 ES_USER = "elastic"
-ES_PASS = "SVR4mUZl"
+ES_PASS = "SwmQNU7y"
 INDEX_SYSTEM = "system_metrics"
 INDEX_PROCESS = "process_metrics"
 PULL_INTERVAL_SECONDS = 2  # seconds
@@ -15,7 +15,7 @@ PULL_INTERVAL_SECONDS = 2  # seconds
 
 logger = get_measurement_logger(
     logger_name=LoggerName.METRICS_AGGREGATIONS,
-    logger_handler=get_elastic_logging_handler(ES_USER, ES_PASS, ES_URL, IndexName.METRICS_AGGREGATIONS),
+    logger_handler=get_elastic_logging_handler(ES_USER, ES_PASS, ES_URL, IndexName.METRICS_AGGREGATIONS, pipeline_name="search_name_enrich"),
 )
 
 handler = StreamHandler()

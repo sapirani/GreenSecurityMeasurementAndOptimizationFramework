@@ -33,3 +33,5 @@ Windows*
 program_parameters.py
 *backup*
 *cpu_regressor_results*
+*.joblib
+SplunkResearch/energy_profile_final.log

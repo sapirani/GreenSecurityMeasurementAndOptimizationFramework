@@ -15,7 +15,7 @@ class CPUIntegralAggregator(AbstractAggregator):
 
     def extract_features(
             self,
-            raw_results: SystemRawResults | ProcessRawResults,
+            raw_results,
             iteration_metadata: IterationMetadata
     ) -> CPUIntegralFeatures:
         return CPUIntegralFeatures(
@@ -29,7 +29,7 @@ class CPUIntegralAggregator(AbstractAggregator):
                 return EmptyAggregationResults()
 
             delta_seconds = (sample.date - self.__previous_sample.date).total_seconds()
-            area = (sample.cpu_percent_sum_across_cores + self.__previous_sample.cpu_percent_sum_across_cores) * delta_seconds / 2
+            area = (sample.cpu_percent_sum_across_cores + self.__previous_sample.cpu_percent_sum_across_cores) * delta_seconds / 200
             return CPUIntegralResult(cpu_integral=area)
         finally:
             self.__previous_sample = sample

@@ -75,6 +75,7 @@ class BatteryMonitorType(Enum):
 class ProcessMonitorType(Enum):
     FULL = 1
     PROCESSES_OF_INTEREST_ONLY = 2
+    SPLUNK = 3
 
 
 class SummaryType(Enum):
@@ -194,5 +195,7 @@ def get_scanner_version_name(battery_monitor_type: BatteryMonitorType, process_m
         return "Full Process Monitoring Excluding Battery"
     elif battery_monitor_type == battery_monitor_type.WITHOUT_BATTERY and process_monitor_type == process_monitor_type.PROCESSES_OF_INTEREST_ONLY:
         return "Only Process of Interest Monitoring Excluding Battery"
+    elif battery_monitor_type == BatteryMonitorType.WITHOUT_BATTERY and process_monitor_type == ProcessMonitorType.SPLUNK:
+        return "Splunk Process Monitoring Excluding Battery"
 
     raise Exception("Scanner version is not supported")

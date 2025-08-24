@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from calendar import c
 import logging
 from dataclasses import dataclass
 from typing import List, Dict, Tuple, Callable, Iterable
@@ -93,7 +94,6 @@ class AbstractProcessResourceUsageRecorder(ABC):
             should_ignore_process predicate
         """
         processes_results = []
-
         for p in candidate_processes:
             try:
                 if self.should_ignore_process(p) and not (p in self.mark_processes):
@@ -108,7 +108,8 @@ class AbstractProcessResourceUsageRecorder(ABC):
                 with p.oneshot():
                     pid = p.pid
                     process_name = p.name()
-                    process_args = p.cmdline()[1:]
+                    # process_args = p.cmdline()[1:]
+                    process_args = None
                     process_of_interest = True if p in self.mark_processes else False
                     cpu_percent_sum_across_cores = round(p.cpu_percent(), 2)
                     process_traffic = self.process_network_usage_recorder.get_current_network_stats(p)

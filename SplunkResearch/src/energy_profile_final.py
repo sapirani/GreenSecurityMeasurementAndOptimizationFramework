@@ -1,6 +1,7 @@
 import asyncio
 from time import sleep
-from log_generator import LogGenerator
+import time
+from SplunkResearch.src.log_generator import LogGenerator
 import pandas as pd
 from datetime import datetime, timedelta
 import random
@@ -10,15 +11,21 @@ sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
 # config logging to file
 import logging
 import subprocess
+from application_logging.handlers.elastic_handler import get_elastic_logging_handler
+from program_parameters import *
+from resources.section_logtypes import section_logtypes
+from SplunkResearch.src.splunk_tools import SplunkTools
+from SplunkResearch.src.env_utils import clean_env
+
 # sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/application_logging/handlers')
 logging.basicConfig(filename='/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/energy_profile_final.log',
                     level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
+# add elastic handler to logger
+
 
 # logger = logging.getLogger()
-from resources.section_logtypes import section_logtypes
-from splunk_tools import SplunkTools
-from env_utils import clean_env
+
 
 def write_logs_to_monitor( logs, log_source):
     with open(f'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/{log_source}.txt', 'a') as f:
@@ -51,7 +58,7 @@ def overload_profile(savedsearches, splunk_tools):
     log_generator = LogGenerator(top_logtypes)
     wait_time = [10, 15,30,120, 90]
     # quantities = [100, 200]
-    quantities = [1000, 50000, 100000, 500000, 1000000]
+    quantities = [1000, 25000, 50000, 75000, 100000, 250000, 500000, 750000, 1000000]
     # diversities = [0, 1]
     diversities = [0, 0.5, 1, 5, 10]
     time_range = ("08/11/2024:09:00:00", "08/13/2024:09:00:00")
@@ -74,6 +81,11 @@ def overload_profile(savedsearches, splunk_tools):
                                                    num_logs=quantity_to_add,
                                                    diversity=int(diversity*31+1),
                                                    time_range=time_range)
+                waiting_time = len(logs)/ 4500  # 4500 logs per second 
+                logging.info(f'Waiting for {waiting_time} seconds before executing rules for {rule}')
+                write_logs_to_monitor(logs, log_source) # send to splunk
+
+                sleep(waiting_time)
                 scanner_id = f"{rule}_{log_source}_{eventcode}_{int(diversity*31+1)}_{quantity}_{datetime.now()}"
                 # # config logger handler
                 # elastic_handler = ElasticSearchLogHandler(session_id=scanner_id)
@@ -85,13 +97,13 @@ def overload_profile(savedsearches, splunk_tools):
                 logging.info(f"scanner_id: {scanner_id}")
                
                 # process = subprocess.Popen(["sudo", "-S", "-E", "env", "PATH=/usr/bin:/bin:/usr/sbin:/sbin:/home/shouei/anaconda3/envs/py38/bin", "/home/shouei/anaconda3/envs/py38/bin/python3", "../scanner.py", "--measurement_session_id", scanner_id],
-                process = subprocess.Popen(["/home/shouei/anaconda3/envs/py38/bin/python3", "../scanner.py", "--measurement_session_id", scanner_id],
+                process = subprocess.Popen(["/home/shouei/anaconda3/envs/py310_modelenv/bin/python3", "scanner.py", "--measurement_session_id", scanner_id],
                                         stdin=subprocess.PIPE,
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
                                         text=True,
                                         bufsize=1)  # Line buffered
-
+                
                 # Send the password to sudo without waiting for completion
                 # process.stdin.write(' \n')
                 # process.stdin.flush()
@@ -102,17 +114,14 @@ def overload_profile(savedsearches, splunk_tools):
                 logging.info(f'Process started with PID: {process.pid}')
                 
                 sleep(3)
-                logging.info(f'Waiting for {wait_time[i]} seconds before executing rules for {rule}')
-                write_logs_to_monitor(logs, log_source) # send to splunk
 
-                sleep(wait_time[i])  # wait for 1 minute for every 1000 logs
                 logging.info('Running saved searches')
                 results, _ = asyncio.run(splunk_tools.run_saved_searches(time_range, num_measurements=1))
                 logging.info('Terminating scanner')
                 subprocess.run(['pkill', '-f', 'scanner.py'],
                                 # input=' \n',
                                 text=True,
-                                check=True)
+                                check=False)
                 logging.warning('Killed all scanner.py processes as last resort')
 
 

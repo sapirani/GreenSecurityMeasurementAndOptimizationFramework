@@ -7,6 +7,7 @@ import re
 import time
 import splunklib.client as client
 import splunklib.results as splunk_results
+import splunklib.binding
 import psutil
 import concurrent.futures
 from datetime import timezone
@@ -25,6 +26,8 @@ from random import randint
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple, Any, Optional
 
+from application_logging.handlers.elastic_handler import get_elastic_logging_handler
+
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env')
 # Precompile the regex pattern
 pattern = re.compile(r"'(.*?)' (\D+) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} IDT) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \s+(\d+)\s+(\d+\.\d+)") # IDT and IST are changed when the time is changed
@@ -36,7 +39,17 @@ HEADERS = {
 PREFIX_PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/'
 import logging
 logger = logging.getLogger(__name__)
+from program_parameters import *
 
+from application_logging.logging_utils import get_measurement_logger
+ES_URL = "http://127.0.0.1:9200"
+ES_USER = "elastic"
+ES_PASS = "SwmQNU7y"
+PULL_INTERVAL_SECONDS = 2  # seconds
+es_logger = get_measurement_logger(
+    logger_name=LoggerName.METRICS_AGGREGATIONS,
+    logger_handler=get_elastic_logging_handler(ES_USER, ES_PASS, ES_URL, "sid"),
+)
 
 @dataclass
 class ProcessMetrics:
@@ -70,7 +83,7 @@ class SplunkTools(object):
     def __init__(self, active_saved_searches=None, rule_frequency=1):
         if self._initialized:
             return
-        
+        self.pids = []
         self.splunk_host = os.getenv("SPLUNK_HOST")
         self.splunk_port = os.getenv("SPLUNK_PORT")
         self.base_url = f"https://{self.splunk_host}:{self.splunk_port}"
@@ -161,87 +174,70 @@ class SplunkTools(object):
             self._cpu_monitor_thread = None
 
       
+
     async def execute_query(self, search_name: str, query: str, earliest_time: float, latest_time: float) -> QueryMetrics:
-        """FIXED: Made truly async by running blocking calls in executor"""
         query = f" search {query}"
-        
-        # Get the event loop
-        loop = asyncio.get_event_loop()
-        
-        # FIX 1: Run the blocking job creation in executor
-        job = await loop.run_in_executor(
-            None,
-            lambda: self.service.jobs.create(
-                query, 
-                earliest_time=earliest_time, 
-                latest_time=latest_time
-            )
-        )
-        
-        io_counters_dict = {"read_count": 0, "write_count": 0, "read_bytes": 0, "write_bytes": 0}
+        # loop = asyncio.get_event_loop()
+
+        job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
+        io_counters_dict = { "read_count": 0,  "write_count": 0, "read_bytes": 0, "write_bytes": 0}
         
         # Wait for job to get PID
         while True:
-            # FIX 2: Run blocking refresh in executor
-            await loop.run_in_executor(None, job.refresh)
+            job.refresh()  # Make job.refresh()() non-blocking
             stats = job.content
             pid = stats.get('pid', None)
             if pid is not None:
                 break
             if stats['isDone'] == '1':
-                # FIX 3: Run blocking job creation in executor
-                job = await loop.run_in_executor(
-                    None,
-                    self.service.jobs.create,
-                    query,
-                    {'earliest_time': earliest_time, 'latest_time': latest_time}
-                )
-            await asyncio.sleep(0.01)
+                job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
+            await asyncio.sleep(0.01)  # Use asyncio.sleep instead of time.sleep
 
         process_end_cpu_time = 0
         process_start_cpu_time = 0
         logger.info(f"Monitoring process {pid}")
-        
         if pid is not None:
             try:
+                self.pids.append(pid)
+                sid = job.content.get('sid', None)
+                es_logger.info(f"PID SID MAPPING", extra={
+                    'pid': pid,
+                    'sid': sid,
+                    'search_name': search_name
+                }
+                )
                 process = psutil.Process(int(pid))
                 process_start_time = time.time()
-                # FIX 4: Get CPU times in executor
-                process_start_cpu_time = await loop.run_in_executor(
-                    None, 
-                    lambda: process.cpu_times().user
-                )
+                # Get initial CPU times in a non-blocking way
+                process_start_cpu_time =  process.cpu_times().user
+                # process_start_cpu_time = await loop.run_in_executor(
+                #     None, lambda: process.cpu_times().user  # + process.cpu_times().system
+                # )
                 
                 while True:
                     try:
-                        # FIX 5: Run blocking operations in executor
-                        process_end_cpu_time = await loop.run_in_executor(
-                            None,
-                            lambda: process.cpu_times().user
-                        )
-                        
-                        # FIX 6: is_running should be called with parentheses
-                        is_running = await loop.run_in_executor(
-                            None,
-                            process.is_running  # This is the method reference
-                        )
-                        
+                        # Get CPU times non-blockingly
+                        process_end_cpu_time =  process.cpu_times().user
+                        # Check if process is running in a non-blocking way
+                        is_running = process.is_running
                         if not is_running:
                             logger.debug(f"Process {pid} has finished running")
                             break
                             
-                        # FIX 7: Refresh job status in executor
-                        await loop.run_in_executor(None, job.refresh)
+                        # Refresh job status non-blockingly
+                        job.refresh()
                         if job.content['isDone'] == '1':
                             logger.debug(f"Job is marked as done")
                             break
 
-                        # FIX 8: Get IO counters in executor
+                        # Get IO counters non-blockingly
                         try:
-                            io_counters = await loop.run_in_executor(
-                                None,
-                                process.io_counters
-                            )
+                            # Run the oneshot operation in a thread
+                            def get_io_counters():
+                                with process.oneshot():
+                                    return process.io_counters()
+                                    
+                            io_counters = get_io_counters()
                             
                             # Update IO metrics
                             for key in io_counters_dict:
@@ -250,11 +246,11 @@ class SplunkTools(object):
                         except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
                             logger.debug(f"Error getting IO counters: {e}")
                         
-                        await asyncio.sleep(0.1)
+                        await asyncio.sleep(0.1)  # Non-blocking sleep
                         
                     except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
-                        # If the process disappeared but the job isn't done
-                        await loop.run_in_executor(None, job.refresh)
+                        # If the process disappeared but the job isn't done, it might have spawned a new process
+                        job.refresh()
                         if job.content['isDone'] == '0':
                             logger.error(e)
                             logger.error(f"Process {pid} disappeared but job isn't done. Waiting for job completion.")
@@ -265,9 +261,9 @@ class SplunkTools(object):
                             break
                         
                     # Add timeout protection
-                    if time.time() - process_start_time > 600:  # 10 minute timeout
+                    if time.time() - process_start_time > 600:  # 5 minute timeout
                         logger.warning(f"Process monitoring timed out after 10 minutes for pid {pid}")
-                        await loop.run_in_executor(None, job.cancel)
+                        job.cancel()
                         break
                         
             except psutil.NoSuchProcess:
@@ -277,7 +273,7 @@ class SplunkTools(object):
             finally:
                 # Ensure we get the final job status
                 try:
-                    await loop.run_in_executor(None, job.refresh)
+                    job.refresh()
                 except Exception as e:
                     logger.error(f"Error refreshing job status: {e}")
         
@@ -285,22 +281,17 @@ class SplunkTools(object):
         process_cpu_time = process_end_cpu_time - process_start_cpu_time
         
         # Get final job status
-        await loop.run_in_executor(None, job.refresh)
+        job.refresh()
         stats = job.content
         run_duration = float(stats.get('runDuration', 0))
         
-        # FIX 9: Get results in executor
-        response = await loop.run_in_executor(
-            None,
-            lambda: job.results(output_mode='json', count=0)
-        )
+        # Get results 
+        response = job.results(output_mode='json')
         
-        # Parse results
-        results = await loop.run_in_executor(
-            None,
-            lambda: [result for result in splunk_results.JSONResultsReader(response) if isinstance(result, dict)]
-        )
-        print(response)
+        # Parse results non-blockingly
+
+        results =  [result for result in splunk_results.JSONResultsReader(response) if isinstance(result, dict)]
+        
         # Get results count
         results_count = len(results)
         
@@ -313,6 +304,8 @@ class SplunkTools(object):
         )
         
         return metric, results
+        
+
     
     async def run_saved_search(self, saved_search: str, time_range: Tuple[str, str]) -> QueryMetrics:
         """Run a saved search and collect metrics"""
@@ -349,8 +342,16 @@ class SplunkTools(object):
                 task = asyncio.create_task(self.run_saved_search(
                     search_name, time_range))
                 all_tasks.append(task)
-
+        # run a thread that check if all pids founded and then enrich elasic index
+        pids_thread = threading.Thread(
+            target=self.enrich_elastic_index_with_pids,
+        )
+        pids_thread.start()
+        # Run all tasks concurrently
         results = await asyncio.gather(*all_tasks)
+        # Wait for the pids thread to finish
+        pids_thread.join()
+        self.pids = []
         
         # Filter out any failed measurements
         valid_results = [m for m, r in results if isinstance(m, QueryMetrics)]
@@ -372,7 +373,21 @@ class SplunkTools(object):
         # finally:
         #     # Stop CPU monitoring
         #     self.stop_cpu_monitoring()
-
+        
+    def enrich_elastic_index_with_pids(self):
+        while len(self.pids)!= len(self.active_saved_searches):
+            time.sleep(0.1)
+        logger.info(f"Enriching Elastic index with PIDs: {self.pids}")
+        # Enrich the Elastic index with the PIDs
+        # # Execute the enrich policy using 'target' and provide authentication explicitly
+        response = es_logger.handlers[0].es.transport.perform_request(
+            method="POST",
+            target="/_enrich/policy/search_name/_execute",  # 'target' is the correct parameter here
+            headers={
+                "Authorization": "Basic ZWxhc3RpYzpTd21RTlU3eQ=="  # base64 encoded "elastic:SVR4mUZl"
+            }
+        )
+        
     def monitor_total_cpu(self):
         """Monitor total CPU usage across all Splunk processes"""
         start_time = time.time()
@@ -642,17 +657,22 @@ class SplunkTools(object):
         relevant_logs = self.real_logs_distribution.loc[start_ts:end_ts]
         
         # Check if we have full coverage
-        if len(relevant_logs) == 0 or \
-        relevant_logs.index.min() > start_time or \
-        relevant_logs.index.max() < end_time:
-            logger.info('Loading missing distribution data from disk.')
-            self.load_real_logs_distribution_bucket(start_time, end_time)
-            new_logs = self.real_logs_distribution.loc[
-                pd.Timestamp(start_time, unit='s'):pd.Timestamp(end_time, unit='s')
-            ]
+        # if len(relevant_logs) == 0 or \
+        # relevant_logs.index.min() > start_time or \
+        # relevant_logs.index.max() < end_time:
+            # logger.info('Loading missing distribution data from disk.')
+            # self.load_real_logs_distribution_bucket(start_time, end_time)
+            # new_logs = self.real_logs_distribution.loc[
+            #     pd.Timestamp(start_time, unit='s'):pd.Timestamp(end_time, unit='s')
+            # ]
 
-            # Concatenate with existing
-            relevant_logs = pd.concat([relevant_logs, new_logs])
+            # # Concatenate with existing
+        
+            # relevant_logs = pd.concat([relevant_logs, new_logs])
+            # logger.info('No relevant logs found for the given time range.')
+            # logger.info(f'Start time: {start_time}, End time: {end_time}')
+            # logger.info(f'Relevant logs shape: {relevant_logs.shape}')
+            # logger.info(f'Relevant logs index range: {relevant_logs.index.min()} - {relevant_logs.index.max()}')
         relevant_logs.loc[:, 'count'] = relevant_logs['count'].astype(int)
         
         return relevant_logs       
