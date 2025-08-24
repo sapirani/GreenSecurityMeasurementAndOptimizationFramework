@@ -1,15 +1,16 @@
 from dataclasses import dataclass
+from datetime import datetime
 
 
 @dataclass
 class EnergyModelFeatures:
-    duration: float
+    timestamp: datetime
 
     desired_process_cpu: float
     total_system_cpu: float
 
     desired_process_memory_mb: float
-    total_system_memory_mb: float
+    total_system_memory_gb: float
 
     desired_process_disk_read_count: int
     total_system_disk_read_count: int
