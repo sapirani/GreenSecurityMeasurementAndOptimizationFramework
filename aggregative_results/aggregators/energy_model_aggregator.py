@@ -11,11 +11,12 @@ from aggregative_results.DTOs.aggregated_results_dtos.empty_aggregation_results 
 from aggregative_results.DTOs.raw_results_dtos.iteration_info import IterationMetadata
 from measurements_model.energy_model import EnergyModel
 
+DURATION_COLUMN = "duration"
 
 class EnergyModelAggregator(AbstractAggregator):
     def __init__(self):
-        self.__previous_sample: Optional[EnergyModelFeatures] = None
         self.__model = EnergyModel()
+        self.__previous_sample: Optional[EnergyModelFeatures] = None
 
     def extract_features(self, raw_results: ProcessSystemRawResults,
                          iteration_metadata: IterationMetadata) -> EnergyModelFeatures:
@@ -50,8 +51,9 @@ class EnergyModelAggregator(AbstractAggregator):
             if self.__previous_sample is None:
                 return EmptyAggregationResults()
 
+            # todo: maybe change cpu column to be with the integrals value
             sample_as_df = pd.DataFrame([asdict(sample)])
-            sample_as_df["Duration"] = sample.timestamp - sample.timestamp
+            sample_as_df[DURATION_COLUMN] = sample.timestamp - sample.timestamp
             energy_prediction = self.__model.predict(sample_as_df)
             return EnergyModelResult(energy_mwh=energy_prediction)
         except Exception as e:

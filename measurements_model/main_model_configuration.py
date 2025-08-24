@@ -13,3 +13,5 @@ PROCESS_NAME = NO_SCAN_HEAVYLOAD_PROCESS if IS_NO_SCAN_MODE and isinstance(MEASU
 
 NETWORK_SENT_BYTES_COLUMN_NAME = None  # ProcessColumns.NETWORK_BYTES_SENT_PROCESS_COL # can be ether this or None (or system same name)
 NETWORK_RECEIVED_BYTES_COLUMN_NAME = None  # ProcessColumns.NETWORK_BYTES_RECEIVED_PROCESS_COL # can be ether this or None (or system same name)
+
+MODEL_FILE_NAME = r"C:\Users\Administrator\Desktop\GreenSecurityAll\framework_code\measurements_model\energy_prediction_model.pkl"
