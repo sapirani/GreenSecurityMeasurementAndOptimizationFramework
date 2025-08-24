@@ -14,6 +14,3 @@ class ProcessEnergyModelFeatures:
     network_packets_sum_sent_process: int
     network_bytes_sum_kb_received_process: float
     network_packets_sum_received_process: int
-
-    # necessary only for train-test the model
-    process_energy_consumption: Optional[float] = None

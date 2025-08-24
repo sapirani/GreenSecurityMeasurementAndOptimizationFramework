@@ -35,4 +35,3 @@ class SystemResourcesIsolationSummaryExtractor(AbstractSummaryExtractor):
             total_energy_consumption_column=SummaryFieldsSystemResourcesIsolationVersion.ENERGY_CONSUMPTION)
 
         return self._extract_data_from_df(df, summary_columns)
-       

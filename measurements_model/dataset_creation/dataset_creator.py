@@ -35,6 +35,7 @@ class DatasetCreator:
         new_sample = {**asdict(process_summary_results), **asdict(system_summary_results), **asdict(idle_results), **asdict(hardware_results),
                       ProcessColumns.ENERGY_USAGE_PROCESS_COL: process_energy_value}
 
+        new_sample = {key: value for key, value in new_sample.items() if value is not None}
         return pd.Series(new_sample)
 
     def __read_measurements(self) -> pd.DataFrame:
@@ -49,4 +50,6 @@ class DatasetCreator:
         return pd.DataFrame(df_rows)
 
     def create_dataset(self) -> pd.DataFrame:
-        return self.__read_measurements()
+        df = self.__read_measurements()
+        df.to_csv("full_dataset.csv")
+        return df
