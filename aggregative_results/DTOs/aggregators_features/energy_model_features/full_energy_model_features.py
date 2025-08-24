@@ -4,6 +4,8 @@ from typing import Optional
 
 from aggregative_results.DTOs.aggregators_features.energy_model_features.hardware_energy_model_features import \
     HardwareEnergyModelFeatures
+from aggregative_results.DTOs.aggregators_features.energy_model_features.idle_energy_model_features import \
+    IdleEnergyModelFeatures
 from aggregative_results.DTOs.aggregators_features.energy_model_features.process_energy_model_features import \
     ProcessEnergyModelFeatures
 from aggregative_results.DTOs.aggregators_features.energy_model_features.system_energy_model_features import \

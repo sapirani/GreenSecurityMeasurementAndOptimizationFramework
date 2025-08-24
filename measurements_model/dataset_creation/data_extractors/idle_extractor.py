@@ -1,16 +1,18 @@
-import pandas as pd
+import os
 
 from aggregative_results.DTOs.aggregators_features.energy_model_features.idle_energy_model_features import \
     IdleEnergyModelFeatures
 from measurements_model.dataset_creation.data_extractors.summary_extractors.abstract_summary_extractor import \
     AbstractSummaryExtractor
 
+SUMMARY_CSV = fr"summary.xlsx"
 
 class IdleExtractor:
     def __init__(self, summary_extractor: AbstractSummaryExtractor):
         self.__summary_extractor = summary_extractor
 
-    def extract(self, idle_summary_file_path: str) -> IdleEnergyModelFeatures:
+    def extract(self, idle_summary_dir_path: str) -> IdleEnergyModelFeatures:
+        idle_summary_file_path = os.path.join(idle_summary_dir_path, SUMMARY_CSV)
         idle_summary_results = self.__summary_extractor.extract_system_data(idle_summary_file_path)
         return IdleEnergyModelFeatures(
             cpu_usage_idle=idle_summary_results.cpu_usage_system,

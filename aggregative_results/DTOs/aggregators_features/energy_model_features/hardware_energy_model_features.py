@@ -1,8 +1,11 @@
+from dataclasses import dataclass
+
+
+@dataclass
 class HardwareEnergyModelFeatures:
     PC_type: str
     PC_manufacturer: str
     system_family: str
-    model: str
     machine_type: str
     device_name: str
 
@@ -24,7 +27,6 @@ class HardwareEnergyModelFeatures:
     physical_disk_manufacturer: str
     physical_disk_model: str
     physical_disk_media_type: str
-    disk_firmware_version: str
     logical_disk_name: str
     logical_disk_manufacturer: str
     logical_disk_model: str

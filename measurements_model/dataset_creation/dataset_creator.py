@@ -1,10 +1,15 @@
+from dataclasses import asdict
 from pathlib import Path
 import pandas as pd
 
-from measurements_model.config import IDLEColumns, SystemColumns, ProcessColumns, NO_ENERGY_MEASURED
-from measurements_model.dataset_creation.measurement_extractor import MeasurementExtractor
-from measurements_model.main_model_configuration import IDLE_SUMMARY_VERSION, MEASUREMENTS_SUMMARY_VERSION, IS_NO_SCAN_MODE, \
-    PROCESS_NAME
+from aggregative_results.DTOs.aggregators_features.energy_model_features.idle_energy_model_features import \
+    IdleEnergyModelFeatures
+from measurements_model.config import ProcessColumns, NO_ENERGY_MEASURED
+from measurements_model.dataset_creation.data_extractors.idle_extractor import IdleExtractor
+from measurements_model.dataset_creation.data_extractors.measurement_extractor import MeasurementExtractor
+from measurements_model.dataset_creation.data_extractors.summary_extractors.native_summary_extractor import \
+    NativeSummaryExtractor
+from measurements_model.main_model_configuration import PROCESS_NAME
 
 
 class DatasetCreator:
@@ -12,36 +17,22 @@ class DatasetCreator:
         self.__idle_dir_path = idle_dir_path
         self.__measurements_dir_path = measurements_dir_path
 
-    def __read_idle_stats(self) -> dict[str, any]:
-        idle_extractor = MeasurementExtractor(IDLE_SUMMARY_VERSION, self.__idle_dir_path)
-        idle_results = idle_extractor.extract_system_summary_result()
-        return {
-            IDLEColumns.DURATION_COL: idle_results[SystemColumns.DURATION_COL],
-            IDLEColumns.CPU_IDLE_COL: idle_results[SystemColumns.CPU_SYSTEM_COL],
-            IDLEColumns.MEMORY_IDLE_COL: idle_results[SystemColumns.MEMORY_SYSTEM_COL],
-            IDLEColumns.DISK_READ_BYTES_IDLE_COL: idle_results[SystemColumns.DISK_READ_BYTES_SYSTEM_COL],
-            IDLEColumns.DISK_READ_COUNT_IDLE_COL: idle_results[SystemColumns.DISK_READ_COUNT_SYSTEM_COL],
-            IDLEColumns.DISK_WRITE_BYTES_IDLE_COL: idle_results[SystemColumns.DISK_WRITE_BYTES_SYSTEM_COL],
-            IDLEColumns.DISK_WRITE_COUNT_IDLE_COL: idle_results[SystemColumns.DISK_WRITE_COUNT_SYSTEM_COL],
-            IDLEColumns.DISK_READ_TIME: idle_results[SystemColumns.DISK_READ_TIME],
-            IDLEColumns.DISK_WRITE_TIME: idle_results[SystemColumns.DISK_WRITE_TIME],
-            IDLEColumns.PAGE_FAULT_IDLE_COL: idle_results[SystemColumns.PAGE_FAULT_SYSTEM_COL],
-            IDLEColumns.ENERGY_TOTAL_USAGE_IDLE_COL: idle_results[SystemColumns.ENERGY_TOTAL_USAGE_SYSTEM_COL],
-        }
+    def __read_idle_stats(self) -> IdleEnergyModelFeatures:
+        idle_extractor = IdleExtractor(NativeSummaryExtractor())
+        idle_results = idle_extractor.extract(self.__idle_dir_path)
+        return idle_results
 
-    def __extract_sample(self, measurement_dir: str, idle_results: dict[str, any]) -> pd.Series:
-        measurement_extractor = MeasurementExtractor(summary_version=MEASUREMENTS_SUMMARY_VERSION,
-                                                     measurement_dir=measurement_dir)
-        system_summary_results = measurement_extractor.extract_system_summary_result()
-        process_summary_results = measurement_extractor.extract_process_summary_result(no_scan_mode=IS_NO_SCAN_MODE,
-                                                                                       process_name=PROCESS_NAME)
-        hardware_results = measurement_extractor.extract_hardware_result()
+    def __extract_sample(self, measurement_dir: str, idle_results: IdleEnergyModelFeatures) -> pd.Series:
+        measurement_extractor = MeasurementExtractor(measurement_dir=measurement_dir)
+        system_summary_results = measurement_extractor.extract_system_features()
+        process_summary_results = measurement_extractor.extract_process_features(process_name=PROCESS_NAME)
+        hardware_results = measurement_extractor.extract_hardware_features()
 
-        system_total_energy_consumption = system_summary_results[SystemColumns.ENERGY_TOTAL_USAGE_SYSTEM_COL]
-        idle_energy_consumption = idle_results[IDLEColumns.ENERGY_TOTAL_USAGE_IDLE_COL]
+        system_total_energy_consumption = system_summary_results.total_energy_consumption_system_mWh
+        idle_energy_consumption = idle_results.total_energy_consumption_in_idle_mWh
 
         process_energy_value = system_total_energy_consumption - idle_energy_consumption if system_total_energy_consumption > 0 else NO_ENERGY_MEASURED
-        new_sample = {**process_summary_results, **system_summary_results, **idle_results, **hardware_results,
+        new_sample = {**asdict(process_summary_results), **asdict(system_summary_results), **asdict(idle_results), **asdict(hardware_results),
                       ProcessColumns.ENERGY_USAGE_PROCESS_COL: process_energy_value}
 
         return pd.Series(new_sample)
@@ -58,6 +49,4 @@ class DatasetCreator:
         return pd.DataFrame(df_rows)
 
     def create_dataset(self) -> pd.DataFrame:
-        measurements = self.__read_measurements()
-        dataset = self.__convert_measurements_to_df(measurements)
         return self.__read_measurements()
