@@ -51,5 +51,4 @@ class DatasetCreator:
 
     def create_dataset(self) -> pd.DataFrame:
         df = self.__read_measurements()
-        df.to_csv("full_dataset.csv")
         return df
