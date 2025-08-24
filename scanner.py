@@ -172,6 +172,7 @@ def save_metrics_results(
 
     iteration_timestamp = datetime.now(timezone.utc).isoformat()
 
+    # TODO: SEND IN A BULK
     for process_results in processes_results:
         process_metrics_logger.info(
             "Process Measurements",
