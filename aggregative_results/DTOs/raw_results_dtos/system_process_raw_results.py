@@ -7,5 +7,5 @@ from aggregative_results.DTOs.raw_results_dtos.abstract_raw_results import Abstr
 
 @dataclass
 class ProcessSystemRawResults(AbstractRawResults):
-    processes_raw_results: ProcessRawResults
+    process_raw_results: ProcessRawResults
     system_raw_results: SystemRawResults

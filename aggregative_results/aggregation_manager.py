@@ -199,7 +199,7 @@ class AggregationManager:
             iteration_raw_results.metadata,
             self.process_system_aggregators,
             lambda raw_process_results: ProcessSystemRawResults(
-                            processes_raw_results=raw_process_results,
+                            process_raw_results=raw_process_results,
                             system_raw_results=iteration_raw_results.system_raw_results
                         ),
         )
