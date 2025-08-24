@@ -80,14 +80,22 @@ class EnergyModelAggregator(AbstractAggregator):
             if self.__previous_sample is None:
                 return EmptyAggregationResults()
 
+            sample_as_dict = self.__convert_sample_to_dict(sample)
             duration = sample.timestamp - self.__previous_sample.timestamp
-            sample_dict = asdict(sample)
-            sample_dict[DURATION_COLUMN] = duration
+            sample_as_dict[DURATION_COLUMN] = duration
 
-            sample_as_df = pd.DataFrame([sample_dict])
+            sample_as_df = pd.DataFrame([sample_as_dict])
             energy_prediction = self.__model.predict(sample_as_df)
             return EnergyModelResult(energy_mwh=energy_prediction)
         except Exception as e:
             return EmptyAggregationResults()
         finally:
             self.__previous_sample = sample
+
+    def __convert_sample_to_dict(self, sample: EnergyModelFeatures) -> dict[str, any]:
+        sample_dict = {**asdict(sample.process_features), **asdict(sample.system_features)}
+        if sample.idle_features is not None:
+            sample_dict = {**sample_dict, **asdict(sample.idle_features)}
+        if sample.hardware_features is not None:
+            sample_dict = {**sample_dict, **asdict(sample.hardware_features)}
+        return {key: value for key,value in sample_dict.items() if value is not None}
