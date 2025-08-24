@@ -11,6 +11,8 @@ ES_PASS = "SVR4mUZl"
 INDEX_SYSTEM = "system_metrics"
 INDEX_PROCESS = "process_metrics"
 PULL_INTERVAL_SECONDS = 2  # seconds
+MAX_INDEXING_TIME_SECONDS = 15
+PULL_PAGE_SIZE = 10000
 
 
 logger = get_measurement_logger(
@@ -18,6 +20,6 @@ logger = get_measurement_logger(
     logger_handler=get_elastic_logging_handler(ES_USER, ES_PASS, ES_URL, IndexName.METRICS_AGGREGATIONS),
 )
 
-handler = StreamHandler()
-handler.setFormatter(PrettyExtrasFormatter())
-logger.addHandler(handler)
+# handler = StreamHandler()
+# handler.setFormatter(PrettyExtrasFormatter())
+# logger.addHandler(handler)
