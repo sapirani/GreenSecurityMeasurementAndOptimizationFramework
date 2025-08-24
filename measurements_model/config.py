@@ -7,6 +7,7 @@ BATTERY_STATUS_CSV = fr"battery_status.csv"
 DISK_IO_PER_TIMESTAMP_CSV = fr"disk_io_each_moment.csv"
 TOTAL_CPU_CSV = fr"total_cpu.csv"
 TOTAL_MEMORY_CSV = fr"total_memory_each_moment.csv"
+DEFAULT_HARDWARE_FILE_PATH = f""
 
 SCORING_METHODS_FOR_MODEL = ['neg_mean_absolute_error', 'neg_root_mean_squared_error']
 
@@ -33,6 +34,7 @@ TEST_SET_PATH = r"C:\Users\Administrator\Desktop\green security\results\testset.
 GRID_SEARCH_TEST_RESULTS_PATH = r"C:\Users\Administrator\Desktop\green security\results\grid_search_results.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\best_estimators_results.csv"
 RESULTS_TOP_MODELS_PATH = r"C:\Users\Administrator\Desktop\green security\results\top_estimators_results.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\top_estimators_results"
 
+TIME_COLUMN_NAME = "seconds_from_start"
 
 class SummaryFieldsNativeVersion:
     DURATION = "Duration"
