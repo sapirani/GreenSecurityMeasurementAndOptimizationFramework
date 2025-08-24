@@ -1,10 +1,10 @@
 from measurements_model.config import TRAIN_SET_PATH, FULL_PREPROCESSED_DATASET_PATH, IDLE_DIR_PATH, TEST_SET_PATH, \
     ProcessColumns
-from measurements_model.dataset_pipeline_executor import DatasetPipelineExecutor
+from measurements_model.model_execution.dataset_pipeline_executor import DatasetPipelineExecutor
 from measurements_model.dataset_processing.feature_selection.process_and_system_no_hardware_feature_selector import \
     ProcessAndSystemNoHardware
 from measurements_model.dataset_processing.split_data.regular_spliter import RegularDatasetSplitter
-from measurements_model.main_model_configuration import ALL_MEASUREMENTS_DIRS_PATH
+from measurements_model.model_execution.main_model_configuration import ALL_MEASUREMENTS_DIRS_PATH
 from measurements_model.model_training.models_config import MODELS_WITHOUT_PARAMETERS, REGRESSION_MODELS_WITH_PARAMETERS
 from measurements_model.model_training.search_best_model import ModelSelector
 

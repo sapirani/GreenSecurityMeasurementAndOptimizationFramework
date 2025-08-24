@@ -3,7 +3,7 @@ import os
 import joblib
 import pandas as pd
 
-from measurements_model.main_model_configuration import MODEL_FILE_NAME
+from measurements_model.model_execution.main_model_configuration import MODEL_FILE_NAME
 
 
 class EnergyModel:

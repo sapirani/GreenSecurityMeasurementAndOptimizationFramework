@@ -9,7 +9,7 @@ from measurements_model.dataset_creation.data_extractors.idle_extractor import I
 from measurements_model.dataset_creation.data_extractors.measurement_extractor import MeasurementExtractor
 from measurements_model.dataset_creation.data_extractors.summary_extractors.system_resources_isolation_summary_extractor import \
     SystemResourcesIsolationSummaryExtractor
-from measurements_model.main_model_configuration import PROCESS_NAME
+from measurements_model.model_execution.main_model_configuration import PROCESS_NAME
 
 
 class DatasetCreator:
