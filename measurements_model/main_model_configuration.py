@@ -1,4 +1,4 @@
-ALL_MEASUREMENTS_DIRS_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\Green Security Experiments\Experiments - HeavyLoad combinations - No scan\No scan - heavyLoad - 200525\No scan - heavyLoad - different combinations"
+ALL_MEASUREMENTS_DIRS_PATH = r"C:\Users\Administrator\Desktop\green security\tmp" #fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\Green Security Experiments\Experiments - HeavyLoad combinations - No scan\No scan - heavyLoad - 200525\No scan - heavyLoad - different combinations"
 
 IS_NO_SCAN_MODE = True
 

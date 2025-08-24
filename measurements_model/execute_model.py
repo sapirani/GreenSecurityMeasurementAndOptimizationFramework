@@ -14,10 +14,13 @@ from measurements_model.model_training.utils import calculate_and_print_scores
 
 
 def run_model():
+    idle_path = IDLE_DIR_PATH
+    measurements_path = ALL_MEASUREMENTS_DIRS_PATH
+
     feature_selector = ProcessAndSystemNoHardware()
     dataset_splitter = RegularDatasetSplitter(TRAIN_SET_PATH, TEST_SET_PATH, FULL_PREPROCESSED_DATASET_PATH)
-    dataset_pipeline = DatasetPipelineExecutor(idle_measurement_path=IDLE_DIR_PATH,
-                                               all_measurement_path=ALL_MEASUREMENTS_DIRS_PATH,
+    dataset_pipeline = DatasetPipelineExecutor(idle_measurement_path=idle_path,
+                                               all_measurement_path=measurements_path,
                                                energy_column_to_filter_by=ProcessColumns.ENERGY_USAGE_PROCESS_COL,
                                                feature_selector=feature_selector, dataset_spliter=dataset_splitter)
 
