@@ -16,10 +16,10 @@ class DatasetCreator:
     def __init__(self, idle_dir_path: str, measurements_dir_path: str):
         self.__idle_dir_path = idle_dir_path
         self.__measurements_dir_path = measurements_dir_path
+        self.__idle_extractor = IdleExtractor()
 
     def __read_idle_stats(self) -> IdleEnergyModelFeatures:
-        idle_extractor = IdleExtractor()
-        idle_results = idle_extractor.extract(self.__idle_dir_path)
+        idle_results = self.__idle_extractor.extract(self.__idle_dir_path)
         return idle_results
 
     def __extract_sample(self, measurement_dir: str, idle_results: IdleEnergyModelFeatures) -> pd.Series:
