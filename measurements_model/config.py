@@ -14,9 +14,9 @@ SCORING_METHODS_FOR_MODEL = ['neg_mean_absolute_error', 'neg_root_mean_squared_e
 NO_ENERGY_MEASURED = -1
 
 # Paths
-IDLE_DIR_PATH = r"C:\Users\Administrator\Desktop\green security\tmp - idle\Measurement 1"
+IDLE_SESSION_PATH = r"C:\Users\Administrator\Desktop\green security\tmp - idle\Measurement 1"
 
-ALL_MEASUREMENTS_SYSTEM_RESOURCE_ISOLATION_VERSION_NO_NETWORK_DIR_PATH = r"C:\Users\Administrator\Desktop\green security\tmp"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources_dudu_summary"
+ALL_MEASUREMENTS_DIR_PATH = r"C:\Users\Administrator\Desktop\green security\tmp"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources_dudu_summary"
 ALL_MEASUREMENTS_NATIVE_VERSION_WITH_NETWORK_DIR_PATH = r"C:\Users\Administrator\Desktop\green security\tmp"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_other_summary"
 
 FULL_DATASET_PATH = r"C:\Users\Administrator\Desktop\green security\results\full_dataset.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_dataset.csv"
@@ -34,7 +34,7 @@ TEST_SET_PATH = r"C:\Users\Administrator\Desktop\green security\results\testset.
 GRID_SEARCH_TEST_RESULTS_PATH = r"C:\Users\Administrator\Desktop\green security\results\grid_search_results.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\best_estimators_results.csv"
 RESULTS_TOP_MODELS_PATH = r"C:\Users\Administrator\Desktop\green security\results\top_estimators_results.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\top_estimators_results"
 
-TIME_COLUMN_NAME = "seconds_from_start"
+TIME_COLUMN_NAME = "timestamp"
 
 class SummaryFieldsNativeVersion:
     DURATION = "Duration"

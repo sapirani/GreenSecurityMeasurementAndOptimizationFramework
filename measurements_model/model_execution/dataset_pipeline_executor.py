@@ -4,7 +4,7 @@ import pandas as pd
 
 from measurements_model.config import FULL_DATASET_PATH, DATASET_AFTER_FEATURE_SELECTION_PATH, \
     FULL_PREPROCESSED_DATASET_PATH
-from measurements_model.dataset_creation.dataset_creator import DatasetCreator
+from measurements_model.dataset_creation.dataset_creator_temp import DatasetCreator
 from measurements_model.dataset_processing.feature_selection.feature_selector import FeatureSelector
 from measurements_model.dataset_processing.process_data.dataset_processor import DatasetProcessor
 from measurements_model.dataset_processing.split_data.dataset_spliter import DatasetSpliter

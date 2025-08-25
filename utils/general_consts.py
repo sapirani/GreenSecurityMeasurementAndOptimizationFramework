@@ -167,8 +167,8 @@ class NetworkIOColumns(str, Enum):
 class BatteryColumns(str, Enum):
     TIME = "seconds_from_start"
     PERCENTS = "battery_percent"
-    CAPACITY = "battery_voltage_mV"
-    VOLTAGE = "battery_remaining_capacity_mWh"
+    CAPACITY = "battery_remaining_capacity_mWh"
+    VOLTAGE = "battery_voltage_mV"
 
 
 class LoggerName:

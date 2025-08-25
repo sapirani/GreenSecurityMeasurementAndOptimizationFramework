@@ -1,24 +1,19 @@
-import os
-
 import pandas as pd
 
 from aggregative_results.DTOs.aggregators_features.energy_model_features.idle_energy_model_features import \
     IdleEnergyModelFeatures
-from measurements_model.config import BATTERY_STATUS_CSV
-from measurements_model.dataset_creation.data_extractors.summary_extractors.abstract_summary_extractor import \
-    AbstractSummaryExtractor
+from utils.general_consts import BatteryColumns
 
 
 class IdleExtractor:
-    def extract(self, idle_summary_dir_path: str) -> IdleEnergyModelFeatures:
-        idle_battery_file_path = os.path.join(idle_summary_dir_path, BATTERY_STATUS_CSV)
-        idle_battery_df = pd.read_csv(idle_battery_file_path)
+    def extract(self, idle_session_path: str) -> IdleEnergyModelFeatures:
+        idle_df = pd.read_csv(idle_session_path)
 
-        initial_capacity = idle_battery_df.iloc[0].at["battery_remaining_capacity_mWh"]
-        final_capacity = idle_battery_df.iloc[len(idle_battery_df) - 1].at["battery_remaining_capacity_mWh"]
+        initial_capacity = idle_df.iloc[0].at[BatteryColumns.CAPACITY]
+        final_capacity = idle_df.iloc[len(idle_df) - 1].at[BatteryColumns.CAPACITY]
         energy_used = initial_capacity - final_capacity
 
-        duration = idle_battery_df.iloc[len(idle_battery_df) - 1].at["seconds_from_start"]
+        duration = idle_df.iloc[len(idle_df) - 1].at[BatteryColumns.TIME]
 
         return IdleEnergyModelFeatures(
             energy_per_second=energy_used/duration

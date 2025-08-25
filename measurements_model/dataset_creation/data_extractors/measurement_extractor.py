@@ -2,18 +2,8 @@ import os
 
 import pandas as pd
 
-from aggregative_results.DTOs.aggregators_features.energy_model_features.hardware_energy_model_features import \
-    HardwareEnergyModelFeatures
-from aggregative_results.DTOs.aggregators_features.energy_model_features.process_energy_model_features import \
-    ProcessEnergyModelFeatures
-from aggregative_results.DTOs.aggregators_features.energy_model_features.system_energy_model_features import \
-    SystemEnergyModelFeatures
 from measurements_model.config import TOTAL_CPU_CSV, TOTAL_MEMORY_CSV, DISK_IO_PER_TIMESTAMP_CSV, \
     NETWORK_IO_PER_TIMESTAMP_CSV, BATTERY_STATUS_CSV, ALL_PROCESSES_CSV
-from measurements_model.dataset_creation.data_extractors.hardware_extractor import HardwareExtractor
-from measurements_model.dataset_creation.data_extractors.process_extractor import ProcessExtractor
-from measurements_model.dataset_creation.data_extractors.summary_extractors.abstract_summary_extractor import \
-    AbstractSummaryExtractor
 from measurements_model.dataset_creation.data_extractors.summary_extractors.system_resources_isolation_summary_extractor import \
     SystemResourcesIsolationSummaryExtractor
 from utils.general_consts import CPUColumns, MemoryColumns, BatteryColumns, ProcessesColumns
@@ -22,7 +12,7 @@ DEFAULT_SUMMARY_EXTRACTOR = SystemResourcesIsolationSummaryExtractor()
 
 
 class MeasurementExtractor:
-    def __init__(self, measurement_dir: str, summary_extractor: AbstractSummaryExtractor = DEFAULT_SUMMARY_EXTRACTOR):
+    def __init__(self, measurement_dir: str):
         self.__measurement_dir = measurement_dir
 
     def extract_total_cpu_usage(self) -> pd.DataFrame:
@@ -50,11 +40,11 @@ class MeasurementExtractor:
     def extract_total_battery_usage(self) -> pd.DataFrame:
         total_battery_file = os.path.join(self.__measurement_dir, BATTERY_STATUS_CSV)
         df = pd.read_csv(total_battery_file)
-        relevant_df = df[[BatteryColumns.TIME, BatteryColumns.VOLTAGE]]
+        relevant_df = df[[BatteryColumns.TIME, BatteryColumns.CAPACITY]]
         return relevant_df
 
     def extract_process_usage(self) -> pd.DataFrame:
         process_file = os.path.join(self.__measurement_dir, ALL_PROCESSES_CSV)
         df = pd.read_csv(process_file)
-        process_of_interest_df = df[df[ProcessesColumns.PROCESS_OF_INTEREST] is True]
+        process_of_interest_df = df[df[ProcessesColumns.PROCESS_OF_INTEREST]]
         return process_of_interest_df

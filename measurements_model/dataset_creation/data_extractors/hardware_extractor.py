@@ -7,7 +7,6 @@ class HardwareExtractor:
         if use_default:
             return self.__create_default()
         else:
-            # todo: implement
             raise NotImplementedError("Not implemented support for not default hardware!")
 
     @staticmethod
