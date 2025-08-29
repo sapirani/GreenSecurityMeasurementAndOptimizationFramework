@@ -35,6 +35,8 @@ GRID_SEARCH_TEST_RESULTS_PATH = r"C:\Users\Administrator\Desktop\green security\
 RESULTS_TOP_MODELS_PATH = r"C:\Users\Administrator\Desktop\green security\results\top_estimators_results.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\top_estimators_results"
 
 TIME_COLUMN_NAME = "timestamp"
+PROCESS_COLUMN_SUFFIX = "_process"
+SYSTEM_COLUMN_SUFFIX = "_system"
 
 class SummaryFieldsNativeVersion:
     DURATION = "Duration"
