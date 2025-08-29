@@ -28,14 +28,21 @@ DURATION_COLUMN = "duration"
 DEFAULT_IDLE_SUMMARY_EXTRACTOR = SystemResourcesIsolationSummaryExtractor()
 DEFAULT_IDLE_DIR = r"C:\Users\Administrator\Desktop\green security\tmp - idle\Measurement 1"
 
+# TODO: change the value of the consts
+ENERGY_CONSUMPTION_PER_RESOURCE = {
+    "cpu": 0.01,
+    "memory": 0.02,
+    "disk io read bytes": 0.03,
+    "disk io write bytes": 0.04,
+    "network received bytes": 0.05,
+    "network sent bytes": 0.06,
+}
 
 class EnergyModelAggregator(AbstractAggregator):
     def __init__(self):
         self.__model = EnergyModel()
         self.__previous_sample: Optional[EnergyModelFeatures] = None
-        self.__default_hardware_features = HardwareExtractor().extract("")
-        self.__default_idle_features = None # todo: can be changed if idle will be part of the model dataset
-
+        
     def extract_features(self, raw_results: ProcessSystemRawResults,
                          iteration_metadata: IterationMetadata) -> EnergyModelFeatures:
         process_data = raw_results.process_raw_results
@@ -70,9 +77,7 @@ class EnergyModelAggregator(AbstractAggregator):
         return EnergyModelFeatures(
             timestamp=iteration_metadata.timestamp,
             process_features=process_features,
-            system_features=system_features,
-            hardware_features=self.__default_hardware_features,
-            idle_features=self.__default_idle_features,
+            system_features=system_features
         )
 
     def process_sample(self, sample: EnergyModelFeatures) -> Union[EnergyModelResult, EmptyAggregationResults]:
