@@ -4,9 +4,9 @@ from typing import Dict, Any, List
 
 import pandas as pd
 
-from aggregative_results.DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
-from aggregative_results.DTOs.raw_results_dtos.system_raw_results import SystemRawResults
-from aggregative_results.DTOs.session_host_info import SessionHostIdentity
+from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
+from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
+from DTOs.session_host_info import SessionHostIdentity
 
 
 def parse_time(date: str) -> datetime:

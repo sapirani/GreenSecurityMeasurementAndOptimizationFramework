@@ -3,21 +3,21 @@ from dataclasses import asdict
 from logging import getLogger
 from typing import List, Dict, Callable, Type, DefaultDict
 
-from aggregative_results.DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
-from aggregative_results.DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
-from aggregative_results.DTOs.raw_results_dtos.system_raw_results import SystemRawResults
-from aggregative_results.DTOs.session_host_info import SessionHostIdentity
-from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator
-from aggregative_results.DTOs.process_info import ProcessIdentity, ProcessMetadata
-from aggregative_results.DTOs.aggregated_results_dtos.aggregated_process_results import AggregatedProcessResults
-from aggregative_results.aggregators.cpu_integral_aggregator import CPUIntegralAggregator
-from aggregative_results.aggregators.process_system_usage_fraction_aggregator import \
+from DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
+from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
+from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
+from DTOs.session_host_info import SessionHostIdentity
+from aggregators.abstract_aggregator import AbstractAggregator
+from DTOs.process_info import ProcessIdentity, ProcessMetadata
+from DTOs.aggregated_results_dtos.aggregated_process_results import AggregatedProcessResults
+from aggregators.cpu_integral_aggregator import CPUIntegralAggregator
+from aggregators.process_system_usage_fraction_aggregator import \
     ProcessSystemUsageFractionAggregator
 
-from aggregative_results.DTOs.raw_results_dtos.iteration_info import IterationMetadata, IterationRawResults
-from aggregative_results.DTOs.raw_results_dtos.abstract_raw_results import AbstractRawResults
-from aggregative_results.DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
-from aggregative_results.DTOs.raw_results_dtos.system_processes_raw_results import FullScopeRawResults
+from DTOs.raw_results_dtos.iteration_info import IterationMetadata, IterationRawResults
+from DTOs.raw_results_dtos.abstract_raw_results import AbstractRawResults
+from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
+from DTOs.raw_results_dtos.system_processes_raw_results import FullScopeRawResults
 from utils.general_consts import LoggerName
 
 logger = getLogger(LoggerName.METRICS_AGGREGATIONS)

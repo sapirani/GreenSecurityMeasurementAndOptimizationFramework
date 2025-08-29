@@ -1,11 +1,11 @@
 from typing import List
 
-from aggregative_results.DTOs.aggregated_results_dtos.process_share_usage_from_total import ProcessShareUsageFromTotal
-from aggregative_results.DTOs.aggregators_features.process_system_usage_fraction_features import \
+from DTOs.aggregated_results_dtos.process_share_usage_from_total import ProcessShareUsageFromTotal
+from DTOs.aggregators_features.process_system_usage_fraction_features import \
     ProcessSystemUsageFractionFeatures
-from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator
-from aggregative_results.DTOs.raw_results_dtos.iteration_info import IterationMetadata
-from aggregative_results.DTOs.raw_results_dtos.system_processes_raw_results import FullScopeRawResults
+from aggregators.abstract_aggregator import AbstractAggregator
+from DTOs.raw_results_dtos.iteration_info import IterationMetadata
+from DTOs.raw_results_dtos.system_processes_raw_results import FullScopeRawResults
 
 
 class ProcessSystemUsageFractionAggregator(AbstractAggregator):

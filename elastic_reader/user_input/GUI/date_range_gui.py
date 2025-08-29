@@ -1,4 +1,6 @@
 import os.path
+from pathlib import Path
+
 from kivy.properties import StringProperty, BooleanProperty
 from kivymd.uix.card import MDCard
 
@@ -11,6 +13,8 @@ from kivymd.uix.button import MDFlatButton
 from datetime import datetime, time, timezone
 
 from kivy.uix.behaviors import FocusBehavior
+
+# TODO: ORGANIZE CODE
 
 
 class TimePickerContent(MDBoxLayout):
@@ -76,7 +80,7 @@ class ModeApp(MDApp):
 
     def build(self):
         Window.bind(on_key_down=self.on_key_down)
-        root = Builder.load_file(os.path.join("GUI", "date_range.kv"))
+        root = Builder.load_file(os.path.join(Path(__file__).parent, "date_range.kv"))
 
         modes = [
             {"key": "realtime", "icon": "timer-sand", "title": "Real-time",

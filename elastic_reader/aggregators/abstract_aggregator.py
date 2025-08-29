@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import TypeVar, Generic
 
-from aggregative_results.DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
-from aggregative_results.DTOs.raw_results_dtos.iteration_info import IterationMetadata
-from aggregative_results.DTOs.raw_results_dtos.abstract_raw_results import AbstractRawResults
+from DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
+from DTOs.raw_results_dtos.iteration_info import IterationMetadata
+from DTOs.raw_results_dtos.abstract_raw_results import AbstractRawResults
 
 T = TypeVar('T')
 
