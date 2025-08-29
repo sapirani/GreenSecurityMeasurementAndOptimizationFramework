@@ -1,27 +1,22 @@
 import joblib
 import pandas as pd
 
-from measurements_model.config import TRAIN_SET_PATH, TEST_SET_PATH, FULL_PREPROCESSED_DATASET_PATH, IDLE_DIR_PATH, \
-    ProcessColumns
+from measurements_model.config import TRAIN_SET_PATH, TEST_SET_PATH, FULL_PREPROCESSED_DATASET_PATH, \
+    ProcessColumns, IDLE_SESSION_PATH, MODEL_FILE_NAME
 from measurements_model.model_execution.dataset_pipeline_executor import DatasetPipelineExecutor
 from measurements_model.dataset_processing.feature_selection.process_and_system_no_hardware_feature_selector import \
     ProcessAndSystemNoHardware
 from measurements_model.dataset_processing.split_data.regular_spliter import RegularDatasetSplitter
-from measurements_model.model_execution.main_model import MeasurementsModel
-from measurements_model.model_execution.main_model_configuration import ALL_MEASUREMENTS_DIRS_PATH, \
-    NETWORK_SENT_BYTES_COLUMN_NAME, \
-    NETWORK_RECEIVED_BYTES_COLUMN_NAME, MODEL_FILE_NAME
+from measurements_model.model_execution.measurements_model import MeasurementsModel
 from measurements_model.model_training.utils import calculate_and_print_scores
 
 
 def run_model():
-    idle_path = IDLE_DIR_PATH
-    measurements_path = ALL_MEASUREMENTS_DIRS_PATH
+    idle_path = IDLE_SESSION_PATH
 
     feature_selector = ProcessAndSystemNoHardware()
     dataset_splitter = RegularDatasetSplitter(TRAIN_SET_PATH, TEST_SET_PATH, FULL_PREPROCESSED_DATASET_PATH)
     dataset_pipeline = DatasetPipelineExecutor(idle_measurement_path=idle_path,
-                                               all_measurement_path=measurements_path,
                                                energy_column_to_filter_by=ProcessColumns.ENERGY_USAGE_PROCESS_COL,
                                                feature_selector=feature_selector, dataset_spliter=dataset_splitter)
 
@@ -29,8 +24,7 @@ def run_model():
     processed_dataset = dataset_pipeline.process_dataset(full_dataset)
 
     X_train, X_test, y_train, y_test = dataset_pipeline.split_dataset()
-    model = MeasurementsModel(network_sent_bytes_column=NETWORK_SENT_BYTES_COLUMN_NAME,
-                              network_received_bytes_column=NETWORK_RECEIVED_BYTES_COLUMN_NAME)
+    model = MeasurementsModel()
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
     y_pred = pd.Series(y_pred).reset_index(drop=True)

@@ -1,10 +1,9 @@
-from measurements_model.config import TRAIN_SET_PATH, FULL_PREPROCESSED_DATASET_PATH, IDLE_DIR_PATH, TEST_SET_PATH, \
-    ProcessColumns
+from measurements_model.config import TRAIN_SET_PATH, FULL_PREPROCESSED_DATASET_PATH, TEST_SET_PATH, \
+    ProcessColumns, IDLE_SESSION_PATH
 from measurements_model.model_execution.dataset_pipeline_executor import DatasetPipelineExecutor
 from measurements_model.dataset_processing.feature_selection.process_and_system_no_hardware_feature_selector import \
     ProcessAndSystemNoHardware
 from measurements_model.dataset_processing.split_data.regular_spliter import RegularDatasetSplitter
-from measurements_model.model_execution.main_model_configuration import ALL_MEASUREMENTS_DIRS_PATH
 from measurements_model.model_training.models_config import MODELS_WITHOUT_PARAMETERS, REGRESSION_MODELS_WITH_PARAMETERS
 from measurements_model.model_training.search_best_model import ModelSelector
 
@@ -14,8 +13,7 @@ GRID_SEARCH_METRICS = ["neg_mean_absolute_error"]
 def run_grid_search(algs: dict):
     feature_selector = ProcessAndSystemNoHardware()
     dataset_splitter = RegularDatasetSplitter(TRAIN_SET_PATH, TEST_SET_PATH, FULL_PREPROCESSED_DATASET_PATH)
-    dataset_pipeline = DatasetPipelineExecutor(idle_measurement_path=IDLE_DIR_PATH,
-                                               all_measurement_path=ALL_MEASUREMENTS_DIRS_PATH,
+    dataset_pipeline = DatasetPipelineExecutor(idle_measurement_path=IDLE_SESSION_PATH,
                                                energy_column_to_filter_by=ProcessColumns.ENERGY_USAGE_PROCESS_COL,
                                                feature_selector=feature_selector, dataset_spliter=dataset_splitter)
     X_train, X_test, y_train, y_test = dataset_pipeline.split_dataset()

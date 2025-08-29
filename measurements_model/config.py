@@ -199,3 +199,6 @@ class HardwareColumns:
     FILESYSTEM = "file_system"
     BATTERY_DESIGN_CAPACITY = "design_battery_capacity"
     FULLY_CHARGED_BATTERY_CAPACITY = "fully_charged_battery_capacity"
+
+
+MODEL_FILE_NAME = r"C:\Users\Administrator\Desktop\green security\results\energy_prediction_model.pkl"
