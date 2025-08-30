@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field, fields
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 import pandas as pd
 
@@ -58,5 +58,5 @@ class IterationMetadata:
 @dataclass
 class IterationRawResults:
     metadata: IterationMetadata
-    system_raw_results: SystemRawResults
+    system_raw_results: Optional[SystemRawResults]
     processes_raw_results: List[ProcessRawResults]

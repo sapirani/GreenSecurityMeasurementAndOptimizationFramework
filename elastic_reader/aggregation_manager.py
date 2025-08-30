@@ -1,6 +1,6 @@
 from collections import defaultdict
 from logging import getLogger
-from typing import List, Dict, Callable, Type, DefaultDict
+from typing import List, Dict, Callable, Type, DefaultDict, Optional
 
 from DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
 from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationAggregatedResults
@@ -23,7 +23,6 @@ from utils.general_consts import LoggerName
 logger = getLogger(LoggerName.METRICS_AGGREGATIONS)
 
 
-# TODO: SUPPORT NONE VALUES FOR PROCESSES / SYSTEM AND DO NOT ACTIVATE THE RELEVANT AGGREGATIONS ACCORDINGLY
 class AggregationManager:
     """
     This class is accountable of mapping the raw results into the relevant aggregator instances.
@@ -101,13 +100,18 @@ class AggregationManager:
 
     def __aggregate_system_metrics(
             self,
-            system_iteration_results: SystemRawResults,
+            system_iteration_results: Optional[SystemRawResults],
             iteration_metadata: IterationMetadata
     ) -> List[AbstractAggregationResult]:
         """
         This function receives iteration's system raw metrics and metadata, apply all system metrics aggregations,
         and returns all aggregations results.
         """
+
+        if not system_iteration_results:
+            # TODO: REMOVE THIS PRINT WHEN OPTIONAL RESULTS WILL BE FULLY SUPPORTED
+            print("Warning! system iteration results are missing")
+            return []
 
         system_aggregation_results = []
         for aggregator in self.system_aggregators[iteration_metadata.session_host_identity]:
@@ -167,6 +171,9 @@ class AggregationManager:
         without relying on any additional context.
         """
 
+        if not iteration_raw_results.processes_raw_results:
+            return {}
+
         return self.__aggregate_process_metrics_generic(
             iteration_raw_results.processes_raw_results,
             iteration_raw_results.metadata,
@@ -181,6 +188,9 @@ class AggregationManager:
         This function applies aggregations on each process individually, 
         while taking the raw system metrics as an additional context
         """
+
+        if not iteration_raw_results.system_raw_results or not iteration_raw_results.processes_raw_results:
+            return {}
 
         return self.__aggregate_process_metrics_generic(
             iteration_raw_results.processes_raw_results,
@@ -199,6 +209,8 @@ class AggregationManager:
         This function applies aggregations on each process individually, 
         while taking the raw system metrics and other processes' raw metrics as an additional context
         """
+        if not iteration_raw_results.system_raw_results or not iteration_raw_results.processes_raw_results:
+            return {}
 
         return self.__aggregate_process_metrics_generic(
             iteration_raw_results.processes_raw_results,

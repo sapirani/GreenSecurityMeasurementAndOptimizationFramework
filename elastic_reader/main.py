@@ -21,12 +21,7 @@ def main(
     for iteration_results in reader.read():     # TODO: SUPPORT READING AGGREGATIONS DIRECTLY FROM INDEX
         aggregation_results = None
         if aggregation_strategy == AggregationStrategy.CALCULATE:
-            try:
-                aggregation_results = aggregation_manager.aggregate_iteration_raw_results(iteration_results)
-            except Exception as e:  # TODO: HANDLE NONE VALUES INSIDE AGGREGATORS AND DO NOT RAISE EXCEPTIONS
-                print(
-                    "Warning! It seems like indexing is too slow. Consider increasing MAX_INDEXING_TIME_SECONDS")
-                print("The received exception:", e)
+            aggregation_results = aggregation_manager.aggregate_iteration_raw_results(iteration_results)
 
         for consumer in consumers:
             try:
@@ -39,7 +34,7 @@ def main(
 if __name__ == '__main__':
     main(
         time_picker_input=get_time_picker_input(time_picker_input_strategy),
-        consumers=get_consumers(consumer_types),
+        consumers=get_consumers(consumer_types, verbosity),
         # TODO: SUPPORT COMBINATIONS OF INDICES TO READ FROM (as a user input in the elastic_reader_parameters.py)
         indices_to_read_from=[ElasticIndex.PROCESS, ElasticIndex.SYSTEM]
     )

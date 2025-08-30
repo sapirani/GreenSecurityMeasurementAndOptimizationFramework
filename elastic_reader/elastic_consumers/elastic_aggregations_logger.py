@@ -1,10 +1,13 @@
 from dataclasses import asdict
+from logging import StreamHandler
 from typing import Optional
 
 from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationAggregatedResults
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
+from application_logging.formatters.pretty_extra_formatter import PrettyExtrasFormatter
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 from application_logging.logging_utils import get_measurement_logger
+from consts import Verbosity
 from elastic_reader_parameters import ES_URL, ES_USER, ES_PASS
 from elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
 from utils.general_consts import LoggerName, IndexName
@@ -16,10 +19,11 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
         logger_handler=get_elastic_logging_handler(ES_USER, ES_PASS, ES_URL, IndexName.METRICS_AGGREGATIONS),
     )
 
-    # TODO: SUPPORT VERBOSE MODE
-    # handler = StreamHandler()
-    # handler.setFormatter(PrettyExtrasFormatter())
-    # logger.addHandler(handler)
+    def __init__(self, verbosity_level: Verbosity):
+        if verbosity_level == Verbosity.VERBOSE:
+            handler = StreamHandler()
+            handler.setFormatter(PrettyExtrasFormatter())
+            self.logger.addHandler(handler)
 
     # TODO: IF CALCAULTIONS ARE SELECTED - ENSURE THAT NO AGGREGATIONS ARE FOUND IN THE INDEX DURING THE ENTIRE REQUESTED TIMERANGE (RAISE AN EXCEPTION AND CRASH)
     def consume(

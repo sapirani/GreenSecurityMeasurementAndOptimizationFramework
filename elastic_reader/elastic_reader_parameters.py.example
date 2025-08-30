@@ -2,7 +2,7 @@ from consts import *
 
 ES_URL = "http://127.0.0.1:9200"
 ES_USER = "elastic"
-ES_PASS = "SVR4mUZl"
+ES_PASS = "<your_password>"
 
 consumer_types = [ElasticConsumerType.AGGREGATIONS_LOGGER, ElasticConsumerType.CSV, ElasticConsumerType.DRL]
 

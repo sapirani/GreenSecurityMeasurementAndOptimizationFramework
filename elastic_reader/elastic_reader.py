@@ -62,7 +62,6 @@ class ElasticReader:
                 yield IterationRawResults(
                     metadata=iteration_metadata,
                     system_raw_results=self.__results_by_session_host[iteration_metadata].get_system_result(),
-                    # todo: support optional
                     processes_raw_results=self.__results_by_session_host[iteration_metadata].get_processes_results()
                 )
 
@@ -101,7 +100,6 @@ class ElasticReader:
                     yield IterationRawResults(
                         metadata=self.__ongoing_iteration_metadata,
                         system_raw_results=self.__results_by_session_host[self.__ongoing_iteration_metadata].get_system_result(),
-                        # todo: support optional
                         processes_raw_results=self.__results_by_session_host[
                             self.__ongoing_iteration_metadata].get_processes_results()
                     )
