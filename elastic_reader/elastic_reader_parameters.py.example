@@ -1,0 +1,12 @@
+from consts import *
+
+ES_URL = "http://127.0.0.1:9200"
+ES_USER = "elastic"
+ES_PASS = "SVR4mUZl"
+
+consumer_types = [ElasticConsumerType.AGGREGATIONS_LOGGER, ElasticConsumerType.CSV, ElasticConsumerType.DRL]
+
+time_picker_input_strategy = TimePickerInputStrategy.GUI
+
+verbosity = Verbosity.NONE
+aggregation_strategy = AggregationStrategy.CALCULATE

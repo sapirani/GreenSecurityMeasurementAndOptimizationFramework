@@ -1,9 +1,9 @@
 from collections import defaultdict
-from dataclasses import asdict
 from logging import getLogger
 from typing import List, Dict, Callable, Type, DefaultDict
 
 from DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
+from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationAggregatedResults
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from DTOs.session_host_info import SessionHostIdentity
@@ -75,7 +75,7 @@ class AggregationManager:
     def __get_initialized_aggregators(aggregator_types: List[Type[AbstractAggregator]]) -> List[AbstractAggregator]:
         return [cls() for cls in aggregator_types]
 
-    def aggregate_iteration_raw_results(self, iteration_raw_results: IterationRawResults):
+    def aggregate_iteration_raw_results(self, iteration_raw_results: IterationRawResults) -> IterationAggregatedResults:
         """
         This function receives the full raw metrics measured as part of a full iteration of the scanner (on a specific host).
         It is accountable for calculating all kinds of aggregations, and log these aggregations into a separate index
@@ -93,42 +93,10 @@ class AggregationManager:
             self.__aggregate_from_full_scope_metrics(iteration_raw_results)
         )
 
-        self.__log_aggregated_iteration_results(
-            combined_process_results,
-            system_aggregated_results,
-            iteration_raw_results.metadata
-        )
-
-    @staticmethod
-    def __log_aggregated_iteration_results(
-            combined_process_results: Dict[ProcessIdentity, AggregatedProcessResults],
-            system_aggregated_results: List[AbstractAggregationResult],
-            iteration_raw_results: IterationMetadata
-    ):
-        # TODO: IMPROVE LOGGING SPEED BY USING from elasticsearch.helpers import bulk
-        for process_identity, process_results in combined_process_results.items():
-            logger.info(
-                "Process Aggregation Results",
-                extra=
-                {
-                    **asdict(iteration_raw_results),
-                    **asdict(process_identity),
-                    **asdict(process_results.process_metadata),
-                    **{
-                        result_name: result_val
-                        for aggregation_result in process_results.aggregation_results for result_name, result_val in
-                        asdict(aggregation_result).items()
-                    }
-                }
-            )
-        logger.info(
-            "System Aggregation Results",
-            extra=
-            {
-                **asdict(iteration_raw_results),
-                **{key: value for aggregation_result in system_aggregated_results for key, value in
-                   asdict(aggregation_result).items()}
-            }
+        return IterationAggregatedResults(
+            processes_results=combined_process_results,
+            system_aggregated_results=system_aggregated_results,
+            iteration_metadata=iteration_raw_results.metadata
         )
 
     def __aggregate_system_metrics(

@@ -1,9 +1,5 @@
 from enum import Enum
 
-ES_URL = "http://127.0.0.1:9200"
-ES_USER = "elastic"
-ES_PASS = "SVR4mUZl"
-
 
 class ElasticIndex(str, Enum):
     SYSTEM = "system_metrics"
@@ -11,7 +7,29 @@ class ElasticIndex(str, Enum):
     AGGREGATIONS = "metrics_aggregations"
 
 
+class ElasticConsumerType(Enum):
+    DRL = "DRL"
+    CSV = "CSV"
+    AGGREGATIONS_LOGGER = "AGGREGATIONS_LOGGER"
+
+
+class Verbosity(Enum):
+    VERBOSE = "verbose"
+    NONE = "none"
+
+
+class TimePickerInputStrategy:
+    GUI = "GUI"
+    CLI = "CLI"
+
+
+class AggregationStrategy(Enum):
+    PULL_FROM_ELASTIC = "pull"  # TODO: SUPPORT
+    CALCULATE = "calculate"
+    NONE = "none"
+
+
 FINAL_ITERATION_TIMEOUT_SECONDS = 120
-PULL_INTERVAL_SECONDS = 2  # seconds
+PULL_INTERVAL_SECONDS = 5  # seconds
 MAX_INDEXING_TIME_SECONDS = 15
 PULL_PAGE_SIZE = 10000

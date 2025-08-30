@@ -1,43 +1,45 @@
+from typing import List
 from aggregation_manager import AggregationManager
+from elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
+from elastic_consumers.consumer_factory import get_consumers
 from elastic_reader import ElasticReader
-from user_input.GUI.gui_date_picker import GUITimePicker
-from application_logging.logging_utils import get_measurement_logger
-from application_logging.handlers.elastic_handler import get_elastic_logging_handler
-from consts import ES_URL, ES_USER, ES_PASS, ElasticIndex
-from utils.general_consts import LoggerName, IndexName
+from elastic_reader_parameters import *
+from consts import ElasticIndex
+from user_input.abstract_date_picker import TimePickerChosenInput
+from user_input.input_factory import get_time_picker_input
+
+
+def main(
+    time_picker_input: TimePickerChosenInput,
+    consumers: List[AbstractElasticConsumer],
+    indices_to_read_from: List[ElasticIndex]
+):
+    print(time_picker_input)
+    reader = ElasticReader(time_picker_input, indices_to_read_from)
+    aggregation_manager = AggregationManager()
+
+    for iteration_results in reader.read():     # TODO: SUPPORT READING AGGREGATIONS DIRECTLY FROM INDEX
+        aggregation_results = None
+        if aggregation_strategy == AggregationStrategy.CALCULATE:
+            try:
+                aggregation_results = aggregation_manager.aggregate_iteration_raw_results(iteration_results)
+            except Exception as e:  # TODO: HANDLE NONE VALUES INSIDE AGGREGATORS AND DO NOT RAISE EXCEPTIONS
+                print(
+                    "Warning! It seems like indexing is too slow. Consider increasing MAX_INDEXING_TIME_SECONDS")
+                print("The received exception:", e)
+
+        for consumer in consumers:
+            try:
+                consumer.consume(iteration_results, aggregation_results)
+            except Exception as e:
+                print(f"Warning! consumer {consumer.__class__.__name__} raised an exception:")
+                print(e)
 
 
 if __name__ == '__main__':
-    # TODO: SUPPORT USER FLAGS HERE
-    # TODO: SUPPORT CLI TIME PICKER
-
-    logger = get_measurement_logger(
-        logger_name=LoggerName.METRICS_AGGREGATIONS,
-        logger_handler=get_elastic_logging_handler(ES_USER, ES_PASS, ES_URL, IndexName.METRICS_AGGREGATIONS),
+    main(
+        time_picker_input=get_time_picker_input(time_picker_input_strategy),
+        consumers=get_consumers(consumer_types),
+        # TODO: SUPPORT COMBINATIONS OF INDICES TO READ FROM (as a user input in the elastic_reader_parameters.py)
+        indices_to_read_from=[ElasticIndex.PROCESS, ElasticIndex.SYSTEM]
     )
-
-    # TODO: SUPPORT VERBOSE MODE
-
-    # handler = StreamHandler()
-    # handler.setFormatter(PrettyExtrasFormatter())
-    # logger.addHandler(handler)
-
-    time_picker = GUITimePicker()
-    time_picker_input = time_picker.get_input()
-    print(time_picker_input)
-
-    reader = ElasticReader(time_picker_input, [ElasticIndex.PROCESS, ElasticIndex.SYSTEM])
-
-    # TODO: CREATE AN INTERFACE FOR ALL elastic consumers, AND LET EACH ONE CHOOSING THE RESULTS IT IS INTERESTED IN
-    # TODO: (AS IT WAS DONE IN THE AGGREGATORS). EXTRACT HE AGGREGATORS AND THE RELEVANT DTOs TO SOMEWHERE ELSE
-
-    # TODO: SPIT LOGGING FROM AGGREGATORS AND ENHANCE THE SPEED OF LOGGING (ESPECIALLY IN OFFLINE)
-    aggregation_manager = AggregationManager()
-
-    for iteration_results in reader.read():
-        try:
-            aggregation_manager.aggregate_iteration_raw_results(iteration_results)
-        except Exception as e:
-            print(
-                "Warning! It seems like indexing is too slow. Consider increasing MAX_INDEXING_TIME_SECONDS")
-            print("The received exception:", e)

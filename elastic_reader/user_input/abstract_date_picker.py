@@ -16,30 +16,26 @@ class TimePickerChosenInput:
     start: datetime
     end: Optional[datetime]
     mode: ReadingMode
+    LOCAL_TIMEZONE = datetime.now().astimezone().tzinfo
+
+    def __str__(self) -> str:
+        return (
+            "-------------- Chosen Configuration --------------\n"
+            f"Selected mode: {self.mode}\n"
+            f"Selected start time: {self.start.astimezone(self.LOCAL_TIMEZONE)}\n"
+            f"Selected end time: {self.end.astimezone(self.LOCAL_TIMEZONE) if self.end else None}\n"
+            "--------------------------------------------------\n"
+        )
 
 
 class AbstractTimePicker(ABC):
-    LOCAL_TIMEZONE = datetime.now().astimezone().tzinfo
-
     def __init__(self):
         self.user_input: Optional[TimePickerChosenInput] = None
 
     @abstractmethod
-    def _inner_get_input(self):
+    def _inner_get_input(self) -> TimePickerChosenInput:
         pass
 
     def get_input(self) -> TimePickerChosenInput:
         self.user_input = self._inner_get_input()
         return self.user_input
-
-    def __str__(self) -> str:
-        if not self.user_input:
-            raise ValueError("You must call get_input before calling this function")
-
-        return (
-            "-------------- Chosen Configuration --------------\n"
-            f"Selected mode: {self.user_input.mode}\n"
-            f"Selected start time: {self.user_input.start.astimezone(self.LOCAL_TIMEZONE)}\n"
-            f"Selected end time: {self.user_input.end.astimezone(self.LOCAL_TIMEZONE) if self.user_input.end else None}\n"
-            "--------------------------------------------------\n"
-        )
