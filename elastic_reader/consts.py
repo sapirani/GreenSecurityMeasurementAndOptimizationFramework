@@ -21,6 +21,7 @@ class Verbosity(Enum):
 class TimePickerInputStrategy:
     GUI = "GUI"
     CLI = "CLI"
+    FROM_CONFIGURATION = "from_configuration"
 
 
 class AggregationStrategy(Enum):

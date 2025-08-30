@@ -33,7 +33,7 @@ def main(
 
 if __name__ == '__main__':
     main(
-        time_picker_input=get_time_picker_input(time_picker_input_strategy),
+        time_picker_input=get_time_picker_input(time_picker_input_strategy, preconfigured_time_picker_input),
         consumers=get_consumers(consumer_types, verbosity),
         # TODO: SUPPORT COMBINATIONS OF INDICES TO READ FROM (as a user input in the elastic_reader_parameters.py)
         indices_to_read_from=[ElasticIndex.PROCESS, ElasticIndex.SYSTEM]
