@@ -1,9 +1,10 @@
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import DefaultDict, Iterator, Optional
+from typing import DefaultDict, Iterator, Optional, List, Any
 
 from elasticsearch import Elasticsearch
-from elasticsearch_dsl import Search
+from elasticsearch.dsl.response import Hit
+from elasticsearch.dsl import Search
 import time
 
 from consts import ElasticIndex, FINAL_ITERATION_TIMEOUT_SECONDS, PULL_INTERVAL_SECONDS, \
@@ -25,8 +26,7 @@ class ElasticReader:
         self.__results_by_session_host: DefaultDict[IterationMetadata, IterationIndicesResults] = defaultdict(
             lambda: IterationIndicesResults())
 
-    # TODO: ADD TYPING
-    def __get_next_hits(self, last_sort):
+    def __get_next_hits(self, last_sort: Optional[List[Any]]) -> List[Hit]:
         s = Search(using=self.es, index=','.join(self.indices))
 
         # ensure all documents are indexed before querying
@@ -53,8 +53,17 @@ class ElasticReader:
         response = s[:PULL_PAGE_SIZE].execute()
         return response.hits
 
-    def __identify_last_iterations(self):
-        # TODO: ADD DOCSTRING FOR EXPLANATIONS
+    def __identify_last_iterations(self) -> Iterator[IterationRawResults]:
+        """
+        Regular iterations are identified by receiving a newer document.
+        I.e., since documents are uniquely sorted with timestamp being the primary sorting key,
+        retrieving a document with a newer timestamp means that the iteration is over,
+        and we are starting a new iteration.
+        As for the last iteration, this method is not applied.
+
+        This function assumes that if enough time passed (defined in the consts.py file)
+        since the timestamp of the last fetched document, the iteration is done, and would yield the iteration results.
+        """
         for iteration_metadata, iteration_results in self.__results_by_session_host.copy().items():
             if datetime.now(timezone.utc) - iteration_metadata.timestamp > timedelta(
                     seconds=FINAL_ITERATION_TIMEOUT_SECONDS):  # assuming it is the last iteration
@@ -76,7 +85,6 @@ class ElasticReader:
             hits = self.__get_next_hits(last_sort)
 
             if not hits:
-                # TODO: EXPLAIN WHY IT IS ALSO RELEVANT HERE FOR THE OFFLINE
                 yield from self.__identify_last_iterations()
 
                 if self.time_picker_input.mode == ReadingMode.REALTIME or self.time_picker_input.mode == ReadingMode.SINCE:
