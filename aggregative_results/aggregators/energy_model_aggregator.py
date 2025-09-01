@@ -111,6 +111,9 @@ class EnergyModelAggregator(AbstractAggregator):
                                      network_io_received_energy_consumption=energy_per_resource.network_io_received_energy_consumption,
                                      network_io_sent_energy_consumption=energy_per_resource.network_io_sent_energy_consumption)
         except Exception as e:
+            print(
+                "Error occurred when using the energy model. Returning empty aggregation results. \nThe error is: {}".format(
+                    e))
             return EmptyAggregationResults()
         finally:
             self.__previous_sample = sample

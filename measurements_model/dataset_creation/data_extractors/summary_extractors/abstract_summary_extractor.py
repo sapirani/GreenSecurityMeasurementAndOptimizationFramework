@@ -48,7 +48,6 @@ class AbstractSummaryExtractor(ABC):
             network_bytes_kb_sum_received_system=network_received_bytes,
             network_packets_sum_received_system=network_received_packets,
             number_of_page_faults_system=df.loc[columns.number_of_page_faults_column, total_column],
-            duration_system=df.loc[columns.duration_column, total_column],
             total_energy_consumption_system_mWh=df.loc[columns.total_energy_consumption_column, total_column]
         )
 
