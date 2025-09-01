@@ -18,21 +18,23 @@ from aggregative_results.aggregation_manager import AggregationManager
 # ------------------------------
 # Configuration
 # ------------------------------
-os.environ["KIVY_LOG_MODE"] = "PYTHON"
-from aggregative_results.GUI.date_range_gui import ModeApp  # must come after setting KIVY_LOG_MODE (env variable)
+# os.environ["KIVY_LOG_MODE"] = "PYTHON"
+# from aggregative_results.GUI.date_range_gui import ModeApp  # must come after setting KIVY_LOG_MODE (env variable)
 
 es = Elasticsearch(ES_URL, basic_auth=(ES_USER, ES_PASS), verify_certs=False)
 
 # ------------------------------
 # User input
 # ------------------------------
-app = ModeApp()
-app.run()
+# app = ModeApp()
+# app.run()
 
-mode = app.selected_mode
+mode = "realtime"
 local_timezone = datetime.now().astimezone().tzinfo
-start_datetime = app.selected_start_datetime
-end_datetime = app.selected_end_datetime
+start_datetime = datetime.now(local_timezone)
+# start_datetime = datetime(2025,8,22,10,59,0)
+# end_datetime = datetime.now(local_timezone)
+end_datetime = None
 
 print("-------------- Chosen Configuration --------------")
 print("Selected mode:", mode)

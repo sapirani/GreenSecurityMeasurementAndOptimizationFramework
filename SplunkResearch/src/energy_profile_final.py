@@ -16,6 +16,7 @@ from program_parameters import *
 from resources.section_logtypes import section_logtypes
 from SplunkResearch.src.splunk_tools import SplunkTools
 from SplunkResearch.src.env_utils import clean_env
+sys.stdout.reconfigure(line_buffering=True)
 
 # sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/application_logging/handlers')
 logging.basicConfig(filename='/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/energy_profile_final.log',
@@ -43,11 +44,10 @@ def handle_process_output(process, logger):
             logger.error(f'Error reading process output: {str(e)}')
 
     # Start threads for stdout and stderr
-    threading.Thread(target=read_output, args=(process.stdout, logger.info), daemon=True).start()
-    threading.Thread(target=read_output, args=(process.stderr, logger.error), daemon=True).start()
+    return threading.Thread(target=read_output, args=(process.stdout, logger.info), daemon=True), threading.Thread(target=read_output, args=(process.stderr, logger.error), daemon=True)
 
 # Main execution
-def overload_profile(savedsearches, splunk_tools):
+async def overload_profile(savedsearches, splunk_tools):
     top_logtypes = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
     top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
     top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
@@ -56,11 +56,11 @@ def overload_profile(savedsearches, splunk_tools):
     # concat top_logtypes and relevant_logtypes, while removing duplicates and keeping order
     top_logtypes = sorted(list(dict.fromkeys(relevant_logtypes + top_logtypes)))       
     log_generator = LogGenerator(top_logtypes)
-    wait_time = [10, 15,30,120, 90]
     # quantities = [100, 200]
     quantities = [1000, 25000, 50000, 75000, 100000, 250000, 500000, 750000, 1000000]
     # diversities = [0, 1]
-    diversities = [0, 0.5, 1, 5, 10]
+    diversities = [1/32]
+    # diversities = [0, 0.5, 1, 5, 10]
     time_range = ("08/11/2024:09:00:00", "08/13/2024:09:00:00")
     logging.info(clean_env(splunk_tools, time_range))
 
@@ -85,7 +85,7 @@ def overload_profile(savedsearches, splunk_tools):
                 logging.info(f'Waiting for {waiting_time} seconds before executing rules for {rule}')
                 write_logs_to_monitor(logs, log_source) # send to splunk
 
-                sleep(waiting_time)
+                await asyncio.sleep(waiting_time)
                 scanner_id = f"{rule}_{log_source}_{eventcode}_{int(diversity*31+1)}_{quantity}_{datetime.now()}"
                 # # config logger handler
                 # elastic_handler = ElasticSearchLogHandler(session_id=scanner_id)
@@ -97,7 +97,7 @@ def overload_profile(savedsearches, splunk_tools):
                 logging.info(f"scanner_id: {scanner_id}")
                
                 # process = subprocess.Popen(["sudo", "-S", "-E", "env", "PATH=/usr/bin:/bin:/usr/sbin:/sbin:/home/shouei/anaconda3/envs/py38/bin", "/home/shouei/anaconda3/envs/py38/bin/python3", "../scanner.py", "--measurement_session_id", scanner_id],
-                process = subprocess.Popen(["/home/shouei/anaconda3/envs/py310_modelenv/bin/python3", "scanner.py", "--measurement_session_id", scanner_id],
+                process = subprocess.Popen(["/home/shouei/anaconda3/envs/py310_modelenv/bin/python3", "-u", "scanner.py", "--measurement_session_id", scanner_id],
                                         stdin=subprocess.PIPE,
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
@@ -109,21 +109,24 @@ def overload_profile(savedsearches, splunk_tools):
                 # process.stdin.flush()
 
                 # Start non-blocking output handling
-                handle_process_output(process, logging)
+                thred_1, thred_2 = handle_process_output(process, logging)
+                thred_1.start()
+                thred_2.start()
+                logging.info(f'Process started with PID: {process.pid} {scanner_id}')
                 
-                logging.info(f'Process started with PID: {process.pid}')
-                
-                sleep(3)
+                await asyncio.sleep(3)
 
                 logging.info('Running saved searches')
-                results, _ = asyncio.run(splunk_tools.run_saved_searches(time_range, num_measurements=1))
-                logging.info('Terminating scanner')
-                subprocess.run(['pkill', '-f', 'scanner.py'],
-                                # input=' \n',
-                                text=True,
-                                check=False)
+                results, _ = await splunk_tools.run_saved_searches(time_range, num_measurements=1)
+                logging.info(f'Terminating scanner {scanner_id}')
+                # subprocess.run(['pkill', 'scanner.py'],
+                #                 # input=' \n',
+                #                 text=True,
+                #                 check=False)
+                process.send_signal(2)
                 logging.warning('Killed all scanner.py processes as last resort')
-
+                thred_1.join()
+                thred_2.join()
 
             # clean env
             logging.info('Cleaning environment')
@@ -159,4 +162,4 @@ if __name__ == "__main__":
                  'ESCU Windows Rapid Authentication On Multiple Hosts Rule']
     
     splunk_tools = SplunkTools(active_saved_searches=savedsearches)
-    overload_profile(savedsearches, splunk_tools)
+    asyncio.run(overload_profile(savedsearches, splunk_tools))

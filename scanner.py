@@ -690,31 +690,31 @@ def before_scanning_operations():
     """
     Pre-configuration of measured environment. For example - modify the screen brightness to a certain value.
     """
-    battery_usage_recorder.check_if_battery_plugged()
+    # battery_usage_recorder.check_if_battery_plugged()
 
-    if disable_real_time_protection_during_measurement and running_os.is_tamper_protection_enabled():
-        raise Exception("You must disable Tamper Protection manually so that the program could control real "
-                        "time Protection")
+    # if disable_real_time_protection_during_measurement and running_os.is_tamper_protection_enabled():
+    #     raise Exception("You must disable Tamper Protection manually so that the program could control real "
+    #                     "time Protection")
 
-    if not can_proceed_towards_measurements():  # avoid deleting previous measurements
-        print("Exiting program")
-        return
+    # if not can_proceed_towards_measurements():  # avoid deleting previous measurements
+    #     print("Exiting program")
+    #     return
 
-    try:
-        if not is_inside_container:
-            running_os.change_power_plan(chosen_power_plan_name, running_os.get_chosen_power_plan_identifier())
+    # try:
+    #     if not is_inside_container:
+    #         running_os.change_power_plan(chosen_power_plan_name, running_os.get_chosen_power_plan_identifier())
 
-        if disable_real_time_protection_during_measurement:
-            running_os.change_real_time_protection()
+    #     if disable_real_time_protection_during_measurement:
+    #         running_os.change_real_time_protection()
 
-        if not is_inside_container:
-            running_os.change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
-            import screen_brightness_control as sbc
-            sbc.set_brightness(screen_brightness_level)
+    #     if not is_inside_container:
+    #         running_os.change_sleep_and_turning_screen_off_settings(NEVER_TURN_SCREEN_OFF, NEVER_GO_TO_SLEEP_MODE)
+    #         import screen_brightness_control as sbc
+    #         sbc.set_brightness(screen_brightness_level)
 
-    # Assuming that if one of the operations is failed, the rest will probably fail too
-    except Exception as e:
-        print_warnings_system_adjustments(e)
+    # # Assuming that if one of the operations is failed, the rest will probably fail too
+    # except Exception as e:
+    #     print_warnings_system_adjustments(e)
 
     initialize_total_cpu()
 
@@ -724,7 +724,7 @@ def before_scanning_operations():
 
     Path(STDERR_FILES_DIR).mkdir(parents=True, exist_ok=True)  # create empty results dirs
 
-    save_general_information_before_scanning()
+    # save_general_information_before_scanning()
 
 
 def after_scanning_operations(should_save_results=True):
@@ -735,19 +735,19 @@ def after_scanning_operations(should_save_results=True):
     if should_save_results:
         save_results_to_files()
 
-    try:
-        if not is_inside_container:
-            running_os.change_power_plan(running_os.get_default_power_plan_name(),
-                                         running_os.get_default_power_plan_identifier())  # return to default power plan
+    # try:
+    #     if not is_inside_container:
+    #         running_os.change_power_plan(running_os.get_default_power_plan_name(),
+    #                                      running_os.get_default_power_plan_identifier())  # return to default power plan
 
-            running_os.change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
+    #         running_os.change_sleep_and_turning_screen_off_settings()  # return to default - must be after changing power plan
 
-        if disable_real_time_protection_during_measurement:
-            running_os.change_real_time_protection(should_disable=False)
+    #     if disable_real_time_protection_during_measurement:
+    #         running_os.change_real_time_protection(should_disable=False)
 
-    # Assuming that if one of the operations is failed, the rest will probably fail too
-    except Exception as e:
-        print_warnings_system_adjustments(e)
+    # # Assuming that if one of the operations is failed, the rest will probably fail too
+    # except Exception as e:
+    #     print_warnings_system_adjustments(e)
 
     if max_timeout_reached:
         print("Scanned program reached the maximum time so we terminated it")
@@ -839,7 +839,7 @@ def main(user_args):
 
     application_flow_logger.info("The scanner has finished measuring")
 
-    print("Finished scanning")
+    print(f"Finished scanning {session_id}")
 
 
 if __name__ == '__main__':

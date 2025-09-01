@@ -18,7 +18,6 @@ def get_elastic_logging_handler(
         index_name: str,
         starting_time: float = time.time(),
         pipeline_name: Optional[str] = None,
-        pipeline_name: Optional[str] = None
 ) -> Handler:
     try:
         return ElasticSearchLogHandler(
@@ -28,7 +27,6 @@ def get_elastic_logging_handler(
             index_name=index_name,
             start_timestamp=starting_time,
             pipeline_name=pipeline_name,
-            pipeline_name=pipeline_name
         )
     except ConnectionError:
         return None
@@ -43,13 +41,11 @@ class ElasticSearchLogHandler(logging.Handler):
             index_name: str,
             start_timestamp: float = time.time(),
             pipeline_name: Optional[str] = None,
-            pipeline_name: Optional[str] = None
     ):
         super().__init__()
         self.es = Elasticsearch(elastic_url, basic_auth=(elastic_username, elastic_password))
         self.index_name = index_name
         self.start_date = datetime.fromtimestamp(start_timestamp, tz=timezone.utc).isoformat()
-        self.pipeline_name = pipeline_name
         self.pipeline_name = pipeline_name
 
         if not self.es.ping():

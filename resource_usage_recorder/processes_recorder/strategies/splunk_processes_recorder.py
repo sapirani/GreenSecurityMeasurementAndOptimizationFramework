@@ -22,7 +22,7 @@ class SplunkProcessesResourceUsageRecorder(AbstractProcessResourceUsageRecorder)
                     processes.append(p)
                     
             except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
-                print(f"Error accessing process {p.name()}: {e}")
+                # print(f"Error accessing process {p.name()}: {e}")
                 continue
             except Exception as e:
                 print(f"Unexpected error accessing process {p.name()}: {e}")
