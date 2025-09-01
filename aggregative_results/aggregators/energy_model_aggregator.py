@@ -1,3 +1,4 @@
+import threading
 from dataclasses import asdict
 from typing import Union, Optional
 
@@ -42,17 +43,32 @@ class EnergyPerResourceConsts:
 
 
 class EnergyModelAggregator(AbstractAggregator):
+    __instance = None
+    __lock = threading.Lock()
+    __model = None
+    __resource_energy_calculator = None
+    __previous_sample: Optional[EnergyModelFeatures] = None
+
     def __init__(self):
-        self.__model = EnergyModel()
-        self.__previous_sample: Optional[EnergyModelFeatures] = None
-        self.__resource_energy_calculator = ResourceEnergyCalculator(
-            energy_per_cpu=EnergyPerResourceConsts.cpu,
-            energy_per_gb_ram=EnergyPerResourceConsts.memory,
-            energy_per_disk_read_kb=EnergyPerResourceConsts.disk_io_read_bytes,
-            energy_per_disk_write_kb=EnergyPerResourceConsts.disk_io_write_bytes,
-            energy_per_network_received_kb=EnergyPerResourceConsts.network_received_bytes,
-            energy_per_network_write_kb=EnergyPerResourceConsts.network_sent_bytes
-        )
+        raise RuntimeError("This is a Singleton. Invoke get_instance() instead.")
+
+    @classmethod
+    def get_instance(cls):
+        if cls.__instance is None:
+            with cls.__lock:
+                if cls.__instance is None:
+                    cls.__instance = super().__new__(cls)
+                    cls.__model = EnergyModel.get_instance()
+                    cls.__resource_energy_calculator = ResourceEnergyCalculator(
+                        energy_per_cpu=EnergyPerResourceConsts.cpu,
+                        energy_per_gb_ram=EnergyPerResourceConsts.memory,
+                        energy_per_disk_read_kb=EnergyPerResourceConsts.disk_io_read_bytes,
+                        energy_per_disk_write_kb=EnergyPerResourceConsts.disk_io_write_bytes,
+                        energy_per_network_received_kb=EnergyPerResourceConsts.network_received_bytes,
+                        energy_per_network_write_kb=EnergyPerResourceConsts.network_sent_bytes
+                    )
+
+        return cls.__instance
 
     def extract_features(self, raw_results: ProcessSystemRawResults,
                          iteration_metadata: IterationMetadata) -> EnergyModelFeatures:
