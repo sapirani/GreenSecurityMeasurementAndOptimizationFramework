@@ -14,7 +14,6 @@ from time_manager import TimeManager
 
 from datetime_manager import MockedDatetimeManager
 
-import tensorflow as tf
 
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment')
 import os

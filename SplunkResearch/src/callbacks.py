@@ -90,7 +90,9 @@ class MetricsLoggerCallback:
                     self._log_metrics(f'{metric}', current_val)
                     self._log_metrics(f'baseline_{metric}', baseline_val)
                     self._log_metrics(f'{metric}_gap', current_val - baseline_val)
-
+            if 'real_cpu' in current_metrics:
+                    self._log_metrics('measured_cpu', current_metrics.get('real_cpu', 0))
+                    self._log_metrics('cpu_error', (current_metrics.get('cpu', 0) - current_metrics.get('real_cpu', 0))/current_metrics.get('real_cpu', 0))
             # Log detailed rules metrics
             raw_current_metrics = info.get('raw_metrics', {})
             raw_baseline_metrics = info.get('raw_baseline_metrics', {})

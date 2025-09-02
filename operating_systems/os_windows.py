@@ -6,19 +6,18 @@ import threading
 from threading import Thread
 import os
 import signal
-from typing import TextIO
+from typing import TextIO, Tuple
 
 import pandas as pd
 import psutil
 from typing_extensions import override
 from utils import general_functions
-from utils.general_consts import PowerPlan, pc_types, GB, physical_memory_types, disk_types
+from utils.general_consts import PowerPlan, pc_types, GB, physical_memory_types, disk_types, LoggerName
 from utils.general_functions import get_powershell_result_list_format
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from program_parameters import power_plan, DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFORE_SLEEP_MODE
 
-logger = logging.getLogger("measurements_logger")
-
+logger = logging.getLogger(LoggerName.SYSTEM_METRICS)
 
 class WindowsOS(AbstractOSFuncs):
     def __init__(self):
@@ -110,28 +109,12 @@ class WindowsOS(AbstractOSFuncs):
         if result_sleep_mode.returncode != 0:
             raise Exception(f'An error occurred while disabling sleep mode', result_sleep_mode.stderr)
 
-    def insert_battery_state_to_df(self, battery_df: pd.DataFrame, time_interval: float, battery_percent: int):
+    def get_battery_capacity_and_voltage(self) -> Tuple[float, float]:
         import wmi
         t = wmi.WMI(moniker="//./root/wmi")
 
-        new_row_index = len(battery_df.index)
-
-        for i, b in enumerate(t.ExecQuery('Select * from BatteryStatus where Voltage > 0')):
-            battery_df.loc[new_row_index + i] = [
-                time_interval,
-                battery_percent,
-                b.RemainingCapacity,
-                b.Voltage
-            ]
-
-            logger.info(
-                "Battery measurements",
-                extra={
-                    "battery_percent": battery_percent,
-                    "battery_remaining_capacity_mWh": b.RemainingCapacity,
-                    "battery_voltage_mV": b.Voltage
-                }
-            )
+        for b in t.ExecQuery('Select * from BatteryStatus where Voltage > 0'):
+            return b.RemainingCapacity, b.Voltage
 
     def save_battery_capacity(self, f: TextIO):
         batts1 = self.c.CIM_Battery(Caption='Portable Battery')
@@ -214,7 +197,7 @@ class WindowsOS(AbstractOSFuncs):
     def get_container_number_of_cores(self) -> float:
         raise NotImplementedError("Not implemented number of cores for windows container")
 
-    def get_container_total_memory_usage(self) -> tuple[float, float]:
+    def get_container_total_memory_usage(self):
         raise NotImplementedError("Not implemented total memory for windows container")
 
     @override

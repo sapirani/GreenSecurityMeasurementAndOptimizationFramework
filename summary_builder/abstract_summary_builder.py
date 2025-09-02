@@ -49,7 +49,7 @@ class AbstractSummaryBuilder(ABC):
     @staticmethod
     def add_general_resource_metrics_info(
             summary_df: pd.DataFrame, num_of_processes: int, sub_disk_df: pd.DataFrame,
-            sub_network_df: pd.DataFrame, sub_all_processes_df: pd.DataFrame
+            sub_network_df: pd.DataFrame, sub_all_processes_df: List[pd.DataFrame]
     ):
         # TODO: merge cells to one
 

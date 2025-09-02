@@ -2,7 +2,7 @@ from typing import List
 
 import pandas as pd
 
-from utils.general_consts import ProcessesColumns, CPUColumns, MemoryColumns, KB, DiskIOColumns
+from utils.general_consts import KB, ProcessesColumns, CPUColumns, MemoryColumns, DiskIOColumns
 from summary_builder.abstract_summary_builder import AbstractSummaryBuilder, slice_df, get_all_df_by_id
 
 

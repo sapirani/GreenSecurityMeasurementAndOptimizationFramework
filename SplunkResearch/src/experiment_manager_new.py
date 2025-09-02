@@ -1,7 +1,9 @@
 from dataclasses import dataclass, replace
 import inspect
+from operator import is_
 import ssl
 from typing import Dict, Any, Optional, List
+import sb3_contrib
 import stable_baselines3
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 import custom_splunk #dont remove!!!
@@ -20,6 +22,7 @@ from stable_baselines3.common.callbacks import BaseCallback, CallbackList
 from stable_baselines3 import A2C, PPO, DQN, DDPG, TD3, SAC
 from stable_baselines3.ppo.policies import MlpPolicy
 from sb3_contrib import RecurrentPPO
+
 from wrappers.reward import *
 from wrappers.state import *
 from wrappers.action import *
@@ -30,6 +33,24 @@ from email.message import EmailMessage
 from stable_baselines3.common.logger import configure
 
 logger = logging.getLogger(__name__)
+import torch as th
+import torch.nn as nn
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+from stable_baselines3 import PPO
+
+class CustomExtractor(BaseFeaturesExtractor):
+    def __init__(self, observation_space, features_dim=128):
+        super().__init__(observation_space, features_dim)
+        self.net = nn.Sequential(
+            nn.Linear(observation_space.shape[0], 64),
+            nn.ReLU(),
+            nn.Dropout(p=0.2),  # Dropout regularization
+            nn.Linear(64, features_dim),
+            nn.ReLU()
+        )
+
+    def forward(self, x):
+        return self.net(x)
 
 @dataclass
 class ExperimentConfig:
@@ -144,7 +165,7 @@ class ExperimentManager:
                 distribution_freq=1
             )
             
-        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = -2, skip_on_low_alert = True, use_energy = config.use_energy_reward, use_alert = config.use_alert_reward , is_eval = (config.mode == "eval_post_training"))  
+        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = 2.5, skip_on_low_alert = True, use_energy = config.use_energy_reward, use_alert = config.use_alert_reward, is_train = (config.mode.__contains__('train')) , is_eval = (config.mode == "eval_post_training"))  
         # alert_threshold = -6, -2, -10
         
         if config.use_energy_reward:
@@ -152,7 +173,7 @@ class ExperimentManager:
             env = EnergyRewardWrapper(
                 env,
                 alpha=config.alpha_energy,
-               is_mock=False,
+               is_mock=config.is_mock,
             )
             # env = AlertRewardWrapper(
             #     env,
@@ -216,6 +237,8 @@ class ExperimentManager:
             return MlpPolicy
         elif policy_type == "td3_mlp":
             return TD3.MlpPolicy
+        elif policy_type == "MlpLstmPolicy":
+            return sb3_contrib.ppo_recurrent.MlpLstmPolicy
         else:
             raise ValueError(f"Unknown policy type: {policy_type}")
     def _create_new_model(self, config: ExperimentConfig, env: gym.Env):
@@ -229,7 +252,7 @@ class ExperimentManager:
             'gamma': config.gamma,
             'tensorboard_log': f"{str(self.dirs['tensorboard'])}/{config.experiment_name}",
             'stats_window_size': 5,
-            'verbose': 1
+            'verbose': 0
         }
         
         if config.model_type in ['recurrent_ppo', 'ppo', 'a2c']:
@@ -238,8 +261,12 @@ class ExperimentManager:
                 # 'batch_size': config.batch_size,
                 # 'n_epochs': config.n_epochs,
                 'ent_coef': config.ent_coef,
-                'sde_sample_freq': 6,
+                'sde_sample_freq': 24,
                 'use_sde': True,
+                "policy_kwargs": {
+                    "net_arch": [512, 128, 128, 64],
+                    "features_extractor_class": CustomExtractor,
+                },
             })
             
         elif config.model_type in ['sac', 'td3', 'ddpg']:
@@ -299,18 +326,19 @@ class ExperimentManager:
             else:
                 eval_config = config
             eval_config.env_config.env_id = "splunk_eval-v32"
-            eval_config.env_config.rule_frequency = 2880
+            eval_config.env_config.rule_frequency = 60 #2880
             eval_config.env_config.end_time = "04/26/2025:23:59:59"
+            # eval_config = replace(eval_config, is_mock=False)
             self.eval_env = self.create_environment(eval_config)
-            self.eval_env.splunk_tools.load_real_logs_distribution_bucket(datetime.datetime.strptime(env.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(self.eval_env.time_manager.end_time, '%m/%d/%Y:%H:%M:%S'))
+            self.eval_env.unwrapped.splunk_tools.load_real_logs_distribution_bucket(datetime.datetime.strptime(env.unwrapped.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(self.eval_env.unwrapped.time_manager.end_time, '%m/%d/%Y:%H:%M:%S'))
 
-            if "test_experiment" not  in config.experiment_name:
-                # clean and warm up the env
-                clean_env(env.splunk_tools, (env.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
-                env.warmup()
-            else:
-                env.disable_injection()
-                self.eval_env.disable_injection()
+            # if "test_experiment" not  in config.experiment_name:
+            #     # clean and warm up the env
+            #     clean_env(env.unwrapped.splunk_tools, (env.unwrapped.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
+            #     env.unwrapped.warmup()
+            # else:
+            #     env.unwrapped.disable_injection()
+            #     self.eval_env.unwrapped.disable_injection()
             # Setup callbacks
             config.experiment_name = experiment_name
             callbacks = self._setup_callbacks(config)
@@ -339,7 +367,7 @@ class ExperimentManager:
     def _run_training(self, model, env, config, callbacks):
         """Run training experiment"""
         # total_timesteps = env.get_attr('total_steps')[0] * config.num_episodes
-        total_timesteps = env.total_steps * config.num_episodes
+        total_timesteps = env.unwrapped.total_steps * config.num_episodes
         
         model.learn(
             total_timesteps=total_timesteps,
@@ -361,9 +389,9 @@ class ExperimentManager:
         model.set_env(env)
         eval_episodes = config.num_episodes
         log_dir = f"{self.dirs['tensorboard']._str}/{config.experiment_name}"
-        eval_logger = configure(log_dir, ["stdout", "tensorboard"])
+        eval_logger = configure(log_dir, ["tensorboard"])
         model.set_logger(eval_logger)
-        rules = self.eval_env.splunk_tools.active_saved_searches.keys()
+        rules = self.eval_env.unwrapped.splunk_tools.active_saved_searches.keys()
         event_types = [f"{x[0].lower()}_{x[1]}" for x in self.eval_env.unwrapped.top_logtypes]
         writers = self.create_summary_writers(log_dir, rules, event_types)
         eval_callback = CustomEvalCallback3(
@@ -409,7 +437,7 @@ class ExperimentManager:
         
     def _run_retraining(self, model, env, config, callbacks):
         """Run retraining experiment"""
-        total_timesteps = env.total_steps * config.num_episodes
+        total_timesteps = env.unwrapped.total_steps * config.num_episodes
               
         # model = self.load_model(config.model_path, env)
 
@@ -481,7 +509,7 @@ class ExperimentManager:
         """Setup training/evaluation callbacks"""
         log_dir = f"{self.dirs['tensorboard']._str}/{config.experiment_name}"
     
-        rules = self.eval_env.splunk_tools.active_saved_searches.keys()
+        rules = self.eval_env.unwrapped.splunk_tools.active_saved_searches.keys()
         event_types = [f"{x[0].lower()}_{x[1]}" for x in self.eval_env.unwrapped.top_logtypes]
         writers = self.create_summary_writers(log_dir, rules, event_types)
         return [
@@ -490,13 +518,13 @@ class ExperimentManager:
             #     experiment_kwargs=config,
             #     phase=config.get('phase', 'train')
             # ),
-            CheckpointCallback(save_freq=1000, save_path=self.dirs['models'], name_prefix=config.experiment_name),
+            CheckpointCallback(save_freq=10000, save_path=self.dirs['models'], name_prefix=config.experiment_name),
             
             CustomEvalCallback3(
                 eval_env=self.eval_env,
                 log_dir=f"{self.dirs['tensorboard']._str}/{config.experiment_name}", rules=rules, event_types=event_types,
-                n_eval_episodes=2,
-                eval_freq=960,
+                n_eval_episodes=3,
+                eval_freq=9600,
                 best_model_save_path=self.dirs['models'],
                 log_path=self.dirs['logs'],
                 # eval_log_dir=str(self.dirs['tensorboard']/f"eval_{config.experiment_name}"),
@@ -558,16 +586,17 @@ if __name__ == "__main__":
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250620175311_35000_steps"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250623144601_43000_steps.zip"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250711001649_264000_steps.zip"
-    num_episodes = 100000
+    num_episodes = 2000000
     action_type = "Action8"
     for steps in range(45000, 160000, 500000):
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250626010440_{steps}_steps.zip"
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250726233927_243000_steps.zip"
-        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250806144736_355000_steps.zip"
+        # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250806144736_355000_steps.zip"
+        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250815121629_990000_steps.zip"
         print(f"Model path: {model_path}")
         for learning_rate in [0.0001]:
-            for n_steps in [72]:
-                for ent_coef in [0.05]:
+            for n_steps in [256]:
+                for ent_coef in [0.1]:
                     for is_random in [False]:
                         lr = 1e-2
                         env_config = SplunkConfig(
@@ -586,8 +615,8 @@ if __name__ == "__main__":
                         # sched_LR = lr_schedule(initial_value = 0.01, rate = 5)
                         experiment_config = ExperimentConfig(
                             env_config=env_config,
-                            model_type="ppo",  # ppo, a2c, dqn, etc.
-                            policy_type= "MlpPolicy",
+                            model_type="recurrent_ppo",# "ppo", # "a2c", "dqn", "sac", "td3", "recurrent_ppo"
+                            policy_type="MlpLstmPolicy",# "td3_mlp", # "mlp"
                             learning_rate=learning_rate,#sched_LR,
                             num_episodes=num_episodes,
                             n_steps=n_steps,
@@ -601,13 +630,13 @@ if __name__ == "__main__":
                             use_alert_reward=True,
                             use_energy_reward=True,
                             use_random_agent=is_random,
-                            is_mock=False,
+                            is_mock=True,
                             model_path=model_path if model_path else None,
                             
                         )
                         
                         #retrain model
-                        experiment_config.mode = "retrain"#"eval_post_training"  # eval after training
+                        experiment_config.mode = "train"#"eval_post_training"  # eval after training
                         manager = ExperimentManager(base_dir="experiments")
                         results = manager.run_experiment(experiment_config)
 

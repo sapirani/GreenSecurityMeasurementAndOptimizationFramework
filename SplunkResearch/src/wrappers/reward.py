@@ -14,6 +14,8 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import sys
+
+from traitlets import Bool
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src')
 
 from env_utils import *
@@ -77,7 +79,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
     
     def __init__(self, env, baseline_dir: str = "baselines", is_mock: bool = False,
                  enable_prediction: bool = True, alert_threshold: float = -0.5,
-                 skip_on_low_alert: bool = True, use_energy: bool = True,use_alert: bool = True, is_eval: bool = False):
+                 skip_on_low_alert: bool = True, use_energy: bool = True,use_alert: bool = True, is_eval: bool = False, is_train: bool = False):
         super().__init__(env)
         self.baseline_dir = Path(baseline_dir)
         self.baseline_dir.mkdir(parents=True, exist_ok=True)
@@ -95,7 +97,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         self.use_alert = use_alert
         self.energy_models = {}
         # if is_mock:
-        #     for rule in self.splunk_tools.active_saved_searches:
+        #     for rule in self.unwrapped.splunk_tools.active_saved_searches:
         #         self.energy_models[rule] = pickle.load(open(f"/home/shouei/GreenSecurity-FirstExperiment/baseline_splunk_train-v32_2880_cpu_regressor_results/RandomForestRegressor_{rule}_with alert = 0.pkl", "rb"))
         
         # Initialize alert predictor
@@ -110,15 +112,25 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             'Kerberoasting spn request with RC4 encryption': 0,
             'Clop Ransomware Known Service Name': 0
         }
-        
+        self.measuring = False
         self.alert_predictor = AlertPredictor(self.expected_alerts)
         self.execution_decisions = []
         self.is_eval = is_eval
+        self.is_train = is_train
+        import joblib
+        # lode joblib models for energy consumption for each rule
+        # for rule in self.expected_alerts:
+        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/model_all.joblib"
+        # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/model_{rule}.joblib"
+        if path.exists(model_path):
+            self.energy_models['all'] = joblib.load(model_path)
+            # self.energy_models[rule] = joblib.load(model_path)
+
         
     def _get_baseline_path(self) -> Path:
         """Get path for baseline data based on environment config"""
-        env_id = self.env.config.env_id
-        search_window = self.env.config.search_window
+        env_id = self.unwrapped.config.env_id
+        search_window = self.unwrapped.config.search_window
         return self.baseline_dir / f"baseline_{env_id}_{search_window}.csv"
         
     def _load_baseline_table(self) -> pd.DataFrame:
@@ -129,7 +141,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
 
     def get_baseline_data(self, time_range: TimeWindow) -> Dict:
         """Get baseline data - execute after cleaning if needed"""
-        num_of_measurements = self.env.config.baseline_num_of_measurements
+        num_of_measurements = self.unwrapped.config.baseline_num_of_measurements
         relevant_rows = self.baseline_df[(self.baseline_df['start_time'] == time_range[0]) & (self.baseline_df['end_time'] == time_range[1])]
         actual_num_of_measurements = relevant_rows.groupby(['start_time', 'end_time', 'search_name']).size().values[0] if not relevant_rows.empty else 0
         needed_measurements = num_of_measurements - actual_num_of_measurements
@@ -140,15 +152,16 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         if len(relevant_rows) != 0:
             existing_searches = set(relevant_rows.reset_index()['search_name'].values)
             running_dict.update({search: needed_measurements for search in existing_searches})
-        missing_searches = set([search for search in self.splunk_tools.active_saved_searches]) - existing_searches
+        missing_searches = set([search for search in self.unwrapped.splunk_tools.active_saved_searches]) - existing_searches
         running_dict.update({search: num_of_measurements for search in missing_searches})
         
-        empty_monitored_files(SYSTEM_MONITOR_FILE_PATH)
-        empty_monitored_files(SECURITY_MONITOR_FILE_PATH)
-        if self.use_energy or self.use_alert:
-            if sum(running_dict.values()) > 0 and not self.is_mock:
+
+        if self.use_energy or self.use_alert :
+            if sum(running_dict.values()) > 0:
+                empty_monitored_files(SYSTEM_MONITOR_FILE_PATH)
+                empty_monitored_files(SECURITY_MONITOR_FILE_PATH)
                 logger.info('Cleaning the environment')
-                clean_env(self.splunk_tools, time_range)
+                clean_env(self.unwrapped.splunk_tools, time_range)
                 logger.info('Measure no agent reward values')
                 logger.info('wait for the environment to be cleaned')
                 sleep(3)
@@ -156,10 +169,10 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             if sum(running_dict.values()) > 0:
                 logger.info(f"Running {running_dict}")
                 # Execute rules and get metrics
-                if self.is_mock:
-                    rules_metrics = self.mock_rules_metrics(time_range)
-                else:
-                    rules_metrics, total_cpu = asyncio.run(self.splunk_tools.run_saved_searches(time_range, running_dict))
+                # if self.is_mock:
+                #     rules_metrics = self.mock_rules_metrics(time_range)
+                # else:
+                rules_metrics, total_cpu = asyncio.run(self.unwrapped.splunk_tools.run_saved_searches(time_range, running_dict))
                 new_lines = self.convert_metrics(time_range, rules_metrics)
                 if len(new_lines) != 0:
                     self.baseline_df = pd.concat([self.baseline_df, pd.DataFrame(new_lines)])
@@ -188,16 +201,17 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         predicted_reward = self.alert_predictor.predict_overall_alert_reward(
             raw_baseline_metrics, 
             diversity_logs,
-            self.section_logtypes,
+            self.unwrapped.section_logtypes,
             self.is_mock
         )
         
         # Decide whether to execute
         should_execute = True
         if self.enable_prediction and self.skip_on_low_alert:
-            should_execute = ((predicted_reward <= (sum(self.expected_alerts.values()) + std)) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval
+            should_execute =  ((predicted_reward <= (sum(self.expected_alerts.values()) + (self.alert_threshold*std))) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval
+            # (((self.all_steps_counter > 40000) or not self.is_train) and
             # should_execute = ((predicted_reward >= self.alert_threshold) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval
-            self.unwrapped.should_delete = should_execute
+            # self.unwrapped.should_delete = should_execute and not self.is_mock and not self.measuring 
             
         # Log decision
         self.execution_decisions.append({
@@ -213,16 +227,16 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
     
     def mock_rules_metrics(self, time_range: TimeWindow) -> Dict:
         """Mock rules metrics for the given time range"""
-        rules_metrics = self.splunk_tools.mock_run_saved_searches(time_range)
+        rules_metrics = self.unwrapped.splunk_tools.mock_run_saved_searches(time_range)
         return rules_metrics
     
-    def get_current_reward_values(self, time_range: TimeWindow) -> Tuple[pd.DataFrame, Dict]:
+    def get_current_reward_values(self, time_range: TimeWindow, should_execute: Bool) -> Tuple[pd.DataFrame, Dict]:
         """Get current reward values"""
-        if self.unwrapped.is_mock:
+        if (self.is_mock and not self.measuring) or not should_execute or not self.use_energy or not self.use_alert:
             rules_metrics = self.mock_rules_metrics(time_range)
         else:
-            rules_metrics, total_cpu = asyncio.run(self.splunk_tools.run_saved_searches(
-                time_range, None, self.env.config.num_of_measurements))
+            rules_metrics, total_cpu = asyncio.run(self.unwrapped.splunk_tools.run_saved_searches(
+                time_range, None, self.unwrapped.config.num_of_measurements))
         relevant_rows = self.convert_metrics(time_range, rules_metrics)
         relevant_rows = pd.DataFrame(relevant_rows)
         grouped = relevant_rows.groupby('search_name')
@@ -260,6 +274,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 'read_bytes': group['read_bytes'].mean(),
                 'write_bytes': group['write_bytes'].mean(),
                 'alert': group['alert'].mean()}
+                
             if raw_metrics[search_name]['alert'] != round(raw_metrics[search_name]['alert']):
                 logger.info(f"Alert value is not an integer: {search_name}, {raw_metrics[search_name]['alert']}, {group['alert']}")
                 # choose the measurement with the highest alert value
@@ -282,6 +297,8 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             'write_bytes': sum([metric['write_bytes'] for metric in raw_metrics.values()]),
             'alert': sum([metric['alert'] for metric in raw_metrics.values()])
         }
+
+        
         return raw_metrics, combined_metrics
        
     def reward(self, reward: float) -> float:
@@ -307,31 +324,40 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # Store prediction info
             info['predicted_alert_reward'] = predicted_alert_reward
             info['execution_skipped'] = not should_execute
-            
-            self.unwrapped.is_mock = (not should_execute or not self.use_energy or not self.use_alert) 
+            if  ((random.randint(0, 1000) < 10   or self.is_eval) and should_execute):
+                logger.info(f"Measuring")
+                self.measuring = True
+            else:
+                self.measuring = False
+                
+            self.unwrapped.should_delete = should_execute and (not self.is_mock or self.measuring)
+                
+            # self.unwrapped.is_mock = (not should_execute or not self.use_energy or not self.use_alert) 
             # inject logs if not is_mock
-            if not self.unwrapped.is_mock:
-                self.env.inject_episodic_logs()
+            if (not self.is_mock  or self.measuring) and should_execute and self.use_energy and self.use_alert:
+                self.env.env.inject_episodic_logs() # access to action wrapper0
                 # wait for the logs to be injected
                 # sleep(4)
             # Normal execution flow
-            raw_metrics, combined_metrics = self.get_current_reward_values(info['current_window'])
+            raw_metrics, combined_metrics = self.get_current_reward_values(info['current_window'], should_execute)
             _, combined_baseline_metrics = self.process_metrics(
                 self.get_baseline_data(info['current_window']).groupby('search_name')
             )
+            
+            if self.is_mock and self.measuring and should_execute:  
+                combined_metrics['real_cpu'] = combined_metrics['cpu'] 
 
             info['combined_metrics'] = combined_metrics
             info['combined_baseline_metrics'] = combined_baseline_metrics
-            if self.unwrapped.is_mock and (self.use_alert or self.use_energy):
+            if self.is_mock and (self.use_alert or self.use_energy):
                 current_alerts = self.alert_predictor.current_alerts
                 # baseline_alerts = {rule: raw_baseline_metrics[rule]['alert'] for rule in self.expected_alerts}
                 for rule in self.expected_alerts:
                     raw_metrics[rule]['alert'] = current_alerts[rule]
                     
-                    raw_baseline_metrics[rule]['cpu'] = 0
-                    raw_baseline_metrics[rule]['duration'] = 0
+                    # raw_baseline_metrics[rule]['cpu'] = 0
+                    # raw_baseline_metrics[rule]['duration'] = 0
                 info['combined_metrics']['alert'] = sum(current_alerts.values())# + sum(baseline_alerts.values())
-            #BUILD HERE THE INFO JSON
             if should_execute:
                 self.unwrapped.all_data.append({
                     'time_range': info['current_window'],
@@ -354,13 +380,12 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # info['ac_distribution_reward'] = dist_reward
             info['ac_distribution_reward'] = 30*info['ac_distribution_value']
             info['alert_reward'] = ((predicted_alert_reward - sum(self.expected_alerts.values()))/std)
-            
             reward = 0
             if info.get('ac_distribution_value', 0) > self.env.distribution_threshold or predicted_alert_reward > sum(self.expected_alerts.values())+std:
                 if info.get('ac_distribution_value', 0) > self.env.distribution_threshold:
                     reward += -(2**info['ac_distribution_reward'])
                         
-                if predicted_alert_reward > sum(self.expected_alerts.values())+std:
+                if predicted_alert_reward > sum(self.expected_alerts.values())+(self.alert_threshold*std):
                     reward += -(2**info['alert_reward'])
             else:
                 reward = 1
@@ -404,32 +429,71 @@ class EnergyRewardWrapper(RewardWrapper):
     def __init__(self, env: gym.Env, alpha: float = 0.5,is_mock: bool = False):
         super().__init__(env)
         self.alpha = alpha
-        # self.is_mock = is_mock
+        self.is_mock = is_mock
     
-    def estimate_energy_consumption(self):
+    def estimate_energy_consumption(self, fake_dist, rules_alerts):
         # Placeholder for energy consumption estimation logic
         # This should return the estimated energy consumption for the current state
-        cpu_dict = {}
-        for rule in self.splunk_tools.active_saved_searches:
-            # Use the energy model to estimate energy consumption
-            model = self.energy_models[rule]
-            # Assuming the model has a predict method
-            # Replace with actual prediction logic
-            estimated_energy = model.predict(self.ac_fake_state.reshape(1, -1))[0]
-            cpu_dict[rule] = estimated_energy
-        return cpu_dict
+        # Use the energy model to estimate energy consumption
+        model = self.env.energy_models["all"]
+        # normalize the fake distribution and rule alert
+        if not isinstance(fake_dist, np.ndarray):
+            fake_dist = np.array(list(fake_dist)[:-1])
+        rules_alerts_array = np.array(list(rules_alerts.values()))
+        if fake_dist.ndim == 1:
+            fake_dist = fake_dist.reshape(-1, 1)
+        if rules_alerts_array.ndim == 1:
+            rules_alerts_array = rules_alerts_array.reshape(-1, 1)
+        # print(fake_dist, rules_alerts[rule])
+        
+        fake_dist = (fake_dist) /237158
+        rules_alerts_array = (rules_alerts_array - 0.0) / 38
+        X = np.concatenate((fake_dist, rules_alerts_array)).flatten().reshape(1, -1)
+        
+        estimated_energy = model.predict(X)[0]
+        return estimated_energy
+
+    # def estimate_energy_consumption(self, fake_dist, rules_alerts):
+    #     # Placeholder for energy consumption estimation logic
+    #     # This should return the estimated energy consumption for the current state
+    #     cpu_dict = {}
+    #     for rule in self.unwrapped.splunk_tools.active_saved_searches:
+    #         # Use the energy model to estimate energy consumption
+    #         model = self.env.energy_models[rule]
+    #         # normalize the fake distribution and rule alert
+    #         if not isinstance(fake_dist, np.ndarray):
+    #             fake_dist = np.array(list(fake_dist)[:-1])
+    #         if not isinstance(rules_alerts[rule], np.ndarray):
+    #             rules_alerts[rule] = np.array(rules_alerts[rule])
+    #         if fake_dist.ndim == 1:
+    #             fake_dist = fake_dist.reshape(-1, 1)
+    #         if rules_alerts[rule].ndim == 0:
+    #             rules_alerts[rule] = np.array([[rules_alerts[rule]]])
+    #         # print(fake_dist, rules_alerts[rule])
+            
+    #         fake_dist = (fake_dist) /237158
+    #         rules_alerts[rule] = (rules_alerts[rule] - 0.0) / 38
+    #         X = np.concatenate((fake_dist, rules_alerts[rule])).flatten().reshape(1, -1)
+            
+    #         estimated_energy = model.predict(X)[0]
+    #         cpu_dict[rule] = estimated_energy
+    #     return cpu_dict
     
     def step(self, action):
         """Override step to properly handle info updates"""
         obs, reward, terminated, truncated, info = self.env.step(action)
 
 
-        if info.get('done', True) and not self.unwrapped.is_mock:
-            # if self.unwrapped.is_mock:                                           
-            #     cpu_dict = self.estimate_energy_consumption()
-            #     for rule in self.splunk_tools.active_saved_searches:
-            #         info['raw_metrics'][rule]['cpu'] = cpu_dict[rule]
-            #     info['combined_metrics']['cpu'] = sum(cpu_dict.values())
+        if info.get('done', True):
+            if self.is_mock and not info.get('execution_skipped', False):  
+                rules_alerts = {rule: info['raw_metrics'][rule]['alert'] for rule in self.unwrapped.splunk_tools.active_saved_searches}                                         
+                estimated_energy = self.estimate_energy_consumption(
+                    self.unwrapped.ac_fake_distribution.values(),
+                    rules_alerts
+                )
+                # for rule in self.unwrapped.splunk_tools.active_saved_searches:
+                #     info['raw_metrics'][rule]['cpu'] = cpu_dict[rule]
+                info['combined_metrics']['cpu'] = estimated_energy
             current = info['combined_metrics']['cpu']
 
             baseline = info['combined_baseline_metrics']['cpu']
@@ -588,7 +652,7 @@ class DistributionRewardWrapper(RewardWrapper):
         self.gamma = gamma
         self.epsilon = epsilon
         self.distribution_reward_freq = distribution_freq
-        self.distribution_threshold = 0.12 #0.18 #0.22
+        self.distribution_threshold = 0.22 #0.18 #0.22
         
         
     def step(self, action):

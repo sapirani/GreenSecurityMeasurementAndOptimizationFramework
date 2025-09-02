@@ -164,7 +164,7 @@ class TimeWrapper(Wrapper):
     def step(self, action):
         obs, reward, done, truncated, info = super().step(action)
         if not info['done']:
-            action_window = self.time_manager.step()
+            action_window = self.unwrapped.time_manager.step()
             info['action_window'] = action_window
         return obs, reward, done, truncated, info
         # return self.env.step(action)
