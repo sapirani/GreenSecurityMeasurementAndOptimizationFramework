@@ -53,7 +53,7 @@ class ElasticReader:
         response = s[:PULL_PAGE_SIZE].execute()
         return response.hits
 
-    def __identify_last_iterations(self) -> Iterator[IterationRawResults]:
+    def identify_last_iterations(self, *, force: bool = False) -> Iterator[IterationRawResults]:
         """
         Regular iterations are identified by receiving a newer document.
         I.e., since documents are uniquely sorted with timestamp being the primary sorting key,
@@ -63,10 +63,13 @@ class ElasticReader:
 
         This function assumes that if enough time passed (defined in the consts.py file)
         since the timestamp of the last fetched document, the iteration is done, and would yield the iteration results.
+
+        :param force: enable immediate identification as the last iterations (per session-hostname pair), and return
+        iteration results accordingly
         """
         for iteration_metadata, iteration_results in self.__results_by_session_host.copy().items():
             if datetime.now(timezone.utc) - iteration_metadata.timestamp > timedelta(
-                    seconds=FINAL_ITERATION_TIMEOUT_SECONDS):  # assuming it is the last iteration
+                    seconds=FINAL_ITERATION_TIMEOUT_SECONDS) or force:  # assuming it is the last iteration
 
                 yield IterationRawResults(
                     metadata=iteration_metadata,
@@ -85,7 +88,7 @@ class ElasticReader:
             hits = self.__get_next_hits(last_sort)
 
             if not hits:
-                yield from self.__identify_last_iterations()
+                yield from self.identify_last_iterations()
 
                 if self.time_picker_input.mode == ReadingMode.REALTIME or self.time_picker_input.mode == ReadingMode.SINCE:
                     time.sleep(PULL_INTERVAL_SECONDS)  # wait a bit for new docs
@@ -123,5 +126,3 @@ class ElasticReader:
                 self.__results_by_session_host[self.__ongoing_iteration_metadata].add_result(examined_doc.meta.index, raw_data)
 
             last_sort = hits[-1].meta.sort
-
-        # TODO: ADD SOME POP UP EXPLAINING THAT WE ARE WAITING TO DETECT THE LAST ITERATION AND ASK IF HE IS SURE THAT HE WANTS TO QUIT NOW
