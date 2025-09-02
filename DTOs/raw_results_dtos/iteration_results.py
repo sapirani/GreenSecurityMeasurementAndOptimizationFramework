@@ -7,7 +7,7 @@ from consts import ElasticIndex
 
 
 @dataclass
-class IterationIndicesResults:
+class IterationResults:
     system_result: Optional[SystemRawResults] = None
     process_results: List[ProcessRawResults] = field(default_factory=list)
 

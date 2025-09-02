@@ -10,9 +10,9 @@ import time
 from consts import ElasticIndex, FINAL_ITERATION_TIMEOUT_SECONDS, PULL_INTERVAL_SECONDS, \
     MAX_INDEXING_TIME_SECONDS, PULL_PAGE_SIZE
 from elastic_reader_parameters import ES_URL, ES_USER, ES_PASS
-from DTOs.raw_results_dtos.iteration_indices_results import IterationIndicesResults
+from DTOs.raw_results_dtos.iteration_results import IterationResults
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata, IterationRawResults
-from user_input.abstract_date_picker import ReadingMode, TimePickerChosenInput
+from elastic_reader_user_input.abstract_date_picker import ReadingMode, TimePickerChosenInput
 
 
 class ElasticReader:
@@ -23,8 +23,8 @@ class ElasticReader:
 
         self.__ongoing_iteration_metadata: Optional[IterationMetadata] = None
         self.__previous_metadata_set = set()
-        self.__results_by_session_host: DefaultDict[IterationMetadata, IterationIndicesResults] = defaultdict(
-            lambda: IterationIndicesResults())
+        self.__results_by_session_host: DefaultDict[IterationMetadata, IterationResults] = defaultdict(
+            lambda: IterationResults())
 
     def __get_next_hits(self, last_sort: Optional[List[Any]]) -> List[Hit]:
         s = Search(using=self.es, index=','.join(self.indices))

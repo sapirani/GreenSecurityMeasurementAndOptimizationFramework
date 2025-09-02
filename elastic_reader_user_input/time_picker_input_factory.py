@@ -1,6 +1,6 @@
 from consts import TimePickerInputStrategy
-from user_input.abstract_date_picker import TimePickerChosenInput
-from user_input.cli_time_picker import CLITimePicker
+from elastic_reader_user_input.abstract_date_picker import TimePickerChosenInput
+from elastic_reader_user_input.cli_time_picker import CLITimePicker
 
 
 def get_time_picker_input(
@@ -11,7 +11,7 @@ def get_time_picker_input(
         return preconfigured_time_input
 
     if time_picker_input_strategy == TimePickerInputStrategy.GUI:
-        from user_input.GUI.gui_date_picker import GUITimePicker
+        from elastic_reader_user_input.GUI.gui_date_picker import GUITimePicker
         time_picker = GUITimePicker()
     elif time_picker_input_strategy == TimePickerInputStrategy.CLI:
         time_picker = CLITimePicker()

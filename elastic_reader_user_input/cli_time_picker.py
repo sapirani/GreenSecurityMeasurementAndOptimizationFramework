@@ -1,4 +1,4 @@
-from user_input.abstract_date_picker import AbstractTimePicker, TimePickerChosenInput
+from elastic_reader_user_input.abstract_date_picker import AbstractTimePicker, TimePickerChosenInput
 
 
 # TODO: IMPLEMENT

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from consts import *
-from user_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
+from elastic_reader_user_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 
 ES_URL = "http://127.0.0.1:9200"
 ES_USER = "elastic"

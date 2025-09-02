@@ -7,8 +7,8 @@ from elastic_consumers.consumer_factory import get_consumers
 from elastic_reader import ElasticReader
 from elastic_reader_parameters import *
 from consts import ElasticIndex
-from user_input.abstract_date_picker import TimePickerChosenInput
-from user_input.time_picker_input_factory import get_time_picker_input
+from elastic_reader_user_input.abstract_date_picker import TimePickerChosenInput
+from elastic_reader_user_input.time_picker_input_factory import get_time_picker_input
 
 
 def iterate_results(
