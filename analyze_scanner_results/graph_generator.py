@@ -3,8 +3,8 @@ from typing import List
 
 import pandas as pd
 
-from general_consts import BatteryColumns, CPUColumns, MemoryColumns, DiskIOColumns, ProcessesColumns, KB
-from analyze_scanner_results.analyzer_constants import AxisInfo, Units, DEFAULT, MINIMAL_REQUIRED_RECORDS
+from utils.general_consts import BatteryColumns, CPUColumns, MemoryColumns, DiskIOColumns, ProcessesColumns, KB
+from analyze_scanner_results.analyzer_constants import AxisInfo, Units, MINIMAL_REQUIRED_RECORDS
 from analyze_scanner_results.graphing_utils import draw_dataframe, draw_subplots, draw_processes_and_total
 
 NUM_OF_PATHS = 12
@@ -114,7 +114,7 @@ class GraphsGenerator:
             processes_df = pd.read_csv(self.__processes_results_csv)
             top_pids = (
                 processes_df
-                .groupby(ProcessesColumns.PROCESS_ID)[ProcessesColumns.CPU_CONSUMPTION]
+                .groupby(ProcessesColumns.PROCESS_ID)[ProcessesColumns.CPU_SUM_ACROSS_CORES]
                 .sum()
                 .nlargest(MAX_PROCESSES_TO_PLOT)
                 .index
@@ -124,7 +124,7 @@ class GraphsGenerator:
             filtered_processes_df = processes_df[processes_df[ProcessesColumns.PROCESS_ID].isin(top_pids)]
 
             self.__create_source_graph_per_processes_graph(processes_df=filtered_processes_df,
-                                                           resource_type=ProcessesColumns.CPU_CONSUMPTION,
+                                                           resource_type=ProcessesColumns.CPU_SUM_ACROSS_CORES,
                                                            label_for_y="CPU consumption",
                                                            units_for_y=Units.PERCENT,
                                                            graph_name="CPU consumption per process")
@@ -163,9 +163,9 @@ class GraphsGenerator:
                 relevant_processes_df = processes_df.loc[processes_df[ProcessesColumns.PROCESS_ID].isin(processes_ids_to_emphasize)]
                 self.__display_process_and_total_resource(processes_df=relevant_processes_df,
                                                           path_to_resource_df=self.__total_cpu_csv,
-                                                          column_from_resource=CPUColumns.USED_PERCENT,
+                                                          column_from_resource=CPUColumns.SUM_ACROSS_CORES_PERCENT,
                                                           time_column_from_resource=CPUColumns.TIME,
-                                                          column_of_resource_in_processes=ProcessesColumns.CPU_CONSUMPTION,
+                                                          column_of_resource_in_processes=ProcessesColumns.CPU_SUM_ACROSS_CORES,
                                                           graph_name="CPU consumption",
                                                           label_for_y="CPU consumption",
                                                           units_for_y=Units.PERCENT,

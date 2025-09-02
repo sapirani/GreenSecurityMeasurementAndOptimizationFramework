@@ -6,13 +6,13 @@ from typing import Optional
 
 from measurements_model.config import ProcessColumns, AllProcessesFileFields, HardwareColumns
 from measurements_model.dataset_creation.dataset_utils import create_sample_from_mapping
-from measurements_model.dataset_creation.summary_version_columns import SummaryVersionCols, DuduSummaryVersionCols
+from measurements_model.dataset_creation.summary_version_columns import SummaryVersionCols, SystemResourcesIsolationSummaryVersionCols
 
 ALL_PROCESSES_CSV = fr"processes_data.csv"
 SUMMARY_CSV = fr"summary.xlsx"
 NETWORK_IO_PER_TIMESTAMP_CSV = fr"network_io_each_moment.csv"
 HARDWARE_DETAILS_CSV = fr""
-DEFAULT_SUMMARY_VERSION = DuduSummaryVersionCols()
+DEFAULT_SUMMARY_VERSION = SystemResourcesIsolationSummaryVersionCols()
 
 
 class MeasurementExtractor:
@@ -20,7 +20,7 @@ class MeasurementExtractor:
         self.measurement_dir = measurement_dir
         self.summary_version = summary_version if summary_version else DEFAULT_SUMMARY_VERSION
         self.summary_with_network_stats = True if not isinstance(summary_version,
-                                                                 DuduSummaryVersionCols) and pathlib.Path(
+                                                                 SystemResourcesIsolationSummaryVersionCols) and pathlib.Path(
             os.path.join(self.measurement_dir, NETWORK_IO_PER_TIMESTAMP_CSV)).is_file() else False
 
     def __extract_system_file(self, need_process: bool) -> dict[str, any]:
