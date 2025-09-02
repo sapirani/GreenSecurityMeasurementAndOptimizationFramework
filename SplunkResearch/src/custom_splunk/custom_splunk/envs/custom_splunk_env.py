@@ -15,9 +15,7 @@ from time_manager import TimeManager
 from datetime_manager import MockedDatetimeManager
 
 import tensorflow as tf
-from strategies.action_strategy import ActionStrategy14, ActionStrategy7, ActionStrategy8
 
-from strategies.state_strategy import StateStrategy12, StateStrategy11, StateStrategy6, StateStrategy7, StateStrategy8
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment')
 import os
 from dotenv import load_dotenv
@@ -81,6 +79,9 @@ class SplunkEnv(gym.Env):
         """Initialize environment."""
         super().__init__()
         self.splunk_tools  = SplunkTools(savedsearches, config.rule_frequency)
+        self.episodic_inserted_logs = 0
+        self.all_data = []
+        self.all_data_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/all_data.csv"
 
         # Initialize time manager
         self.time_manager = TimeManager(
@@ -117,7 +118,7 @@ class SplunkEnv(gym.Env):
         
         self.savedsearches = savedsearches
         # Initialize tools and strategies
-        self.log_generator = LogGenerator(self.top_logtypes, self.splunk_tools)
+        self.log_generator = LogGenerator(self.top_logtypes)
         # self.log_generator = LogGenerator(self.relevant_logtypes, self.splunk_tools)
         self._normalize_factor = 300000
         
@@ -145,7 +146,10 @@ class SplunkEnv(gym.Env):
         self.ac_fake_distribution = {logtype: 0 for logtype in self.top_logtypes}
         self.ac_fake_distribution['other'] = 0
         self.real_relevant_distribution = {"_".join(logtype): 0 for logtype in self.top_logtypes}
-        self.relevant_logtypes_indices = {logtype: i for i, logtype in enumerate(self.top_logtypes) if logtype in self.top_logtypes}
+        self.relevant_logtypes_indices = {logtype: i for i, logtype in enumerate(self.top_logtypes) if logtype in self.top_logtypes}        
+        self.rules_rel_diff_alerts = {rule : 0 for rule in self.relevant_logtypes}
+        self.is_mock = False
+        self.should_delete = False
         
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
         """Execute environment step."""
@@ -273,7 +277,7 @@ if __name__ == "__main__":
     env = Action(env)
     # Add reward wrappers
     env = DistributionRewardWrapper(env, gamma=0.2)
-    env = BaseRuleExecutionWrapper(env)
+    # env = BaseRuleExecutionWrapper(env)
     env = EnergyRewardWrapper(env, alpha=0.5)
     env = AlertRewardWrapper(env, beta=0.3)
     # env = QuotaViolationWrapper(env)
