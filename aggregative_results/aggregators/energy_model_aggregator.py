@@ -35,11 +35,11 @@ DEFAULT_IDLE_DIR = r"C:\Users\Administrator\Desktop\green security\tmp - idle\Me
 class EnergyPerResourceConsts:
     # todo: add real consts
     cpu = 0.01
-    memory = 0.02
-    disk_io_read_bytes = 0.03
-    disk_io_write_bytes = 0.04
-    network_received_bytes = 0.05
-    network_sent_bytes = 0.06
+    memory = 17.18771578
+    disk_io_read_kbytes = 0.1261034238
+    disk_io_write_kbytes = 0.1324211241
+    network_received_kbytes = 0.1161303828
+    network_sent_kbytes = 0.005866983801
 
 
 class EnergyModelAggregator(AbstractAggregator):
@@ -61,11 +61,11 @@ class EnergyModelAggregator(AbstractAggregator):
                     cls.__model = EnergyModel.get_instance()
                     cls.__resource_energy_calculator = ResourceEnergyCalculator(
                         energy_per_cpu=EnergyPerResourceConsts.cpu,
-                        energy_per_gb_ram=EnergyPerResourceConsts.memory,
-                        energy_per_disk_read_kb=EnergyPerResourceConsts.disk_io_read_bytes,
-                        energy_per_disk_write_kb=EnergyPerResourceConsts.disk_io_write_bytes,
-                        energy_per_network_received_kb=EnergyPerResourceConsts.network_received_bytes,
-                        energy_per_network_write_kb=EnergyPerResourceConsts.network_sent_bytes
+                        energy_per_mb_ram=EnergyPerResourceConsts.memory,
+                        energy_per_disk_read_kb=EnergyPerResourceConsts.disk_io_read_kbytes,
+                        energy_per_disk_write_kb=EnergyPerResourceConsts.disk_io_write_kbytes,
+                        energy_per_network_received_kb=EnergyPerResourceConsts.network_received_kbytes,
+                        energy_per_network_write_kb=EnergyPerResourceConsts.network_sent_kbytes
                     )
 
         return cls.__instance
@@ -137,15 +137,14 @@ class EnergyModelAggregator(AbstractAggregator):
     def __convert_sample_to_dict(self, sample: EnergyModelFeatures) -> dict[str, any]:
         sample_dict = {**asdict(sample.process_features), **asdict(sample.system_features)}
         if any(value is None for value in sample_dict.values()):
-            raise RuntimeError("Invalid sample, there is at least one empty field.")
+            raise ValueError("Invalid sample, there is at least one empty field.")
 
         return sample_dict
 
     def __calculate_energy_per_resource(self, sample: EnergyModelFeatures,
                                         energy_prediction: float) -> SampleResourcesEnergy:
         cpu_energy = self.__resource_energy_calculator.calculate_cpu_energy(sample.process_features.cpu_usage_process)
-        # todo: change memory to mb
-        memory_energy = self.__resource_energy_calculator.calculate_gb_ram_energy(
+        memory_energy = self.__resource_energy_calculator.calculate_mb_ram_energy(
             sample.process_features.memory_mb_usage_process)
         disk_io_write_energy = self.__resource_energy_calculator.calculate_disk_write_kb_energy(
             sample.process_features.disk_write_bytes_kb_usage_process)
