@@ -12,6 +12,6 @@ class AbstractElasticConsumer(ABC):
     def consume(
             self,
             iteration_raw_results: IterationRawResults,
-            iteration_aggregations: Optional[IterationAggregatedResults]
+            iteration_aggregation_results: Optional[IterationAggregatedResults]
     ):
         pass

@@ -6,7 +6,7 @@ from elastic_reader import ElasticReader
 from elastic_reader_parameters import *
 from consts import ElasticIndex
 from user_input.abstract_date_picker import TimePickerChosenInput
-from user_input.input_factory import get_time_picker_input
+from user_input.time_picker_input_factory import get_time_picker_input
 
 
 def main(

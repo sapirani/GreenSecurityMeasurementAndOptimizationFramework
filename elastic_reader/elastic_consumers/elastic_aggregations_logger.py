@@ -29,18 +29,18 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
     def consume(
             self,
             iteration_raw_results: IterationRawResults,
-            iteration_aggregations: Optional[IterationAggregatedResults],
+            iteration_aggregation_results: Optional[IterationAggregatedResults],
     ):
-        if not iteration_aggregations:
+        if not iteration_aggregation_results:
             return
 
         # TODO: IMPROVE LOGGING SPEED BY USING from elasticsearch.helpers import bulk
-        for process_identity, process_results in iteration_aggregations.processes_results.items():
+        for process_identity, process_results in iteration_aggregation_results.processes_results.items():
             self.logger.info(
                 "Process Aggregation Results",
                 extra=
                 {
-                    **asdict(iteration_aggregations.iteration_metadata),
+                    **asdict(iteration_aggregation_results.iteration_metadata),
                     **asdict(process_identity),
                     **asdict(process_results.process_metadata),
                     **{
@@ -54,8 +54,8 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
             "System Aggregation Results",
             extra=
             {
-                **asdict(iteration_aggregations.iteration_metadata),
-                **{key: value for aggregation_result in iteration_aggregations.system_aggregated_results
+                **asdict(iteration_aggregation_results.iteration_metadata),
+                **{key: value for aggregation_result in iteration_aggregation_results.system_aggregated_results
                    for key, value in asdict(aggregation_result).items()}
             }
         )
