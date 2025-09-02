@@ -8,7 +8,7 @@ from aggregative_results.DTOs.aggregators_features.energy_model_features.system_
     SystemEnergyModelFeatures
 from measurements_model.dataset_creation.data_extractors.summary_extractors.summary_columns import SummaryColumns
 
-
+# todo: remove when moving permanently to the new approach.
 class AbstractSummaryExtractor(ABC):
 
     @abstractmethod

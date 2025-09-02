@@ -6,7 +6,7 @@ from aggregative_results.DTOs.raw_results_dtos.process_raw_results import Proces
 from aggregative_results.DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
 from aggregative_results.DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from aggregative_results.aggregators.energy_model_aggregator import EnergyModelAggregator
-
+# todo: remove when moving permanently to the new approach.
 if __name__ == "__main__":
     start_time = datetime.now()
     process_results_1 = ProcessRawResults(pid=1, process_name="session1",

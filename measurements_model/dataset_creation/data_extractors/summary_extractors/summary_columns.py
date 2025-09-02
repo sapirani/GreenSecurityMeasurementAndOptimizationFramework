@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-
+# todo: remove when moving permanently to the new approach.
 @dataclass
 class SummaryColumns:
     total_column: str

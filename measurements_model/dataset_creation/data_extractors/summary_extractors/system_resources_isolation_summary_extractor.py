@@ -9,7 +9,7 @@ from measurements_model.dataset_creation.data_extractors.summary_extractors.summ
 
 INDEX_COLUMN = "Metric"
 
-
+# todo: remove when moving permanently to the new approach.
 class SystemResourcesIsolationSummaryExtractor(AbstractSummaryExtractor):
     def extract_system_data(self, summary_file_path: str) -> SystemEnergyModelFeatures:
         df = pd.read_excel(summary_file_path)

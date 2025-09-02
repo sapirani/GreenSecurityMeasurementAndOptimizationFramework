@@ -23,7 +23,7 @@ from utils.general_consts import CPUColumns, ProcessesColumns, BatteryColumns, M
 
 DEFAULT_TIME_PER_BATCH = 150
 
-
+# todo: remove when moving permanently to the new approach.
 class DatasetCreatorTemp:
     def __init__(self, idle_dir_path: str, measurements_dir_path: str):
         self.__idle_dir_path = idle_dir_path
