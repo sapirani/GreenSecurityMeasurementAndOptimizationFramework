@@ -31,4 +31,5 @@ LENOVO*
 results*
 Windows*
 *cpu_regressor_results*
-program_parameters
+program_parameters.py
+*backup*
