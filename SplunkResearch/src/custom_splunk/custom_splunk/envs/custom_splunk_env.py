@@ -12,7 +12,6 @@ sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/sr
 from env_utils import *
 from time_manager import TimeManager
 
-from datetime_manager import MockedDatetimeManager
 
 
 sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment')

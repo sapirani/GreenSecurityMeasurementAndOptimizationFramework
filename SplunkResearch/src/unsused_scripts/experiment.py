@@ -2,8 +2,8 @@ import os
 import pickle
 import numpy as np
 import urllib3
-from measurement import Measurement
-from datetime_manager import MockedDatetimeManager
+from unsused_scripts.measurement import Measurement
+from unsused_scripts.datetime_manager import MockedDatetimeManager
 import datetime
 import time
 import json
