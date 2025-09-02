@@ -42,6 +42,7 @@ def main(
         iterate_results(reader.read(), consumers, aggregation_manager)
     except KeyboardInterrupt:
         print("A keyboard interrupt was detected, finalizing...")
+        print("Note: last iteration results might be incomplete due to interruption")
         iterate_results(reader.identify_last_iterations(force=True), consumers, aggregation_manager)
 
 
