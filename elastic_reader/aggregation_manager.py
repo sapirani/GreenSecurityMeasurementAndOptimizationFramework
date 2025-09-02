@@ -35,7 +35,7 @@ class AggregationManager:
     FULL_SCOPE_AGGREGATORS_TYPES = [ProcessSystemUsageFractionAggregator]
 
     def __init__(self):
-        # TODO: WRAP AGGREGATORS IN ANOTHER CLASS
+        # TODO: THINK ABOUT CREATING DATACLASSES TO EASE THE TYPING HERE
         self.system_aggregators: DefaultDict[
             SessionHostIdentity, List[AbstractAggregator]
         ] = defaultdict(self.__get_system_aggregators)
