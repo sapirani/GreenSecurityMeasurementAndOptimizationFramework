@@ -15,8 +15,6 @@ from aggregative_results.DTOs.raw_results_dtos.system_process_raw_results import
 from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator
 from aggregative_results.DTOs.aggregated_results_dtos.empty_aggregation_results import EmptyAggregationResults
 from aggregative_results.DTOs.raw_results_dtos.iteration_info import IterationMetadata
-from measurements_model.dataset_creation.data_extractors.hardware_extractor import HardwareExtractor
-from measurements_model.dataset_creation.data_extractors.idle_extractor import IdleExtractor
 from measurements_model.dataset_creation.data_extractors.summary_extractors.system_resources_isolation_summary_extractor import \
     SystemResourcesIsolationSummaryExtractor
 from measurements_model.energy_model import EnergyModel
@@ -29,7 +27,7 @@ DEFAULT_IDLE_DIR = r"C:\Users\Administrator\Desktop\green security\tmp - idle\Me
 
 
 class EnergyPerResourceConsts:
-    cpu_time = 1.2
+    cpu_time = 1.194578001
     memory = 17.18771578
     disk_io_read_kbytes = 0.1261034238
     disk_io_write_kbytes = 0.1324211241
