@@ -1,8 +1,8 @@
 class ResourceEnergyCalculator:
-    def __init__(self, energy_per_cpu: float, energy_per_mb_ram: float,
+    def __init__(self, energy_per_cpu_time: float, energy_per_mb_ram: float,
                  energy_per_disk_read_kb: float, energy_per_disk_write_kb: float,
                  energy_per_network_received_kb: float, energy_per_network_write_kb: float):
-        self.__energy_per_cpu = energy_per_cpu
+        self.__energy_per_cpu_time = energy_per_cpu_time
         self.__energy_per_mb_ram = energy_per_mb_ram
         self.__energy_per_disk_read_kb = energy_per_disk_read_kb
         self.__energy_per_disk_write_kb = energy_per_disk_write_kb
@@ -13,7 +13,7 @@ class ResourceEnergyCalculator:
         return energy_per_resource_consumption * resource_consumption
 
     def calculate_cpu_energy(self, cpu_usage: float) -> float:
-        return self.__calculate_energy_for_resource(self.__energy_per_cpu, cpu_usage)
+        return self.__calculate_energy_for_resource(self.__energy_per_cpu_time, cpu_usage)
 
     def calculate_mb_ram_energy(self, mb_usage: float) -> float:
         return self.__calculate_energy_for_resource(self.__energy_per_mb_ram, mb_usage)

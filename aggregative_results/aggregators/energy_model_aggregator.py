@@ -7,10 +7,6 @@ import pandas as pd
 from aggregative_results.DTOs.aggregated_results_dtos.energy_model_result import EnergyModelResult
 from aggregative_results.DTOs.aggregators_features.energy_model_features.full_energy_model_features import \
     EnergyModelFeatures
-from aggregative_results.DTOs.aggregators_features.energy_model_features.hardware_energy_model_features import \
-    HardwareEnergyModelFeatures
-from aggregative_results.DTOs.aggregators_features.energy_model_features.idle_energy_model_features import \
-    IdleEnergyModelFeatures
 from aggregative_results.DTOs.aggregators_features.energy_model_features.process_energy_model_features import \
     ProcessEnergyModelFeatures
 from aggregative_results.DTOs.aggregators_features.energy_model_features.system_energy_model_features import \
@@ -33,8 +29,7 @@ DEFAULT_IDLE_DIR = r"C:\Users\Administrator\Desktop\green security\tmp - idle\Me
 
 
 class EnergyPerResourceConsts:
-    # todo: add real consts
-    cpu = 0.01
+    cpu_time = 1.2
     memory = 17.18771578
     disk_io_read_kbytes = 0.1261034238
     disk_io_write_kbytes = 0.1324211241
@@ -60,7 +55,7 @@ class EnergyModelAggregator(AbstractAggregator):
                     cls.__instance = super().__new__(cls)
                     cls.__model = EnergyModel.get_instance()
                     cls.__resource_energy_calculator = ResourceEnergyCalculator(
-                        energy_per_cpu=EnergyPerResourceConsts.cpu,
+                        energy_per_cpu_time=EnergyPerResourceConsts.cpu_time,
                         energy_per_mb_ram=EnergyPerResourceConsts.memory,
                         energy_per_disk_read_kb=EnergyPerResourceConsts.disk_io_read_kbytes,
                         energy_per_disk_write_kb=EnergyPerResourceConsts.disk_io_write_kbytes,
@@ -112,7 +107,7 @@ class EnergyModelAggregator(AbstractAggregator):
             if self.__previous_sample is None:
                 return EmptyAggregationResults()
 
-            duration = sample.timestamp - self.__previous_sample.timestamp
+            duration = (sample.timestamp - self.__previous_sample.timestamp).total_seconds()
 
             current_cpu_usage_system = sample.system_features.cpu_usage_system - self.__previous_sample.system_features.cpu_usage_system
             current_cpu_usage_process = sample.process_features.cpu_usage_process - self.__previous_sample.process_features.cpu_usage_process
@@ -132,7 +127,7 @@ class EnergyModelAggregator(AbstractAggregator):
             # todo: add conversion of system memory GB into MB before inserting to the model
             energy_prediction = self.__model.predict(sample_as_df)
 
-            energy_per_resource = self.__calculate_energy_per_resource(sample, energy_prediction)
+            energy_per_resource = self.__calculate_energy_per_resource(sample, energy_prediction, duration)
             return EnergyModelResult(energy_mwh=energy_prediction,
                                      cpu_energy_consumption=energy_per_resource.cpu_energy_consumption,
                                      ram_energy_consumption=energy_per_resource.ram_energy_consumption,
@@ -156,16 +151,23 @@ class EnergyModelAggregator(AbstractAggregator):
         return sample_dict
 
     def __calculate_energy_per_resource(self, sample: EnergyModelFeatures,
-                                        energy_prediction: float) -> SampleResourcesEnergy:
-        cpu_energy = self.__resource_energy_calculator.calculate_cpu_energy(sample.process_features.cpu_usage_process)
+                                        energy_prediction: float, duration: float) -> SampleResourcesEnergy:
+
+        cpu_time_usage = sample.process_features.cpu_usage_process * duration / 100
+        cpu_energy = self.__resource_energy_calculator.calculate_cpu_energy(cpu_time_usage)
+
         memory_energy = self.__resource_energy_calculator.calculate_mb_ram_energy(
             sample.process_features.memory_mb_usage_process)
+
         disk_io_write_energy = self.__resource_energy_calculator.calculate_disk_write_kb_energy(
             sample.process_features.disk_write_bytes_kb_usage_process)
+
         disk_io_read_energy = self.__resource_energy_calculator.calculate_disk_read_kb_energy(
             sample.process_features.disk_read_bytes_kb_usage_process)
+
         network_received_energy = self.__resource_energy_calculator.calculate_network_received_kb_energy(
             sample.process_features.network_bytes_sum_kb_received_process)
+
         network_sent_energy = self.__resource_energy_calculator.calculate_network_sent_kb_energy(
             sample.process_features.network_packets_sum_sent_process)
 
