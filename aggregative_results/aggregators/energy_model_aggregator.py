@@ -153,18 +153,18 @@ class EnergyModelAggregator(AbstractAggregator):
 
         per_resource_energy_sum = cpu_energy + memory_energy + disk_io_write_energy + disk_io_read_energy + network_received_energy + network_sent_energy
         return SampleResourcesEnergy(
-            cpu_energy_consumption=self.__resource_energy_calculator.per_resource_energy_sum(cpu_energy,
+            cpu_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(cpu_energy,
                                                                                              per_resource_energy_sum,
                                                                                              energy_prediction),
-            ram_energy_consumption=self.__resource_energy_calculator.per_resource_energy_sum(memory_energy,
+            ram_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(memory_energy,
                                                                                              per_resource_energy_sum,
                                                                                              energy_prediction),
-            disk_io_read_energy_consumption=self.__resource_energy_calculator.per_resource_energy_sum(
+            disk_io_read_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(
                 disk_io_read_energy, per_resource_energy_sum, energy_prediction),
-            disk_io_write_energy_consumption=self.__resource_energy_calculator.per_resource_energy_sum(
+            disk_io_write_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(
                 disk_io_write_energy, per_resource_energy_sum, energy_prediction),
-            network_io_received_energy_consumption=self.__resource_energy_calculator.per_resource_energy_sum(
+            network_io_received_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(
                 network_received_energy, per_resource_energy_sum, energy_prediction),
-            network_io_sent_energy_consumption=self.__resource_energy_calculator.per_resource_energy_sum(
+            network_io_sent_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(
                 network_sent_energy, per_resource_energy_sum, energy_prediction)
         )

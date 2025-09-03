@@ -30,5 +30,5 @@ class ResourceEnergyCalculator:
     def calculate_network_sent_kb_energy(self, network_kb: float) -> float:
         return self.__calculate_energy_for_resource(self.__energy_per_network_write_kb, network_kb)
 
-    def per_resource_energy_sum(self, resource_energy: float, resource_sum_energy: float, model_energy_prediction: float):
+    def normalize_energy_consumption(self, resource_energy: float, resource_sum_energy: float, model_energy_prediction: float):
         return (model_energy_prediction / resource_sum_energy) * resource_energy
