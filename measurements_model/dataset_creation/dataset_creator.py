@@ -26,6 +26,7 @@ class DatasetCreator:
 
     def __extend_df(self, df: pd.DataFrame, time_per_batch: int = DEFAULT_TIME_PER_BATCH) -> pd.DataFrame:
         expended_df = DatasetCreator.__expend_df_with_relative_cpu(df)
+        expended_df = DatasetCreator.__expend_df_with_relative_memory(expended_df)
         expended_df = DatasetCreator.__expend_df_with_duration(expended_df)
         expended_df = self.__expend_df_with_energy(expended_df, time_per_batch)
         expended_df = self.__expend_df_with_hardware(expended_df)
@@ -36,6 +37,16 @@ class DatasetCreator:
         df = df.copy()
         df[SystemColumns.CPU_SYSTEM_COL] = df[f"{CPUColumns.SUM_ACROSS_CORES_PERCENT.value}{SYSTEM_COLUMN_SUFFIX}"].diff().fillna(0)
         df[ProcessColumns.CPU_PROCESS_COL] = df[f"{ProcessesColumns.CPU_SUM_ACROSS_CORES.value}{PROCESS_COLUMN_SUFFIX}"].diff().fillna(0)
+
+        return df
+
+    @staticmethod
+    def __expend_df_with_relative_memory(df: pd.DataFrame) -> pd.DataFrame:
+        df = df.copy()
+        df[SystemColumns.MEMORY_SYSTEM_COL] = df[
+            f"{MemoryColumns.USED_MEMORY.value}{SYSTEM_COLUMN_SUFFIX}"].diff().fillna(0)
+        df[ProcessColumns.MEMORY_PROCESS_COL] = df[
+            f"{ProcessesColumns.USED_MEMORY.value}{PROCESS_COLUMN_SUFFIX}"].diff().fillna(0)
 
         return df
 

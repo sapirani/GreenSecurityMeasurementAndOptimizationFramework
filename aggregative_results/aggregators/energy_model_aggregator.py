@@ -112,10 +112,24 @@ class EnergyModelAggregator(AbstractAggregator):
             if self.__previous_sample is None:
                 return EmptyAggregationResults()
 
-            sample_as_dict = self.__convert_sample_to_dict(sample)
             duration = sample.timestamp - self.__previous_sample.timestamp
+
+            current_cpu_usage_system = sample.system_features.cpu_usage_system - self.__previous_sample.system_features.cpu_usage_system
+            current_cpu_usage_process = sample.process_features.cpu_usage_process - self.__previous_sample.process_features.cpu_usage_process
+
+            current_memory_usage_system = sample.system_features.memory_gb_usage_system - self.__previous_sample.system_features.memory_gb_usage_system
+            current_memory_usage_process = sample.process_features.memory_mb_usage_process - self.__previous_sample.process_features.memory_mb_usage_process
+
+            sample.process_features.cpu_usage_process = current_cpu_usage_process
+            sample.process_features.memory_mb_usage_process = current_memory_usage_process
+            sample.system_features.cpu_usage_system = current_cpu_usage_system
+            sample.system_features.memory_gb_usage_system = current_memory_usage_system
+
+            sample_as_dict = self.__convert_sample_to_dict(sample)
             sample_as_dict[DURATION_COLUMN] = duration
             sample_as_df = pd.DataFrame([sample_as_dict])
+
+            # todo: add conversion of system memory GB into MB before inserting to the model
             energy_prediction = self.__model.predict(sample_as_df)
 
             energy_per_resource = self.__calculate_energy_per_resource(sample, energy_prediction)
