@@ -93,7 +93,6 @@ class DatasetCreator:
             disk_write_count_usage_system=data_row[f"{DiskIOColumns.WRITE_COUNT.value}{SYSTEM_COLUMN_SUFFIX}"],
             disk_read_time_system_ms_sum=data_row[DiskIOColumns.READ_TIME],
             disk_write_time_system_ms_sum=data_row[DiskIOColumns.WRITE_TIME],
-            number_of_page_faults_system=0,  # todo: change
             network_bytes_kb_sum_sent_system=data_row[f"{NetworkIOColumns.KB_SENT.value}{SYSTEM_COLUMN_SUFFIX}"],
             network_packets_sum_sent_system=data_row[f"{NetworkIOColumns.PACKETS_SENT.value}{SYSTEM_COLUMN_SUFFIX}"],
             network_bytes_kb_sum_received_system=data_row[f"{NetworkIOColumns.KB_RECEIVED.value}{SYSTEM_COLUMN_SUFFIX}"],
@@ -109,6 +108,7 @@ class DatasetCreator:
             disk_read_count_usage_process=data_row[f"{ProcessesColumns.READ_COUNT.value}{PROCESS_COLUMN_SUFFIX}"],
             disk_write_bytes_kb_usage_process=data_row[f"{ProcessesColumns.WRITE_BYTES.value}{PROCESS_COLUMN_SUFFIX}"],
             disk_write_count_usage_process=data_row[f"{ProcessesColumns.WRITE_COUNT.value}{PROCESS_COLUMN_SUFFIX}"],
+            number_of_page_faults_process=data_row[ProcessesColumns.PAGE_FAULTS.value],
             network_bytes_sum_kb_sent_process=data_row[f"{ProcessesColumns.BYTES_SENT.value}{PROCESS_COLUMN_SUFFIX}"],
             network_packets_sum_sent_process=data_row[f"{ProcessesColumns.PACKETS_SENT.value}{PROCESS_COLUMN_SUFFIX}"],
             network_bytes_sum_kb_received_process=data_row[f"{ProcessesColumns.BYTES_RECEIVED.value}{PROCESS_COLUMN_SUFFIX}"],

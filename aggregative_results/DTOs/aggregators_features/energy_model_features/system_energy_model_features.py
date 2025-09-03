@@ -12,7 +12,6 @@ class SystemEnergyModelFeatures:
     disk_write_count_usage_system: int
     disk_read_time_system_ms_sum: float
     disk_write_time_system_ms_sum: float
-    number_of_page_faults_system: int
     network_bytes_kb_sum_sent_system: float
     network_packets_sum_sent_system: int
     network_bytes_kb_sum_received_system: float

@@ -113,6 +113,7 @@ class ProcessColumns:
     DISK_READ_COUNT_PROCESS_COL = "disk_read_count_usage_process"
     DISK_WRITE_BYTES_PROCESS_COL = "disk_write_bytes_usage_process"
     DISK_WRITE_COUNT_PROCESS_COL = "disk_write_count_usage_process"
+    PAGE_FAULT_PROCESS_COL = "number_of_page_faults_process"
     NETWORK_BYTES_SENT_PROCESS_COL = "network_bytes_sum_sent_process"
     NETWORK_PACKETS_SENT_PROCESS_COL = "network_packets_sum_sent_process"
     NETWORK_BYTES_RECEIVED_PROCESS_COL = "network_bytes_sum_received_process"
@@ -137,7 +138,6 @@ class SystemColumns:
 
     DURATION_COL = "duration_system"  # ??? maybe give up
     ENERGY_TOTAL_USAGE_SYSTEM_COL = "total_energy_consumption_system_mWh"
-    PAGE_FAULT_SYSTEM_COL = "number_of_page_faults_system"
 
 
 # *** IDLE State Related Cols *** #

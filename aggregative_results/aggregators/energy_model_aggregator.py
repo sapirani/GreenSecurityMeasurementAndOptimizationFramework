@@ -82,6 +82,7 @@ class EnergyModelAggregator(AbstractAggregator):
             disk_write_bytes_kb_usage_process=process_data.disk_write_kb,
             disk_read_count_usage_process=process_data.disk_read_count,
             disk_write_count_usage_process=process_data.disk_write_count,
+            number_of_page_faults_process=process_data.page_faults,
             network_bytes_sum_kb_received_process=process_data.network_kb_received,
             network_packets_sum_received_process=process_data.packets_received,
             network_bytes_sum_kb_sent_process=process_data.network_kb_sent,
@@ -93,7 +94,6 @@ class EnergyModelAggregator(AbstractAggregator):
             disk_write_bytes_kb_usage_system=system_data.disk_write_kb,
             disk_read_count_usage_system=system_data.disk_read_count,
             disk_write_count_usage_system=system_data.disk_write_count,
-            number_of_page_faults_system=5,  # todo: change
             network_bytes_kb_sum_sent_system=system_data.network_kb_sent,
             network_packets_sum_sent_system=system_data.packets_sent,
             network_bytes_kb_sum_received_system=system_data.packets_received,
