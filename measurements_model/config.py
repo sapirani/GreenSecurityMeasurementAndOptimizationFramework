@@ -115,9 +115,9 @@ class ProcessColumns:
     DISK_WRITE_COUNT_PROCESS_COL = "disk_write_count_usage_process"
     PAGE_FAULT_PROCESS_COL = "number_of_page_faults_process"
     NETWORK_BYTES_SENT_PROCESS_COL = "network_bytes_sum_sent_process"
-    NETWORK_PACKETS_SENT_PROCESS_COL = "network_packets_sum_sent_process"
+    NETWORK_PACKETS_SENT_PROCESS_COL = "network_packets_sent_process"
     NETWORK_BYTES_RECEIVED_PROCESS_COL = "network_bytes_sum_received_process"
-    NETWORK_PACKETS_RECEIVED_PROCESS_COL = "network_packets_sum_received_process"
+    NETWORK_PACKETS_RECEIVED_PROCESS_COL = "network_packets_received_process"
     ENERGY_USAGE_PROCESS_COL = "energy_consumption_process_mWh"  # total - idle, Target col
 
 
@@ -132,9 +132,9 @@ class SystemColumns:
     DISK_READ_TIME = "disk_read_time_system_ms_sum"
     DISK_WRITE_TIME = "disk_write_time_system_ms_sum"
     NETWORK_BYTES_SENT_SYSTEM_COL = "network_bytes_sum_sent_system"
-    NETWORK_PACKETS_SENT_SYSTEM_COL = "network_packets_sum_sent_system"
+    NETWORK_PACKETS_SENT_SYSTEM_COL = "network_packets_sent_system"
     NETWORK_BYTES_RECEIVED_SYSTEM_COL = "network_bytes_sum_received_system"
-    NETWORK_PACKETS_RECEIVED_SYSTEM_COL = "network_packets_sum_received_system"
+    NETWORK_PACKETS_RECEIVED_SYSTEM_COL = "network_packets_received_system"
 
     DURATION_COL = "duration_system"  # ??? maybe give up
     ENERGY_TOTAL_USAGE_SYSTEM_COL = "total_energy_consumption_system_mWh"

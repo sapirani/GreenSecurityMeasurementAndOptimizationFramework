@@ -21,15 +21,15 @@ class EnergyModelFeatureExtractor:
         return ProcessEnergyModelFeatures(
             cpu_time_usage_process=process_cpu_time,
             memory_mb_usage_process=process_memory_relative_usage,
-            disk_read_bytes_kb_usage_process=process_data.disk_read_kb,
-            disk_write_bytes_kb_usage_process=process_data.disk_write_kb,
+            disk_read_kb_usage_process=process_data.disk_read_kb,
+            disk_write_kb_usage_process=process_data.disk_write_kb,
             disk_read_count_usage_process=process_data.disk_read_count,
             disk_write_count_usage_process=process_data.disk_write_count,
             number_of_page_faults_process=process_data.page_faults,
-            network_bytes_sum_kb_received_process=process_data.network_kb_received,
-            network_packets_sum_received_process=process_data.packets_received,
-            network_bytes_sum_kb_sent_process=process_data.network_kb_sent,
-            network_packets_sum_sent_process=process_data.packets_sent)
+            network_kb_received_process=process_data.network_kb_received,
+            network_packets_received_process=process_data.packets_received,
+            network_kb_sent_process=process_data.network_kb_sent,
+            network_packets_sent_process=process_data.packets_sent)
 
     @staticmethod
     def extract_system_features(system_data: SystemRawResults, previous_sample_features: RelativeSampleFeatures, duration: float) -> SystemEnergyModelFeatures:
@@ -41,14 +41,14 @@ class EnergyModelFeatureExtractor:
         return SystemEnergyModelFeatures(
             cpu_time_usage_system=system_cpu_time,
             memory_gb_usage_system=system_memory_relative_usage_mb,
-            disk_read_bytes_kb_usage_system=system_data.disk_read_kb,
-            disk_write_bytes_kb_usage_system=system_data.disk_write_kb,
+            disk_read_kb_usage_system=system_data.disk_read_kb,
+            disk_write_kb_usage_system=system_data.disk_write_kb,
             disk_read_count_usage_system=system_data.disk_read_count,
             disk_write_count_usage_system=system_data.disk_write_count,
-            network_bytes_kb_sum_sent_system=system_data.network_kb_sent,
-            network_packets_sum_sent_system=system_data.packets_sent,
-            network_bytes_kb_sum_received_system=system_data.packets_received,
-            network_packets_sum_received_system=system_data.packets_received,
+            network_kb_sent_system=system_data.network_kb_sent,
+            network_packets_sent_system=system_data.packets_sent,
+            network_kb_received_system=system_data.packets_received,
+            network_packets_received_system=system_data.packets_received,
             disk_read_time_system_ms_sum=system_data.disk_read_time,
             disk_write_time_system_ms_sum=system_data.disk_write_time
         )

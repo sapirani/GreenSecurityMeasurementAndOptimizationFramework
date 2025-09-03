@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class IdleEnergyModelFeatures:
+    # todo: decide about other features based on model performance.
     energy_per_second: float
     # cpu_usage_idle: float
     # memory_usage_idle: float

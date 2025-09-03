@@ -15,21 +15,19 @@ from aggregative_results.DTOs.raw_results_dtos.system_process_raw_results import
 from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator
 from aggregative_results.DTOs.aggregated_results_dtos.empty_aggregation_results import EmptyAggregationResults
 from aggregative_results.DTOs.raw_results_dtos.iteration_info import IterationMetadata
-from measurements_model.dataset_creation.data_extractors.summary_extractors.system_resources_isolation_summary_extractor import \
-    SystemResourcesIsolationSummaryExtractor
 from measurements_model.energy_model import EnergyModel
 from measurements_model.energy_model_feature_extractor import EnergyModelFeatureExtractor
 from measurements_model.resource_energy_calculator import ResourceEnergyCalculator
 from measurements_model.sample_resources_energy import SampleResourcesEnergy
 
-DURATION_COLUMN = "duration"
-DEFAULT_IDLE_SUMMARY_EXTRACTOR = SystemResourcesIsolationSummaryExtractor()
-DEFAULT_IDLE_DIR = r"C:\Users\Administrator\Desktop\green security\tmp - idle\Measurement 1"
-
 
 class EnergyPerResourceConsts:
-    cpu_time = 1.194578001
-    memory = 17.18771578
+    """
+    This class holds constant values that represent the energy consumption per one unit of a specific resource.
+    For example, the energy usage for 1 MB of RAM usage is 17.18 mwh.
+    """
+    cpu_time_seconds = 1.194578001
+    memory_gain_mb = 17.18771578
     disk_io_read_kbytes = 0.1261034238
     disk_io_write_kbytes = 0.1324211241
     network_received_kbytes = 0.1161303828
@@ -54,8 +52,8 @@ class EnergyModelAggregator(AbstractAggregator):
                     cls.__instance = super().__new__(cls)
                     cls.__model = EnergyModel.get_instance()
                     cls.__resource_energy_calculator = ResourceEnergyCalculator(
-                        energy_per_cpu_time=EnergyPerResourceConsts.cpu_time,
-                        energy_per_mb_ram=EnergyPerResourceConsts.memory,
+                        energy_per_cpu_time=EnergyPerResourceConsts.cpu_time_seconds,
+                        energy_per_mb_ram=EnergyPerResourceConsts.memory_gain_mb,
                         energy_per_disk_read_kb=EnergyPerResourceConsts.disk_io_read_kbytes,
                         energy_per_disk_write_kb=EnergyPerResourceConsts.disk_io_write_kbytes,
                         energy_per_network_received_kb=EnergyPerResourceConsts.network_received_kbytes,
@@ -68,7 +66,7 @@ class EnergyModelAggregator(AbstractAggregator):
                          iteration_metadata: IterationMetadata) -> Union[EnergyModelFeatures, EmptyFeatures]:
 
         if self.__previous_sample is None:
-            return EmptyFeatures() # todo: return empty features
+            return EmptyFeatures()
 
         duration = (iteration_metadata.timestamp - self.__previous_sample.timestamp).total_seconds()
         process_features = EnergyModelFeatureExtractor.extract_process_features(
@@ -100,7 +98,8 @@ class EnergyModelAggregator(AbstractAggregator):
             timestamp=timestamp
         )
 
-    def process_sample(self, sample: Union[EnergyModelFeatures, EmptyFeatures]) -> Union[EnergyModelResult, EmptyAggregationResults]:
+    def process_sample(self, sample: Union[EnergyModelFeatures, EmptyFeatures]) -> Union[
+        EnergyModelResult, EmptyAggregationResults]:
         try:
             if isinstance(sample, EmptyFeatures) or self.__previous_sample is None:
                 return EmptyAggregationResults()
@@ -141,16 +140,16 @@ class EnergyModelAggregator(AbstractAggregator):
             sample.process_features.memory_mb_usage_process)
 
         disk_io_write_energy = self.__resource_energy_calculator.calculate_disk_write_kb_energy(
-            sample.process_features.disk_write_bytes_kb_usage_process)
+            sample.process_features.disk_write_kb_usage_process)
 
         disk_io_read_energy = self.__resource_energy_calculator.calculate_disk_read_kb_energy(
-            sample.process_features.disk_read_bytes_kb_usage_process)
+            sample.process_features.disk_read_kb_usage_process)
 
         network_received_energy = self.__resource_energy_calculator.calculate_network_received_kb_energy(
-            sample.process_features.network_bytes_sum_kb_received_process)
+            sample.process_features.network_kb_received_process)
 
         network_sent_energy = self.__resource_energy_calculator.calculate_network_sent_kb_energy(
-            sample.process_features.network_packets_sum_sent_process)
+            sample.process_features.network_kb_sent_process)
 
         per_resource_energy_sum = cpu_energy + memory_energy + disk_io_write_energy + disk_io_read_energy + network_received_energy + network_sent_energy
         return SampleResourcesEnergy(
