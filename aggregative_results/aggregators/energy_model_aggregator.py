@@ -1,16 +1,16 @@
 import threading
 from dataclasses import asdict
+from datetime import datetime
 from typing import Union, Optional
 
 import pandas as pd
 
 from aggregative_results.DTOs.aggregated_results_dtos.energy_model_result import EnergyModelResult
+from aggregative_results.DTOs.aggregators_features.empty_features import EmptyFeatures
 from aggregative_results.DTOs.aggregators_features.energy_model_features.full_energy_model_features import \
     EnergyModelFeatures
-from aggregative_results.DTOs.aggregators_features.energy_model_features.process_energy_model_features import \
-    ProcessEnergyModelFeatures
-from aggregative_results.DTOs.aggregators_features.energy_model_features.system_energy_model_features import \
-    SystemEnergyModelFeatures
+from aggregative_results.DTOs.aggregators_features.energy_model_features.relative_sample_features import \
+    RelativeSampleFeatures
 from aggregative_results.DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
 from aggregative_results.aggregators.abstract_aggregator import AbstractAggregator
 from aggregative_results.DTOs.aggregated_results_dtos.empty_aggregation_results import EmptyAggregationResults
@@ -18,6 +18,7 @@ from aggregative_results.DTOs.raw_results_dtos.iteration_info import IterationMe
 from measurements_model.dataset_creation.data_extractors.summary_extractors.system_resources_isolation_summary_extractor import \
     SystemResourcesIsolationSummaryExtractor
 from measurements_model.energy_model import EnergyModel
+from measurements_model.energy_model_feature_extractor import EnergyModelFeatureExtractor
 from measurements_model.resource_energy_calculator import ResourceEnergyCalculator
 from measurements_model.sample_resources_energy import SampleResourcesEnergy
 
@@ -40,7 +41,7 @@ class EnergyModelAggregator(AbstractAggregator):
     __lock = threading.Lock()
     __model = None
     __resource_energy_calculator = None
-    __previous_sample: Optional[EnergyModelFeatures] = None
+    __previous_sample: Optional[RelativeSampleFeatures] = None
 
     def __init__(self):
         raise RuntimeError("This is a Singleton. Invoke get_instance() instead.")
@@ -64,68 +65,52 @@ class EnergyModelAggregator(AbstractAggregator):
         return cls.__instance
 
     def extract_features(self, raw_results: ProcessSystemRawResults,
-                         iteration_metadata: IterationMetadata) -> EnergyModelFeatures:
-        process_data = raw_results.process_raw_results
-        system_data = raw_results.system_raw_results
+                         iteration_metadata: IterationMetadata) -> Union[EnergyModelFeatures, EmptyFeatures]:
 
-        process_features = ProcessEnergyModelFeatures(
-            cpu_usage_process=process_data.cpu_percent_sum_across_cores,
-            memory_mb_usage_process=process_data.used_memory_mb,
-            disk_read_bytes_kb_usage_process=process_data.disk_read_kb,
-            disk_write_bytes_kb_usage_process=process_data.disk_write_kb,
-            disk_read_count_usage_process=process_data.disk_read_count,
-            disk_write_count_usage_process=process_data.disk_write_count,
-            number_of_page_faults_process=process_data.page_faults,
-            network_bytes_sum_kb_received_process=process_data.network_kb_received,
-            network_packets_sum_received_process=process_data.packets_received,
-            network_bytes_sum_kb_sent_process=process_data.network_kb_sent,
-            network_packets_sum_sent_process=process_data.packets_sent)
-        system_features = SystemEnergyModelFeatures(
-            cpu_usage_system=system_data.cpu_percent_sum_across_cores,
-            memory_gb_usage_system=system_data.total_memory_gb,
-            disk_read_bytes_kb_usage_system=system_data.disk_read_kb,
-            disk_write_bytes_kb_usage_system=system_data.disk_write_kb,
-            disk_read_count_usage_system=system_data.disk_read_count,
-            disk_write_count_usage_system=system_data.disk_write_count,
-            network_bytes_kb_sum_sent_system=system_data.network_kb_sent,
-            network_packets_sum_sent_system=system_data.packets_sent,
-            network_bytes_kb_sum_received_system=system_data.packets_received,
-            network_packets_sum_received_system=system_data.packets_received,
-            disk_read_time_system_ms_sum=system_data.disk_read_time,
-            disk_write_time_system_ms_sum=system_data.disk_write_time
+        if self.__previous_sample is None:
+            return EmptyFeatures() # todo: return empty features
+
+        duration = (iteration_metadata.timestamp - self.__previous_sample.timestamp).total_seconds()
+        process_features = EnergyModelFeatureExtractor.extract_process_features(
+            raw_results.process_raw_results,
+            self.__previous_sample,
+            duration
         )
+
+        system_features = EnergyModelFeatureExtractor.extract_system_features(
+            raw_results.system_raw_results,
+            self.__previous_sample,
+            duration
+        )
+
+        self.__set_previous_sample(raw_results, iteration_metadata.timestamp)
+
         return EnergyModelFeatures(
-            timestamp=iteration_metadata.timestamp,
+            duration=duration,
             process_features=process_features,
             system_features=system_features
         )
 
-    def process_sample(self, sample: EnergyModelFeatures) -> Union[EnergyModelResult, EmptyAggregationResults]:
+    def __set_previous_sample(self, raw_results: ProcessSystemRawResults, timestamp: datetime):
+        self.__previous_sample = RelativeSampleFeatures(
+            cpu_usage_process=raw_results.process_raw_results.cpu_percent_sum_across_cores,
+            cpu_usage_system=raw_results.system_raw_results.cpu_percent_sum_across_cores,
+            memory_usage_process=raw_results.process_raw_results.used_memory_mb,
+            memory_usage_system=raw_results.system_raw_results.total_memory_gb,
+            timestamp=timestamp
+        )
+
+    def process_sample(self, sample: Union[EnergyModelFeatures, EmptyFeatures]) -> Union[EnergyModelResult, EmptyAggregationResults]:
         try:
-            if self.__previous_sample is None:
+            if isinstance(sample, EmptyFeatures) or self.__previous_sample is None:
                 return EmptyAggregationResults()
 
-            duration = (sample.timestamp - self.__previous_sample.timestamp).total_seconds()
-
-            current_cpu_usage_system = sample.system_features.cpu_usage_system - self.__previous_sample.system_features.cpu_usage_system
-            current_cpu_usage_process = sample.process_features.cpu_usage_process - self.__previous_sample.process_features.cpu_usage_process
-
-            current_memory_usage_system = sample.system_features.memory_gb_usage_system - self.__previous_sample.system_features.memory_gb_usage_system
-            current_memory_usage_process = sample.process_features.memory_mb_usage_process - self.__previous_sample.process_features.memory_mb_usage_process
-
-            sample.process_features.cpu_usage_process = current_cpu_usage_process
-            sample.process_features.memory_mb_usage_process = current_memory_usage_process
-            sample.system_features.cpu_usage_system = current_cpu_usage_system
-            sample.system_features.memory_gb_usage_system = current_memory_usage_system
-
             sample_as_dict = self.__convert_sample_to_dict(sample)
-            sample_as_dict[DURATION_COLUMN] = duration
             sample_as_df = pd.DataFrame([sample_as_dict])
 
-            # todo: add conversion of system memory GB into MB before inserting to the model
             energy_prediction = self.__model.predict(sample_as_df)
 
-            energy_per_resource = self.__calculate_energy_per_resource(sample, energy_prediction, duration)
+            energy_per_resource = self.__calculate_energy_per_resource(sample, energy_prediction, sample.duration)
             return EnergyModelResult(energy_mwh=energy_prediction,
                                      cpu_energy_consumption=energy_per_resource.cpu_energy_consumption,
                                      ram_energy_consumption=energy_per_resource.ram_energy_consumption,
@@ -138,8 +123,6 @@ class EnergyModelAggregator(AbstractAggregator):
                 "Error occurred when using the energy model. Returning empty aggregation results. \nThe error is: {}".format(
                     e))
             return EmptyAggregationResults()
-        finally:
-            self.__previous_sample = sample
 
     def __convert_sample_to_dict(self, sample: EnergyModelFeatures) -> dict[str, any]:
         sample_dict = {**asdict(sample.process_features), **asdict(sample.system_features)}
@@ -151,7 +134,7 @@ class EnergyModelAggregator(AbstractAggregator):
     def __calculate_energy_per_resource(self, sample: EnergyModelFeatures,
                                         energy_prediction: float, duration: float) -> SampleResourcesEnergy:
 
-        cpu_time_usage = sample.process_features.cpu_usage_process * duration / 100
+        cpu_time_usage = sample.process_features.cpu_time_usage_process * duration / 100
         cpu_energy = self.__resource_energy_calculator.calculate_cpu_energy(cpu_time_usage)
 
         memory_energy = self.__resource_energy_calculator.calculate_mb_ram_energy(

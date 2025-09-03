@@ -4,7 +4,7 @@ from typing import Optional
 
 @dataclass
 class SystemEnergyModelFeatures:
-    cpu_usage_system: float
+    cpu_time_usage_system: float
     memory_gb_usage_system: float
     disk_read_bytes_kb_usage_system: float
     disk_read_count_usage_system: int

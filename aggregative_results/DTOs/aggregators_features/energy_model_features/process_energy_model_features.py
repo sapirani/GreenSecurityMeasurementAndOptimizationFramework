@@ -4,7 +4,7 @@ from typing import Optional
 
 @dataclass
 class ProcessEnergyModelFeatures:
-    cpu_usage_process: float
+    cpu_time_usage_process: float
     memory_mb_usage_process: float
     disk_read_bytes_kb_usage_process: float
     disk_read_count_usage_process: int
