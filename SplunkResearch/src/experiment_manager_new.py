@@ -86,6 +86,8 @@ class ExperimentConfig:
     # Experiment metadata
     experiment_name: Optional[str] = None
     mode: str = "train"  # train, eval, retrain
+    distribution_threshold: float = 0.22
+    alert_threshold: float = -10  # -6, -2, -10
 
 class ExperimentManager:
     """Manages training and evaluation experiments"""
@@ -162,10 +164,11 @@ class ExperimentManager:
                 env,
                 gamma=config.gamma_dist,
                 epsilon=1e-8,
-                distribution_freq=1
+                distribution_freq=1,
+                distribution_threshold=config.distribution_threshold
             )
             
-        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = 2.5, skip_on_low_alert = True, use_energy = config.use_energy_reward, use_alert = config.use_alert_reward, is_train = (config.mode.__contains__('train')) , is_eval = (config.mode == "eval_post_training"))  
+        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = config.alert_threshold, skip_on_low_alert = True, use_energy = config.use_energy_reward, use_alert = config.use_alert_reward, is_train = (config.mode.__contains__('train')) , is_eval = (config.mode == "eval_post_training"))  
         # alert_threshold = -6, -2, -10
         
         if config.use_energy_reward:
@@ -586,7 +589,7 @@ if __name__ == "__main__":
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250620175311_35000_steps"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250623144601_43000_steps.zip"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250711001649_264000_steps.zip"
-    num_episodes = 2000000
+    num_episodes = 600000
     action_type = "Action8"
     for steps in range(45000, 160000, 500000):
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250626010440_{steps}_steps.zip"
@@ -632,12 +635,14 @@ if __name__ == "__main__":
                             use_random_agent=is_random,
                             is_mock=True,
                             model_path=model_path if model_path else None,
+                            distribution_threshold=0.22,
+                            alert_threshold=-10,
                             
                         )
                         
                         #retrain model
                         experiment_config.mode = "train"#"eval_post_training"  # eval after training
-                        manager = ExperimentManager(base_dir="experiments")
+                        manager = ExperimentManager(base_dir="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments")
                         results = manager.run_experiment(experiment_config)
 
                         

@@ -80,6 +80,8 @@ class SplunkEnv(gym.Env):
         self.episodic_inserted_logs = 0
         self.all_data = []
         self.all_data_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/all_data.csv"
+        self.all_baseline_data = []
+        self.all_baseline_data_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/all_baseline_data.csv"
 
         # Initialize time manager
         self.time_manager = TimeManager(
@@ -277,7 +279,7 @@ if __name__ == "__main__":
     env = DistributionRewardWrapper(env, gamma=0.2)
     # env = BaseRuleExecutionWrapper(env)
     env = EnergyRewardWrapper(env, alpha=0.5)
-    env = AlertRewardWrapper(env, beta=0.3)
+
     # env = QuotaViolationWrapper(env)
     
 

@@ -25,7 +25,7 @@ from datetime import timezone
 from random import randint
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple, Any, Optional
-
+from utils.general_consts import LoggerName
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env')
@@ -39,7 +39,6 @@ HEADERS = {
 PREFIX_PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/'
 import logging
 logger = logging.getLogger(__name__)
-from program_parameters import *
 
 from application_logging.logging_utils import get_measurement_logger
 ES_URL = "http://127.0.0.1:9200"
