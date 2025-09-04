@@ -23,6 +23,7 @@ from utils.general_consts import LoggerName
 logger = getLogger(LoggerName.METRICS_AGGREGATIONS)
 
 PerProcesAggregators: TypeAlias = DefaultDict[ProcessIdentity, List[AbstractAggregator]]
+SessionHostProcessAggregators: TypeAlias = DefaultDict[SessionHostIdentity, PerProcesAggregators]
 PerProcessAggregationResults: TypeAlias = Dict[ProcessIdentity, AggregatedProcessResults]
 
 
@@ -42,17 +43,14 @@ class AggregationManager:
             SessionHostIdentity, List[AbstractAggregator]
         ] = defaultdict(self.__get_system_aggregators)
 
-        self.process_only_aggregators: DefaultDict[
-            SessionHostIdentity, PerProcesAggregators
-        ] = defaultdict(lambda: defaultdict(self.__get_process_only_aggregators))
+        self.process_only_aggregators: SessionHostProcessAggregators = \
+            defaultdict(lambda: defaultdict(self.__get_process_only_aggregators))
 
-        self.process_system_aggregators: DefaultDict[
-            SessionHostIdentity, PerProcesAggregators
-        ] = defaultdict(lambda: defaultdict(self.__get_process_system_aggregators))
+        self.process_system_aggregators: SessionHostProcessAggregators = \
+            defaultdict(lambda: defaultdict(self.__get_process_system_aggregators))
 
-        self.full_scope_aggregators: DefaultDict[
-            SessionHostIdentity, PerProcesAggregators
-        ] = defaultdict(lambda: defaultdict(self.__get_full_scope_aggregators))
+        self.full_scope_aggregatorsSessionHostProcessAggregators = \
+            defaultdict(lambda: defaultdict(self.__get_full_scope_aggregators))
 
     def __get_system_aggregators(self) -> List[AbstractAggregator]:
         return self.__get_initialized_aggregators(self.SYSTEM_AGGREGATOR_TYPES)
