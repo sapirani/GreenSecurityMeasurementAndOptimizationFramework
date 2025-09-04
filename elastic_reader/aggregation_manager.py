@@ -1,6 +1,6 @@
 from collections import defaultdict
 from logging import getLogger
-from typing import List, Dict, Callable, Type, DefaultDict, Optional
+from typing import List, Dict, Callable, Type, DefaultDict, Optional, TypeAlias
 
 from DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
 from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationAggregatedResults
@@ -22,6 +22,9 @@ from utils.general_consts import LoggerName
 
 logger = getLogger(LoggerName.METRICS_AGGREGATIONS)
 
+PerProcesAggregators: TypeAlias = DefaultDict[ProcessIdentity, List[AbstractAggregator]]
+PerProcessAggregationResults: TypeAlias = Dict[ProcessIdentity, AggregatedProcessResults]
+
 
 class AggregationManager:
     """
@@ -31,31 +34,24 @@ class AggregationManager:
     """
     SYSTEM_AGGREGATOR_TYPES = [CPUIntegralAggregator]
     PROCESS_ONLY_AGGREGATOR_TYPES = [CPUIntegralAggregator]
-    PROCESS_SYSTEM_AGGREGATORS_TYPES = []   # TODO: ADD ENERGY ESTIMATIONS
+    PROCESS_SYSTEM_AGGREGATORS_TYPES = []
     FULL_SCOPE_AGGREGATORS_TYPES = [ProcessSystemUsageFractionAggregator]
 
     def __init__(self):
-        # TODO: THINK ABOUT CREATING DATACLASSES TO EASE THE TYPING HERE
         self.system_aggregators: DefaultDict[
             SessionHostIdentity, List[AbstractAggregator]
         ] = defaultdict(self.__get_system_aggregators)
 
         self.process_only_aggregators: DefaultDict[
-            SessionHostIdentity, DefaultDict[
-                ProcessIdentity, List[AbstractAggregator]
-            ]
+            SessionHostIdentity, PerProcesAggregators
         ] = defaultdict(lambda: defaultdict(self.__get_process_only_aggregators))
 
         self.process_system_aggregators: DefaultDict[
-            SessionHostIdentity, DefaultDict[
-                ProcessIdentity, List[AbstractAggregator]
-            ]
+            SessionHostIdentity, PerProcesAggregators
         ] = defaultdict(lambda: defaultdict(self.__get_process_system_aggregators))
 
         self.full_scope_aggregators: DefaultDict[
-            SessionHostIdentity, DefaultDict[
-                ProcessIdentity, List[AbstractAggregator]
-            ]
+            SessionHostIdentity, PerProcesAggregators
         ] = defaultdict(lambda: defaultdict(self.__get_full_scope_aggregators))
 
     def __get_system_aggregators(self) -> List[AbstractAggregator]:
@@ -125,7 +121,7 @@ class AggregationManager:
             iteration_metadata: IterationMetadata,
             aggregators_dict: Dict[SessionHostIdentity, Dict[ProcessIdentity, List[AbstractAggregator]]],
             raw_results_combiner: Callable[[ProcessRawResults], ProcessRawResults | ProcessSystemRawResults | FullScopeRawResults]
-    ) -> Dict[ProcessIdentity, AggregatedProcessResults]:
+    ) -> PerProcessAggregationResults:
         """
         This is a generic function that iterates over all processes metrics, 
         apply the relevant aggregators for each process, and returns all aggregations results.
@@ -164,7 +160,7 @@ class AggregationManager:
     def __aggregate_from_process_metrics_only(
             self,
             iteration_raw_results: IterationRawResults,
-    ) -> Dict[ProcessIdentity, AggregatedProcessResults]:
+    ) -> PerProcessAggregationResults:
         """
         The most basic process aggregation method.
         This function applies aggregations on each process individually, relying on the process's raw metrics solely
@@ -183,7 +179,7 @@ class AggregationManager:
 
     def __aggregate_from_process_and_system_metrics(
             self, iteration_raw_results: IterationRawResults,
-    ) -> Dict[ProcessIdentity, AggregatedProcessResults]:
+    ) -> PerProcessAggregationResults:
         """
         This function applies aggregations on each process individually, 
         while taking the raw system metrics as an additional context
@@ -204,7 +200,7 @@ class AggregationManager:
 
     def __aggregate_from_full_scope_metrics(
             self, iteration_raw_results: IterationRawResults,
-    ) -> Dict[ProcessIdentity, AggregatedProcessResults]:
+    ) -> PerProcessAggregationResults:
         """
         This function applies aggregations on each process individually, 
         while taking the raw system metrics and other processes' raw metrics as an additional context
@@ -234,10 +230,10 @@ class AggregationManager:
 
     @staticmethod
     def __combine_process_results(
-            processes_basic_aggregated_results: Dict[ProcessIdentity, AggregatedProcessResults],
-            system_process_aggregated_results: Dict[ProcessIdentity, AggregatedProcessResults],
-            system_processes_aggregated_results: Dict[ProcessIdentity, AggregatedProcessResults]
-    ) -> Dict[ProcessIdentity, AggregatedProcessResults]:
+            processes_basic_aggregated_results: PerProcessAggregationResults,
+            system_process_aggregated_results: PerProcessAggregationResults,
+            system_processes_aggregated_results: PerProcessAggregationResults
+    ) -> PerProcessAggregationResults:
         all_dicts = (
             processes_basic_aggregated_results,
             system_process_aggregated_results,

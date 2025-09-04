@@ -12,7 +12,7 @@ from consts import ElasticIndex, FINAL_ITERATION_TIMEOUT_SECONDS, PULL_INTERVAL_
 from elastic_reader_parameters import ES_URL, ES_USER, ES_PASS
 from DTOs.raw_results_dtos.iteration_results import IterationResults
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata, IterationRawResults
-from elastic_reader_user_input.abstract_date_picker import ReadingMode, TimePickerChosenInput
+from user_input.elastic_reader_input.abstract_date_picker import ReadingMode, TimePickerChosenInput
 
 
 class ElasticReader:

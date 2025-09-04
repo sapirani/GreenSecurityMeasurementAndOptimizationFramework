@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from elastic_reader_user_input.abstract_date_picker import AbstractTimePicker, TimePickerChosenInput, ReadingMode
+from user_input.elastic_reader_input.abstract_date_picker import AbstractTimePicker, TimePickerChosenInput, ReadingMode
 
 
 class CLITimePicker(AbstractTimePicker):
