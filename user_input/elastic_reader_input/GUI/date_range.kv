@@ -1,0 +1,113 @@
+#:import MDCard kivymd.uix.card.MDCard
+#:import MDIcon kivymd.uix.label.MDIcon
+#:import MDLabel kivymd.uix.label.MDLabel
+#:import MDGridLayout kivymd.uix.gridlayout.MDGridLayout
+
+<TimePickerContent>:
+    orientation: "vertical"
+    spacing: "8dp"
+    padding: "8dp"
+    size_hint_y: None
+    height: self.minimum_height
+
+    MDBoxLayout:
+        orientation: "horizontal"
+        spacing: "8dp"
+        size_hint_y: None
+        height: "40dp"
+        pos_hint: {"center_x": 0.5}
+
+        MDTextField:
+            id: hour
+            text: "00"
+            hint_text: "HH"
+            max_text_length: 2
+            input_filter: "int"
+            helper_text: "0-23"
+            helper_text_mode: "on_focus"
+            size_hint_x: None
+            width: "60dp"
+            focus: True
+
+        MDTextField:
+            id: minute
+            text: "00"
+            hint_text: "MM"
+            max_text_length: 2
+            input_filter: "int"
+            helper_text: "0-59"
+            helper_text_mode: "on_focus"
+            size_hint_x: None
+            width: "60dp"
+
+        MDTextField:
+            id: second
+            text: "00"
+            hint_text: "SS"
+            max_text_length: 2
+            input_filter: "int"
+            helper_text: "0-59"
+            helper_text_mode: "on_focus"
+            size_hint_x: None
+            width: "60dp"
+
+
+<ModeCard>:
+    hovered: False
+    orientation: "vertical"
+    size_hint: None, None
+    size: "200dp", "140dp"
+    padding: "16dp"
+    radius: [15,]
+    focus_behavior: True
+    focus_color: app.theme_cls.primary_light
+    ripple_behavior: False if self.selected else True
+    elevation: 1
+    md_bg_color:
+        app.theme_cls.primary_light if self.selected else (
+        app.theme_cls.primary_dark if self.hovered else app.theme_cls.bg_normal)
+
+
+    on_release: app.select_mode(self.mode_key)
+    on_enter: self.on_hover_enter()  # Custom method when mouse enters
+    on_leave: self.on_hover_leave()  # Custom method when mouse leaves
+
+    MDIcon:
+        icon: root.icon
+        size_hint: None, None
+        size: "48dp", "48dp"
+        pos_hint: {"center_x": 0.5}
+
+    MDLabel:
+        text: root.title
+        halign: "center"
+        theme_text_color: "Primary"
+        font_style: "H6"
+        size_hint_y: None
+        height: self.texture_size[1]
+
+    MDLabel:
+        text: root.description
+        halign: "center"
+        theme_text_color: "Secondary"
+        size_hint_y: None
+        height: self.texture_size[1]
+        padding: ("12dp", 0)
+
+
+FloatLayout:
+    MDLabel:
+        id: datetime_label
+        text: "Please select a mode"
+        halign: "center"
+        font_style: "H4"
+        size_hint_y: None
+        height: self.texture_size[1]
+        pos_hint: {"center_x": 0.5, "center_y": 0.7}
+
+    MDGridLayout:
+        pos_hint: {"center_x": 0.5, "center_y": 0.1}
+        id: mode_grid
+        cols: 3
+        size_hint_x: 0.85
+        spacing: "20dp"
