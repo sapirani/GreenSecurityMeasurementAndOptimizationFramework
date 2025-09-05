@@ -9,6 +9,7 @@ from DTOs.raw_results_dtos.iteration_info import IterationMetadata
 from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
 from elastic_reader.aggregators.abstract_aggregator import AbstractAggregator
 from measurements_model.energy_model import EnergyModel
+from measurements_model.energy_model_convertor import EnergyModelConvertor
 from measurements_model.energy_model_feature_extractor import EnergyModelFeatureExtractor
 from measurements_model.resource_energy_calculator import ResourceEnergyCalculator
 from measurements_model.sample_resources_energy import SampleResourcesEnergy
@@ -67,7 +68,7 @@ class EnergyModelAggregator(AbstractAggregator):
             if isinstance(sample, EmptyFeatures):
                 return EmptyAggregationResults()
 
-            sample_df = self.__energy_model_feature_extractor.convert_features_to_pandas(sample)
+            sample_df = EnergyModelConvertor.convert_features_to_pandas(sample)
             energy_prediction = self.__model.predict(sample_df)
 
             energy_per_resource = self.__calculate_energy_per_resource(sample, energy_prediction, sample.duration)

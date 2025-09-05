@@ -135,6 +135,7 @@ class SystemColumns:
     NETWORK_PACKETS_SENT_SYSTEM_COL = "network_packets_sent_system"
     NETWORK_BYTES_RECEIVED_SYSTEM_COL = "network_bytes_sum_received_system"
     NETWORK_PACKETS_RECEIVED_SYSTEM_COL = "network_packets_received_system"
+    BATTERY_CAPACITY_MWH_SYSTEM_COL = "battery_capacity_mwh_system"
 
     DURATION_COL = "duration_system"  # ??? maybe give up
     ENERGY_TOTAL_USAGE_SYSTEM_COL = "total_energy_consumption_system_mWh"
