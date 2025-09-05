@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from aggregative_results.DTOs.aggregators_features.energy_model_features.process_energy_model_features import \
-    ProcessEnergyModelFeatures
-from aggregative_results.DTOs.aggregators_features.energy_model_features.system_energy_model_features import \
-    SystemEnergyModelFeatures
+
+from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
+from DTOs.aggregators_features.energy_model_features.system_energy_model_features import SystemEnergyModelFeatures
 
 
 @dataclass
