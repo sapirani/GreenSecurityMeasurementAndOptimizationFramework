@@ -1,5 +1,4 @@
-from aggregative_results.DTOs.aggregators_features.energy_model_features.hardware_energy_model_features import \
-    HardwareEnergyModelFeatures
+from DTOs.aggregators_features.energy_model_features.hardware_energy_model_features import HardwareEnergyModelFeatures
 
 
 class HardwareExtractor:

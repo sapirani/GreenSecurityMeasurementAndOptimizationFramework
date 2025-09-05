@@ -1,7 +1,6 @@
 import pandas as pd
 
-from aggregative_results.DTOs.aggregators_features.energy_model_features.idle_energy_model_features import \
-    IdleEnergyModelFeatures
+from DTOs.aggregators_features.energy_model_features.idle_energy_model_features import IdleEnergyModelFeatures
 from measurements_model.config import TIME_COLUMN_NAME
 from utils.general_consts import BatteryColumns
 
