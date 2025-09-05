@@ -1,4 +1,4 @@
-from consts import TimePickerInputStrategy
+from elastic_reader.consts import TimePickerInputStrategy
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput
 from user_input.elastic_reader_input.cli_time_picker import CLITimePicker
 
