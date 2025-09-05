@@ -14,11 +14,14 @@ from DTOs.raw_results_dtos.iteration_info import IterationMetadata
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
+from measurements_model.config import DEFAULT_HARDWARE_FILE_PATH
+from measurements_model.dataset_creation.data_extractors.hardware_extractor import HardwareExtractor
 from utils.general_consts import MB
 
 
 class EnergyModelFeatureExtractor:
     def __init__(self):
+        self.__hardware_details = HardwareExtractor().extract(DEFAULT_HARDWARE_FILE_PATH)
         self.__previous_sample: Optional[RelativeSampleFeatures] = None
 
     def extract_energy_model_features(self, raw_results: ProcessSystemRawResults,
@@ -47,6 +50,7 @@ class EnergyModelFeatureExtractor:
             duration=duration,
             process_features=process_features,
             system_features=system_features,
+            hardware_features=self.__hardware_details,
             battery_remaining_capacity_mWh=battery_usage
         )
 

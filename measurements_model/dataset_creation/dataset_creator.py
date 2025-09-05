@@ -28,8 +28,8 @@ class DatasetCreator:
             [ElasticIndex.PROCESS, ElasticIndex.SYSTEM]).read()
 
         self.__energy_model_feature_extractor = EnergyModelFeatureExtractor()
-        self.__idle_details = IdleExtractor().extract(idle_session_path)
-        self.__hardware_details = HardwareExtractor().extract(DEFAULT_HARDWARE_FILE_PATH)
+        # self.__idle_details = IdleExtractor().extract(idle_session_path)
+        # self.__hardware_details = HardwareExtractor().extract(DEFAULT_HARDWARE_FILE_PATH)
 
     # def __extend_df(self, df: pd.DataFrame, time_per_batch: int = DEFAULT_TIME_PER_BATCH) -> pd.DataFrame:
     #     expended_df = DatasetCreator.__expend_df_with_relative_cpu(df)
@@ -156,7 +156,7 @@ class DatasetCreator:
             for process_result in sample.processes_raw_results:
                 sample_raw_results = ProcessSystemRawResults(system_raw_results=system_raw_results,
                                                              process_raw_results=process_result)
-                sample_features = self.__energy_model_feature_extractor.extract_energy_model_features(
+                sample_features = self.__energy_model_feature_extractor.extract_extended_energy_model_features(
                     raw_results=sample_raw_results, timestamp=metadata.timestamp)
 
                 if isinstance(sample_features, EmptyFeatures):
@@ -181,15 +181,15 @@ class DatasetCreator:
         return full_df
 
     def create_dataset(self) -> pd.DataFrame:
-        system_process_df = self.__create_system_process_dataset()
-        full_df = self.__extend_df_with_hardware(system_process_df)
-        return full_df
+        df = self.__create_system_process_dataset()
+        # full_df = self.__extend_df_with_hardware(system_process_df)
+        return df
 
-    def __extend_df_with_hardware(self, df: pd.DataFrame) -> pd.DataFrame:
-        df = df.copy()
-        num_of_rows = len(df)
-        hardware_dict = asdict(self.__hardware_details)
-        hardware_df = pd.concat([pd.DataFrame(hardware_dict)] * num_of_rows, ignore_index=True)
-        df_with_hardware = pd.concat([df.reset_index(drop=True), hardware_df.reset_index(drop=True)], axis=1)
-        return df_with_hardware
+    # def __extend_df_with_hardware(self, df: pd.DataFrame) -> pd.DataFrame:
+    #     df = df.copy()
+    #     num_of_rows = len(df)
+    #     hardware_dict = asdict(self.__hardware_details)
+    #     hardware_df = pd.concat([pd.DataFrame(hardware_dict)] * num_of_rows, ignore_index=True)
+    #     df_with_hardware = pd.concat([df.reset_index(drop=True), hardware_df.reset_index(drop=True)], axis=1)
+    #     return df_with_hardware
 
