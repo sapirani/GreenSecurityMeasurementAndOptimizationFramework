@@ -1,15 +1,10 @@
 import threading
-from dataclasses import asdict
-from datetime import datetime
-from typing import Union, Optional
-
-import pandas as pd
+from typing import Union
 
 from DTOs.aggregated_results_dtos.empty_aggregation_results import EmptyAggregationResults
 from DTOs.aggregated_results_dtos.energy_model_result import EnergyModelResult
 from DTOs.aggregators_features.empty_features import EmptyFeatures
 from DTOs.aggregators_features.energy_model_features.full_energy_model_features import EnergyModelFeatures
-from DTOs.aggregators_features.energy_model_features.relative_sample_features import RelativeSampleFeatures
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata
 from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
 from elastic_reader.aggregators.abstract_aggregator import AbstractAggregator
