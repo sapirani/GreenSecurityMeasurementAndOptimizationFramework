@@ -7,6 +7,7 @@ import pandas as pd
 from DTOs.aggregators_features.empty_features import EmptyFeatures
 from DTOs.aggregators_features.energy_model_features.full_energy_model_features import EnergyModelFeatures, \
     ExtendedEnergyModelFeatures
+from DTOs.aggregators_features.energy_model_features.idle_energy_model_features import IdleEnergyModelFeatures
 from DTOs.process_info import ProcessIdentity
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
@@ -22,10 +23,10 @@ from measurements_model.dataset_creation.dataframe_utils import get_full_feature
 from measurements_model.energy_model_convertor import EnergyModelConvertor
 from measurements_model.energy_model_feature_extractor import EnergyModelFeatureExtractor
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
-from utils.general_consts import ProcessesColumns, NetworkIOColumns, DiskIOColumns, MemoryColumns, BatteryColumns, \
-    CPUColumns
+from utils.general_consts import BatteryColumns
 
 DEFAULT_TIME_PER_BATCH = 150
+DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT = 1753
 
 
 class DatasetCreator:
@@ -33,7 +34,9 @@ class DatasetCreator:
         self.__elastic_reader_iterator = ElasticReader(
             get_time_picker_input(time_picker_input_strategy, preconfigured_time_picker_input),
             [ElasticIndex.PROCESS, ElasticIndex.SYSTEM]).read()
-        # self.__idle_details = IdleExtractor.extract(idle_session_path)
+        self.__idle_details = IdleEnergyModelFeatures(
+            energy_per_second=DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT
+        )
         self.__features_convertor = EnergyModelConvertor()
         self.__processes_extractor_mapping: Dict[ProcessIdentity, EnergyModelFeatureExtractor] = {}
 
@@ -104,18 +107,18 @@ class DatasetCreator:
 
     def __extend_df_with_target(self, df: pd.DataFrame, time_per_batch: int) -> pd.DataFrame:
         df = df.copy()
-        # todo: 1. fix idle handling. 2. make it look better
+        # todo: make it look better
         df["batch_id"] = (df[TIME_COLUMN_NAME] // time_per_batch).astype(int)
 
         # Step 4: compute energy usage per second per batch
         energy_per_batch = (
-            df.groupby("batch_id")[BatteryColumns.CAPACITY]
+            df.groupby("batch_id")["battery_capacity_mwh_system"]
             .agg(lambda s: (s.iloc[0] - s.iloc[-1]) / time_per_batch)
-            .rename("energy_per_sec")
+            .rename("energy_per_sec_system")
         )
         df = df.merge(energy_per_batch, on="batch_id", how="left")
 
         # Step 5: energy usage per row
-        df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = df[SystemColumns.DURATION_COL] * df["energy_per_sec"] - df[
-            SystemColumns.DURATION_COL] * self.__idle_details.energy_per_second
+        df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = df["duration"] * df["energy_per_sec_system"] - \
+                                                      df["duration"] * self.__idle_details.energy_per_second
         return df
