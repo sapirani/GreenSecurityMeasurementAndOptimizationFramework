@@ -85,34 +85,34 @@ class DatasetCreator:
 
     def __extract_system_features(self, data_row: pd.Series) -> SystemEnergyModelFeatures:
         return SystemEnergyModelFeatures(
-            cpu_usage_system=data_row[SystemColumns.CPU_SYSTEM_COL],
+            cpu_time_usage_system=data_row[SystemColumns.CPU_SYSTEM_COL],
             memory_gb_usage_system=data_row[f"{MemoryColumns.USED_MEMORY.value}{SYSTEM_COLUMN_SUFFIX}"],
-            disk_read_bytes_kb_usage_system=data_row[f"{DiskIOColumns.READ_BYTES.value}{SYSTEM_COLUMN_SUFFIX}"],
+            disk_read_kb_usage_system=data_row[f"{DiskIOColumns.READ_BYTES.value}{SYSTEM_COLUMN_SUFFIX}"],
             disk_read_count_usage_system=data_row[f"{DiskIOColumns.READ_COUNT.value}{SYSTEM_COLUMN_SUFFIX}"],
-            disk_write_bytes_kb_usage_system=data_row[f"{DiskIOColumns.WRITE_BYTES.value}{SYSTEM_COLUMN_SUFFIX}"],
+            disk_write_kb_usage_system=data_row[f"{DiskIOColumns.WRITE_BYTES.value}{SYSTEM_COLUMN_SUFFIX}"],
             disk_write_count_usage_system=data_row[f"{DiskIOColumns.WRITE_COUNT.value}{SYSTEM_COLUMN_SUFFIX}"],
             disk_read_time_system_ms_sum=data_row[DiskIOColumns.READ_TIME],
             disk_write_time_system_ms_sum=data_row[DiskIOColumns.WRITE_TIME],
-            network_bytes_kb_sum_sent_system=data_row[f"{NetworkIOColumns.KB_SENT.value}{SYSTEM_COLUMN_SUFFIX}"],
-            network_packets_sum_sent_system=data_row[f"{NetworkIOColumns.PACKETS_SENT.value}{SYSTEM_COLUMN_SUFFIX}"],
-            network_bytes_kb_sum_received_system=data_row[f"{NetworkIOColumns.KB_RECEIVED.value}{SYSTEM_COLUMN_SUFFIX}"],
-            network_packets_sum_received_system=data_row[f"{NetworkIOColumns.PACKETS_RECEIVED.value}{SYSTEM_COLUMN_SUFFIX}"],
+            network_kb_sent_system=data_row[f"{NetworkIOColumns.KB_SENT.value}{SYSTEM_COLUMN_SUFFIX}"],
+            network_packets_sent_system=data_row[f"{NetworkIOColumns.PACKETS_SENT.value}{SYSTEM_COLUMN_SUFFIX}"],
+            network_kb_received_system=data_row[f"{NetworkIOColumns.KB_RECEIVED.value}{SYSTEM_COLUMN_SUFFIX}"],
+            network_packets_received_system=data_row[f"{NetworkIOColumns.PACKETS_RECEIVED.value}{SYSTEM_COLUMN_SUFFIX}"],
             total_energy_consumption_system_mWh=data_row[SystemColumns.ENERGY_TOTAL_USAGE_SYSTEM_COL]
         )
 
     def __extract_process_features(self, data_row: pd.Series) -> ProcessEnergyModelFeatures:
         return ProcessEnergyModelFeatures(
-            cpu_usage_process=data_row[ProcessColumns.CPU_PROCESS_COL],
+            cpu_time_usage_process=data_row[ProcessColumns.CPU_PROCESS_COL],
             memory_mb_usage_process=data_row[f"{ProcessesColumns.USED_MEMORY.value}{PROCESS_COLUMN_SUFFIX}"],
-            disk_read_bytes_kb_usage_process=data_row[f"{ProcessesColumns.READ_BYTES.value}{PROCESS_COLUMN_SUFFIX}"],
+            disk_read_kb_usage_process=data_row[f"{ProcessesColumns.READ_BYTES.value}{PROCESS_COLUMN_SUFFIX}"],
             disk_read_count_usage_process=data_row[f"{ProcessesColumns.READ_COUNT.value}{PROCESS_COLUMN_SUFFIX}"],
-            disk_write_bytes_kb_usage_process=data_row[f"{ProcessesColumns.WRITE_BYTES.value}{PROCESS_COLUMN_SUFFIX}"],
+            disk_write_kb_usage_process=data_row[f"{ProcessesColumns.WRITE_BYTES.value}{PROCESS_COLUMN_SUFFIX}"],
             disk_write_count_usage_process=data_row[f"{ProcessesColumns.WRITE_COUNT.value}{PROCESS_COLUMN_SUFFIX}"],
             number_of_page_faults_process=data_row[ProcessesColumns.PAGE_FAULTS.value],
-            network_bytes_sum_kb_sent_process=data_row[f"{ProcessesColumns.BYTES_SENT.value}{PROCESS_COLUMN_SUFFIX}"],
-            network_packets_sum_sent_process=data_row[f"{ProcessesColumns.PACKETS_SENT.value}{PROCESS_COLUMN_SUFFIX}"],
-            network_bytes_sum_kb_received_process=data_row[f"{ProcessesColumns.BYTES_RECEIVED.value}{PROCESS_COLUMN_SUFFIX}"],
-            network_packets_sum_received_process=data_row[f"{ProcessesColumns.PACKETS_RECEIVED.value}{PROCESS_COLUMN_SUFFIX}"],
+            network_kb_sent_process=data_row[f"{ProcessesColumns.BYTES_SENT.value}{PROCESS_COLUMN_SUFFIX}"],
+            network_packets_sent_process=data_row[f"{ProcessesColumns.PACKETS_SENT.value}{PROCESS_COLUMN_SUFFIX}"],
+            network_kb_received_process=data_row[f"{ProcessesColumns.BYTES_RECEIVED.value}{PROCESS_COLUMN_SUFFIX}"],
+            network_packets_received_process=data_row[f"{ProcessesColumns.PACKETS_RECEIVED.value}{PROCESS_COLUMN_SUFFIX}"],
             energy_consumption_process_mWh=data_row[ProcessColumns.ENERGY_USAGE_PROCESS_COL])
 
     def __read_data(self, time_per_batch: int = DEFAULT_TIME_PER_BATCH) -> list[EnergyModelFeatures]:

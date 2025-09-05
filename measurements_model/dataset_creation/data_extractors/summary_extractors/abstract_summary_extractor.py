@@ -35,18 +35,18 @@ class AbstractSummaryExtractor(ABC):
             network_received_packets = df.loc[columns.network_packets_sum_received_column, total_column]
 
         return SystemEnergyModelFeatures(
-            cpu_usage_system=df.loc[columns.cpu_column, total_column],
+            cpu_time_usage_system=df.loc[columns.cpu_column, total_column],
             memory_gb_usage_system=df.loc[columns.memory_column, total_column],
-            disk_read_bytes_kb_usage_system=df.loc[columns.disk_read_bytes_column, total_column],
+            disk_read_kb_usage_system=df.loc[columns.disk_read_bytes_column, total_column],
             disk_read_count_usage_system=df.loc[columns.disk_read_count_column, total_column],
-            disk_write_bytes_kb_usage_system=df.loc[columns.disk_write_bytes_column, total_column],
+            disk_write_kb_usage_system=df.loc[columns.disk_write_bytes_column, total_column],
             disk_write_count_usage_system=df.loc[columns.disk_write_count_column, total_column],
             disk_read_time_system_ms_sum=df.loc[columns.disk_read_time_column, total_column],
             disk_write_time_system_ms_sum=df.loc[columns.disk_write_time_column, total_column],
-            network_bytes_kb_sum_sent_system=network_sent_bytes,
-            network_packets_sum_sent_system=network_sent_packets,
-            network_bytes_kb_sum_received_system=network_received_bytes,
-            network_packets_sum_received_system=network_received_packets,
+            network_kb_sent_system=network_sent_bytes,
+            network_packets_sent_system=network_sent_packets,
+            network_kb_received_system=network_received_bytes,
+            network_packets_received_system=network_received_packets,
             number_of_page_faults_system=df.loc[columns.number_of_page_faults_column, total_column],
             total_energy_consumption_system_mWh=df.loc[columns.total_energy_consumption_column, total_column]
         )

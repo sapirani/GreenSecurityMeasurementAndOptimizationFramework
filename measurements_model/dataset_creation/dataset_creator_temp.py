@@ -99,34 +99,34 @@ class DatasetCreatorTemp:
 
     def __extract_system_features(self, data_row: pd.Series) -> SystemEnergyModelFeatures:
         return SystemEnergyModelFeatures(
-            cpu_usage_system=data_row[SystemColumns.CPU_SYSTEM_COL],
+            cpu_time_usage_system=data_row[SystemColumns.CPU_SYSTEM_COL],
             memory_gb_usage_system=data_row[MemoryColumns.USED_MEMORY],
-            disk_read_bytes_kb_usage_system=data_row[DiskIOColumns.READ_BYTES],
+            disk_read_kb_usage_system=data_row[DiskIOColumns.READ_BYTES],
             disk_read_count_usage_system=data_row[DiskIOColumns.READ_COUNT],
-            disk_write_bytes_kb_usage_system=data_row[DiskIOColumns.WRITE_BYTES],
+            disk_write_kb_usage_system=data_row[DiskIOColumns.WRITE_BYTES],
             disk_write_count_usage_system=data_row[DiskIOColumns.WRITE_COUNT],
             disk_read_time_system_ms_sum=data_row[DiskIOColumns.READ_TIME],
             disk_write_time_system_ms_sum=data_row[DiskIOColumns.WRITE_TIME],
             number_of_page_faults_system=0, #todo: change
-            network_bytes_kb_sum_sent_system=data_row[NetworkIOColumns.KB_SENT],
-            network_packets_sum_sent_system=data_row[NetworkIOColumns.PACKETS_SENT],
-            network_bytes_kb_sum_received_system=data_row[NetworkIOColumns.KB_RECEIVED],
-            network_packets_sum_received_system=data_row[NetworkIOColumns.PACKETS_RECEIVED],
+            network_kb_sent_system=data_row[NetworkIOColumns.KB_SENT],
+            network_packets_sent_system=data_row[NetworkIOColumns.PACKETS_SENT],
+            network_kb_received_system=data_row[NetworkIOColumns.KB_RECEIVED],
+            network_packets_received_system=data_row[NetworkIOColumns.PACKETS_RECEIVED],
             total_energy_consumption_system_mWh=data_row[SystemColumns.ENERGY_TOTAL_USAGE_SYSTEM_COL]
         )
 
     def __extract_process_features(self, data_row: pd.Series) -> ProcessEnergyModelFeatures:
         return ProcessEnergyModelFeatures(
-            cpu_usage_process=data_row[ProcessesColumns.CPU_SUM_ACROSS_CORES],
+            cpu_time_usage_process=data_row[ProcessesColumns.CPU_SUM_ACROSS_CORES],
             memory_mb_usage_process=data_row[ProcessesColumns.USED_MEMORY],
-            disk_read_bytes_kb_usage_process=data_row[ProcessesColumns.READ_BYTES],
+            disk_read_kb_usage_process=data_row[ProcessesColumns.READ_BYTES],
             disk_read_count_usage_process=data_row[ProcessesColumns.READ_COUNT],
-            disk_write_bytes_kb_usage_process=data_row[ProcessesColumns.WRITE_BYTES],
+            disk_write_kb_usage_process=data_row[ProcessesColumns.WRITE_BYTES],
             disk_write_count_usage_process=data_row[ProcessesColumns.WRITE_COUNT],
-            network_bytes_sum_kb_sent_process=data_row[ProcessesColumns.BYTES_SENT],
-            network_packets_sum_sent_process=data_row[ProcessesColumns.PACKETS_SENT],
-            network_bytes_sum_kb_received_process=data_row[ProcessesColumns.BYTES_RECEIVED],
-            network_packets_sum_received_process=data_row[ProcessesColumns.PACKETS_RECEIVED],
+            network_kb_sent_process=data_row[ProcessesColumns.BYTES_SENT],
+            network_packets_sent_process=data_row[ProcessesColumns.PACKETS_SENT],
+            network_kb_received_process=data_row[ProcessesColumns.BYTES_RECEIVED],
+            network_packets_received_process=data_row[ProcessesColumns.PACKETS_RECEIVED],
             energy_consumption_process_mWh=data_row[ProcessColumns.ENERGY_USAGE_PROCESS_COL])
 
 
