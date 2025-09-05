@@ -33,7 +33,7 @@ class DatasetCreator:
         self.__elastic_reader_iterator = ElasticReader(
             get_time_picker_input(time_picker_input_strategy, preconfigured_time_picker_input),
             [ElasticIndex.PROCESS, ElasticIndex.SYSTEM]).read()
-        self.__idle_details = IdleExtractor.extract(idle_session_path)
+        # self.__idle_details = IdleExtractor.extract(idle_session_path)
         self.__features_convertor = EnergyModelConvertor()
         self.__processes_extractor_mapping: Dict[ProcessIdentity, EnergyModelFeatureExtractor] = {}
 
@@ -56,6 +56,8 @@ class DatasetCreator:
                                                                  duration, current_timestamp)
 
             all_samples.extend(iteration_samples)
+            if len(all_samples) > 5000:  # todo: remove after finding way to exit loop
+                break
             print("TIMESTAMP: ", current_timestamp)
 
         return all_samples
@@ -88,8 +90,8 @@ class DatasetCreator:
 
     def __convert_objects_to_dataframe(self, all_samples_features: list[ExtendedEnergyModelFeatures]):
         samples_as_df = [EnergyModelConvertor.convert_features_to_pandas(sample,
-                                                                         battery_capacity_mwh_system_col=sample.battery_remaining_capacity_mWh,
-                                                                         hardware_features=sample.hardware_features)
+                                                                         battery_capacity_mwh_system=sample.battery_remaining_capacity_mWh,
+                                                                         **asdict(sample.hardware_features))
                          for sample in all_samples_features]
         full_df = pd.concat(samples_as_df, ignore_index=True)
         return full_df
@@ -102,7 +104,7 @@ class DatasetCreator:
 
     def __extend_df_with_target(self, df: pd.DataFrame, time_per_batch: int) -> pd.DataFrame:
         df = df.copy()
-        df[SystemColumns.ENERGY_TOTAL_USAGE_SYSTEM_COL] = df[BatteryColumns.CAPACITY].diff().fillna(0)
+        # todo: 1. fix idle handling. 2. make it look better
         df["batch_id"] = (df[TIME_COLUMN_NAME] // time_per_batch).astype(int)
 
         # Step 4: compute energy usage per second per batch
