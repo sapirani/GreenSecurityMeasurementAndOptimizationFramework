@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
 
 
 @dataclass
@@ -11,3 +12,4 @@ class RelativeSampleFeatures:
     memory_usage_system: float
 
     timestamp: datetime
+    battery_remaining_capacity_mWh: Optional[float] = None

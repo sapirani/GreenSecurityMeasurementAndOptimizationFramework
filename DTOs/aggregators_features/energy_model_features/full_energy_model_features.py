@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Optional
 
 from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
 from DTOs.aggregators_features.energy_model_features.system_energy_model_features import SystemEnergyModelFeatures
@@ -10,3 +12,8 @@ class EnergyModelFeatures:
 
     system_features: SystemEnergyModelFeatures
     process_features: ProcessEnergyModelFeatures
+
+
+@dataclass
+class ExtendedEnergyModelFeatures(EnergyModelFeatures):
+    battery_remaining_capacity_mWh: Optional[float] = None

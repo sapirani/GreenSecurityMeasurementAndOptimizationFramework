@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -16,6 +15,3 @@ class SystemEnergyModelFeatures:
     network_packets_sent_system: int
     network_kb_received_system: float
     network_packets_received_system: int
-
-    # necessary only for train-test and generating process consumption
-    total_energy_consumption_system_mWh: Optional[float] = None

@@ -5,7 +5,8 @@ from typing import Optional, Union
 import pandas as pd
 
 from DTOs.aggregators_features.empty_features import EmptyFeatures
-from DTOs.aggregators_features.energy_model_features.full_energy_model_features import EnergyModelFeatures
+from DTOs.aggregators_features.energy_model_features.full_energy_model_features import EnergyModelFeatures, \
+    ExtendedEnergyModelFeatures
 from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
 from DTOs.aggregators_features.energy_model_features.relative_sample_features import RelativeSampleFeatures
 from DTOs.aggregators_features.energy_model_features.system_energy_model_features import SystemEnergyModelFeatures
@@ -25,6 +26,32 @@ class EnergyModelFeatureExtractor:
         if self.__previous_sample is None:
             return EmptyFeatures()
 
+        process_features, system_features, duration = self.__extract_process_system_features(raw_results, timestamp)
+        return EnergyModelFeatures(
+            duration=duration,
+            process_features=process_features,
+            system_features=system_features
+        )
+
+    def extract_extended_energy_model_features(self, raw_results: ProcessSystemRawResults, timestamp: datetime) -> \
+            Union[ExtendedEnergyModelFeatures, EmptyFeatures]:
+        if self.__previous_sample is None:
+            return EmptyFeatures()
+
+        current_battery_capacity = raw_results.system_raw_results.battery_remaining_capacity_mWh
+        if not current_battery_capacity:
+            raise ValueError("Expected battery stats for system.")
+        battery_usage = self.__previous_sample.battery_remaining_capacity_mWh - current_battery_capacity
+        process_features, system_features, duration = self.__extract_process_system_features(raw_results, timestamp)
+        return ExtendedEnergyModelFeatures(
+            duration=duration,
+            process_features=process_features,
+            system_features=system_features,
+            battery_remaining_capacity_mWh=battery_usage
+        )
+
+    def __extract_process_system_features(self, raw_results: ProcessSystemRawResults, timestamp: datetime) -> tuple[
+        ProcessEnergyModelFeatures, SystemEnergyModelFeatures, float]:
         duration = (timestamp - self.__previous_sample.timestamp).total_seconds()
         process_features = self.__extract_process_features(
             raw_results.process_raw_results,
@@ -37,19 +64,20 @@ class EnergyModelFeatureExtractor:
         )
 
         self.__set_previous_sample(raw_results, timestamp)
-        return EnergyModelFeatures(
-            duration=duration,
-            process_features=process_features,
-            system_features=system_features
-        )
+        return process_features, system_features, duration
 
     def __set_previous_sample(self, raw_results: ProcessSystemRawResults, timestamp: datetime):
+        battery_capacity = None
+        if raw_results.system_raw_results.battery_remaining_capacity_mWh:
+            battery_capacity = raw_results.system_raw_results.battery_remaining_capacity_mWh
+
         self.__previous_sample = RelativeSampleFeatures(
             cpu_usage_process=raw_results.process_raw_results.cpu_percent_sum_across_cores,
             cpu_usage_system=raw_results.system_raw_results.cpu_percent_sum_across_cores,
             memory_usage_process=raw_results.process_raw_results.used_memory_mb,
             memory_usage_system=raw_results.system_raw_results.total_memory_gb,
-            timestamp=timestamp
+            timestamp=timestamp,
+            battery_remaining_capacity_mWh=battery_capacity
         )
 
     def __extract_process_features(self, process_data: ProcessRawResults,
