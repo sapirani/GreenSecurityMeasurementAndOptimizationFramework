@@ -43,3 +43,4 @@ tzdata==2023.3
 Werkzeug==2.3.3
 elasticsearch-dsl==8.18.0
 
+# TODO: ADD NEW REQUIREMENTS (KIVY)

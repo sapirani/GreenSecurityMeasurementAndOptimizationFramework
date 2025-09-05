@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import List
 
-from aggregative_results.DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
-from aggregative_results.DTOs.process_info import ProcessMetadata
+from DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
+from DTOs.process_info import ProcessMetadata
 
 
 @dataclass

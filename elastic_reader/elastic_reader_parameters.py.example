@@ -1,0 +1,22 @@
+from datetime import datetime
+
+from consts import *
+from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
+
+ES_URL = "http://127.0.0.1:9200"
+ES_USER = "elastic"
+ES_PASS = "<your_password>"
+
+consumer_types = [ElasticConsumerType.AGGREGATIONS_LOGGER, ElasticConsumerType.CSV, ElasticConsumerType.DRL]
+
+verbosity = Verbosity.NONE
+aggregation_strategy = AggregationStrategy.CALCULATE
+
+time_picker_input_strategy = TimePickerInputStrategy.GUI
+
+# Relevant when choosing TimePickerInputStrategy.FROM_CONFIGURATION as time_picker_input_strategy
+preconfigured_time_picker_input = TimePickerChosenInput(
+    mode=ReadingMode.OFFLINE,
+    start=datetime(year=2025, month=1, day=1, tzinfo=datetime.now().astimezone().tzinfo),
+    end=datetime(year=2025, month=1, day=2, tzinfo=datetime.now().astimezone().tzinfo)
+)

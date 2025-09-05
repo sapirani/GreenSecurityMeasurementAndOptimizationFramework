@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field, fields, MISSING
 from typing import Dict, Any, List, Optional
-from aggregative_results.DTOs.raw_results_dtos.abstract_raw_results import AbstractRawResults
+from DTOs.raw_results_dtos.abstract_raw_results import AbstractRawResults
 
 
 def get_cores_metrics(data: Dict[str, Any]):

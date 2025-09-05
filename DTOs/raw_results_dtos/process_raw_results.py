@@ -1,7 +1,7 @@
 from dataclasses import dataclass, fields
 from typing import List, Dict, Any, Optional
 
-from aggregative_results.DTOs.raw_results_dtos.abstract_raw_results import AbstractRawResults
+from DTOs.raw_results_dtos.abstract_raw_results import AbstractRawResults
 
 
 @dataclass

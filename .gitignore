@@ -32,3 +32,4 @@ results*
 Windows*
 program_parameters.py
 *backup*
+elastic_reader/elastic_reader_parameters.py
