@@ -132,8 +132,8 @@ class EnergyModelFeatureExtractor:
             network_packets_sent_system=system_data.packets_sent,
             network_kb_received_system=system_data.packets_received,
             network_packets_received_system=system_data.packets_received,
-            disk_read_time_system_ms_sum=system_data.disk_read_time,
-            disk_write_time_system_ms_sum=system_data.disk_write_time
+            disk_read_time_ms_system=system_data.disk_read_time,
+            disk_write_time_ms_system=system_data.disk_write_time
         )
 
     @classmethod

@@ -107,37 +107,37 @@ HARDWARE_INFORMATION_NAME = 'hardware_information.csv'
 
 # *** Process Related Cols *** #
 class ProcessColumns:
-    CPU_PROCESS_COL = "cpu_time_usage_process"
-    MEMORY_PROCESS_COL = "memory_usage_process"
-    DISK_READ_BYTES_PROCESS_COL = "disk_read_bytes_usage_process"
-    DISK_READ_COUNT_PROCESS_COL = "disk_read_count_usage_process"
-    DISK_WRITE_BYTES_PROCESS_COL = "disk_write_bytes_usage_process"
-    DISK_WRITE_COUNT_PROCESS_COL = "disk_write_count_usage_process"
+    CPU_PROCESS_COL = "cpu_time_process"
+    MEMORY_PROCESS_COL = "memory_mb_relative_process"
+    DISK_READ_BYTES_PROCESS_COL = "disk_read_kb_process"
+    DISK_READ_COUNT_PROCESS_COL = "disk_read_count_process"
+    DISK_WRITE_BYTES_PROCESS_COL = "disk_write_kb_process"
+    DISK_WRITE_COUNT_PROCESS_COL = "disk_write_count_process"
     PAGE_FAULT_PROCESS_COL = "number_of_page_faults_process"
-    NETWORK_BYTES_SENT_PROCESS_COL = "network_bytes_sum_sent_process"
+    NETWORK_BYTES_SENT_PROCESS_COL = "network_kb_sent_process"
     NETWORK_PACKETS_SENT_PROCESS_COL = "network_packets_sent_process"
-    NETWORK_BYTES_RECEIVED_PROCESS_COL = "network_bytes_sum_received_process"
+    NETWORK_BYTES_RECEIVED_PROCESS_COL = "network_kb_received_process"
     NETWORK_PACKETS_RECEIVED_PROCESS_COL = "network_packets_received_process"
-    ENERGY_USAGE_PROCESS_COL = "energy_consumption_process_mWh"  # total - idle, Target col
+    ENERGY_USAGE_PROCESS_COL = "energy_consumption_process_mWh"
 
 
 # *** System Related Cols *** #
 class SystemColumns:
-    CPU_SYSTEM_COL = "cpu_time_usage_system"
-    MEMORY_SYSTEM_COL = "memory_usage_system"
-    DISK_READ_BYTES_SYSTEM_COL = "disk_read_bytes_usage_system"
+    CPU_SYSTEM_COL = "cpu_time_system"
+    MEMORY_SYSTEM_COL = "memory_gb_relative_system"
+    DISK_READ_BYTES_SYSTEM_COL = "disk_read_kb_system"
     DISK_READ_COUNT_SYSTEM_COL = "disk_read_count_system"
-    DISK_WRITE_BYTES_SYSTEM_COL = "disk_write_bytes_usage_system"
+    DISK_WRITE_BYTES_SYSTEM_COL = "disk_write_kb_system"
     DISK_WRITE_COUNT_SYSTEM_COL = "disk_write_count_system"
-    DISK_READ_TIME = "disk_read_time_system_ms_sum"
-    DISK_WRITE_TIME = "disk_write_time_system_ms_sum"
-    NETWORK_BYTES_SENT_SYSTEM_COL = "network_bytes_sum_sent_system"
+    DISK_READ_TIME = "disk_read_time_ms_system"
+    DISK_WRITE_TIME = "disk_write_time_ms_system"
+    NETWORK_BYTES_SENT_SYSTEM_COL = "network_kb_sent_system"
     NETWORK_PACKETS_SENT_SYSTEM_COL = "network_packets_sent_system"
-    NETWORK_BYTES_RECEIVED_SYSTEM_COL = "network_bytes_sum_received_system"
+    NETWORK_BYTES_RECEIVED_SYSTEM_COL = "network_kb_received_system"
     NETWORK_PACKETS_RECEIVED_SYSTEM_COL = "network_packets_received_system"
     BATTERY_CAPACITY_MWH_SYSTEM_COL = "battery_capacity_mwh_system"
 
-    DURATION_COL = "duration_system"  # ??? maybe give up
+    DURATION_COL = "duration_system"
     ENERGY_TOTAL_USAGE_SYSTEM_COL = "total_energy_consumption_system_mWh"
 
 
