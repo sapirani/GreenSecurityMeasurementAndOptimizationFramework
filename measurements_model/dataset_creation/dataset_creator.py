@@ -65,6 +65,9 @@ class DatasetCreator:
                                     duration: float, timestamp: datetime) -> list[ExtendedEnergyModelFeatures]:
         iteration_samples = []
         for process_result in processes_raw_results:
+            if not process_result.process_of_interest:
+                continue
+                
             sample_raw_results = ProcessSystemRawResults(system_raw_results=system_raw_results,
                                                          process_raw_results=process_result)
             process_id = ProcessIdentity.from_raw_results(process_result)
