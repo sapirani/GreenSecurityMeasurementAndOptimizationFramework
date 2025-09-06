@@ -181,6 +181,9 @@ Next, run in Windows, in the command line the command - `python scanner.py` or i
 
 Next, run in Windows, in the command line the command - `python scanner.py` or in Linux in the terminal the command - `sudo python3 scanner.py`
 
+* You can add the flag `--measurement_session_id` followed by a `session_id` string. This string defines a name to the executed measurement.
+* Make sure to include "idle" in the name of a session that measures the idle behaviour of the running machine.
+
 ## Configure Elastic Logs 
 The scanner program writes logs into local elastic database.
 In order for it to succeed, we should configure containers of elastic that will run localy on the server.

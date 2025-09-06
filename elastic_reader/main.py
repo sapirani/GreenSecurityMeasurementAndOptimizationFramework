@@ -4,7 +4,7 @@ from DTOs.raw_results_dtos.iteration_info import IterationRawResults
 from aggregation_manager import AggregationManager
 from elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
 from elastic_consumers.consumer_factory import get_consumers
-from elastic_reader import ElasticReader
+from elastic_reader.elastic_reader import ElasticReader
 from elastic_reader_parameters import *
 from consts import ElasticIndex
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput
