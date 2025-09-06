@@ -4,7 +4,7 @@ from dataclasses import dataclass
 @dataclass
 class SystemEnergyModelFeatures:
     cpu_seconds_system: float
-    memory_gb_relative_system: float
+    memory_mb_relative_system: float
     disk_read_kb_system: float
     disk_read_count_system: int
     disk_write_kb_system: float

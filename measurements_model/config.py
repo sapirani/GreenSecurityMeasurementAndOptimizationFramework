@@ -125,7 +125,7 @@ class ProcessColumns:
 # *** System Related Cols *** #
 class SystemColumns:
     CPU_SYSTEM_COL = "cpu_seconds_system"
-    MEMORY_SYSTEM_COL = "memory_gb_relative_system"
+    MEMORY_SYSTEM_COL = "memory_mb_relative_system"
     DISK_READ_BYTES_SYSTEM_COL = "disk_read_kb_system"
     DISK_READ_COUNT_SYSTEM_COL = "disk_read_count_system"
     DISK_WRITE_BYTES_SYSTEM_COL = "disk_write_kb_system"
