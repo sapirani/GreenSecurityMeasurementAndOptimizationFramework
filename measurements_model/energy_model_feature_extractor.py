@@ -104,7 +104,7 @@ class EnergyModelFeatureExtractor:
                                                                         self.__previous_sample.memory_usage_process)
         return ProcessEnergyModelFeatures(
             cpu_time_usage_process=process_cpu_time,
-            memory_mb_usage_process=process_memory_relative_usage,
+            memory_mb_relative_usage_process=process_memory_relative_usage,
             disk_read_kb_usage_process=process_data.disk_read_kb,
             disk_write_kb_usage_process=process_data.disk_write_kb,
             disk_read_count_usage_process=process_data.disk_read_count,
@@ -123,11 +123,11 @@ class EnergyModelFeatureExtractor:
                                                                           self.__previous_sample.memory_usage_system) * MB
         return SystemEnergyModelFeatures(
             cpu_time_usage_system=system_cpu_time,
-            memory_gb_usage_system=system_memory_relative_usage_mb,
+            memory_gb_relative_usage_system=system_memory_relative_usage_mb,
             disk_read_kb_usage_system=system_data.disk_read_kb,
             disk_write_kb_usage_system=system_data.disk_write_kb,
-            disk_read_count_usage_system=system_data.disk_read_count,
-            disk_write_count_usage_system=system_data.disk_write_count,
+            disk_read_count_system=system_data.disk_read_count,
+            disk_write_count_system=system_data.disk_write_count,
             network_kb_sent_system=system_data.network_kb_sent,
             network_packets_sent_system=system_data.packets_sent,
             network_kb_received_system=system_data.packets_received,

@@ -18,7 +18,7 @@ from measurements_model.sample_resources_energy import SampleResourcesEnergy
 class EnergyPerResourceConsts:
     """
     This class holds constant values that represent the energy consumption per one unit of a specific resource.
-    For example, the energy usage for 1 MB of RAM usage is 17.18 mwh.
+    For example, the energy usage for acquiring 1 MB of RAM is 17.18 mwh.
     """
     cpu_time_seconds = 1.194578001
     memory_gain_mb = 17.18771578
@@ -86,13 +86,12 @@ class EnergyModelAggregator(AbstractAggregator):
             return EmptyAggregationResults()
 
     def __calculate_energy_per_resource(self, sample: EnergyModelFeatures,
-                                        energy_prediction: float, duration: float) -> SampleResourcesEnergy:
-
-        cpu_time_usage = sample.process_features.cpu_time_usage_process * duration / 100
-        cpu_energy = self.__resource_energy_calculator.calculate_cpu_energy(cpu_time_usage)
+                                        energy_prediction: float) -> SampleResourcesEnergy:
+        cpu_energy = self.__resource_energy_calculator.calculate_cpu_energy(
+            sample.process_features.cpu_time_usage_process)
 
         memory_energy = self.__resource_energy_calculator.calculate_mb_ram_energy(
-            sample.process_features.memory_mb_usage_process)
+            sample.process_features.memory_mb_relative_usage_process)
 
         disk_io_write_energy = self.__resource_energy_calculator.calculate_disk_write_kb_energy(
             sample.process_features.disk_write_kb_usage_process)
@@ -108,12 +107,10 @@ class EnergyModelAggregator(AbstractAggregator):
 
         per_resource_energy_sum = cpu_energy + memory_energy + disk_io_write_energy + disk_io_read_energy + network_received_energy + network_sent_energy
         return SampleResourcesEnergy(
-            cpu_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(cpu_energy,
-                                                                                                  per_resource_energy_sum,
-                                                                                                  energy_prediction),
-            ram_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(memory_energy,
-                                                                                                  per_resource_energy_sum,
-                                                                                                  energy_prediction),
+            cpu_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(
+                cpu_energy, per_resource_energy_sum, energy_prediction),
+            ram_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(
+                memory_energy, per_resource_energy_sum, energy_prediction),
             disk_io_read_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(
                 disk_io_read_energy, per_resource_energy_sum, energy_prediction),
             disk_io_write_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(
