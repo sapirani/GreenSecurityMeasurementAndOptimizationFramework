@@ -8,7 +8,7 @@ from DTOs.aggregators_features.empty_features import EmptyFeatures
 from DTOs.aggregators_features.energy_model_features.full_energy_model_features import EnergyModelFeatures, \
     ExtendedEnergyModelFeatures
 from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
-from DTOs.aggregators_features.energy_model_features.relative_sample_features import RelativeSampleFeatures
+from DTOs.aggregators_features.energy_model_features.previous_sample_features import PreviousSampleFeatures
 from DTOs.aggregators_features.energy_model_features.system_energy_model_features import SystemEnergyModelFeatures
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
@@ -22,7 +22,7 @@ from utils.general_consts import MB
 class EnergyModelFeatureExtractor:
     def __init__(self):
         self.__hardware_details = HardwareExtractor().extract(DEFAULT_HARDWARE_FILE_PATH)
-        self.__previous_sample: Optional[RelativeSampleFeatures] = None
+        self.__previous_sample: Optional[PreviousSampleFeatures] = None
 
     def extract_energy_model_features(self, raw_results: ProcessSystemRawResults,
                                       timestamp: datetime) -> Union[EnergyModelFeatures, EmptyFeatures]:
@@ -87,7 +87,7 @@ class EnergyModelFeatureExtractor:
         if raw_results.system_raw_results.battery_remaining_capacity_mWh:
             battery_capacity = raw_results.system_raw_results.battery_remaining_capacity_mWh
 
-        self.__previous_sample = RelativeSampleFeatures(
+        self.__previous_sample = PreviousSampleFeatures(
             cpu_usage_process=raw_results.process_raw_results.cpu_percent_sum_across_cores,
             cpu_usage_system=raw_results.system_raw_results.cpu_percent_sum_across_cores,
             memory_usage_process=raw_results.process_raw_results.used_memory_mb,

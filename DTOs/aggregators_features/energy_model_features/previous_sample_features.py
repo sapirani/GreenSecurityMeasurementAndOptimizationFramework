@@ -4,7 +4,7 @@ from typing import Optional
 
 
 @dataclass
-class RelativeSampleFeatures:
+class PreviousSampleFeatures:
     cpu_usage_process: float
     cpu_usage_system: float
 
