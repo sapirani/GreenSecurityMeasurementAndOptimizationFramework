@@ -22,6 +22,7 @@ class EnergyPerResourceConsts:
     """
     cpu_time_seconds = 1.194578001
     memory_gain_mb = 17.18771578
+    memory_release_mb = 16 # todo: change to actual number
     disk_io_read_kbytes = 0.1261034238
     disk_io_write_kbytes = 0.1324211241
     network_received_kbytes = 0.1161303828
@@ -47,7 +48,8 @@ class EnergyModelAggregator(AbstractAggregator):
                     cls.__model = EnergyModel.get_instance()
                     cls.__resource_energy_calculator = ResourceEnergyCalculator(
                         energy_per_cpu_time=EnergyPerResourceConsts.cpu_time_seconds,
-                        energy_per_mb_ram=EnergyPerResourceConsts.memory_gain_mb,
+                        energy_per_gain_mb_ram=EnergyPerResourceConsts.memory_gain_mb,
+                        energy_per_release_mb_ram=EnergyPerResourceConsts.memory_release_mb,
                         energy_per_disk_read_kb=EnergyPerResourceConsts.disk_io_read_kbytes,
                         energy_per_disk_write_kb=EnergyPerResourceConsts.disk_io_write_kbytes,
                         energy_per_network_received_kb=EnergyPerResourceConsts.network_received_kbytes,
