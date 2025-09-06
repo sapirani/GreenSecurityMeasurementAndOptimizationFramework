@@ -88,16 +88,16 @@ class EnergyModelAggregator(AbstractAggregator):
     def __calculate_energy_per_resource(self, sample: EnergyModelFeatures,
                                         energy_prediction: float) -> SampleResourcesEnergy:
         cpu_energy = self.__resource_energy_calculator.calculate_cpu_energy(
-            sample.process_features.cpu_time_usage_process)
+            sample.process_features.cpu_time_process)
 
         memory_energy = self.__resource_energy_calculator.calculate_mb_ram_energy(
-            sample.process_features.memory_mb_relative_usage_process)
+            sample.process_features.memory_mb_relative_process)
 
         disk_io_write_energy = self.__resource_energy_calculator.calculate_disk_write_kb_energy(
-            sample.process_features.disk_write_kb_usage_process)
+            sample.process_features.disk_write_kb_process)
 
         disk_io_read_energy = self.__resource_energy_calculator.calculate_disk_read_kb_energy(
-            sample.process_features.disk_read_kb_usage_process)
+            sample.process_features.disk_read_kb_process)
 
         network_received_energy = self.__resource_energy_calculator.calculate_network_received_kb_energy(
             sample.process_features.network_kb_received_process)

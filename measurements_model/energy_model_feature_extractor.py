@@ -103,12 +103,12 @@ class EnergyModelFeatureExtractor:
         process_memory_relative_usage = self.__calculate_relative_value(process_data.used_memory_mb,
                                                                         self.__previous_sample.memory_usage_process)
         return ProcessEnergyModelFeatures(
-            cpu_time_usage_process=process_cpu_time,
-            memory_mb_relative_usage_process=process_memory_relative_usage,
-            disk_read_kb_usage_process=process_data.disk_read_kb,
-            disk_write_kb_usage_process=process_data.disk_write_kb,
-            disk_read_count_usage_process=process_data.disk_read_count,
-            disk_write_count_usage_process=process_data.disk_write_count,
+            cpu_time_process=process_cpu_time,
+            memory_mb_relative_process=process_memory_relative_usage,
+            disk_read_kb_process=process_data.disk_read_kb,
+            disk_write_kb_process=process_data.disk_write_kb,
+            disk_read_count_process=process_data.disk_read_count,
+            disk_write_count_process=process_data.disk_write_count,
             number_of_page_faults_process=process_data.page_faults,
             network_kb_received_process=process_data.network_kb_received,
             network_packets_received_process=process_data.packets_received,
@@ -122,10 +122,10 @@ class EnergyModelFeatureExtractor:
         system_memory_relative_usage_mb = self.__calculate_relative_value(system_data.total_memory_gb,
                                                                           self.__previous_sample.memory_usage_system) * MB
         return SystemEnergyModelFeatures(
-            cpu_time_usage_system=system_cpu_time,
-            memory_gb_relative_usage_system=system_memory_relative_usage_mb,
-            disk_read_kb_usage_system=system_data.disk_read_kb,
-            disk_write_kb_usage_system=system_data.disk_write_kb,
+            cpu_time_system=system_cpu_time,
+            memory_gb_relative_system=system_memory_relative_usage_mb,
+            disk_read_kb_system=system_data.disk_read_kb,
+            disk_write_kb_system=system_data.disk_write_kb,
             disk_read_count_system=system_data.disk_read_count,
             disk_write_count_system=system_data.disk_write_count,
             network_kb_sent_system=system_data.network_kb_sent,
