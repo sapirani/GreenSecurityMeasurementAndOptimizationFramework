@@ -21,7 +21,7 @@ from measurements_model.energy_model_feature_extractor import EnergyModelFeature
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 
 DEFAULT_TIME_PER_BATCH = 150
-DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT = 1753
+DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT = 2.921666667
 
 
 class DatasetCreator:
@@ -76,6 +76,7 @@ class DatasetCreator:
 
     def __convert_objects_to_dataframe(self, all_samples_features: list[ExtendedEnergyModelFeatures]):
         samples_as_df = [EnergyModelConvertor.convert_features_to_pandas(sample,
+                                                                         timestamp=sample.timestamp,
                                                                          battery_capacity_mwh_system=sample.battery_remaining_capacity_mWh,
                                                                          **asdict(sample.hardware_features))
                          for sample in all_samples_features]
@@ -91,7 +92,7 @@ class DatasetCreator:
     def __extend_df_with_target(self, df: pd.DataFrame, time_per_batch: int) -> pd.DataFrame:
         df = df.copy()
         # todo: make it look better
-        df["batch_id"] = (df[TIME_COLUMN_NAME] // time_per_batch).astype(int)
+        df["batch_id"] = (df[TIME_COLUMN_NAME].astype("int64") // 10**9 // time_per_batch).astype(int)
 
         # Step 4: compute energy usage per second per batch
         energy_per_batch = (

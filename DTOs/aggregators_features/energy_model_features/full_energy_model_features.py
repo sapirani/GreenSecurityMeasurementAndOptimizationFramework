@@ -19,4 +19,5 @@ class EnergyModelFeatures:
 class ExtendedEnergyModelFeatures(EnergyModelFeatures):
     hardware_features: HardwareEnergyModelFeatures
 
+    timestamp: datetime
     battery_remaining_capacity_mWh: Optional[float] = None

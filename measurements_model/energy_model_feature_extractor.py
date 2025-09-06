@@ -52,6 +52,7 @@ class EnergyModelFeatureExtractor:
             process_features=process_features,
             system_features=system_features,
             hardware_features=self.__hardware_details,
+            timestamp=timestamp,
             battery_remaining_capacity_mWh=current_battery_capacity
         )
 
