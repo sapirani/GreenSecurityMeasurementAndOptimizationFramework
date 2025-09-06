@@ -123,7 +123,7 @@ class EnergyModelFeatureExtractor:
         system_memory_relative_usage_mb = self.__calculate_relative_value(system_data.total_memory_gb,
                                                                           self.__previous_sample.memory_usage_system) * MB
         return SystemEnergyModelFeatures(
-            cpu_time_system=system_cpu_time,
+            cpu_seconds_system=system_cpu_time,
             memory_gb_relative_system=system_memory_relative_usage_mb,
             disk_read_kb_system=system_data.disk_read_kb,
             disk_write_kb_system=system_data.disk_write_kb,
