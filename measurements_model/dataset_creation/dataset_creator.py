@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import asdict
 from datetime import datetime
 from typing import Dict, Optional
@@ -5,8 +6,7 @@ from typing import Dict, Optional
 import pandas as pd
 
 from DTOs.aggregators_features.empty_features import EmptyFeatures
-from DTOs.aggregators_features.energy_model_features.full_energy_model_features import EnergyModelFeatures, \
-    ExtendedEnergyModelFeatures
+from DTOs.aggregators_features.energy_model_features.full_energy_model_features import ExtendedEnergyModelFeatures
 from DTOs.aggregators_features.energy_model_features.idle_energy_model_features import IdleEnergyModelFeatures
 from DTOs.process_info import ProcessIdentity
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
@@ -15,15 +15,10 @@ from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from elastic_reader.consts import ElasticIndex
 from elastic_reader.elastic_reader import ElasticReader
 from elastic_reader.elastic_reader_parameters import time_picker_input_strategy, preconfigured_time_picker_input
-from measurements_model.config import DEFAULT_HARDWARE_FILE_PATH, TIME_COLUMN_NAME, ProcessColumns, SystemColumns, \
-    PROCESS_COLUMN_SUFFIX, SYSTEM_COLUMN_SUFFIX
-from measurements_model.dataset_creation.data_extractors.hardware_extractor import HardwareExtractor
-from measurements_model.dataset_creation.data_extractors.idle_extractor import IdleExtractor
-from measurements_model.dataset_creation.dataframe_utils import get_full_features_dataframe
+from measurements_model.config import TIME_COLUMN_NAME, ProcessColumns
 from measurements_model.energy_model_convertor import EnergyModelConvertor
 from measurements_model.energy_model_feature_extractor import EnergyModelFeatureExtractor
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
-from utils.general_consts import BatteryColumns
 
 DEFAULT_TIME_PER_BATCH = 150
 DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT = 1753
@@ -37,8 +32,8 @@ class DatasetCreator:
         self.__idle_details = IdleEnergyModelFeatures(
             energy_per_second=DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT
         )
-        self.__features_convertor = EnergyModelConvertor()
-        self.__processes_extractor_mapping: Dict[ProcessIdentity, EnergyModelFeatureExtractor] = {}
+        self.__processes_extractor_mapping: Dict[ProcessIdentity, EnergyModelFeatureExtractor] = defaultdict(
+            lambda: EnergyModelFeatureExtractor())
 
     def __create_system_process_dataset(self) -> list[ExtendedEnergyModelFeatures]:
         all_samples = []
@@ -47,15 +42,15 @@ class DatasetCreator:
         for sample in self.__elastic_reader_iterator:
             metadata = sample.metadata
             current_timestamp = metadata.timestamp
-            system_raw_results = sample.system_raw_results
-            if system_raw_results is None or "idle" in metadata.session_host_identity.session_id:
+            if sample.system_raw_results is None or "idle" in metadata.session_host_identity.session_id:
                 continue
 
             if last_timestamp is not None:
-                duration = duration + (current_timestamp - last_timestamp).total_seconds()
+                duration += (current_timestamp - last_timestamp).total_seconds()
             last_timestamp = current_timestamp
 
-            iteration_samples = self.__extract_iteration_samples(system_raw_results, sample.processes_raw_results,
+            iteration_samples = self.__extract_iteration_samples(sample.system_raw_results,
+                                                                 sample.processes_raw_results,
                                                                  duration, current_timestamp)
 
             all_samples.extend(iteration_samples)
@@ -73,7 +68,8 @@ class DatasetCreator:
             sample_raw_results = ProcessSystemRawResults(system_raw_results=system_raw_results,
                                                          process_raw_results=process_result)
             process_id = ProcessIdentity.from_raw_results(process_result)
-            sample_features = self.__get_features_extractor(process_id).extract_extended_energy_model_features(
+            process_feature_extractor = self.__processes_extractor_mapping[process_id]
+            sample_features = process_feature_extractor.extract_extended_energy_model_features(
                 raw_results=sample_raw_results, timestamp=timestamp, duration=duration)
 
             if isinstance(sample_features, EmptyFeatures):
@@ -82,14 +78,6 @@ class DatasetCreator:
             iteration_samples.append(sample_features)
 
         return iteration_samples
-
-    def __get_features_extractor(self, process_identity: ProcessIdentity) -> EnergyModelFeatureExtractor:
-        if process_identity in self.__processes_extractor_mapping:
-            return self.__processes_extractor_mapping[process_identity]
-
-        feature_extractor = EnergyModelFeatureExtractor()
-        self.__processes_extractor_mapping[process_identity] = feature_extractor
-        return feature_extractor
 
     def __convert_objects_to_dataframe(self, all_samples_features: list[ExtendedEnergyModelFeatures]):
         samples_as_df = [EnergyModelConvertor.convert_features_to_pandas(sample,
