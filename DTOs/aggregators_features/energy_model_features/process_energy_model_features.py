@@ -15,3 +15,5 @@ class ProcessEnergyModelFeatures:
     network_packets_sent_process: int
     network_kb_received_process: float
     network_packets_received_process: int
+
+    # TODO: maybe add non relative (total) memory usage

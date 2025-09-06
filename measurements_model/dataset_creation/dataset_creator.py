@@ -15,7 +15,7 @@ from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from elastic_reader.consts import ElasticIndex
 from elastic_reader.elastic_reader import ElasticReader
 from elastic_reader.elastic_reader_parameters import time_picker_input_strategy, preconfigured_time_picker_input
-from measurements_model.config import TIME_COLUMN_NAME, ProcessColumns
+from measurements_model.config import TIME_COLUMN_NAME, ProcessColumns, IDLE_SESSION_ID_NAME
 from measurements_model.energy_model_convertor import EnergyModelConvertor
 from measurements_model.energy_model_feature_extractor import EnergyModelFeatureExtractor
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
@@ -32,48 +32,40 @@ class DatasetCreator:
         self.__idle_details = IdleEnergyModelFeatures(
             energy_per_second=DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT
         )
-        self.__processes_extractor_mapping: Dict[ProcessIdentity, EnergyModelFeatureExtractor] = defaultdict(
+        self.__processes_features_extractor_mapping: Dict[ProcessIdentity, EnergyModelFeatureExtractor] = defaultdict(
             lambda: EnergyModelFeatureExtractor())
 
     def __create_system_process_dataset(self) -> list[ExtendedEnergyModelFeatures]:
         all_samples = []
-        duration = 0
-        last_timestamp: Optional[datetime] = None
         for sample in self.__elastic_reader_iterator:
             metadata = sample.metadata
-            current_timestamp = metadata.timestamp
-            if sample.system_raw_results is None or "idle" in metadata.session_host_identity.session_id:
+            print("TIMESTAMP: ", metadata.timestamp)
+            if sample.system_raw_results is None or IDLE_SESSION_ID_NAME in metadata.session_host_identity.session_id:
                 continue
 
-            if last_timestamp is not None:
-                duration += (current_timestamp - last_timestamp).total_seconds()
-            last_timestamp = current_timestamp
-
+            # todo: fix duration handling in case of several sessions running at the same time (single iteration raw results may contain samples from different measurements)
             iteration_samples = self.__extract_iteration_samples(sample.system_raw_results,
                                                                  sample.processes_raw_results,
-                                                                 duration, current_timestamp)
+                                                                 metadata.timestamp)
 
             all_samples.extend(iteration_samples)
-            if len(all_samples) > 5000:  # todo: remove after finding way to exit loop
-                break
-            print("TIMESTAMP: ", current_timestamp)
 
         return all_samples
 
     def __extract_iteration_samples(self, system_raw_results: SystemRawResults,
                                     processes_raw_results: list[ProcessRawResults],
-                                    duration: float, timestamp: datetime) -> list[ExtendedEnergyModelFeatures]:
+                                    timestamp: datetime) -> list[ExtendedEnergyModelFeatures]:
         iteration_samples = []
         for process_result in processes_raw_results:
             if not process_result.process_of_interest:
                 continue
-                
+
             sample_raw_results = ProcessSystemRawResults(system_raw_results=system_raw_results,
                                                          process_raw_results=process_result)
             process_id = ProcessIdentity.from_raw_results(process_result)
-            process_feature_extractor = self.__processes_extractor_mapping[process_id]
+            process_feature_extractor = self.__processes_features_extractor_mapping[process_id]
             sample_features = process_feature_extractor.extract_extended_energy_model_features(
-                raw_results=sample_raw_results, timestamp=timestamp, duration=duration)
+                raw_results=sample_raw_results, timestamp=timestamp)
 
             if isinstance(sample_features, EmptyFeatures):
                 continue

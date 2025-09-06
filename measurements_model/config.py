@@ -37,6 +37,7 @@ RESULTS_TOP_MODELS_PATH = r"C:\Users\Administrator\Desktop\green security\result
 TIME_COLUMN_NAME = "timestamp"
 PROCESS_COLUMN_SUFFIX = "_process"
 SYSTEM_COLUMN_SUFFIX = "_system"
+IDLE_SESSION_ID_NAME = "idle"
 
 class SummaryFieldsNativeVersion:
     DURATION = "Duration"
