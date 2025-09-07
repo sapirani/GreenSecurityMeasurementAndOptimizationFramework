@@ -15,7 +15,7 @@ from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from elastic_reader.consts import ElasticIndex
 from elastic_reader.elastic_reader import ElasticReader
 from elastic_reader.elastic_reader_parameters import time_picker_input_strategy, preconfigured_time_picker_input
-from measurements_model.config import TIME_COLUMN_NAME, ProcessColumns, IDLE_SESSION_ID_NAME
+from measurements_model.config import TIME_COLUMN_NAME, ProcessColumns, IDLE_SESSION_ID_NAME, FULL_DATASET_PATH
 from measurements_model.energy_model_convertor import EnergyModelConvertor
 from measurements_model.energy_model_feature_extractor import EnergyModelFeatureExtractor
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
@@ -87,6 +87,7 @@ class DatasetCreator:
         all_samples_features = self.__create_system_process_dataset()
         df = self.__convert_objects_to_dataframe(all_samples_features)
         full_df = self.__extend_df_with_target(df, DEFAULT_TIME_PER_BATCH)
+        full_df.to_csv(FULL_DATASET_PATH)
         return full_df
 
     def __extend_df_with_target(self, df: pd.DataFrame, time_per_batch: int) -> pd.DataFrame:

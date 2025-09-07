@@ -1,7 +1,6 @@
 import pandas as pd
 
-from aggregative_results.DTOs.aggregators_features.energy_model_features.process_energy_model_features import \
-    ProcessEnergyModelFeatures
+from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
 from measurements_model.config import AllProcessesFileFields
 
 
@@ -22,12 +21,12 @@ class ProcessExtractor:
             network_packets_received_process = df_all_processes[AllProcessesFileFields.NETWORK_PACKETS_RECEIVED].sum()
 
         return ProcessEnergyModelFeatures(
-            cpu_time_usage_process=df_specific_process[AllProcessesFileFields.CPU].mean(),
-            memory_mb_usage_process=df_specific_process[AllProcessesFileFields.MEMORY].mean(),
-            disk_read_kb_usage_process=df_specific_process[AllProcessesFileFields.DISK_READ_BYTES].sum(),
-            disk_write_kb_usage_process=df_specific_process[AllProcessesFileFields.DISK_WRITE_BYTES].sum(),
-            disk_read_count_usage_process=df_specific_process[AllProcessesFileFields.DISK_READ_COUNT].sum(),
-            disk_write_count_usage_process=df_specific_process[AllProcessesFileFields.DISK_WRITE_COUNT].sum(),
+            cpu_time_process=df_specific_process[AllProcessesFileFields.CPU].mean(),
+            memory_mb_relative_process=df_specific_process[AllProcessesFileFields.MEMORY].mean(),
+            disk_read_kb_process=df_specific_process[AllProcessesFileFields.DISK_READ_BYTES].sum(),
+            disk_write_kb_process=df_specific_process[AllProcessesFileFields.DISK_WRITE_BYTES].sum(),
+            disk_read_count_process=df_specific_process[AllProcessesFileFields.DISK_READ_COUNT].sum(),
+            disk_write_count_process=df_specific_process[AllProcessesFileFields.DISK_WRITE_COUNT].sum(),
             network_kb_sent_process=network_bytes_sent_process,
             network_packets_sent_process=network_packets_sent_process,
             network_kb_received_process=network_bytes_received_process,
