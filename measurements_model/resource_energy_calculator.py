@@ -38,6 +38,6 @@ class ResourceEnergyCalculator:
 
     def normalize_energy_consumption(self, resource_energy: float, resource_sum_energy: float,
                                      model_energy_prediction: float):
-        if resource_sum_energy <= 0:
+        if model_energy_prediction <= 0 or resource_sum_energy <= 0:
             return 0
         return (model_energy_prediction / resource_sum_energy) * resource_energy

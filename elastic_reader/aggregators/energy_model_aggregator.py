@@ -20,7 +20,7 @@ class EnergyPerResourceConsts:
     This class holds constant values that represent the energy consumption per one unit of a specific resource.
     For example, the energy usage for acquiring 1 MB of RAM is 17.18 mwh.
     """
-    cpu_time_seconds = 1.194578001
+    cpu_time_seconds = 1
     memory_gain_mb = 0.04 # todo: change
     memory_release_mb = 0.03  # todo: change to actual number
     disk_io_read_kbytes = 0.1261034238
@@ -58,6 +58,8 @@ class EnergyModelAggregator(AbstractAggregator):
 
             sample_df = EnergyModelConvertor.convert_features_to_pandas(sample)
             energy_prediction = self.__model.predict(sample_df)
+            if energy_prediction < 0:
+                energy_prediction = 0
 
             energy_per_resource = self.__calculate_energy_per_resource(sample, energy_prediction)
             return EnergyModelResult(energy_mwh=energy_prediction,
