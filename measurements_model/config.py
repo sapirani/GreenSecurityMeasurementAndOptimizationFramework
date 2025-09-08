@@ -138,8 +138,9 @@ class SystemColumns:
     NETWORK_PACKETS_RECEIVED_SYSTEM_COL = "network_packets_received_system"
     BATTERY_CAPACITY_MWH_SYSTEM_COL = "battery_capacity_mwh_system"
 
-    DURATION_COL = "duration_system"
-    ENERGY_TOTAL_USAGE_SYSTEM_COL = "total_energy_consumption_system_mWh"
+    DURATION_COL = "duration"
+    ENERGY_USAGE_PER_SECOND_SYSTEM_COL = "energy_consumption_per_second_system_mWh"
+    BATCH_ID_COLUMN = "batch_id"
 
 
 # *** IDLE State Related Cols *** #

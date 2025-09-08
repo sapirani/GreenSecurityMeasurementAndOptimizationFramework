@@ -15,7 +15,8 @@ from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from elastic_reader.consts import ElasticIndex
 from elastic_reader.elastic_reader import ElasticReader
 from elastic_reader.elastic_reader_parameters import time_picker_input_strategy, preconfigured_time_picker_input
-from measurements_model.config import TIME_COLUMN_NAME, ProcessColumns, IDLE_SESSION_ID_NAME, FULL_DATASET_PATH
+from measurements_model.config import TIME_COLUMN_NAME, ProcessColumns, IDLE_SESSION_ID_NAME, FULL_DATASET_PATH, \
+    SystemColumns
 from measurements_model.energy_model_convertor import EnergyModelConvertor
 from measurements_model.energy_model_feature_extractor import EnergyModelFeatureExtractor
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
@@ -107,24 +108,24 @@ class DatasetCreator:
         df = df.copy()
 
         # Step 1: Assign batch IDs (integer division of timestamp by batch duration)
-        df["batch_id"] = (
+        df[SystemColumns.BATCH_ID_COLUMN] = (
                 df[TIME_COLUMN_NAME].astype("int64") // 10 ** 9 // time_per_batch
         ).astype(int)
 
         # Step 2: Calculate system energy consumption rate (mWh/sec) for each batch
         energy_per_batch = (
-            df.groupby("batch_id")["battery_capacity_mwh_system"]
+            df.groupby(SystemColumns.BATCH_ID_COLUMN)[SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL]
             .agg(lambda s: (s.iloc[0] - s.iloc[-1]) / time_per_batch)
-            .rename("energy_per_sec_system")
+            .rename(SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL)
         )
 
         # Merge batch-level system energy rates back into the main DataFrame
-        df = df.merge(energy_per_batch, on="batch_id", how="left")
+        df = df.merge(energy_per_batch, on=SystemColumns.BATCH_ID_COLUMN, how="left")
 
         # Step 3: Calculate process energy usage
         df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = (
-                df["duration"] * df["energy_per_sec_system"]
-                - df["duration"] * self.__idle_details.energy_per_second
+                df[SystemColumns.DURATION_COL] * df[SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL]
+                - df[SystemColumns.DURATION_COL] * self.__idle_details.energy_per_second
         ).clip(lower=ENERGY_MINIMAL_VALUE)
 
         return df

@@ -11,6 +11,7 @@ from aggregators.abstract_aggregator import AbstractAggregator
 from DTOs.process_info import ProcessIdentity, ProcessMetadata
 from DTOs.aggregated_results_dtos.aggregated_process_results import AggregatedProcessResults
 from aggregators.cpu_integral_aggregator import CPUIntegralAggregator
+from aggregators.energy_model_aggregator import EnergyModelAggregator
 from aggregators.process_system_usage_fraction_aggregator import \
     ProcessSystemUsageFractionAggregator
 
@@ -36,7 +37,7 @@ class AggregationManager:
     """
     SYSTEM_AGGREGATOR_TYPES = [CPUIntegralAggregator]
     PROCESS_ONLY_AGGREGATOR_TYPES = [CPUIntegralAggregator]
-    PROCESS_SYSTEM_AGGREGATORS_TYPES = []
+    PROCESS_SYSTEM_AGGREGATORS_TYPES = [EnergyModelAggregator]
     FULL_SCOPE_AGGREGATORS_TYPES = [ProcessSystemUsageFractionAggregator]
 
     def __init__(self):

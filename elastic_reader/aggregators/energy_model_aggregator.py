@@ -22,7 +22,7 @@ class EnergyPerResourceConsts:
     """
     cpu_time_seconds = 1.194578001
     memory_gain_mb = 17.18771578
-    memory_release_mb = 16 # todo: change to actual number
+    memory_release_mb = 0.03  # todo: change to actual number
     disk_io_read_kbytes = 0.1261034238
     disk_io_write_kbytes = 0.1324211241
     network_received_kbytes = 0.1161303828
@@ -30,33 +30,18 @@ class EnergyPerResourceConsts:
 
 
 class EnergyModelAggregator(AbstractAggregator):
-    __instance = None
-    __lock = threading.Lock()
-    __model = None
-    __resource_energy_calculator = None
-    __energy_model_feature_extractor = EnergyModelFeatureExtractor()
-
     def __init__(self):
-        raise RuntimeError("This is a Singleton. Invoke get_instance() instead.")
-
-    @classmethod
-    def get_instance(cls):
-        if cls.__instance is None:
-            with cls.__lock:
-                if cls.__instance is None:
-                    cls.__instance = super().__new__(cls)
-                    cls.__model = EnergyModel.get_instance()
-                    cls.__resource_energy_calculator = ResourceEnergyCalculator(
-                        energy_per_cpu_time=EnergyPerResourceConsts.cpu_time_seconds,
-                        energy_per_gain_mb_ram=EnergyPerResourceConsts.memory_gain_mb,
-                        energy_per_release_mb_ram=EnergyPerResourceConsts.memory_release_mb,
-                        energy_per_disk_read_kb=EnergyPerResourceConsts.disk_io_read_kbytes,
-                        energy_per_disk_write_kb=EnergyPerResourceConsts.disk_io_write_kbytes,
-                        energy_per_network_received_kb=EnergyPerResourceConsts.network_received_kbytes,
-                        energy_per_network_write_kb=EnergyPerResourceConsts.network_sent_kbytes
-                    )
-
-        return cls.__instance
+        self.__model = EnergyModel.get_instance()
+        self.__resource_energy_calculator = ResourceEnergyCalculator(
+            energy_per_cpu_time=EnergyPerResourceConsts.cpu_time_seconds,
+            energy_per_gain_mb_ram=EnergyPerResourceConsts.memory_gain_mb,
+            energy_per_release_mb_ram=EnergyPerResourceConsts.memory_release_mb,
+            energy_per_disk_read_kb=EnergyPerResourceConsts.disk_io_read_kbytes,
+            energy_per_disk_write_kb=EnergyPerResourceConsts.disk_io_write_kbytes,
+            energy_per_network_received_kb=EnergyPerResourceConsts.network_received_kbytes,
+            energy_per_network_write_kb=EnergyPerResourceConsts.network_sent_kbytes
+        )
+        self.__energy_model_feature_extractor = EnergyModelFeatureExtractor()
 
     def extract_features(self, raw_results: ProcessSystemRawResults,
                          iteration_metadata: IterationMetadata) -> Union[EnergyModelFeatures, EmptyFeatures]:
@@ -73,7 +58,7 @@ class EnergyModelAggregator(AbstractAggregator):
             sample_df = EnergyModelConvertor.convert_features_to_pandas(sample)
             energy_prediction = self.__model.predict(sample_df)
 
-            energy_per_resource = self.__calculate_energy_per_resource(sample, energy_prediction, sample.duration)
+            energy_per_resource = self.__calculate_energy_per_resource(sample, energy_prediction)
             return EnergyModelResult(energy_mwh=energy_prediction,
                                      cpu_energy_consumption=energy_per_resource.cpu_energy_consumption,
                                      ram_energy_consumption=energy_per_resource.ram_energy_consumption,

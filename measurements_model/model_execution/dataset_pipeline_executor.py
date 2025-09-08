@@ -13,7 +13,8 @@ from measurements_model.dataset_processing.split_data.dataset_spliter import Dat
 class DatasetPipelineExecutor:
     def __init__(self, idle_measurement_path: str, energy_column_to_filter_by: str,
                  feature_selector: FeatureSelector, dataset_spliter: DatasetSpliter):
-        self.__dataset_creator = DatasetCreator(idle_session_path=idle_measurement_path)
+        self.__dataset_creator = None
+        self.__idle_measurement_path = idle_measurement_path
         self.__dataset_processor = DatasetProcessor(energy_column_to_filter_by)
         self.__feature_selector = feature_selector
         self.__dataset_spliter = dataset_spliter
@@ -23,6 +24,8 @@ class DatasetPipelineExecutor:
         if full_dataset_path.exists():
             return pd.read_csv(full_dataset_path, index_col=0)
 
+        if self.__dataset_creator is None:
+            self.__dataset_creator = DatasetCreator(idle_session_path=self.__idle_measurement_path)
         full_dataset = self.__dataset_creator.create_dataset()
         full_dataset.to_csv(FULL_DATASET_PATH)
         return full_dataset

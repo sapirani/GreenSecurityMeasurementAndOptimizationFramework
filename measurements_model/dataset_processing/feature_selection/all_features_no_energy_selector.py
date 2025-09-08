@@ -12,4 +12,4 @@ class AllFeaturesNoEnergy(FeatureSelector):
     """
 
     def select_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        return df.drop([SystemColumns.ENERGY_TOTAL_USAGE_SYSTEM_COL, IDLEColumns.ENERGY_TOTAL_USAGE_IDLE_COL], axis=1)
+        return df.drop([SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL, IDLEColumns.ENERGY_TOTAL_USAGE_IDLE_COL], axis=1)
