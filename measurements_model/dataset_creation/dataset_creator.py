@@ -94,6 +94,7 @@ class DatasetCreator:
         return full_df
 
     def __extend_df_with_target(self, df: pd.DataFrame, time_per_batch: int) -> pd.DataFrame:
+        # TODO: beautify this code
         """
         Extend the given DataFrame with energy usage targets.
 

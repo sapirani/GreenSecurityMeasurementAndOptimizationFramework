@@ -13,6 +13,7 @@ from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawRes
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from measurements_model.config import DEFAULT_HARDWARE_FILE_PATH
 from measurements_model.dataset_creation.data_extractors.hardware_extractor import HardwareExtractor
+from utils.general_consts import KB
 
 
 class EnergyModelFeatureExtractor:
@@ -87,8 +88,8 @@ class EnergyModelFeatureExtractor:
         self.__previous_sample = PreviousSampleFeatures(
             cpu_usage_process=raw_results.process_raw_results.cpu_percent_sum_across_cores,
             cpu_usage_system=raw_results.system_raw_results.cpu_percent_sum_across_cores,
-            memory_usage_process=raw_results.process_raw_results.used_memory_mb,
-            memory_usage_system=raw_results.system_raw_results.total_memory_gb,
+            memory_mb_usage_process=raw_results.process_raw_results.used_memory_mb,
+            memory_gb_usage_system=raw_results.system_raw_results.total_memory_gb,
             timestamp=timestamp,
             battery_remaining_capacity_mWh=battery_capacity
         )
@@ -99,7 +100,7 @@ class EnergyModelFeatureExtractor:
                                                            self.__previous_sample.cpu_usage_process,
                                                            duration) / 100
         process_memory_relative_usage = self.__calculate_relative_value(process_data.used_memory_mb,
-                                                                        self.__previous_sample.memory_usage_process)
+                                                                        self.__previous_sample.memory_mb_usage_process)
         return ProcessEnergyModelFeatures(
             cpu_usage_seconds_process=process_cpu_time,
             memory_mb_relative_process=process_memory_relative_usage,
@@ -118,7 +119,7 @@ class EnergyModelFeatureExtractor:
                                                           self.__previous_sample.cpu_usage_system,
                                                           duration) / 100
         system_memory_relative_usage_mb = self.__calculate_relative_value(system_data.total_memory_gb,
-                                                                          self.__previous_sample.memory_usage_system) * 1000
+                                                                          self.__previous_sample.memory_gb_usage_system) * KB
         return SystemEnergyModelFeatures(
             cpu_seconds_system=system_cpu_time,
             memory_mb_relative_system=system_memory_relative_usage_mb,

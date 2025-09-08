@@ -8,8 +8,8 @@ class PreviousSampleFeatures:
     cpu_usage_process: float
     cpu_usage_system: float
 
-    memory_usage_process: float
-    memory_usage_system: float
+    memory_mb_usage_process: float
+    memory_gb_usage_system: float
 
     timestamp: datetime
     battery_remaining_capacity_mWh: Optional[float] = None
