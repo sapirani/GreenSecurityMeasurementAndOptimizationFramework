@@ -32,6 +32,7 @@ class EnergyPerResourceConsts:
 class EnergyModelAggregator(AbstractAggregator):
     def __init__(self):
         self.__model = EnergyModel.get_instance()
+        self.__model.initialize_model()
         self.__resource_energy_calculator = ResourceEnergyCalculator(
             energy_per_cpu_time=EnergyPerResourceConsts.cpu_time_seconds,
             energy_per_gain_mb_ram=EnergyPerResourceConsts.memory_gain_mb,

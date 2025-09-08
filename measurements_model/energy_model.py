@@ -29,10 +29,13 @@ class EnergyModel:
         return cls.__instance
 
     def initialize_model(self):
-        if os.path.exists(MODEL_FILE_NAME):
-            self.__model = joblib.load(MODEL_FILE_NAME)
-        else:
-            raise RuntimeError(f"Model file {MODEL_FILE_NAME} does not exist, build the model first.")
+        if self.__model is None:
+            with self.__lock:
+                if self.__model is None:
+                    if os.path.exists(MODEL_FILE_NAME):
+                        self.__model = joblib.load(MODEL_FILE_NAME)
+                    else:
+                        raise RuntimeError(f"Model file {MODEL_FILE_NAME} does not exist, build the model first.")
 
     def predict(self, sample: pd.DataFrame) -> float:
         return self.__model.predict(sample)
