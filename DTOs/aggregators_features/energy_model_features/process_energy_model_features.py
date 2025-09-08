@@ -1,10 +1,9 @@
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
 class ProcessEnergyModelFeatures:
-    cpu_time_process: float
+    cpu_usage_seconds_process: float
     memory_mb_relative_process: float
     disk_read_kb_process: float
     disk_read_count_process: int

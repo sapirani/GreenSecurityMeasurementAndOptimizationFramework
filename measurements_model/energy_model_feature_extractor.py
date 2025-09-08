@@ -105,7 +105,7 @@ class EnergyModelFeatureExtractor:
         process_memory_relative_usage = self.__calculate_relative_value(process_data.used_memory_mb,
                                                                         self.__previous_sample.memory_usage_process)
         return ProcessEnergyModelFeatures(
-            cpu_time_process=process_cpu_time,
+            cpu_usage_seconds_process=process_cpu_time,
             memory_mb_relative_process=process_memory_relative_usage,
             disk_read_kb_process=process_data.disk_read_kb,
             disk_write_kb_process=process_data.disk_write_kb,

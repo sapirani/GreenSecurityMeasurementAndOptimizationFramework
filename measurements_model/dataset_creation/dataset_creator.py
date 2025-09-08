@@ -19,11 +19,14 @@ from measurements_model.config import TIME_COLUMN_NAME, ProcessColumns, IDLE_SES
 from measurements_model.energy_model_convertor import EnergyModelConvertor
 from measurements_model.energy_model_feature_extractor import EnergyModelFeatureExtractor
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
+from utils.general_consts import MINUTE
 
-DEFAULT_TIME_PER_BATCH = 150
-DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT = 2.921666667
+DEFAULT_BATCH_INTERVAL_SECONDS = 4 * MINUTE
+DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT = 2.921666667 # todo: extend this logic when we want to use a baseline background activity instead of idle.
+ENERGY_MINIMAL_VALUE = 0
 
 
+# todo: change to consumer interface
 class DatasetCreator:
     def __init__(self, idle_session_path: str):
         self.__elastic_reader_iterator = ElasticReader(
@@ -86,16 +89,17 @@ class DatasetCreator:
     def create_dataset(self) -> pd.DataFrame:
         all_samples_features = self.__create_system_process_dataset()
         df = self.__convert_objects_to_dataframe(all_samples_features)
-        full_df = self.__extend_df_with_target(df, DEFAULT_TIME_PER_BATCH)
+        full_df = self.__extend_df_with_target(df, DEFAULT_BATCH_INTERVAL_SECONDS)
         full_df.to_csv(FULL_DATASET_PATH)
         return full_df
 
     def __extend_df_with_target(self, df: pd.DataFrame, time_per_batch: int) -> pd.DataFrame:
         df = df.copy()
         # todo: make it look better
-        df["batch_id"] = (df[TIME_COLUMN_NAME].astype("int64") // 10**9 // time_per_batch).astype(int)
+        # Step 1: compute batches where each batch represents a timerange in the full measurement.
+        df["batch_id"] = (df[TIME_COLUMN_NAME].astype("int64") // 10 ** 9 // time_per_batch).astype(int)
 
-        # Step 4: compute energy usage per second per batch
+        # Step 2: compute energy usage per second per batch
         energy_per_batch = (
             df.groupby("batch_id")["battery_capacity_mwh_system"]
             .agg(lambda s: (s.iloc[0] - s.iloc[-1]) / time_per_batch)
@@ -103,7 +107,8 @@ class DatasetCreator:
         )
         df = df.merge(energy_per_batch, on="batch_id", how="left")
 
-        # Step 5: energy usage per row
-        df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = df["duration"] * df["energy_per_sec_system"] - \
-                                                      df["duration"] * self.__idle_details.energy_per_second
+        # Step 3: energy usage per row
+        df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = (
+                df["duration"] * df["energy_per_sec_system"] - df["duration"] * self.__idle_details.energy_per_second
+        ).clip(lower=ENERGY_MINIMAL_VALUE)
         return df

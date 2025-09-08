@@ -90,10 +90,13 @@ class EnergyModelAggregator(AbstractAggregator):
     def __calculate_energy_per_resource(self, sample: EnergyModelFeatures,
                                         energy_prediction: float) -> SampleResourcesEnergy:
         cpu_energy = self.__resource_energy_calculator.calculate_cpu_energy(
-            sample.process_features.cpu_time_process)
+            sample.process_features.cpu_usage_seconds_process)
 
-        memory_energy = self.__resource_energy_calculator.calculate_mb_ram_energy(
-            sample.process_features.memory_mb_relative_process)
+        memory_usage = sample.process_features.memory_mb_relative_process
+        if memory_usage < 0:
+            memory_energy = self.__resource_energy_calculator.calculate_reduced_mb_ram_energy(memory_usage)
+        else:
+            memory_energy = self.__resource_energy_calculator.calculate_gained_mb_ram_energy(memory_usage)
 
         disk_io_write_energy = self.__resource_energy_calculator.calculate_disk_write_kb_energy(
             sample.process_features.disk_write_kb_process)

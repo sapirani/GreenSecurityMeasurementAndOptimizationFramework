@@ -108,7 +108,7 @@ HARDWARE_INFORMATION_NAME = 'hardware_information.csv'
 
 # *** Process Related Cols *** #
 class ProcessColumns:
-    CPU_PROCESS_COL = "cpu_time_process"
+    CPU_PROCESS_COL = "cpu_usage_seconds_process"
     MEMORY_PROCESS_COL = "memory_mb_relative_process"
     DISK_READ_BYTES_PROCESS_COL = "disk_read_kb_process"
     DISK_READ_COUNT_PROCESS_COL = "disk_read_count_process"
