@@ -21,7 +21,7 @@ class EnergyPerResourceConsts:
     For example, the energy usage for acquiring 1 MB of RAM is 17.18 mwh.
     """
     cpu_time_seconds = 1.194578001
-    memory_gain_mb = 17.18771578
+    memory_gain_mb = 0.04 # todo: change
     memory_release_mb = 0.03  # todo: change to actual number
     disk_io_read_kbytes = 0.1261034238
     disk_io_write_kbytes = 0.1324211241
