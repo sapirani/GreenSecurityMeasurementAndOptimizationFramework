@@ -1,8 +1,6 @@
-from dataclasses import asdict
 from datetime import datetime
 from typing import Optional, Union
 
-import pandas as pd
 
 from DTOs.aggregators_features.empty_features import EmptyFeatures
 from DTOs.aggregators_features.energy_model_features.full_energy_model_features import EnergyModelFeatures, \
@@ -10,13 +8,11 @@ from DTOs.aggregators_features.energy_model_features.full_energy_model_features 
 from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
 from DTOs.aggregators_features.energy_model_features.previous_sample_features import PreviousSampleFeatures
 from DTOs.aggregators_features.energy_model_features.system_energy_model_features import SystemEnergyModelFeatures
-from DTOs.raw_results_dtos.iteration_info import IterationMetadata
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from measurements_model.config import DEFAULT_HARDWARE_FILE_PATH
 from measurements_model.dataset_creation.data_extractors.hardware_extractor import HardwareExtractor
-from utils.general_consts import MB
 
 
 class EnergyModelFeatureExtractor:

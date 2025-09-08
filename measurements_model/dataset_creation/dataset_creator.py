@@ -94,21 +94,36 @@ class DatasetCreator:
         return full_df
 
     def __extend_df_with_target(self, df: pd.DataFrame, time_per_batch: int) -> pd.DataFrame:
-        df = df.copy()
-        # todo: make it look better
-        # Step 1: compute batches where each batch represents a timerange in the full measurement.
-        df["batch_id"] = (df[TIME_COLUMN_NAME].astype("int64") // 10 ** 9 // time_per_batch).astype(int)
+        """
+        Extend the given DataFrame with energy usage targets.
 
-        # Step 2: compute energy usage per second per batch
+        Steps:
+        1. Assign each sample to a batch based on `time_per_batch`.
+        2. Calculate the average system energy consumption per second for each batch.
+        3. Compute the process-level energy usage for each row, adjusted for idle consumption.
+        """
+
+        df = df.copy()
+
+        # Step 1: Assign batch IDs (integer division of timestamp by batch duration)
+        df["batch_id"] = (
+                df[TIME_COLUMN_NAME].astype("int64") // 10 ** 9 // time_per_batch
+        ).astype(int)
+
+        # Step 2: Calculate system energy consumption rate (mWh/sec) for each batch
         energy_per_batch = (
             df.groupby("batch_id")["battery_capacity_mwh_system"]
             .agg(lambda s: (s.iloc[0] - s.iloc[-1]) / time_per_batch)
             .rename("energy_per_sec_system")
         )
+
+        # Merge batch-level system energy rates back into the main DataFrame
         df = df.merge(energy_per_batch, on="batch_id", how="left")
 
-        # Step 3: energy usage per row
+        # Step 3: Calculate process energy usage
         df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = (
-                df["duration"] * df["energy_per_sec_system"] - df["duration"] * self.__idle_details.energy_per_second
+                df["duration"] * df["energy_per_sec_system"]
+                - df["duration"] * self.__idle_details.energy_per_second
         ).clip(lower=ENERGY_MINIMAL_VALUE)
+
         return df
