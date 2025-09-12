@@ -1,9 +1,12 @@
+import importlib
 import platform
-from typing import Callable
+from typing import Callable, Optional
 
 import psutil
 from scapy.interfaces import get_working_ifaces
 
+import inspect
+from initialization_helper.custom_process_filter.abstarct_process_filter import AbstractProcessFilter
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from operating_systems.os_linux import LinuxOS
 from operating_systems.os_windows import WindowsOS
@@ -22,14 +25,14 @@ from summary_builder import SystemResourceIsolationSummaryBuilder, NativeSummary
 from tasks.program_classes.resources_consumers_programs.disk_io_read_program import DiskIOReadConsumer
 from tasks.program_classes.resources_consumers_programs.disk_io_write_program import DiskIOWriteConsumer
 from tasks.program_classes.resources_consumers_programs.memory_releaser_program import MemoryReleaser
-from utils.general_consts import SummaryType, ProgramToScan, AntivirusType, IDSType, ProcessMonitorType, BatteryMonitorType
+from utils.general_consts import SummaryType, ProgramToScan, AntivirusType, IDSType, ProcessMonitorType, \
+    BatteryMonitorType, BASE_PROCESS_FILTER_PACKAGE
 from tasks.program_classes.abstract_program import ProgramInterface
 from tasks.program_classes.antiviruses.clam_av_program import ClamAVProgram
 from tasks.program_classes.antiviruses.defender_program import DefenderProgram
 from tasks.program_classes.antiviruses.dummy_antivirus_program import DummyAntivirusProgram
 from tasks.program_classes.antiviruses.sophos_av_program import SophosAVProgram
 from tasks.program_classes.resources_consumers_programs.cpu_consumer_program import CPUConsumer
-from tasks.program_classes.dummy_io_writer_consumer_program import IOWriteConsumer
 from tasks.program_classes.resources_consumers_programs.memory_consumer_program import MemoryConsumer
 from tasks.program_classes.ids.snort_program import SnortProgram
 from tasks.program_classes.ids.suricata_program import SuricataProgram
@@ -59,6 +62,26 @@ def summary_builder_factory(summary_type: SummaryType):
         return NativeSummaryBuilder()
 
     raise Exception("Selected summary builder is not supported")
+
+
+def custom_process_filter_factory(custom_process_filter_module_name: Optional[str]) -> Callable[[psutil.Process], bool]:
+    if not custom_process_filter_module_name:
+        return lambda _: False
+
+    process_filters = []
+    imported_module = importlib.import_module(f"{BASE_PROCESS_FILTER_PACKAGE}.{custom_process_filter_module_name}")
+
+    for _, obj in inspect.getmembers(imported_module, inspect.isclass):     # get all classes in module
+        if issubclass(obj, AbstractProcessFilter) and obj is not AbstractProcessFilter:
+            process_filters.append(obj().should_ignore_process)
+
+    def custom_filters(process: psutil.Process):
+        return any(process_filter(process) for process_filter in process_filters)
+
+    if not process_filters:
+        print("Warning! Could not find the user's custom process filters")
+
+    return custom_filters
 
 
 def process_resource_usage_recorder_factory(

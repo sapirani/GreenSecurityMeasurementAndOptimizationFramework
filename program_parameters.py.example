@@ -10,6 +10,10 @@ summary_type = SummaryType.NATIVE
 process_monitor_type = ProcessMonitorType.FULL
 battery_monitor_type = BatteryMonitorType.FULL
 
+# You can write your own filters to define which processes will be measured.
+# Try 'filter_out_processes' as an example, or use None to disable custom process filtering
+custom_process_filter_module_name = None
+
 power_plan = PowerPlan.BALANCED
 scan_option = ScanMode.ONE_SCAN
 scan_type = ScanType.QUICK_SCAN  # relevant only for one scan or continuous scan

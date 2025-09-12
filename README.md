@@ -68,19 +68,20 @@ The main components of the code:
 4. `summary_type` - defines the format of outputted csv summary.
 5. `battery_monitor_type` - enables to choose whether to allow battery measurements or not.
 6. `process_monitor_type` - Monitoring strategy (whether to monitor all processes in the system or just the process of interest (which are the main and the background processes))
-7. `power_plan` - the computer's power plan, [see options](#power-plans).
-8. `scan_option` - defines whether to perform a regular scan, or to start the measured program again and again until timeout or draining a certain amount of energy
-9. `RUNNING_TIME` - enables to define the exact time of measurements in one scan mode. in continuous scam it will be the minimum time for the measurements [see modes of execution](#modes-of-execution).
-10. `MINIMUM_DELTA_CAPACITY` - enables to define the minimum battery drop required before the code ends. Relevant only in continuous scan mode.
-11. `measurement_number` - if equals to NEW_MEASUREMENT, result will be saved in new folder. It is possible to define specific number
-12. `screen_brightness_level` - enables to define the brightness of screen - a value between 0 and 100
-13. `DEFAULT_SCREEN_TURNS_OFF_TIME` - time, in minutes, before screen turns off
-14. `DEFAULT_TIME_BEFORE_SLEEP_MODE` - time, in minutes, before sleep mode is activated
-15. `scanner_version` - define the metrics that will be measured [see options](#measurement-versions)
-16. `elastic_url` - url for your ElasticSearch
-17. `elastic_username` - your ElasticSearch username
-18. `elastic_password` - your ElasticSearch password
-19. other program-specific parameters (that will be sent to the programs lunched by this measurement framework)
+7. `custom_process_filter_module_name` - A self-made module name that the user can create to apply custom process filters. See `filter_out_processes` as an example (the custom module must reside within the directory which is referenced by the variable named `BASE_PROCESS_FILTER_PACKAGE` inside `general_consts.py`).
+8. `power_plan` - the computer's power plan, [see options](#power-plans).
+9. `scan_option` - defines whether to perform a regular scan, or to start the measured program again and again until timeout or draining a certain amount of energy
+10. `RUNNING_TIME` - enables to define the exact time of measurements in one scan mode. in continuous scam it will be the minimum time for the measurements [see modes of execution](#modes-of-execution).
+11. `MINIMUM_DELTA_CAPACITY` - enables to define the minimum battery drop required before the code ends. Relevant only in continuous scan mode.
+12. `measurement_number` - if equals to NEW_MEASUREMENT, result will be saved in new folder. It is possible to define specific number
+13. `screen_brightness_level` - enables to define the brightness of screen - a value between 0 and 100
+14. `DEFAULT_SCREEN_TURNS_OFF_TIME` - time, in minutes, before screen turns off
+15. `DEFAULT_TIME_BEFORE_SLEEP_MODE` - time, in minutes, before sleep mode is activated
+16. `scanner_version` - define the metrics that will be measured [see options](#measurement-versions)
+17. `elastic_url` - url for your ElasticSearch
+18. `elastic_username` - your ElasticSearch username
+19. `elastic_password` - your ElasticSearch password
+20. other program-specific parameters (that will be sent to the programs lunched by this measurement framework)
 
 ### Modes of Execution
 There are 3 modes of execution:
