@@ -816,19 +816,39 @@ def main(user_args):
     system_metrics_logger = get_measurement_logger(
         logger_name=LoggerName.SYSTEM_METRICS,
         custom_filter=logger_filter,
-        logger_handler=get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, IndexName.SYSTEM_METRICS, starting_time)
+        logger_handler=get_elastic_logging_handler(
+            elastic_username,
+            elastic_password,
+            elastic_url,
+            IndexName.SYSTEM_METRICS,
+            starting_time,
+            user_args.elastic_pipeline_system
+        )
     )
 
     process_metrics_logger = get_measurement_logger(
         logger_name=LoggerName.PROCESS_METRICS,
         custom_filter=logger_filter,
-        logger_handler=get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, IndexName.PROCESS_METRICS, starting_time)
+        logger_handler=get_elastic_logging_handler(
+            elastic_username,
+            elastic_password,
+            elastic_url,
+            IndexName.PROCESS_METRICS,
+            starting_time,
+            user_args.elastic_pipeline_processes
+        )
     )
 
     application_flow_logger = get_measurement_logger(
         logger_name=LoggerName.APPLICATION_FLOW,
         custom_filter=logger_filter,
-        logger_handler=get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, IndexName.APPLICATION_FLOW, starting_time)
+        logger_handler=get_elastic_logging_handler(
+            elastic_username,
+            elastic_password,
+            elastic_url,
+            IndexName.APPLICATION_FLOW,
+            starting_time
+        )
     )
 
     application_flow_logger.info("The scanner is starting the measurement")
@@ -857,6 +877,18 @@ if __name__ == '__main__':
                         type=json.loads,
                         default={},
                         help="User-defined extras (as JSON) to insert into every log")
+
+    parser.add_argument("--elastic_pipeline_processes",
+                        type=str,
+                        default=None,
+                        help="Name of the Elasticsearch ingest pipeline to apply during indexing in processes index. "
+                             "If not provided, documents will be indexed without using a pipeline.")
+
+    parser.add_argument("--elastic_pipeline_system",
+                        type=str,
+                        default=None,
+                        help="Name of the Elasticsearch ingest pipeline to apply during indexing in system index. "
+                             "If not provided, documents will be indexed without using a pipeline.")
 
     args = parser.parse_args()
 
