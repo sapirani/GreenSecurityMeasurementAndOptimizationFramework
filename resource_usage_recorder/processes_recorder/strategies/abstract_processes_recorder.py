@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import logging
 from dataclasses import dataclass
-from typing import List, Dict, Tuple, Callable, Iterable
+from typing import List, Dict, Tuple, Callable, Iterable, Optional
 import psutil
 
 from resource_usage_recorder import MetricResult
@@ -16,7 +16,7 @@ logger = logging.getLogger(LoggerName.PROCESS_METRICS)
 class ProcessMetrics(MetricResult):
     pid: int
     process_name: str
-    arguments: List[str]
+    arguments: Optional[List[str]]
     cpu_percent_sum_across_cores: float = 0     # can exceed 100% in case where process utilizes more than one core
     cpu_percent_mean_across_cores: float = 0
     threads_num: int = 0
@@ -61,10 +61,12 @@ class AbstractProcessResourceUsageRecorder(ABC):
             self,
             process_network_usage_recorder: ProcessNetworkUsageRecorder,
             running_os: AbstractOSFuncs,
+            read_process_args: bool,
             should_ignore_process: Callable[[psutil.Process], bool]
     ):
         self.process_network_usage_recorder = process_network_usage_recorder
         self.running_os = running_os
+        self.read_process_args = read_process_args
         self.prev_data_per_process: Dict[Tuple[int, str], ProcessMetrics] = {}
         self.mark_processes = []
         self.should_ignore_process = should_ignore_process
@@ -108,7 +110,14 @@ class AbstractProcessResourceUsageRecorder(ABC):
                 with p.oneshot():
                     pid = p.pid
                     process_name = p.name()
-                    process_args = p.cmdline()[1:]
+
+                    process_args = None
+                    if self.read_process_args:
+                        try:
+                            process_args = p.cmdline()[1:]
+                        except psutil.AccessDenied:
+                            pass
+
                     process_of_interest = True if p in self.mark_processes else False
                     cpu_percent_sum_across_cores = round(p.cpu_percent(), 2)
                     process_traffic = self.process_network_usage_recorder.get_current_network_stats(p)

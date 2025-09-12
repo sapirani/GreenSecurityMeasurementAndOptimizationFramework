@@ -87,15 +87,26 @@ def custom_process_filter_factory(custom_process_filter_module_name: Optional[st
 def process_resource_usage_recorder_factory(
         process_monitor_type: ProcessMonitorType,
         running_os: AbstractOSFuncs,
+        read_process_args: bool,
         should_ignore_process: Callable[[psutil.Process], bool]
 ) -> AbstractProcessResourceUsageRecorder:
     interfaces_for_packets_capturing = get_working_ifaces()
     process_network_monitor = ProcessNetworkUsageRecorder(interfaces_for_packets_capturing)
 
     if process_monitor_type == ProcessMonitorType.FULL:
-        return AllProcessesResourceUsageRecorder(process_network_monitor, running_os, should_ignore_process)
+        return AllProcessesResourceUsageRecorder(
+            process_network_monitor,
+            running_os,
+            read_process_args,
+            should_ignore_process
+        )
     elif process_monitor_type == ProcessMonitorType.PROCESSES_OF_INTEREST_ONLY:
-        return ProcessesOfInterestOnlyRecorder(process_network_monitor, running_os, should_ignore_process)
+        return ProcessesOfInterestOnlyRecorder(
+            process_network_monitor,
+            running_os,
+            read_process_args,
+            should_ignore_process
+        )
 
     raise Exception("Selected process monitor type is not supported")
 

@@ -14,6 +14,9 @@ battery_monitor_type = BatteryMonitorType.FULL
 # Try 'filter_out_processes' as an example, or use None to disable custom process filtering
 custom_process_filter_module_name = None
 
+# Reading the process arguments may significantly harm performance. Set this variable to False if it is not needed.
+read_process_arguments = True
+
 power_plan = PowerPlan.BALANCED
 scan_option = ScanMode.ONE_SCAN
 scan_type = ScanType.QUICK_SCAN  # relevant only for one scan or continuous scan
