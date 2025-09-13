@@ -68,19 +68,20 @@ The main components of the code:
 4. `summary_type` - defines the format of outputted csv summary.
 5. `battery_monitor_type` - enables to choose whether to allow battery measurements or not.
 6. `process_monitor_type` - Monitoring strategy (whether to monitor all processes in the system or just the process of interest (which are the main and the background processes))
-7. `power_plan` - the computer's power plan, [see options](#power-plans).
-8. `scan_option` - defines whether to perform a regular scan, or to start the measured program again and again until timeout or draining a certain amount of energy
-9. `RUNNING_TIME` - enables to define the exact time of measurements in one scan mode. in continuous scam it will be the minimum time for the measurements [see modes of execution](#modes-of-execution).
-10. `MINIMUM_DELTA_CAPACITY` - enables to define the minimum battery drop required before the code ends. Relevant only in continuous scan mode.
-11. `measurement_number` - if equals to NEW_MEASUREMENT, result will be saved in new folder. It is possible to define specific number
-12. `screen_brightness_level` - enables to define the brightness of screen - a value between 0 and 100
-13. `DEFAULT_SCREEN_TURNS_OFF_TIME` - time, in minutes, before screen turns off
-14. `DEFAULT_TIME_BEFORE_SLEEP_MODE` - time, in minutes, before sleep mode is activated
-15. `scanner_version` - define the metrics that will be measured [see options](#measurement-versions)
-16. `elastic_url` - url for your ElasticSearch
-17. `elastic_username` - your ElasticSearch username
-18. `elastic_password` - your ElasticSearch password
-19. other program-specific parameters (that will be sent to the programs lunched by this measurement framework)
+7. `custom_process_filter_types` - user-defined filters.
+8. `power_plan` - the computer's power plan, [see options](#power-plans).
+9. `scan_option` - defines whether to perform a regular scan, or to start the measured program again and again until timeout or draining a certain amount of energy
+10. `RUNNING_TIME` - enables to define the exact time of measurements in one scan mode. in continuous scam it will be the minimum time for the measurements [see modes of execution](#modes-of-execution).
+11. `MINIMUM_DELTA_CAPACITY` - enables to define the minimum battery drop required before the code ends. Relevant only in continuous scan mode.
+12. `measurement_number` - if equals to NEW_MEASUREMENT, result will be saved in new folder. It is possible to define specific number
+13. `screen_brightness_level` - enables to define the brightness of screen - a value between 0 and 100
+14. `DEFAULT_SCREEN_TURNS_OFF_TIME` - time, in minutes, before screen turns off
+15. `DEFAULT_TIME_BEFORE_SLEEP_MODE` - time, in minutes, before sleep mode is activated
+16. `scanner_version` - define the metrics that will be measured [see options](#measurement-versions)
+17. `elastic_url` - url for your ElasticSearch
+18. `elastic_username` - your ElasticSearch username
+19. `elastic_password` - your ElasticSearch password
+20. other program-specific parameters (that will be sent to the programs lunched by this measurement framework)
 
 ### Modes of Execution
 There are 3 modes of execution:
@@ -99,7 +100,7 @@ The results are saved in the relevant folders. the raw resource usage data is sa
 1. FULL - measures the resources of all running processes in the system.
 2. PROCESSES_OF_INTEREST_ONLY - monitors only main and background processes
 
-# Battery Monitoring Types
+### Battery Monitoring Types
 1. FULL - measures battery metrics
 2. WITHOUT_BATTERY - does not measure battery metrics
 
@@ -151,9 +152,15 @@ Example usage (extras should be given as JSON):
 
 #### Supporting Additional Programs:
 1. in `general_consts.py` file - add your program in the enum called *ProgramToScan*
-2. in `program_parameters` file - add all the parameters that the user can configure in your program
-3. in `program class` file - add a class that represents your program and inherits from *ProgramInterface*. You ***MUST*** implement the funtions:  *get_program_name* and *get_command*. The function *get_command* returns a string which is the shell command that runs your program. You can implement any other function of *ProgramInterface*. Note that if you want to run your command in powershell (for Windows programs), implement the function *should_use_powershell* and return True.
+2. in `program_parameters.py` file - add all the parameters that the user can configure in your program
+3. in `program class` file - add a class that represents your program and inherits from *ProgramInterface*. You ***MUST*** implement the functions:  *get_program_name* and *get_command*. The function *get_command* returns a string which is the shell command that runs your program. You can implement any other function of *ProgramInterface*. Note that if you want to run your command in powershell (for Windows programs), implement the function *should_use_powershell* and return True.
 4. in `initialization_helper.py` file - add your program in the function called *program_to_scan_factory*
+
+#### Supporting User-Defined Filters:
+1. in `general_consts.py` file - add your program in the enum called *CustomFilterType*
+2. in `program_parameters.py` file - add all filter types you wish to apply (inside custom_process_filter_types list).
+3. in `custom_process_filter` package - add a module and a class in it that inherits from *AbstractProcessFilter*. You ***MUST*** implement the function:  *should_ignore_process*.
+4. in `initialization_factories.py` file - add your filter in the function called *custom_process_filter_factory*.
 
 ## Execution Example:
 1) Create program_parameters.py file and fill the relevant fields. You may use the program_parameters.py.example file as a reference.

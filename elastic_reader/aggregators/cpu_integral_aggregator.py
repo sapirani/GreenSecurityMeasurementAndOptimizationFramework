@@ -15,7 +15,7 @@ class CPUIntegralAggregator(AbstractAggregator):
 
     def extract_features(
             self,
-            raw_results: SystemRawResults | ProcessRawResults,
+            raw_results: Union[SystemRawResults, ProcessRawResults],
             iteration_metadata: IterationMetadata
     ) -> CPUIntegralFeatures:
         return CPUIntegralFeatures(

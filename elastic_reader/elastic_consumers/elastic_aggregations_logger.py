@@ -8,7 +8,7 @@ from application_logging.formatters.pretty_extra_formatter import PrettyExtrasFo
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 from application_logging.logging_utils import get_measurement_logger
 from consts import Verbosity
-from elastic_reader_parameters import ES_URL, ES_USER, ES_PASS
+from elastic_reader_parameters import ES_URL, ES_USER, ES_PASS, custom_pipeline_name
 from elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
 from utils.general_consts import LoggerName, IndexName
 
@@ -16,7 +16,12 @@ from utils.general_consts import LoggerName, IndexName
 class ElasticAggregationsLogger(AbstractElasticConsumer):
     logger = get_measurement_logger(
         logger_name=LoggerName.METRICS_AGGREGATIONS,
-        logger_handler=get_elastic_logging_handler(ES_USER, ES_PASS, ES_URL, IndexName.METRICS_AGGREGATIONS),
+        logger_handler=get_elastic_logging_handler(
+            ES_USER,
+            ES_PASS, ES_URL,
+            IndexName.METRICS_AGGREGATIONS,
+            pipeline_name=custom_pipeline_name
+        ),
     )
 
     def __init__(self, verbosity_level: Verbosity):
