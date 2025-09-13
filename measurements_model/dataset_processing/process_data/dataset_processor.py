@@ -8,7 +8,7 @@ from measurements_model.dataset_processing.process_data.processors.categorial_va
 
 class DatasetProcessor:
     def __init__(self, energy_column: str):
-        self.__filters = [EnergyFilter(energy_threshold=-1, energy_column=energy_column)]
+        self.__filters = [EnergyFilter(energy_threshold=0, energy_column=energy_column)]
         self.__processors = [CategoricalVariableProcessor()]
 
     def __filter_dataset(self, df: pd.DataFrame) -> pd.DataFrame:

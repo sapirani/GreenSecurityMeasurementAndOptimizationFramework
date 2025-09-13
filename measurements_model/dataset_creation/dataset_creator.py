@@ -22,14 +22,14 @@ from measurements_model.energy_model_feature_extractor import EnergyModelFeature
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 from utils.general_consts import MINUTE
 
-DEFAULT_BATCH_INTERVAL_SECONDS = 4 * MINUTE
+DEFAULT_BATCH_INTERVAL_SECONDS = 5 * MINUTE
 DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT = 2.921666667 # todo: extend this logic when we want to use a baseline background activity instead of idle.
 ENERGY_MINIMAL_VALUE = 0
 
 
 # todo: change to consumer interface
 class DatasetCreator:
-    def __init__(self, idle_session_path: str):
+    def __init__(self):
         self.__elastic_reader_iterator = ElasticReader(
             get_time_picker_input(time_picker_input_strategy, preconfigured_time_picker_input),
             [ElasticIndex.PROCESS, ElasticIndex.SYSTEM]).read()
@@ -43,11 +43,10 @@ class DatasetCreator:
         all_samples = []
         for sample in self.__elastic_reader_iterator:
             metadata = sample.metadata
-            print("TIMESTAMP: ", metadata.timestamp)
             if sample.system_raw_results is None or IDLE_SESSION_ID_NAME in metadata.session_host_identity.session_id:
                 continue
 
-            # todo: fix duration handling in case of several sessions running at the same time (single iteration raw results may contain samples from different measurements)
+            # todo: fix duration handling in case of multiple sessions and hostnames running at the same time (single iteration raw results may contain samples from different measurements)
             iteration_samples = self.__extract_iteration_samples(sample.system_raw_results,
                                                                  sample.processes_raw_results,
                                                                  metadata.timestamp)

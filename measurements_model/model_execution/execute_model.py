@@ -2,7 +2,7 @@ import joblib
 import pandas as pd
 
 from measurements_model.config import TRAIN_SET_PATH, TEST_SET_PATH, FULL_PREPROCESSED_DATASET_PATH, \
-    ProcessColumns, IDLE_SESSION_PATH, MODEL_FILE_NAME
+    ProcessColumns, MODEL_FILE_NAME
 from measurements_model.model_execution.dataset_pipeline_executor import DatasetPipelineExecutor
 from measurements_model.dataset_processing.feature_selection.process_and_system_no_hardware_feature_selector import \
     ProcessAndSystemNoHardware
@@ -12,12 +12,9 @@ from measurements_model.model_training.utils import calculate_and_print_scores
 
 
 def run_model():
-    idle_path = IDLE_SESSION_PATH
-
     feature_selector = ProcessAndSystemNoHardware()
     dataset_splitter = RegularDatasetSplitter(TRAIN_SET_PATH, TEST_SET_PATH, FULL_PREPROCESSED_DATASET_PATH)
-    dataset_pipeline = DatasetPipelineExecutor(idle_measurement_path=idle_path,
-                                               energy_column_to_filter_by=ProcessColumns.ENERGY_USAGE_PROCESS_COL,
+    dataset_pipeline = DatasetPipelineExecutor(energy_column_to_filter_by=ProcessColumns.ENERGY_USAGE_PROCESS_COL,
                                                feature_selector=feature_selector, dataset_spliter=dataset_splitter)
 
     full_dataset = dataset_pipeline.create_dataset()

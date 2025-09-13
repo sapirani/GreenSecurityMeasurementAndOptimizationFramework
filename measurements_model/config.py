@@ -1,23 +1,4 @@
-# Files names in measurement directory
-
-ALL_PROCESSES_CSV = fr"processes_data.csv"
-SUMMARY_CSV = fr"summary.xlsx"
-NETWORK_IO_PER_TIMESTAMP_CSV = fr"network_io_each_moment.csv"
-BATTERY_STATUS_CSV = fr"battery_status.csv"
-DISK_IO_PER_TIMESTAMP_CSV = fr"disk_io_each_moment.csv"
-TOTAL_CPU_CSV = fr"total_cpu.csv"
-TOTAL_MEMORY_CSV = fr"total_memory_each_moment.csv"
-DEFAULT_HARDWARE_FILE_PATH = f""
-
 SCORING_METHODS_FOR_MODEL = ['neg_mean_absolute_error', 'neg_root_mean_squared_error']
-
-NO_ENERGY_MEASURED = -1
-
-# Paths
-IDLE_SESSION_PATH = r"C:\Users\Administrator\Desktop\green security\tmp - idle\Measurement 1"
-
-ALL_MEASUREMENTS_DIR_PATH = r"C:\Users\Administrator\Desktop\green security\tmp"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources_dudu_summary"
-ALL_MEASUREMENTS_NATIVE_VERSION_WITH_NETWORK_DIR_PATH = r"C:\Users\Administrator\Desktop\green security\tmp"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_other_summary"
 
 FULL_DATASET_PATH = r"C:\Users\Administrator\Desktop\green security\results\full_dataset.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_dataset.csv"
 FULL_PREPROCESSED_DATASET_PATH = r"C:\Users\Administrator\Desktop\green security\results\full_processed_dataset.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_preprocessed_dataset.csv"
@@ -38,6 +19,7 @@ TIME_COLUMN_NAME = "timestamp"
 PROCESS_COLUMN_SUFFIX = "_process"
 SYSTEM_COLUMN_SUFFIX = "_system"
 IDLE_SESSION_ID_NAME = "idle"
+
 
 class SummaryFieldsNativeVersion:
     DURATION = "Duration"

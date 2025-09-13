@@ -2,14 +2,8 @@ from DTOs.aggregators_features.energy_model_features.hardware_energy_model_featu
 
 
 class HardwareExtractor:
-    def extract(self, hardware_file_path: str, use_default: bool = True) -> HardwareEnergyModelFeatures:
-        if use_default:
-            return self.__create_default()
-        else:
-            raise NotImplementedError("Not implemented support for not default hardware!")
-
     @staticmethod
-    def __create_default() -> HardwareEnergyModelFeatures:
+    def extract() -> HardwareEnergyModelFeatures:
         return HardwareEnergyModelFeatures(
             PC_type="Mobile Device",
             PC_manufacturer="Dell Inc.",
