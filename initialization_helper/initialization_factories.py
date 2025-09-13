@@ -4,8 +4,11 @@ from typing import Callable, List
 import psutil
 from scapy.interfaces import get_working_ifaces
 
-from initialization_helper.custom_process_filter.filter_out_cmd import FilterOutCMDProcesses
-from initialization_helper.custom_process_filter.filter_out_python import FilterOutPythonProcesses
+from custom_process_filter.abstarct_process_filter import AbstractProcessFilter
+from custom_process_filter.filter_out_cmd import FilterOutCMDProcesses
+from custom_process_filter.filter_out_python import FilterOutPythonProcesses
+
+from custom_process_filter.filter_for_python import FilterForPythonProcesses
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from operating_systems.os_linux import LinuxOS
 from operating_systems.os_windows import WindowsOS
@@ -66,23 +69,22 @@ def summary_builder_factory(summary_type: SummaryType):
 def custom_process_filter_factory(
         custom_process_filter_types: List[CustomFilterType]
 ) -> Callable[[psutil.Process], bool]:
-    def _get_predicate(filter_type: CustomFilterType):
-        filter_instance = None
+    def _get_filter(filter_type: CustomFilterType):
         if filter_type == CustomFilterType.FILTER_OUT_PYTHON:
-            filter_instance = FilterOutPythonProcesses()
+            return FilterOutPythonProcesses()
+        elif filter_type == CustomFilterType.FILTER_FOR_PYTHON:
+            return FilterForPythonProcesses()
         elif filter_type == CustomFilterType.FILTER_OUT_CMD:
-            filter_instance = FilterOutCMDProcesses()
+            return FilterOutCMDProcesses()
 
-        if filter_instance:
-            return filter_instance.should_ignore_process
         raise ValueError("Invalid process filter type")
 
-    process_filters: List[Callable[[psutil.Process], bool]] = [
-        _get_predicate(custom_process_filter_type) for custom_process_filter_type in custom_process_filter_types
+    process_filters: List[AbstractProcessFilter] = [
+        _get_filter(custom_process_filter_type) for custom_process_filter_type in custom_process_filter_types
     ]
 
     def custom_filters(process: psutil.Process):
-        return any(process_filter(process) for process_filter in process_filters)
+        return any(process_filter.should_ignore_process(process) for process_filter in process_filters)
 
     return custom_filters
 

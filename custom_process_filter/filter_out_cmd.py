@@ -1,6 +1,6 @@
 import psutil
 
-from initialization_helper.custom_process_filter.abstarct_process_filter import AbstractProcessFilter
+from custom_process_filter.abstarct_process_filter import AbstractProcessFilter
 
 
 class FilterOutCMDProcesses(AbstractProcessFilter):
