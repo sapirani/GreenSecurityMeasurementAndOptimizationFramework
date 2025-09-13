@@ -10,9 +10,7 @@ summary_type = SummaryType.NATIVE
 process_monitor_type = ProcessMonitorType.FULL
 battery_monitor_type = BatteryMonitorType.FULL
 
-# You can write your own filters to define which processes will be measured.
-# Try 'filter_out_processes' as an example, or use None to disable custom process filtering
-custom_process_filter_module_name = None
+custom_process_filter_types = []     # [CustomFilter.FILTER_OUT_PYTHON, CustomFilter.FILTER_OUT_CMD]
 
 # Reading the process arguments may significantly harm performance. Set this variable to False if it is not needed.
 read_process_arguments = True

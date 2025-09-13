@@ -11,8 +11,6 @@ PROCESS_ID_PHRASE = "Main Process ID"
 BACKGROUND_ID_PHRASE = "Background Processes IDs"
 NUMBER_OF_CORES = psutil.cpu_count()
 
-BASE_PROCESS_FILTER_PACKAGE = "initialization_helper.custom_process_filter"
-
 SECOND = 1
 MINUTE = 60
 
@@ -94,6 +92,11 @@ class ScanType:
     FULL_SCAN = "FullScan"
     QUICK_SCAN = "QuickScan"
     CUSTOM_SCAN = "CustomScan"
+
+
+class CustomFilterType(Enum):
+    FILTER_OUT_PYTHON = 1
+    FILTER_OUT_CMD = 2
     
     
 class IDSType:

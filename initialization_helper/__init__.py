@@ -18,7 +18,7 @@ running_os = running_os_factory(is_inside_container=is_inside_container)
 program = program_to_scan_factory(main_program_to_scan)
 background_programs = [program_to_scan_factory(background_program) for background_program in background_programs_types]
 
-custom_process_filter = custom_process_filter_factory(custom_process_filter_module_name)
+custom_process_filter = custom_process_filter_factory(custom_process_filter_types)
 
 processes_resource_usage_recorder = process_resource_usage_recorder_factory(
     process_monitor_type, running_os, read_process_arguments,
@@ -27,8 +27,6 @@ processes_resource_usage_recorder = process_resource_usage_recorder_factory(
 battery_usage_recorder = battery_usage_recorder_factory(battery_monitor_type, running_os)
 
 summary_builder = summary_builder_factory(summary_type)
-
-
 
 
 # ======= Power Plan Name and GUID (do not change) =======
