@@ -1,8 +1,9 @@
 import joblib
 import pandas as pd
 
-from measurements_model.config import TRAIN_SET_PATH, TEST_SET_PATH, FULL_PREPROCESSED_DATASET_PATH, \
-    ProcessColumns, MODEL_FILE_NAME
+from measurements_model.config import MODEL_FILE_NAME
+from measurements_model.dataset_parameters import FULL_PREPROCESSED_DATASET_PATH, TRAIN_SET_PATH, TEST_SET_PATH
+from measurements_model.column_names import ProcessColumns
 from measurements_model.model_execution.dataset_pipeline_executor import DatasetPipelineExecutor
 from measurements_model.dataset_processing.feature_selection.process_and_system_no_hardware_feature_selector import \
     ProcessAndSystemNoHardware

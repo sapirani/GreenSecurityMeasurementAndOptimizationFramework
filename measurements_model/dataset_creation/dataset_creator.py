@@ -15,8 +15,9 @@ from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from elastic_reader.consts import ElasticIndex
 from elastic_reader.elastic_reader import ElasticReader
 from elastic_reader.elastic_reader_parameters import time_picker_input_strategy, preconfigured_time_picker_input
-from measurements_model.config import TIME_COLUMN_NAME, ProcessColumns, IDLE_SESSION_ID_NAME, FULL_DATASET_PATH, \
-    SystemColumns
+from measurements_model.config import TIME_COLUMN_NAME, IDLE_SESSION_ID_NAME
+from measurements_model.dataset_parameters import FULL_DATASET_PATH
+from measurements_model.column_names import ProcessColumns, SystemColumns
 from measurements_model.energy_model_convertor import EnergyModelConvertor
 from measurements_model.energy_model_feature_extractor import EnergyModelFeatureExtractor
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input

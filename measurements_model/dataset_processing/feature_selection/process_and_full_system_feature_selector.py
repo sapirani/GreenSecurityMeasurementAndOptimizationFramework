@@ -1,6 +1,7 @@
 import pandas as pd
 
-from measurements_model.config import SystemColumns, IDLEColumns, TIME_COLUMN_NAME
+from measurements_model.config import TIME_COLUMN_NAME
+from measurements_model.column_names import SystemColumns, IDLEColumns
 from measurements_model.dataset_processing.feature_selection.feature_selector import FeatureSelector
 
 

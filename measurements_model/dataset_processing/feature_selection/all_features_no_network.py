@@ -1,6 +1,6 @@
 import pandas as pd
 
-from measurements_model.config import ProcessColumns, SystemColumns
+from measurements_model.column_names import ProcessColumns, SystemColumns
 from measurements_model.dataset_processing.feature_selection.feature_selector import FeatureSelector
 
 

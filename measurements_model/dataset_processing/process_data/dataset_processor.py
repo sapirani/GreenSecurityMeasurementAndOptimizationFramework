@@ -1,6 +1,6 @@
 import pandas as pd
 
-from measurements_model.config import ProcessColumns
+from measurements_model.column_names import ProcessColumns
 from measurements_model.dataset_processing.process_data.filters.energy_filter import EnergyFilter
 from measurements_model.dataset_processing.process_data.processors.categorial_variable_processor import \
     CategoricalVariableProcessor
