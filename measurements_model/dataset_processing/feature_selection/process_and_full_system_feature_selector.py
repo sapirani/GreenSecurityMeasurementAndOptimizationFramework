@@ -14,10 +14,7 @@ class ProcessAndTotalSystem(FeatureSelector):
     """
 
     def select_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        return df.drop([SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL,
-                        SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL,
-                        SystemColumns.BATCH_ID_COLUMN,
-                        TIME_COLUMN_NAME,
+        return df.drop([
                         IDLEColumns.ENERGY_TOTAL_USAGE_IDLE_COL,
                         IDLEColumns.CPU_IDLE_COL, IDLEColumns.MEMORY_IDLE_COL, IDLEColumns.PAGE_FAULT_IDLE_COL,
                         IDLEColumns.DISK_READ_BYTES_IDLE_COL, IDLEColumns.DISK_READ_COUNT_IDLE_COL,

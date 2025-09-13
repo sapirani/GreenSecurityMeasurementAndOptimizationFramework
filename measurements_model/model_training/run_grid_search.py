@@ -1,4 +1,3 @@
-from measurements_model.config import IDLE_SESSION_PATH
 from measurements_model.dataset_parameters import FULL_PREPROCESSED_DATASET_PATH, TRAIN_SET_PATH, TEST_SET_PATH
 from measurements_model.column_names import ProcessColumns
 from measurements_model.model_execution.dataset_pipeline_executor import DatasetPipelineExecutor
@@ -11,11 +10,10 @@ from measurements_model.model_training.search_best_model import ModelSelector
 GRID_SEARCH_METRICS = ["neg_mean_absolute_error"]
 
 
-def run_grid_search(algs: dict):
+def run_grid_search():
     feature_selector = ProcessAndSystemNoHardware()
     dataset_splitter = RegularDatasetSplitter(TRAIN_SET_PATH, TEST_SET_PATH, FULL_PREPROCESSED_DATASET_PATH)
-    dataset_pipeline = DatasetPipelineExecutor(idle_measurement_path=IDLE_SESSION_PATH,
-                                               energy_column_to_filter_by=ProcessColumns.ENERGY_USAGE_PROCESS_COL,
+    dataset_pipeline = DatasetPipelineExecutor(energy_column_to_filter_by=ProcessColumns.ENERGY_USAGE_PROCESS_COL,
                                                feature_selector=feature_selector, dataset_spliter=dataset_splitter)
     X_train, X_test, y_train, y_test = dataset_pipeline.split_dataset()
     model_selector = ModelSelector(models_to_experiment=REGRESSION_MODELS_WITH_PARAMETERS)
@@ -27,4 +25,4 @@ def run_grid_search(algs: dict):
 
 
 if __name__ == "__main__":
-    run_grid_search(MODELS_WITHOUT_PARAMETERS)
+    run_grid_search()

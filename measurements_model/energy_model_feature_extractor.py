@@ -70,11 +70,9 @@ class EnergyModelFeatureExtractor:
                 raw_results.system_raw_results,
                 duration
             )
-
-            return process_features, system_features, duration
-
         finally:
             self.__set_previous_sample(raw_results, current_timestamp)
+            return process_features, system_features, duration
 
     def __set_previous_sample(self, raw_results: ProcessSystemRawResults, timestamp: datetime):
 
@@ -89,15 +87,13 @@ class EnergyModelFeatureExtractor:
 
     def __extract_process_features(self, process_data: ProcessRawResults,
                                    duration: float) -> ProcessEnergyModelFeatures:
-        process_cpu_time = EnergyModelFeatureExtractor.__calculate_integral_value(
+        process_cpu_time_seconds = EnergyModelFeatureExtractor.__calculate_integral_value(
             process_data.cpu_percent_sum_across_cores,
             self.__previous_sample.cpu_percent_sum_across_cores_process,
             duration) / 100
-        process_memory_relative_usage = EnergyModelFeatureExtractor.__calculate_relative_value(
-            process_data.used_memory_mb,
-            self.__previous_sample.memory_mb_usage_process)
+        process_memory_relative_usage = process_data.used_memory_mb - self.__previous_sample.memory_mb_usage_process
         return ProcessEnergyModelFeatures(
-            cpu_usage_seconds_process=process_cpu_time,
+            cpu_usage_seconds_process=process_cpu_time_seconds,
             memory_mb_relative_process=process_memory_relative_usage,
             disk_read_kb_process=process_data.disk_read_kb,
             disk_write_kb_process=process_data.disk_write_kb,
@@ -114,9 +110,8 @@ class EnergyModelFeatureExtractor:
             system_data.cpu_percent_sum_across_cores,
             self.__previous_sample.cpu_percent_sum_across_cores_system,
             duration) / 100
-        system_memory_relative_usage_mb = EnergyModelFeatureExtractor.__calculate_relative_value(
-            system_data.total_memory_gb,
-            self.__previous_sample.memory_gb_usage_system) * KB
+        system_memory_relative_usage_mb = (
+                                                      system_data.total_memory_gb - self.__previous_sample.memory_gb_usage_system) * KB
         return SystemEnergyModelFeatures(
             cpu_seconds_system=system_cpu_time,
             memory_mb_relative_system=system_memory_relative_usage_mb,
@@ -135,7 +130,3 @@ class EnergyModelFeatureExtractor:
     @staticmethod
     def __calculate_integral_value(current_val: float, previous_val: float, duration: float) -> float:
         return (current_val + previous_val) * duration / 2
-
-    @staticmethod
-    def __calculate_relative_value(current_val: float, previous_val: float) -> float:
-        return current_val - previous_val
