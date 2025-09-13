@@ -69,7 +69,8 @@ def summary_builder_factory(summary_type: SummaryType):
 def custom_process_filter_factory(
         custom_process_filter_types: List[CustomFilterType]
 ) -> Callable[[psutil.Process], bool]:
-    def _get_filter(filter_type: CustomFilterType):
+
+    def _get_filter(filter_type: CustomFilterType) -> AbstractProcessFilter:
         if filter_type == CustomFilterType.FILTER_OUT_PYTHON:
             return FilterOutPythonProcesses()
         elif filter_type == CustomFilterType.FILTER_FOR_PYTHON:
