@@ -7,11 +7,11 @@ from elasticsearch.dsl.response import Hit
 from elasticsearch.dsl import Search
 import time
 
-from consts import ElasticIndex, FINAL_ITERATION_TIMEOUT_SECONDS, PULL_INTERVAL_SECONDS, \
-    MAX_INDEXING_TIME_SECONDS, PULL_PAGE_SIZE
-from elastic_reader_parameters import ES_URL, ES_USER, ES_PASS
+from elastic_reader.consts import ElasticIndex, MAX_INDEXING_TIME_SECONDS, PULL_PAGE_SIZE, \
+    FINAL_ITERATION_TIMEOUT_SECONDS, PULL_INTERVAL_SECONDS
 from DTOs.raw_results_dtos.iteration_results import IterationResults
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata, IterationRawResults
+from elastic_reader.elastic_reader_parameters import ES_USER, ES_PASS, ES_URL
 from user_input.elastic_reader_input.abstract_date_picker import ReadingMode, TimePickerChosenInput
 
 

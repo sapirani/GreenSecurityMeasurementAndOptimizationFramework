@@ -3,7 +3,7 @@ from typing import Optional, List, Dict, Any
 
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
-from consts import ElasticIndex
+from elastic_reader.consts import ElasticIndex
 
 
 @dataclass

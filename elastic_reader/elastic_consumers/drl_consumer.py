@@ -2,7 +2,7 @@ from typing import Optional
 
 from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationAggregatedResults
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
-from elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
+from elastic_reader.elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
 
 
 # TODO: IMPLEMENT

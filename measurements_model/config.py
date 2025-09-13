@@ -1,30 +1,24 @@
 SCORING_METHODS_FOR_MODEL = ['neg_mean_absolute_error', 'neg_root_mean_squared_error']
 
-NO_ENERGY_MEASURED = -1
+FULL_DATASET_PATH = r"C:\Users\Administrator\Desktop\green security\results\full_dataset.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_dataset.csv"
+FULL_PREPROCESSED_DATASET_PATH = r"C:\Users\Administrator\Desktop\green security\results\full_processed_dataset.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_preprocessed_dataset.csv"
+DATASET_AFTER_FEATURE_SELECTION_PATH = r"C:\Users\Administrator\Desktop\green security\results\dataset_after_feature_selection.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\dataset_after_feature_selection.csv"
 
-# Paths
-IDLE_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\idle\Measurement 427"
-ALL_MEASUREMENTS_SYSTEM_RESOURCE_ISOLATION_VERSION_NO_NETWORK_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources_dudu_summary"
-ALL_MEASUREMENTS_NATIVE_VERSION_WITH_NETWORK_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_other_summary"
+DF_ALL_FEATURES_NO_ENERGY_PATH = r"C:\Users\Administrator\Desktop\green security\results\dataset_no_energy.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\all_features_no_energy_preprocessed_dataset.csv"
+DF_WITHOUT_SYSTEM_PATH = r"C:\Users\Administrator\Desktop\green security\results\dataset_no_system.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\without_system_preprocessed_dataset.csv"
+DF_PROCESS_AND_FULL_SYSTEM_PATH = r"C:\Users\Administrator\Desktop\green security\results\dataset_process_and_system.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\process_and_full_system_preprocessed_dataset.csv"
+DF_WITHOUT_HARDWARE_PATH = r"C:\Users\Administrator\Desktop\green security\results\dataset_no_hardware.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\without_hardware_preprocessed_dataset.csv"
 
-FULL_DATASET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_dataset.csv"
-FULL_PREPROCESSED_DATASET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_preprocessed_dataset.csv"
-DATASET_AFTER_FEATURE_SELECTION_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\dataset_after_feature_selection.csv"
+TRAIN_SET_PATH = r"C:\Users\Administrator\Desktop\green security\results\trainset.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\train_set.csv"
+TEST_SET_PATH = r"C:\Users\Administrator\Desktop\green security\results\testset.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\test_set.csv"
 
-DF_ALL_FEATURES_NO_ENERGY_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\all_features_no_energy_preprocessed_dataset.csv"
-DF_WITHOUT_SYSTEM_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\without_system_preprocessed_dataset.csv"
-DF_PROCESS_AND_FULL_SYSTEM_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\process_and_full_system_preprocessed_dataset.csv"
-DF_WITHOUT_HARDWARE_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\without_hardware_preprocessed_dataset.csv"
+GRID_SEARCH_TEST_RESULTS_PATH = r"C:\Users\Administrator\Desktop\green security\results\grid_search_results.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\best_estimators_results.csv"
+RESULTS_TOP_MODELS_PATH = r"C:\Users\Administrator\Desktop\green security\results\top_estimators_results.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\top_estimators_results"
 
-TRAIN_SET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\train_set.csv"
-TEST_SET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\test_set.csv"
-
-GRID_SEARCH_TEST_RESULTS_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\best_estimators_results.csv"
-RESULTS_TOP_MODELS_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\top_estimators_results"
-
-# Summary File related
-TOTAL_COL_SUMMARY = "System (total - all processes)"
-SUMMARY_FILE_NAME = 'summary.xlsx'
+TIME_COLUMN_NAME = "timestamp"
+PROCESS_COLUMN_SUFFIX = "_process"
+SYSTEM_COLUMN_SUFFIX = "_system"
+IDLE_SESSION_ID_NAME = "idle"
 
 
 class SummaryFieldsNativeVersion:
@@ -96,37 +90,39 @@ HARDWARE_INFORMATION_NAME = 'hardware_information.csv'
 
 # *** Process Related Cols *** #
 class ProcessColumns:
-    CPU_PROCESS_COL = "cpu_usage_process"
-    MEMORY_PROCESS_COL = "memory_usage_process"
-    DISK_READ_BYTES_PROCESS_COL = "disk_read_bytes_usage_process"
-    DISK_READ_COUNT_PROCESS_COL = "disk_read_count_usage_process"
-    DISK_WRITE_BYTES_PROCESS_COL = "disk_write_bytes_usage_process"
-    DISK_WRITE_COUNT_PROCESS_COL = "disk_write_count_usage_process"
-    NETWORK_BYTES_SENT_PROCESS_COL = "network_bytes_sum_sent_process"
-    NETWORK_PACKETS_SENT_PROCESS_COL = "network_packets_sum_sent_process"
-    NETWORK_BYTES_RECEIVED_PROCESS_COL = "network_bytes_sum_received_process"
-    NETWORK_PACKETS_RECEIVED_PROCESS_COL = "network_packets_sum_received_process"
-    ENERGY_USAGE_PROCESS_COL = "energy_consumption_process_mWh"  # total - idle, Target col
+    CPU_PROCESS_COL = "cpu_usage_seconds_process"
+    MEMORY_PROCESS_COL = "memory_mb_relative_process"
+    DISK_READ_BYTES_PROCESS_COL = "disk_read_kb_process"
+    DISK_READ_COUNT_PROCESS_COL = "disk_read_count_process"
+    DISK_WRITE_BYTES_PROCESS_COL = "disk_write_kb_process"
+    DISK_WRITE_COUNT_PROCESS_COL = "disk_write_count_process"
+    PAGE_FAULT_PROCESS_COL = "number_of_page_faults_process"
+    NETWORK_BYTES_SENT_PROCESS_COL = "network_kb_sent_process"
+    NETWORK_PACKETS_SENT_PROCESS_COL = "network_packets_sent_process"
+    NETWORK_BYTES_RECEIVED_PROCESS_COL = "network_kb_received_process"
+    NETWORK_PACKETS_RECEIVED_PROCESS_COL = "network_packets_received_process"
+    ENERGY_USAGE_PROCESS_COL = "energy_consumption_process_mWh"
 
 
 # *** System Related Cols *** #
 class SystemColumns:
-    CPU_SYSTEM_COL = "cpu_usage_system"
-    MEMORY_SYSTEM_COL = "memory_usage_system"
-    DISK_READ_BYTES_SYSTEM_COL = "disk_read_bytes_usage_system"
-    DISK_READ_COUNT_SYSTEM_COL = "disk_read_count_usage_system"
-    DISK_WRITE_BYTES_SYSTEM_COL = "disk_write_bytes_usage_system"
-    DISK_WRITE_COUNT_SYSTEM_COL = "disk_write_count_usage_system"
-    DISK_READ_TIME = "disk_read_time_system_ms_sum"
-    DISK_WRITE_TIME = "disk_write_time_system_ms_sum"
-    NETWORK_BYTES_SENT_SYSTEM_COL = "network_bytes_sum_sent_system"
-    NETWORK_PACKETS_SENT_SYSTEM_COL = "network_packets_sum_sent_system"
-    NETWORK_BYTES_RECEIVED_SYSTEM_COL = "network_bytes_sum_received_system"
-    NETWORK_PACKETS_RECEIVED_SYSTEM_COL = "network_packets_sum_received_system"
+    CPU_SYSTEM_COL = "cpu_seconds_system"
+    MEMORY_SYSTEM_COL = "memory_mb_relative_system"
+    DISK_READ_BYTES_SYSTEM_COL = "disk_read_kb_system"
+    DISK_READ_COUNT_SYSTEM_COL = "disk_read_count_system"
+    DISK_WRITE_BYTES_SYSTEM_COL = "disk_write_kb_system"
+    DISK_WRITE_COUNT_SYSTEM_COL = "disk_write_count_system"
+    DISK_READ_TIME = "disk_read_time_ms_system"
+    DISK_WRITE_TIME = "disk_write_time_ms_system"
+    NETWORK_BYTES_SENT_SYSTEM_COL = "network_kb_sent_system"
+    NETWORK_PACKETS_SENT_SYSTEM_COL = "network_packets_sent_system"
+    NETWORK_BYTES_RECEIVED_SYSTEM_COL = "network_kb_received_system"
+    NETWORK_PACKETS_RECEIVED_SYSTEM_COL = "network_packets_received_system"
+    BATTERY_CAPACITY_MWH_SYSTEM_COL = "battery_capacity_mwh_system"
 
-    DURATION_COL = "duration_system"  # ??? maybe give up
-    ENERGY_TOTAL_USAGE_SYSTEM_COL = "total_energy_consumption_system_mWh"
-    PAGE_FAULT_SYSTEM_COL = "number_of_page_faults_system"
+    DURATION_COL = "duration"
+    ENERGY_USAGE_PER_SECOND_SYSTEM_COL = "energy_consumption_per_second_system_mWh"
+    BATCH_ID_COLUMN = "batch_id"
 
 
 # *** IDLE State Related Cols *** #
@@ -170,7 +166,7 @@ class HardwareColumns:
     PROCESSOR_MIN_FREQ = "processor_min_frequency"
 
     ## RAM info
-    TOTAL_RAM = "Total RAM:"
+    TOTAL_RAM = "total_ram"
     PHYSICAL_DISK_NAME = "physical_disk_name"
     PHYSICAL_DISK_MANUFACTURER = "physical_disk_manufacturer"
     PHYSICAL_DISK_MODEL = "physical_disk_model"
@@ -189,23 +185,5 @@ class HardwareColumns:
     BATTERY_DESIGN_CAPACITY = "design_battery_capacity"
     FULLY_CHARGED_BATTERY_CAPACITY = "fully_charged_battery_capacity"
 
-# DATASET_COLUMNS = [ProcessColumns.CPU_PROCESS_COL, ProcessColumns.MEMORY_PROCESS_COL,
-#                    ProcessColumns.DISK_READ_BYTES_PROCESS_COL, ProcessColumns.DISK_READ_COUNT_PROCESS_COL,
-#                    ProcessColumns.DISK_WRITE_BYTES_PROCESS_COL, ProcessColumns.DISK_WRITE_COUNT_PROCESS_COL, ProcessColumns.PAGE_FAULTS_PROCESS_COL,
-#                    SystemColumns.DURATION_COL, SystemColumns.CPU_SYSTEM_COL, SystemColumns.MEMORY_SYSTEM_COL,
-#                    SystemColumns.DISK_READ_BYTES_SYSTEM_COL, SystemColumns.DISK_READ_COUNT_SYSTEM_COL,
-#                    SystemColumns.DISK_WRITE_BYTES_SYSTEM_COL, SystemColumns.DISK_WRITE_COUNT_SYSTEM_COL,
-#                    SystemColumns.DISK_READ_TIME, SystemColumns.DISK_WRITE_TIME, SystemColumns.PAGE_FAULT_SYSTEM_COL, SystemColumns.ENERGY_TOTAL_USAGE_SYSTEM_COL,
-#                    IDLEColumns.DURATION_COL, IDLEColumns.CPU_IDLE_COL, IDLEColumns.MEMORY_IDLE_COL,
-#                    IDLEColumns.DISK_READ_BYTES_IDLE_COL, IDLEColumns.DISK_READ_COUNT_IDLE_COL,
-#                    IDLEColumns.DISK_WRITE_BYTES_IDLE_COL, IDLEColumns.DISK_WRITE_COUNT_IDLE_COL,
-#                    IDLEColumns.DISK_READ_TIME, IDLEColumns.DISK_WRITE_TIME, IDLEColumns.PAGE_FAULT_IDLE_COL, IDLEColumns.ENERGY_TOTAL_USAGE_IDLE_COL,
-#                    HardwareColumns.PC_TYPE, HardwareColumns.PC_MANUFACTURER, HardwareColumns.SYSTEM_FAMILY, HardwareColumns.MACHINE_TYPE,
-#                    HardwareColumns.DEVICE_NAME, HardwareColumns.OPERATING_SYSTEM, HardwareColumns.OPERATING_SYSTEM_RELEASE, HardwareColumns.OPERATING_SYSTEM_VERSION,
-#                    HardwareColumns.PROCESSOR_NAME, HardwareColumns.PROCESSOR_PHYSICAL_CORES, HardwareColumns.PROCESSOR_TOTAL_CORES, HardwareColumns.PROCESSOR_MAX_FREQ,
-#                    HardwareColumns.PROCESSOR_MIN_FREQ, HardwareColumns.TOTAL_RAM,
-#                    HardwareColumns.PHYSICAL_DISK_NAME, HardwareColumns.PHYSICAL_DISK_MANUFACTURER, HardwareColumns.PHYSICAL_DISK_MODEL,
-#                    HardwareColumns.PHYSICAL_DISK_MEDIA_TYPE, HardwareColumns.LOGICAL_DISK_NAME, HardwareColumns.LOGICAL_DISK_MANUFACTURER,
-#                    HardwareColumns.LOGICAL_DISK_MODEL, HardwareColumns.LOGICAL_DISK_DISK_TYPE, HardwareColumns.LOGICAL_DISK_PARTITION_STYLE,
-#                    HardwareColumns.LOGICAL_DISK_NUMBER_OF_PARTITIONS, HardwareColumns.PHYSICAL_SECTOR_SIZE, HardwareColumns.LOGICAL_SECTOR_SIZE,
-#                    HardwareColumns.BUS_TYPE, HardwareColumns.FILESYSTEM, HardwareColumns.BATTERY_DESIGN_CAPACITY, HardwareColumns.FULLY_CHARGED_BATTERY_CAPACITY]
+
+MODEL_FILE_NAME = r"C:\Users\Administrator\Desktop\green security\results\energy_prediction_model.pkl"

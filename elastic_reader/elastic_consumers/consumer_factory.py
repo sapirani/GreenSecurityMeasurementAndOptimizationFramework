@@ -1,9 +1,10 @@
 from typing import List
-from consts import ElasticConsumerType, Verbosity
-from elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
-from elastic_consumers.csv_consumer import CSVConsumer
-from elastic_consumers.drl_consumer import DRLConsumer
-from elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
+
+from elastic_reader.consts import ElasticConsumerType, Verbosity
+from elastic_reader.elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
+from elastic_reader.elastic_consumers.csv_consumer import CSVConsumer
+from elastic_reader.elastic_consumers.drl_consumer import DRLConsumer
+from elastic_reader.elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
 
 
 def get_consumers(
