@@ -1,3 +1,4 @@
+import logging
 import threading
 from typing import Union
 
@@ -40,7 +41,7 @@ class EnergyModelAggregator(AbstractAggregator):
             energy_per_disk_read_kb=EnergyPerResourceConsts.disk_io_read_kbytes,
             energy_per_disk_write_kb=EnergyPerResourceConsts.disk_io_write_kbytes,
             energy_per_network_received_kb=EnergyPerResourceConsts.network_received_kbytes,
-            energy_per_network_write_kb=EnergyPerResourceConsts.network_sent_kbytes
+            energy_per_network_sent_kb=EnergyPerResourceConsts.network_sent_kbytes
         )
         self.__energy_model_feature_extractor = EnergyModelFeatureExtractor()
 
@@ -60,6 +61,7 @@ class EnergyModelAggregator(AbstractAggregator):
             energy_prediction = self.__model.predict(sample_df)
             if energy_prediction < 0:
                 energy_prediction = 0
+                logging.warning(f"Received a negative value for energy prediction. Returning 0 mwh. The sample: {sample_df}")
 
             energy_per_resource = self.__calculate_energy_per_resource(sample, energy_prediction)
             return EnergyModelResult(energy_mwh=energy_prediction,
