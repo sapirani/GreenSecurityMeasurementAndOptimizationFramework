@@ -128,7 +128,6 @@ class AggregationManager:
                 **asdict(iteration_raw_results),
                 **{key: value for aggregation_result in system_aggregated_results for key, value in
                    asdict(aggregation_result).items()},
-                "pid": 0
             }
         )
 

@@ -132,7 +132,6 @@ class AbstractOSFuncs:
 
             if should_use_powershell or should_find_child_id:
                 pid = find_child_id_func(p, is_posix)
-                print("HERE!")
                 print(pid)
                 if pid is not None and not should_use_powershell:
                     p = psutil.Process(pid)

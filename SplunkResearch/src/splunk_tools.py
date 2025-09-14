@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from enum import Enum
 import json
 import logging
 from multiprocessing import Pool
@@ -70,6 +71,10 @@ class QueryMetrics:
 
 
 
+class Mode(Enum):
+    PROFILE = 'profile'
+    ATTACK = 'attack'
+
 class SplunkTools(object):
     _instance = None
 
@@ -79,9 +84,10 @@ class SplunkTools(object):
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, active_saved_searches=None, rule_frequency=1):
+    def __init__(self, active_saved_searches=None, rule_frequency=1, mode=Mode.ATTACK):
         if self._initialized:
             return
+        self.mode = mode
         self.pids = []
         self.splunk_host = os.getenv("SPLUNK_HOST")
         self.splunk_port = os.getenv("SPLUNK_PORT")
@@ -199,12 +205,13 @@ class SplunkTools(object):
             try:
                 self.pids.append(pid)
                 sid = job.content.get('sid', None)
-                es_logger.info(f"PID SID MAPPING", extra={
-                    'pid': pid,
-                    'sid': sid,
-                    'search_name': search_name
-                }
-                )
+                if self.mode == Mode.PROFILE:
+                    es_logger.info(f"PID SID MAPPING", extra={
+                        'pid': pid,
+                        'sid': sid,
+                        'search_name': search_name
+                    }
+                    )
                 process = psutil.Process(int(pid))
                 process_start_time = time.time()
                 # Get initial CPU times in a non-blocking way
@@ -342,15 +349,17 @@ class SplunkTools(object):
                     search_name, time_range))
                 all_tasks.append(task)
         # run a thread that check if all pids founded and then enrich elasic index
-        pids_thread = threading.Thread(
-            target=self.enrich_elastic_index_with_pids,
-        )
-        pids_thread.start()
+        if self.mode == Mode.PROFILE:
+            pids_thread = threading.Thread(
+                target=self.enrich_elastic_index_with_pids,
+            )
+            pids_thread.start()
         # Run all tasks concurrently
         results = await asyncio.gather(*all_tasks)
-        # Wait for the pids thread to finish
-        pids_thread.join()
-        self.pids = []
+        if self.mode == Mode.PROFILE:        
+            # Wait for the pids thread to finish
+            pids_thread.join()
+            self.pids = []
         
         # Filter out any failed measurements
         valid_results = [m for m, r in results if isinstance(m, QueryMetrics)]

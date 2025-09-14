@@ -161,5 +161,5 @@ if __name__ == "__main__":
                  'Windows AD Replication Request Initiated from Unsanctioned Location',
                  'ESCU Windows Rapid Authentication On Multiple Hosts Rule']
     
-    splunk_tools = SplunkTools(active_saved_searches=savedsearches)
+    splunk_tools = SplunkTools(active_saved_searches=savedsearches, mode="profile")
     asyncio.run(overload_profile(savedsearches, splunk_tools))

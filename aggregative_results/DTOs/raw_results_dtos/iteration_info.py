@@ -49,7 +49,6 @@ class IterationMetadata:
 
                     init_kwargs[f.name] = value
             except KeyError:
-                print(data)
                 raise ValueError(f"Missing required field: {f.name}")
 
         return IterationMetadata(**init_kwargs)
