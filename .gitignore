@@ -35,3 +35,4 @@ program_parameters.py
 *backup*
 *.joblib
 SplunkResearch/energy_profile_final.log
+elastic_reader/elastic_reader_parameters.py
