@@ -232,7 +232,6 @@ def add_to_processes_dataframe(time_of_sample, top_list, prev_data_per_process, 
                     extra={
                         "pid": p.pid,
                         "process_name": p.name(),
-                        "cmdline": p.cmdline(),
                         "cpu_percent": cpu_percent,
                         "threads_num": p.num_threads(),
                         "used_memory_mb": p.memory_info().rss / MB,
