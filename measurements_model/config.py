@@ -4,8 +4,8 @@ NO_ENERGY_MEASURED = -1
 
 # Paths
 IDLE_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\idle\Measurement 427"
-ALL_MEASUREMENTS_DUDU_VERSION_NO_NETWORK_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources_dudu_summary"
-ALL_MEASUREMENTS_OTHER_VERSION_WITH_NETWORK_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_other_summary"
+ALL_MEASUREMENTS_SYSTEM_RESOURCE_ISOLATION_VERSION_NO_NETWORK_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_with_resources_dudu_summary"
+ALL_MEASUREMENTS_NATIVE_VERSION_WITH_NETWORK_DIR_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\measurements_other_summary"
 
 FULL_DATASET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_dataset.csv"
 FULL_PREPROCESSED_DATASET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\full_preprocessed_dataset.csv"
@@ -22,12 +22,12 @@ TEST_SET_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Securit
 GRID_SEARCH_TEST_RESULTS_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\best_estimators_results.csv"
 RESULTS_TOP_MODELS_PATH = fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\top_estimators_results"
 
-
 # Summary File related
 TOTAL_COL_SUMMARY = "System (total - all processes)"
 SUMMARY_FILE_NAME = 'summary.xlsx'
 
-class SummaryFieldsOtherVersion:
+
+class SummaryFieldsNativeVersion:
     DURATION = "Duration"
     CPU = "CPU"
     MEMORY = "Memory (MB)"
@@ -44,9 +44,10 @@ class SummaryFieldsOtherVersion:
     NETWORK_RECEIVED_PACKET_COUNT = "Network Packets Received (# - sum)"
     ENERGY_CONSUMPTION = "Energy consumption - total energy(mwh)"
     TOTAL_COLUMN = "Total"
-    PROCESS_COLUMN = "ClamAV" # TODO: change according to the process
+    PROCESS_COLUMN = "ClamAV"  # TODO: change according to the process
 
-class SummaryFieldsDuduVersion:
+
+class SummaryFieldsSystemResourcesIsolationVersion:
     DURATION = "Duration"
     CPU_PROCESS = "CPU Process"
     CPU_SYSTEM = "CPU System (total - process)"
@@ -71,6 +72,7 @@ class SummaryFieldsDuduVersion:
 PROCESSES_FILE_NAME = "processes_data.csv"
 HEAVYLOAD_PROCESS_NAME = "HeavyLoad.exe"
 
+
 class AllProcessesFileFields:
     PROCESS_NAME_COL = "PNAME"
     CPU = "CPU(%)"
@@ -85,8 +87,10 @@ class AllProcessesFileFields:
     NETWORK_BYTES_RECEIVED = "NETWORK_BYTES_RECEIVED(KB)"
     NETWORK_PACKETS_RECEIVED = "PACKETS_RECEIVED(#)"
 
+
 # Hardware Information File related
 HARDWARE_INFORMATION_NAME = 'hardware_information.csv'
+
 
 # column names in dataset
 
@@ -184,7 +188,6 @@ class HardwareColumns:
     FILESYSTEM = "file_system"
     BATTERY_DESIGN_CAPACITY = "design_battery_capacity"
     FULLY_CHARGED_BATTERY_CAPACITY = "fully_charged_battery_capacity"
-
 
 # DATASET_COLUMNS = [ProcessColumns.CPU_PROCESS_COL, ProcessColumns.MEMORY_PROCESS_COL,
 #                    ProcessColumns.DISK_READ_BYTES_PROCESS_COL, ProcessColumns.DISK_READ_COUNT_PROCESS_COL,

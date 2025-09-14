@@ -25,7 +25,7 @@ def decorate_addresses(addresses: List[Tuple[str, int]]) -> str:
     return "\n".join([f"Host: {host}, Port: {port}" for host, port in addresses])
 
 
-def main(trigger_message: str, receivers_addresses: List[Tuple[str, int]]) -> None:
+def main(trigger_message: str, receivers_addresses: List[Tuple[str, int]], session_id: str):
     logging.info("Sending trigger to the following addresses:\n" + decorate_addresses(receivers_addresses))
 
     for receiver_address in receivers_addresses:
@@ -37,7 +37,7 @@ def main(trigger_message: str, receivers_addresses: List[Tuple[str, int]]) -> No
                 logging.warning(f"Connect timout ({CONNECT_TIMEOUT} seconds). Address: {receiver_address}, ")
                 continue
             logging.info(f"Connected to {receiver_address}, Sending:{trigger_message}")
-            full_message = f"{trigger_message} --measurement_session_id {generate_id()}"
+            full_message = f"{trigger_message} --measurement_session_id {session_id}"
             s.sendall(full_message.encode())
 
 
@@ -60,6 +60,11 @@ Note: this script is synchronous and could be further improved by sending trigge
 Example: 1.1.1.1:80,2.2.2.2:90,3.3.3.3:100""",
                         default=[(DEFAULT_TRIGGER_RECEIVER_HOST, DEFAULT_TRIGGER_RECEIVER_PORT)])
 
+    parser.add_argument('-i', '--session_id',
+                        type=str,
+                        help="""Control the session id sent to the scanner""",
+                        default=generate_id(word_count=3))
+
     args = parser.parse_args()
 
-    main(args.trigger_message, args.receivers_addresses)
+    main(args.trigger_message, args.receivers_addresses, args.session_id)

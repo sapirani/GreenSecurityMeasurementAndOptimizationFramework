@@ -18,13 +18,14 @@ CLASSIFIER_KEYWORD = "classifier"
 TEST_SCORE_FIELD_IN_GRID = "mean_test_score"
 PARAMS_FIELD_IN_GRID = "params"
 
+
 class ModelSelector:
 
-    def __init__(self, num_of_splits: int = 5, num_of_top_models: int = 5):
+    def __init__(self, models_to_experiment: list[dict], num_of_splits: int = 5, num_of_top_models: int = 5):
         self.__initial_model = (CLASSIFIER_KEYWORD, LogisticRegression())
         self.__num_of_splits = num_of_splits
         self.__num_of_top_models = num_of_top_models
-        self.__models_to_experiment = MODELS_WITHOUT_PARAMETERS
+        self.__models_to_experiment = models_to_experiment
 
     def __print_grid_search_top_models(self, best_models, score_method: str):
         print(f"~~~~~~~~~~~~~~~ Best {self.__num_of_top_models} models based on {score_method} score ~~~~~~~~~~~~~~~")
@@ -54,16 +55,17 @@ class ModelSelector:
 
         best_five_by_score = list(sorted(res_list, key=lambda x: x[0], reverse=True))[:self.__num_of_top_models]
 
-        results_for_metric_path = Path(f"{RESULTS_TOP_MODELS_PATH}\\final_results_{score_method}_metric_{datetime.now().strftime('%d_%m_%Y %H_%M')}.csv")
+        results_for_metric_path = Path(
+            f"{RESULTS_TOP_MODELS_PATH}\\final_results_{score_method}_metric_{datetime.now().strftime('%d_%m_%Y %H_%M')}.csv")
         results_for_metric_path.parent.mkdir(parents=True, exist_ok=True)
         final_results.to_csv(results_for_metric_path, index=False)
         return best_five_by_score
 
-
     def __select_top_models(self, x_train: pd.DataFrame, y_train: pd.Series, score_method: str):
         pipe = Pipeline([self.__initial_model])
         kf_cv = KFold(n_splits=self.__num_of_splits, shuffle=True, random_state=42)
-        grid = GridSearchCV(pipe, self.__models_to_experiment, verbose=3, refit=True, cv=kf_cv, scoring=score_method, n_jobs=1)
+        grid = GridSearchCV(pipe, self.__models_to_experiment, verbose=3, refit=True, cv=kf_cv, scoring=score_method,
+                            n_jobs=1)
 
         grid.fit(x_train, y_train)
         final_results = pd.DataFrame(grid.cv_results_)

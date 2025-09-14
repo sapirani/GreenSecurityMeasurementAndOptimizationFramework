@@ -21,7 +21,7 @@ DEFAULT_NICE = 0
 scanner_process: Optional[subprocess.Popen] = None
 
 
-def start_measurement(python_path: str, scanner_path: str, nice: int, start_args: List[str]) -> None:
+def start_measurement(python_path: str, scanner_path: str, nice: int, start_args: List[str]):
     global scanner_process
     if scanner_process and scanner_process.poll() is None:
         logging.warning("Got a request to start scanner but scanner is already running, ignoring")
@@ -34,7 +34,7 @@ def start_measurement(python_path: str, scanner_path: str, nice: int, start_args
     scanner_process = subprocess.Popen(popen_args)
 
 
-def stop_measurement() -> None:
+def stop_measurement():
     global scanner_process
 
     if not scanner_process:
@@ -59,7 +59,7 @@ def stop_measurement() -> None:
     scanner_process = None
 
 
-def main(host: str, port: int, python_path: str, scanner_path: str, nice: int) -> None:
+def main(host: str, port: int, python_path: str, scanner_path: str, nice: int):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((host, port))
         s.listen()
