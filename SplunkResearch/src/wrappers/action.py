@@ -155,10 +155,10 @@ class Action(ActionWrapper):
         if self.test_random:
             action = self.action_space.sample()
         obs, reward, terminated, truncated, info = self.env.step(action)
-        logger.info(f"Raw action: {action}")
+        # logger.info(f"Raw action: {action}")
         self._calculate_quota()
         logs_to_inject = self.action(action)
-        logger.info(f"Action: {logs_to_inject}")
+        # logger.info(f"Action: {logs_to_inject}")
         logger.info(f"Action window: {self.unwrapped.time_manager.action_window.to_tuple()}")
         # self.inject_logs(logs_to_inject, self.env.time_manager.action_window.to_tuple())
         self.episodic_logs_to_inject.append((logs_to_inject, self.unwrapped.time_manager.action_window.to_tuple()))
@@ -610,8 +610,8 @@ class Action8(Action):
             # check zero action 
             distribution = action[:len(self.unwrapped.top_logtypes)]
             # softmax normalization
-            distribution = np.exp(distribution) / np.sum(np.exp(distribution))
-            # distribution /= (np.sum(distribution) + 1e-8) 
+            # distribution = np.exp(distribution) / np.sum(np.exp(distribution))
+            distribution /= (np.sum(distribution) + 1e-8) 
             
             diversity_list = action[len(self.unwrapped.top_logtypes):]
             # current_quota = action[-1]

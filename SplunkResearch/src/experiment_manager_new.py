@@ -205,7 +205,7 @@ class ExperimentManager:
         #                         low=0,
         #                         high=1)
         env = TimeWrapper(env)
-        env = StateWrapper3(env)
+        env = StateWrapper4(env)
 
         return env
 
@@ -264,7 +264,7 @@ class ExperimentManager:
                 # 'batch_size': config.batch_size,
                 # 'n_epochs': config.n_epochs,
                 'ent_coef': config.ent_coef,
-                'sde_sample_freq': 24,
+                'sde_sample_freq': 6,
                 'use_sde': True,
                 "policy_kwargs": {
                     "net_arch": [512, 128, 128, 64],
@@ -329,9 +329,9 @@ class ExperimentManager:
             else:
                 eval_config = config
             eval_config.env_config.env_id = "splunk_eval-v32"
-            eval_config.env_config.rule_frequency = 60 #2880
+            eval_config.env_config.rule_frequency = 2880
             eval_config.env_config.end_time = "04/26/2025:23:59:59"
-            # eval_config = replace(eval_config, is_mock=False)
+            eval_config = replace(eval_config, is_mock=False)
             self.eval_env = self.create_environment(eval_config)
             self.eval_env.unwrapped.splunk_tools.load_real_logs_distribution_bucket(datetime.datetime.strptime(env.unwrapped.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(self.eval_env.unwrapped.time_manager.end_time, '%m/%d/%Y:%H:%M:%S'))
 
@@ -526,8 +526,8 @@ class ExperimentManager:
             CustomEvalCallback3(
                 eval_env=self.eval_env,
                 log_dir=f"{self.dirs['tensorboard']._str}/{config.experiment_name}", rules=rules, event_types=event_types,
-                n_eval_episodes=3,
-                eval_freq=9600,
+                n_eval_episodes=1,
+                eval_freq=7200,
                 best_model_save_path=self.dirs['models'],
                 log_path=self.dirs['logs'],
                 # eval_log_dir=str(self.dirs['tensorboard']/f"eval_{config.experiment_name}"),
@@ -589,13 +589,13 @@ if __name__ == "__main__":
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250620175311_35000_steps"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250623144601_43000_steps.zip"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250711001649_264000_steps.zip"
-    num_episodes = 600000
+    num_episodes = 5000000
     action_type = "Action8"
     for steps in range(45000, 160000, 500000):
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250626010440_{steps}_steps.zip"
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250726233927_243000_steps.zip"
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250806144736_355000_steps.zip"
-        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250815121629_990000_steps.zip"
+        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250908172215_520000_steps.zip"
         print(f"Model path: {model_path}")
         for learning_rate in [0.0001]:
             for n_steps in [256]:
