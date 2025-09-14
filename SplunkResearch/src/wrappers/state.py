@@ -142,18 +142,22 @@ class StateWrapper(ObservationWrapper):
         logger.info("Resetting StateWrapper")
         # Reset underlying environment first
         self.total_episode_logs = 0
-
+        self.unwrapped.done = False
         self.unwrapped.ac_real_distribution = {logtype: 0 for logtype in self.top_logtypes}
         self.unwrapped.ac_real_distribution['other'] = 0
         self.unwrapped.real_relevant_distribution = {"_".join(logtype): 0 for logtype in self.top_logtypes}
         self.unwrapped.step_counter = 0
-        self.env.time_manager.advance_window(global_step=self.unwrapped.all_steps_counter, violation=False)
+        self.env.time_manager.advance_window(global_step=self.unwrapped.all_steps_counter, violation=False, should_delete=self.unwrapped.should_delete)
+        if self.time_manager.is_delete:
+            self.unwrapped.should_delete = False
         self.unwrapped.fake_distribution = {logtype: 0 for logtype in self.top_logtypes}
         self.unwrapped.fake_distribution['other'] = 0
         self.fake_relevant_distribution = {"_".join(logtype): 0 for logtype in self.top_logtypes}
 
         self.unwrapped.ac_fake_distribution = {logtype: 0 for logtype in self.top_logtypes}
         self.unwrapped.ac_fake_distribution['other'] = 0
+        self.unwrapped.rules_rel_diff_alerts = {rule : 0 for rule in self.unwrapped.relevant_logtypes}
+        
         # reset episode logs which are placed at lower wrapper (action)
         # self.action_wrapper.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.top_logtypes for istrigger in [0, 1]}
         
@@ -166,61 +170,6 @@ class StateWrapper(ObservationWrapper):
         
         return new_obs, info
 
-class StateWrapper2(StateWrapper):
-    """Manages log type distributions and state normalization"""
-
-    def __init__(self, env):
-        super().__init__(env)
-        self.observation_space = spaces.Box(
-            low=0,
-            high=1,
-            shape=(len(self.top_logtypes)*2 + self.env.total_steps,),  # +1 for 'other' category
-            dtype=np.float64
-        )
-        
-        
-    def observation(self, obs):
-        """Convert current distributions to normalized state"""
-        # Calculate fake distribution using the latest episode_logs
-        # This happens AFTER action wrapper has updated episode_logs
-        # Update real distribution AFTER action is executed
-        self.update_real_distribution(self.time_manager.action_window.to_tuple())
-
-        # Create state vectors
-        self.unwrapped.real_state = self._get_state_vector(self.unwrapped.real_distribution)
-        real_state = self._normalize(self.unwrapped.real_state)
-        self.real_relevant_distribution = {"_".join(logtype): real_state[self.relevant_logtypes_indices[logtype]] for logtype in self.top_logtypes}
-
-        self.unwrapped.fake_state = self._get_state_vector(self.fake_distribution)
-        fake_state = self._normalize(self.unwrapped.fake_state)
-        self.fake_relevant_distribution = {"_".join(logtype): fake_state[self.relevant_logtypes_indices[logtype]] for logtype in self.top_logtypes}
-        # Create the final state vector
-        state = np.append(real_state, fake_state)
-        # state = np.append(state, min(1, self.total_episode_logs/self._normalize_factor))
-        # fake_total_logs = self.total_episode_logs + sum(self.episode_logs.values())
-        # state = np.append(state, min(1, fake_total_logs/self._normalize_factor))
-        # append to state the step index
-        # state = np.append(state, self.env.step_counter/self.env.total_steps)
-        # add sparse vector for step index
-        sparse_vector = np.zeros(self.env.total_steps)
-        sparse_vector[self.unwrapped.step_counter] = 1
-        state = np.append(state, sparse_vector)
-        # current_datetime = datetime.datetime.strptime(self.env.time_manager.action_window.end, '%m/%d/%Y:%H:%M:%S')
-        # weekday_vector = np.zeros(7)
-        # weekday_vector[current_datetime.weekday()] = 1
-        # hour_vector = np.zeros(24)
-        # hour_vector[current_datetime.hour] = 1
-        # state = np.append(state, weekday_vector)
-        # state = np.append(state, hour_vector)
-        logger.info(f"State: {state}")
-        self.unwrapped.obs = state
-        return state
-    
-    def _normalize(self, state):
-        """Normalize state vector"""
-        return state / self.unwrapped._normalize_factor
-     
-
 class StateWrapper3(StateWrapper):
     """Manages log type distributions and state normalization"""
 
@@ -229,7 +178,7 @@ class StateWrapper3(StateWrapper):
         self.observation_space = spaces.Box(
             low=0,
             high=np.inf,
-            shape=(len(self.top_logtypes)*2,),  # +1 for 'other' category
+            shape=(len(self.top_logtypes)*2 ,),  # +1 for 'other' category
             # shape=(len(self.top_logtypes),),  # +1 for 'other' category
             dtype=np.float64
         )
@@ -240,7 +189,8 @@ class StateWrapper3(StateWrapper):
         # Calculate fake distribution using the latest episode_logs
         # This happens AFTER action wrapper has updated episode_logs
         # Update real distribution AFTER action is executed
-        self.update_real_distribution(self.time_manager.action_window.to_tuple())
+        if not self.unwrapped.done:
+            self.update_real_distribution(self.time_manager.action_window.to_tuple())
 
         # Create state vectors
         real_state = self._get_state_vector(self.unwrapped.real_distribution)
@@ -248,8 +198,8 @@ class StateWrapper3(StateWrapper):
         ac_real_state = self._get_state_vector(self.unwrapped.ac_real_distribution)
         self.unwrapped.ac_real_state = self._normalize(ac_real_state)
         self.unwrapped.real_relevant_distribution = {"_".join(logtype): self.unwrapped.ac_real_state[self.relevant_logtypes_indices[logtype]] for logtype in self.top_logtypes}
-
-        self.update_fake_distribution_from_real()
+        if not self.unwrapped.done:
+            self.update_fake_distribution_from_real()
         self.unwrapped.fake_state = self._get_state_vector(self.unwrapped.fake_distribution)
         self.unwrapped.fake_state = self._normalize(self.fake_state)
         ac_fake_state = self._get_state_vector(self.unwrapped.ac_fake_distribution)
@@ -259,22 +209,24 @@ class StateWrapper3(StateWrapper):
         # Create the final state vector
         # state = self.unwrapped.real_state
         state = np.append(self.unwrapped.ac_real_state, self.unwrapped.ac_fake_state)
+        # rules_rel_diff_alerts = [value for key, value in self.unwrapped.rules_rel_diff_alerts.items()]
+        # state = np.append(state, rules_rel_diff_alerts)
         # sparse_vector = np.zeros(self.env.total_steps)
-        # sparse_vector[self.unwrapped.step_counter] = 1
+        # sparse_vector[self.unwrapped.step_counter-1] = 1
         # state = np.append(state, sparse_vector)
-        # state = np.append(state, self.current_real_quantity/100000) 
-        # fake_total_logs = self.total_episode_logs + sum(self.action_wrapper.episode_logs.values())
-        # state = np.append(state, fake_total_logs/500000)
+        # # state = np.append(state, self.current_real_quantity/100000) 
+        # real_total_logs = self.total_episode_logs
+        # state = np.append(state, real_total_logs/500000)
         # # append to state the step index
         # # state = np.append(state, self.env.step_counter/self.env.total_steps)
         # # add sparse vector for step index
 
         
-        # current_datetime = datetime.datetime.strptime(self.env.time_manager.action_window.end, '%m/%d/%Y:%H:%M:%S')
+        current_datetime = datetime.datetime.strptime(self.env.time_manager.action_window.end, '%m/%d/%Y:%H:%M:%S')
         # weekday_vector = np.zeros(7)
         # weekday_vector[current_datetime.weekday()] = 1
-        # hour_vector = np.zeros(24)
-        # hour_vector[current_datetime.hour] = 1
+        hour_vector = np.zeros(24)
+        hour_vector[current_datetime.hour] = 1
         # state = np.append(state, weekday_vector)
         # state = np.append(state, hour_vector)
         logger.info(f"State: {state}")
