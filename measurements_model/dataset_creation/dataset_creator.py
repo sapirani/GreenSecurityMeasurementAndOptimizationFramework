@@ -97,6 +97,7 @@ class DatasetCreator:
         all_samples_features = self.__create_system_process_dataset()
         df = self.__convert_objects_to_dataframe(all_samples_features)
         full_df_with_batch_id = self.__add_batch_id(df, DEFAULT_BATCH_INTERVAL_SECONDS)
+        self.__check_dataset_validity(full_df_with_batch_id)
         full_df = self.__extend_df_with_target(full_df_with_batch_id, DEFAULT_BATCH_INTERVAL_SECONDS)
         full_df = self.__filter_last_batch_records(full_df)
         full_df = self.__remove_temporary_columns(full_df)
@@ -112,6 +113,18 @@ class DatasetCreator:
         ).astype(int)
 
         return df
+
+    def __check_dataset_validity(self, df: pd.DataFrame):
+        # count unique session_id per batch
+        session_counts = df.groupby(SystemColumns.BATCH_ID_COL)[SystemColumns.SESSION_ID_COL].nunique()
+
+        # batches with more than 1 session_id
+        bad_batches = session_counts[session_counts > 1]
+
+        if not bad_batches.empty:
+            print("⚠️ Warning: Some batches contain multiple session_ids!")
+            for batch_id, count in bad_batches.items():
+                print(f" - Batch {batch_id} has {count} session_ids")
 
     def __extend_df_with_target(self, df: pd.DataFrame, time_per_batch: int) -> pd.DataFrame:
         # TODO: beautify this code
