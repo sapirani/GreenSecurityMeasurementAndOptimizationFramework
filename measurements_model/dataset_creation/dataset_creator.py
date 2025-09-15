@@ -13,6 +13,7 @@ from DTOs.process_info import ProcessIdentity
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
+from DTOs.session_host_info import SessionHostIdentity
 from elastic_reader.consts import ElasticIndex
 from elastic_reader.elastic_reader import ElasticReader
 from elastic_reader.elastic_reader_parameters import time_picker_input_strategy, preconfigured_time_picker_input
@@ -61,7 +62,8 @@ class DatasetCreator:
 
     def __extract_iteration_samples(self, system_raw_results: SystemRawResults,
                                     processes_raw_results: list[ProcessRawResults],
-                                    timestamp: datetime) -> list[ExtendedEnergyModelFeatures]:
+                                    timestamp: datetime, session_host_identity: SessionHostIdentity) -> list[
+        ExtendedEnergyModelFeatures]:
         iteration_samples = []
         for process_result in processes_raw_results:
             if not process_result.process_of_interest:
@@ -72,7 +74,7 @@ class DatasetCreator:
             process_id = ProcessIdentity.from_raw_results(process_result)
             process_feature_extractor = self.__processes_features_extractor_mapping[process_id]
             sample_features = process_feature_extractor.extract_extended_energy_model_features(
-                raw_results=sample_raw_results, timestamp=timestamp)
+                raw_results=sample_raw_results, timestamp=timestamp, session_host_identity=session_host_identity)
 
             if isinstance(sample_features, EmptyFeatures):
                 continue
@@ -112,19 +114,19 @@ class DatasetCreator:
         df = df.copy()
 
         # Step 1: Assign batch IDs (integer division of timestamp by batch duration)
-        df[SystemColumns.BATCH_ID_COLUMN] = (
+        df[SystemColumns.BATCH_ID_COL] = (
                 df[TIME_COLUMN_NAME].astype("int64") // 10 ** 9 // time_per_batch
         ).astype(int)
 
         # Step 2: Calculate system energy consumption rate (mWh/sec) for each batch
         energy_per_batch = (
-            df.groupby(SystemColumns.BATCH_ID_COLUMN)[SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL]
+            df.groupby(SystemColumns.BATCH_ID_COL)[SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL]
             .agg(lambda s: (s.iloc[0] - s.iloc[-1]) / time_per_batch)
             .rename(SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL)
         )
 
         # Merge batch-level system energy rates back into the main DataFrame
-        df = df.merge(energy_per_batch, on=SystemColumns.BATCH_ID_COLUMN, how="left")
+        df = df.merge(energy_per_batch, on=SystemColumns.BATCH_ID_COL, how="left")
 
         # Step 3: Calculate process energy usage
         df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = (
@@ -142,5 +144,6 @@ class DatasetCreator:
     def __remove_temporary_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         return df.drop([SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL,
                         SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL,
-                        SystemColumns.BATCH_ID_COLUMN, TIME_COLUMN_NAME],
+                        SystemColumns.BATCH_ID_COL, TIME_COLUMN_NAME,
+                        SystemColumns.SESSION_ID_COL, ProcessColumns.PROCESS_ID_COL],
                        axis=1, errors='ignore')

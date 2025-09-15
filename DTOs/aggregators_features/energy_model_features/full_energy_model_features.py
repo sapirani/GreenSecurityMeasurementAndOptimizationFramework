@@ -16,6 +16,9 @@ class EnergyModelFeatures:
 
 @dataclass
 class ExtendedEnergyModelFeatures(EnergyModelFeatures):
+    session_id: str
+    hostname: str
+    pid: int
     timestamp: datetime
     hardware_features: HardwareEnergyModelFeatures
     battery_remaining_capacity_mWh: Optional[float] = None

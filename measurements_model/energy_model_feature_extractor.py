@@ -10,6 +10,7 @@ from DTOs.aggregators_features.energy_model_features.system_energy_model_feature
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
+from DTOs.session_host_info import SessionHostIdentity
 from measurements_model.dataset_creation.data_extractors.hardware_extractor import HardwareExtractor
 from utils.general_consts import KB
 
@@ -32,7 +33,7 @@ class EnergyModelFeatureExtractor:
         )
 
     def extract_extended_energy_model_features(self, raw_results: ProcessSystemRawResults,
-                                               timestamp: datetime) -> \
+                                               timestamp: datetime, session_host_identity: SessionHostIdentity) -> \
             Union[ExtendedEnergyModelFeatures, EmptyFeatures]:
         process_features, system_features, duration = self.__extract_process_system_features(raw_results, timestamp)
         if not process_features or not system_features or not duration:
@@ -46,6 +47,9 @@ class EnergyModelFeatureExtractor:
             duration=duration,
             process_features=process_features,
             system_features=system_features,
+            session_id=session_host_identity.session_id,
+            hostname=session_host_identity.hostname,
+            pid=raw_results.process_raw_results.pid,
             hardware_features=self.__hardware_details,
             timestamp=timestamp,
             battery_remaining_capacity_mWh=current_battery_capacity

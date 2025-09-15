@@ -10,6 +10,7 @@ class ProcessColumns:
     NETWORK_PACKETS_SENT_PROCESS_COL = "network_packets_sent_process"
     NETWORK_BYTES_RECEIVED_PROCESS_COL = "network_kb_received_process"
     NETWORK_PACKETS_RECEIVED_PROCESS_COL = "network_packets_received_process"
+    PROCESS_ID_COL = "pid"
     ENERGY_USAGE_PROCESS_COL = "energy_consumption_process_mWh"
 
 
@@ -30,7 +31,8 @@ class SystemColumns:
 
     DURATION_COL = "duration"
     ENERGY_USAGE_PER_SECOND_SYSTEM_COL = "energy_consumption_per_second_system_mWh"
-    BATCH_ID_COLUMN = "batch_id"
+    BATCH_ID_COL = "batch_id"
+    SESSION_ID_COL = "session_id"
 
 
 class IDLEColumns:
