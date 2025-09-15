@@ -16,7 +16,6 @@ from resource_usage_recorder.processes_recorder.strategies.abstract_processes_re
 from resource_usage_recorder.processes_recorder.strategies.all_processes_recorder import AllProcessesResourceUsageRecorder
 from resource_usage_recorder.processes_recorder.strategies.process_of_interest_only_recorder import \
     ProcessesOfInterestOnlyRecorder
-from resource_usage_recorder.processes_recorder.strategies.splunk_processes_recorder import SplunkProcessesResourceUsageRecorder
 from resource_usage_recorder.system_recorder.battery.battery_usage_recorder import SystemBatteryUsageRecorder
 from resource_usage_recorder.system_recorder.battery.null_battery_recorder import NullBatteryUsageRecorder
 from summary_builder import SystemResourceIsolationSummaryBuilder, NativeSummaryBuilder
@@ -74,7 +73,7 @@ def process_resource_usage_recorder_factory(
         return AllProcessesResourceUsageRecorder(process_network_monitor, running_os, should_ignore_process)
     elif process_monitor_type == ProcessMonitorType.PROCESSES_OF_INTEREST_ONLY:
         return ProcessesOfInterestOnlyRecorder(process_network_monitor, running_os, should_ignore_process)
- 
+    
     raise Exception("Selected process monitor type is not supported")
 
 

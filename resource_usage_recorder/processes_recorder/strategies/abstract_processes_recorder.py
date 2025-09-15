@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from calendar import c
 import logging
 from dataclasses import dataclass
 from typing import List, Dict, Tuple, Callable, Iterable
@@ -94,6 +93,7 @@ class AbstractProcessResourceUsageRecorder(ABC):
             should_ignore_process predicate
         """
         processes_results = []
+        
         for p in candidate_processes:
             try:
                 if self.should_ignore_process(p) and not (p in self.mark_processes):

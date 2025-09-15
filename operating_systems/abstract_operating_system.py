@@ -123,7 +123,6 @@ class AbstractOSFuncs:
         :param f_stderr: fd for directing the stderr of the opened process
         :return: opened process and pid
         """
-        print("Running command:")
         print(command)
         def process_obj_and_pid(command_lst):
             popen_creation_flags = 0 if is_posix else subprocess.CREATE_NEW_PROCESS_GROUP

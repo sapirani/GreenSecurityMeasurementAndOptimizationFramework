@@ -724,7 +724,7 @@ def before_scanning_operations():
 
     Path(STDERR_FILES_DIR).mkdir(parents=True, exist_ok=True)  # create empty results dirs
 
-    # save_general_information_before_scanning()
+    save_general_information_before_scanning()
 
 
 def after_scanning_operations(should_save_results=True):
@@ -822,7 +822,7 @@ def main(user_args):
     process_metrics_logger = get_measurement_logger(
         logger_name=LoggerName.PROCESS_METRICS,
         custom_filter=logger_filter,
-        logger_handler=get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, IndexName.PROCESS_METRICS, starting_time, "search_name_enrich")
+        logger_handler=get_elastic_logging_handler(elastic_username, elastic_password, elastic_url, IndexName.PROCESS_METRICS, starting_time)
     )
 
     application_flow_logger = get_measurement_logger(
@@ -861,5 +861,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     session_id = args.measurement_session_id
-    
+
     main(args)
