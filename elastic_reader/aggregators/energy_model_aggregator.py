@@ -79,39 +79,4 @@ class EnergyModelAggregator(AbstractAggregator):
 
     def __calculate_energy_per_resource(self, sample: EnergyModelFeatures,
                                         energy_prediction: float) -> SampleResourcesEnergy:
-        cpu_energy = self.__resource_energy_calculator.calculate_cpu_energy(
-            sample.process_features.cpu_usage_seconds_process)
-
-        memory_diff = sample.process_features.memory_mb_relative_process
-        if memory_diff < 0:
-            memory_energy = self.__resource_energy_calculator.calculate_mb_released_ram_energy(memory_diff)
-        else:
-            memory_energy = self.__resource_energy_calculator.calculate_mb_gained_ram_energy(memory_diff)
-
-        disk_io_write_energy = self.__resource_energy_calculator.calculate_disk_write_kb_energy(
-            sample.process_features.disk_write_kb_process)
-
-        disk_io_read_energy = self.__resource_energy_calculator.calculate_disk_read_kb_energy(
-            sample.process_features.disk_read_kb_process)
-
-        network_received_energy = self.__resource_energy_calculator.calculate_network_received_kb_energy(
-            sample.process_features.network_kb_received_process)
-
-        network_sent_energy = self.__resource_energy_calculator.calculate_network_sent_kb_energy(
-            sample.process_features.network_kb_sent_process)
-
-        per_resource_energy_sum = cpu_energy + memory_energy + disk_io_write_energy + disk_io_read_energy + network_received_energy + network_sent_energy
-        return SampleResourcesEnergy(
-            cpu_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(
-                cpu_energy, per_resource_energy_sum, energy_prediction),
-            ram_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(
-                memory_energy, per_resource_energy_sum, energy_prediction),
-            disk_io_read_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(
-                disk_io_read_energy, per_resource_energy_sum, energy_prediction),
-            disk_io_write_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(
-                disk_io_write_energy, per_resource_energy_sum, energy_prediction),
-            network_io_received_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(
-                network_received_energy, per_resource_energy_sum, energy_prediction),
-            network_io_sent_energy_consumption=self.__resource_energy_calculator.normalize_energy_consumption(
-                network_sent_energy, per_resource_energy_sum, energy_prediction)
-        )
+        return self.__resource_energy_calculator.calculate_relative_energy_consumption(sample.process_features, energy_prediction)
