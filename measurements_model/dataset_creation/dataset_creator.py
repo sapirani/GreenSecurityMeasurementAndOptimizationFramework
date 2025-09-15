@@ -26,6 +26,7 @@ from user_input.elastic_reader_input.time_picker_input_factory import get_time_p
 from utils.general_consts import MINUTE
 
 DEFAULT_BATCH_INTERVAL_SECONDS = 5 * MINUTE
+MINIMAL_BATCH_DURATION = DEFAULT_BATCH_INTERVAL_SECONDS * 0.2
 # todo: extend this logic when we want to use a baseline background activity instead of idle.
 # todo: extend to reading idle sessions from elastic and calculate the average energy per second
 DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT = 2.921666667
@@ -96,6 +97,7 @@ class DatasetCreator:
         all_samples_features = self.__create_system_process_dataset()
         df = self.__convert_objects_to_dataframe(all_samples_features)
         full_df = self.__extend_df_with_target(df, DEFAULT_BATCH_INTERVAL_SECONDS)
+        full_df = self.__filter_irrelvent_records(full_df)
         full_df = self.__remove_temporary_columns(full_df)
         full_df.to_csv(FULL_DATASET_PATH)
         return full_df
@@ -139,6 +141,20 @@ class DatasetCreator:
             logging.warning("Some energy values turned out negative.")
             df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = df[ProcessColumns.ENERGY_USAGE_PROCESS_COL].clip(
                 lower=ENERGY_MINIMAL_VALUE)
+        return df
+
+    def __filter_irrelvent_records(self, df: pd.DataFrame) -> pd.DataFrame:
+        # get last batch
+        last_batch_id = df[SystemColumns.BATCH_ID_COL].max()
+        last_batch = df[df[SystemColumns.BATCH_ID_COL] == last_batch_id]
+
+        # compute its duration (max - min timestamp)
+        duration = (last_batch[TIME_COLUMN_NAME].max() - last_batch[TIME_COLUMN_NAME].min()).total_seconds()
+
+        # check if it's shorter than MINIMAL_BATCH_DURATION minutes
+        if duration < MINIMAL_BATCH_DURATION:
+            df = df[df[SystemColumns.BATCH_ID_COL] != last_batch_id]
+
         return df
 
     def __remove_temporary_columns(self, df: pd.DataFrame) -> pd.DataFrame:
