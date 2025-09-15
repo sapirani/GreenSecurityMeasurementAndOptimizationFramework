@@ -98,6 +98,7 @@ class DatasetCreator:
         df = self.__convert_objects_to_dataframe(all_samples_features)
         full_df_with_batch_id = self.__add_batch_id(df, DEFAULT_BATCH_INTERVAL_SECONDS)
         self.__check_dataset_validity(full_df_with_batch_id)
+        # todo: handle energy calculations with several sessions in the same batch
         full_df = self.__extend_df_with_target(full_df_with_batch_id, DEFAULT_BATCH_INTERVAL_SECONDS)
         full_df = self.__filter_last_batch_records(full_df)
         full_df = self.__remove_temporary_columns(full_df)
