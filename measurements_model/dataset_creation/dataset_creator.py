@@ -148,11 +148,30 @@ class DatasetCreator:
         # Merge batch-level system energy rates back into the main DataFrame
         df = df.merge(energy_per_batch, on=SystemColumns.BATCH_ID_COL, how="left")
 
-        # Step 2: Calculate process energy usage
-        df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = (
-                df[SystemColumns.DURATION_COL] * df[SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL]
-                - df[SystemColumns.DURATION_COL] * self.__idle_details.energy_per_second
-        )
+        results = []
+        # Step 2: Handle batches separately depending on process_id count
+        for batch_id, batch_df in df.groupby(SystemColumns.BATCH_ID_COL, group_keys=False):
+            unique_procs = batch_df[ProcessColumns.PROCESS_ID_COL].nunique()
+
+            if unique_procs > 1:
+                # Case 1: more than one process_id → delegate
+                batch_df = self.calculate_relative_energy(batch_df)
+            else:
+                # Case 2: single process_id → regular implementation
+                batch_df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = (
+                        batch_df[SystemColumns.DURATION_COL] * batch_df[
+                    SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL]
+                        - batch_df[SystemColumns.DURATION_COL] * self.__idle_details.energy_per_second
+                )
+
+            results.append(batch_df)
+
+        df = pd.concat(results, ignore_index=True)
+
+        # df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = (
+        #         df[SystemColumns.DURATION_COL] * df[SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL]
+        #         - df[SystemColumns.DURATION_COL] * self.__idle_details.energy_per_second
+        # )
 
         # Step 3: Change negative values (if appear) to zero
         if (df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] < ENERGY_MINIMAL_VALUE).any():
