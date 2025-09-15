@@ -163,7 +163,7 @@ class LinuxOS(AbstractOSFuncs):
             raise ValueError("Can't call this method when not inside container")
         return self.__container_cpu_usage_reader.get_number_of_cpu_cores()
 
-    def get_container_total_memory_usage(self):
+    def get_container_total_memory_usage(self) -> tuple[float, float]:
         if self.__container_memory_usage_reader is None:
             raise ValueError("Can't call this method when not inside container")
         usage_in_bytes = self.__container_memory_usage_reader.get_memory_usage_bytes()

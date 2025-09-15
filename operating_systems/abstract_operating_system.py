@@ -211,7 +211,7 @@ class AbstractOSFuncs:
         pass
 
     @abstractmethod
-    def get_container_total_memory_usage(self):
+    def get_container_total_memory_usage(self) -> tuple[float, float]:
         """
         :return: total memory consumption in bytes and as a percentage from memory size allocated to the docker container
         """

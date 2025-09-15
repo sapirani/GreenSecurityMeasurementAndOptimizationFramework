@@ -75,8 +75,6 @@ class BatteryMonitorType(Enum):
 class ProcessMonitorType(Enum):
     FULL = 1
     PROCESSES_OF_INTEREST_ONLY = 2
-    SPLUNK = 3
-
 
 class SummaryType(Enum):
     ISOLATE_SYSTEM_RESOURCES = 1
