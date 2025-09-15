@@ -93,7 +93,7 @@ class AbstractProcessResourceUsageRecorder(ABC):
             should_ignore_process predicate
         """
         processes_results = []
-        
+
         for p in candidate_processes:
             try:
                 if self.should_ignore_process(p) and not (p in self.mark_processes):
