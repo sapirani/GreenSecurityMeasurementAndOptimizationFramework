@@ -97,7 +97,7 @@ class DatasetCreator:
         all_samples_features = self.__create_system_process_dataset()
         df = self.__convert_objects_to_dataframe(all_samples_features)
         full_df = self.__extend_df_with_target(df, DEFAULT_BATCH_INTERVAL_SECONDS)
-        full_df = self.__filter_irrelvent_records(full_df)
+        full_df = self.__filter_last_batch_records(full_df)
         full_df = self.__remove_temporary_columns(full_df)
         full_df.to_csv(FULL_DATASET_PATH)
         return full_df
@@ -138,12 +138,12 @@ class DatasetCreator:
 
         # Step 4: Change negative values (if appear) to zero
         if (df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] < ENERGY_MINIMAL_VALUE).any():
-            logging.warning("Some energy values turned out negative.")
+            logging.warning("Some values for process energy turned out negative after calculating total - idle energy.")
             df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = df[ProcessColumns.ENERGY_USAGE_PROCESS_COL].clip(
                 lower=ENERGY_MINIMAL_VALUE)
         return df
 
-    def __filter_irrelvent_records(self, df: pd.DataFrame) -> pd.DataFrame:
+    def __filter_last_batch_records(self, df: pd.DataFrame) -> pd.DataFrame:
         # get last batch
         last_batch_id = df[SystemColumns.BATCH_ID_COL].max()
         last_batch = df[df[SystemColumns.BATCH_ID_COL] == last_batch_id]
