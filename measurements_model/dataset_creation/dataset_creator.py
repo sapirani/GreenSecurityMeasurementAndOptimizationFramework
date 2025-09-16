@@ -102,8 +102,8 @@ class DatasetCreator:
         self.__check_dataset_validity(full_df_with_batch_id)
         # todo: handle energy calculations with several sessions in the same batch
         full_df = self.__extend_df_with_target(full_df_with_batch_id, DEFAULT_BATCH_INTERVAL_SECONDS)
-        full_df = DatasetCreator.__filter_last_batch_records(full_df)
-        full_df = DatasetCreator.__remove_temporary_columns(full_df)
+        full_df = self.__filter_last_batch_records(full_df)
+        full_df = self.__remove_temporary_columns(full_df)
         full_df.to_csv(FULL_DATASET_PATH)
         return full_df
 
@@ -160,9 +160,7 @@ class DatasetCreator:
         results = []
         # Step 2: Handle batches separately depending on process_id count
         for batch_id, batch_df in df.groupby(SystemColumns.BATCH_ID_COL, group_keys=False):
-            unique_procs = batch_df[ProcessColumns.PROCESS_ID_COL].nunique()
-
-            batch_df = self.__add_energy_ratio_column(df, unique_procs > 1)
+            batch_df = self.__add_energy_ratio_column(batch_df)
 
             batch_df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = (batch_df[SystemColumns.DURATION_COL] *
                                                                  batch_df[
@@ -178,8 +176,9 @@ class DatasetCreator:
         df = pd.concat(results, ignore_index=True)
         return df
 
-    def __add_energy_ratio_column(self, df: pd.DataFrame, need_to_calculate: bool = False) -> pd.DataFrame:
-        if need_to_calculate:
+    def __add_energy_ratio_column(self, df: pd.DataFrame) -> pd.DataFrame:
+        unique_procs = df[ProcessColumns.PROCESS_ID_COL].nunique()
+        if unique_procs > 1:
             df = self.__calculate_energy_ratio_by_resources(df)
         else:
             df[SystemColumns.ENERGY_RATIO_SHARE] = DEFAULT_ENERGY_RATIO
