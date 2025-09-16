@@ -1,22 +1,31 @@
 from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
 from measurements_model.sample_resources_energy import SampleResourcesEnergy
 
+class EnergyPerResourceConsts:
+    """
+    This class holds constant values that represent the energy consumption per one unit of a specific resource.
+    For example, the energy usage for acquiring 1 MB of RAM is 17.18 mwh.
+    """
+    cpu_time_seconds = 1
+    memory_gain_mb = 0.04 # todo: change
+    memory_release_mb = 0.03  # todo: change to actual number
+    disk_io_read_kbytes = 0.1261034238
+    disk_io_write_kbytes = 0.1324211241
+    network_received_kbytes = 0.1161303828
+    network_sent_kbytes = 0.005866983801
 
 class ResourceEnergyCalculator:
-    def __init__(self, energy_per_cpu_time: float, energy_per_gain_mb_ram: float,
-                 energy_per_release_mb_ram: float, energy_per_disk_read_kb: float,
-                 energy_per_disk_write_kb: float, energy_per_network_received_kb: float,
-                 energy_per_network_sent_kb: float):
-        self.__energy_per_cpu_time = energy_per_cpu_time
-        self.__energy_per_gain_mb_ram = energy_per_gain_mb_ram
-        self.__energy_per_release_mb_ram = energy_per_release_mb_ram
-        self.__energy_per_disk_read_kb = energy_per_disk_read_kb
-        self.__energy_per_disk_write_kb = energy_per_disk_write_kb
-        self.__energy_per_network_received_kb = energy_per_network_received_kb
-        self.__energy_per_network_sent_kb = energy_per_network_sent_kb
+    def __init__(self):
+        self.__energy_per_cpu_time = EnergyPerResourceConsts.cpu_time_seconds
+        self.__energy_per_gain_mb_ram = EnergyPerResourceConsts.memory_gain_mb
+        self.__energy_per_release_mb_ram = EnergyPerResourceConsts.memory_release_mb
+        self.__energy_per_disk_read_kb = EnergyPerResourceConsts.disk_io_read_kbytes
+        self.__energy_per_disk_write_kb = EnergyPerResourceConsts.disk_io_write_kbytes
+        self.__energy_per_network_received_kb = EnergyPerResourceConsts.network_received_kbytes
+        self.__energy_per_network_sent_kb = EnergyPerResourceConsts.network_sent_kbytes
 
-    def calculate_relative_energy_consumption(self, process_features: ProcessEnergyModelFeatures,
-                                              total_energy: float) -> SampleResourcesEnergy:
+    def calculate_energy_consumption_per_resource(self,
+                                                  process_features: ProcessEnergyModelFeatures) -> SampleResourcesEnergy:
         cpu_energy = self.__calculate_cpu_energy(
             process_features.cpu_usage_seconds_process)
 
@@ -38,20 +47,45 @@ class ResourceEnergyCalculator:
         network_sent_energy = self.__calculate_network_sent_kb_energy(
             process_features.network_kb_sent_process)
 
-        per_resource_energy_sum = cpu_energy + memory_energy + disk_io_write_energy + disk_io_read_energy + network_received_energy + network_sent_energy
+        return SampleResourcesEnergy(
+            cpu_energy_consumption=cpu_energy,
+            ram_energy_consumption=memory_energy,
+            disk_io_read_energy_consumption=disk_io_read_energy,
+            disk_io_write_energy_consumption=disk_io_write_energy,
+            network_io_received_energy_consumption=network_received_energy,
+            network_io_sent_energy_consumption=network_sent_energy)
+
+    def calculate_total_energy_by_resources(self, process_features: ProcessEnergyModelFeatures) -> float:
+        energy_per_resource = self.calculate_energy_consumption_per_resource(process_features)
+        per_resource_energy_sum = self.__calculate_total_energy(energy_per_resource)
+        return per_resource_energy_sum
+
+    @classmethod
+    def __calculate_total_energy(cls, energy_per_resource: SampleResourcesEnergy) -> float:
+        return energy_per_resource.cpu_energy_consumption + \
+            energy_per_resource.ram_energy_consumption + \
+            energy_per_resource.disk_io_write_energy_consumption + \
+            energy_per_resource.disk_io_read_energy_consumption + \
+            energy_per_resource.network_io_received_energy_consumption + \
+            energy_per_resource.network_io_sent_energy_consumption
+
+    def calculate_relative_energy_consumption(self, process_features: ProcessEnergyModelFeatures,
+                                              total_energy: float) -> SampleResourcesEnergy:
+        energy_per_resource = self.calculate_energy_consumption_per_resource(process_features)
+        total_energy_by_resources = self.__calculate_total_energy(energy_per_resource)
         return SampleResourcesEnergy(
             cpu_energy_consumption=ResourceEnergyCalculator.__normalize_energy_consumption(
-                cpu_energy, per_resource_energy_sum, total_energy),
+                energy_per_resource.cpu_energy_consumption, total_energy_by_resources, total_energy),
             ram_energy_consumption=ResourceEnergyCalculator.__normalize_energy_consumption(
-                memory_energy, per_resource_energy_sum, total_energy),
+                energy_per_resource.ram_energy_consumption, total_energy_by_resources, total_energy),
             disk_io_read_energy_consumption=ResourceEnergyCalculator.__normalize_energy_consumption(
-                disk_io_read_energy, per_resource_energy_sum, total_energy),
+                energy_per_resource.disk_io_read_energy_consumption, total_energy_by_resources, total_energy),
             disk_io_write_energy_consumption=ResourceEnergyCalculator.__normalize_energy_consumption(
-                disk_io_write_energy, per_resource_energy_sum, total_energy),
+                energy_per_resource.disk_io_write_energy_consumption, total_energy_by_resources, total_energy),
             network_io_received_energy_consumption=ResourceEnergyCalculator.__normalize_energy_consumption(
-                network_received_energy, per_resource_energy_sum, total_energy),
+                energy_per_resource.network_io_received_energy_consumption, total_energy_by_resources, total_energy),
             network_io_sent_energy_consumption=ResourceEnergyCalculator.__normalize_energy_consumption(
-                network_sent_energy, per_resource_energy_sum, total_energy)
+                energy_per_resource.network_io_sent_energy_consumption, total_energy_by_resources, total_energy)
         )
 
     def __calculate_cpu_energy(self, cpu_usage: float) -> float:

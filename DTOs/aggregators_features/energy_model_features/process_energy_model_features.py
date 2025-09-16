@@ -1,4 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
+
+import pandas as pd
 
 
 @dataclass
@@ -15,4 +17,13 @@ class ProcessEnergyModelFeatures:
     network_kb_received_process: float
     network_packets_received_process: int
 
-    # TODO: maybe add non relative (total) memory usage
+    @classmethod
+    def from_pandas_series(cls, row: pd.Series) -> "ProcessEnergyModelFeatures":
+        init_kwargs = {}
+
+        for f in fields(cls):
+            if f.name not in row:
+                raise ValueError(f"Missing required field: {f.name}")
+            init_kwargs[f.name] = row[f.name]
+
+        return cls(**init_kwargs)

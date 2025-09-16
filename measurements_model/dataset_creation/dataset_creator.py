@@ -1,14 +1,14 @@
-import logging
 from collections import defaultdict
-from dataclasses import asdict
+from dataclasses import asdict, fields
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict
 
 import pandas as pd
 
 from DTOs.aggregators_features.empty_features import EmptyFeatures
 from DTOs.aggregators_features.energy_model_features.full_energy_model_features import ExtendedEnergyModelFeatures
 from DTOs.aggregators_features.energy_model_features.idle_energy_model_features import IdleEnergyModelFeatures
+from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
 from DTOs.process_info import ProcessIdentity
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
@@ -22,6 +22,7 @@ from measurements_model.dataset_parameters import FULL_DATASET_PATH
 from measurements_model.column_names import ProcessColumns, SystemColumns
 from measurements_model.energy_model_convertor import EnergyModelConvertor
 from measurements_model.energy_model_feature_extractor import EnergyModelFeatureExtractor
+from measurements_model.resource_energy_calculator import ResourceEnergyCalculator
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 from utils.general_consts import MINUTE, NANOSECONDS_IN_SECOND
 
@@ -30,6 +31,7 @@ MINIMAL_BATCH_DURATION = DEFAULT_BATCH_INTERVAL_SECONDS * 0.5
 # todo: extend this logic when we want to use a baseline background activity instead of idle.
 # todo: extend to reading idle sessions from elastic and calculate the average energy per second
 DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT = 2.921666667
+DEFAULT_ENERGY_RATIO = 1.0
 
 
 # todo: change to consumer interface
@@ -43,6 +45,7 @@ class DatasetCreator:
         )
         self.__processes_features_extractor_mapping: Dict[ProcessIdentity, EnergyModelFeatureExtractor] = defaultdict(
             lambda: EnergyModelFeatureExtractor())
+        self.__resource_energy_calculator = ResourceEnergyCalculator()
 
     def __create_system_process_dataset(self) -> list[ExtendedEnergyModelFeatures]:
         all_samples = []
@@ -99,8 +102,8 @@ class DatasetCreator:
         self.__check_dataset_validity(full_df_with_batch_id)
         # todo: handle energy calculations with several sessions in the same batch
         full_df = self.__extend_df_with_target(full_df_with_batch_id, DEFAULT_BATCH_INTERVAL_SECONDS)
-        full_df = self.__filter_last_batch_records(full_df)
-        full_df = self.__remove_temporary_columns(full_df)
+        full_df = DatasetCreator.__filter_last_batch_records(full_df)
+        full_df = DatasetCreator.__remove_temporary_columns(full_df)
         full_df.to_csv(FULL_DATASET_PATH)
         return full_df
 
@@ -135,7 +138,6 @@ class DatasetCreator:
                     f"(from {start_time} to {end_time})"
                 )
 
-
     def __extend_df_with_target(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
         """
         Extend the given DataFrame with energy usage targets.
@@ -160,22 +162,53 @@ class DatasetCreator:
         for batch_id, batch_df in df.groupby(SystemColumns.BATCH_ID_COL, group_keys=False):
             unique_procs = batch_df[ProcessColumns.PROCESS_ID_COL].nunique()
 
-            if unique_procs > 1:
-                # Case 1: more than one process_id → delegate
-                batch_df = self.calculate_relative_energy(batch_df)
-            else:
-                # Case 2: single process_id → regular implementation
-                batch_df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = (
-                        batch_df[SystemColumns.DURATION_COL] * batch_df[SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL]
-                        - batch_df[SystemColumns.DURATION_COL] * self.__idle_details.energy_per_second
-                )
+            batch_df = self.__add_energy_ratio_column(df, unique_procs > 1)
+
+            batch_df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = (batch_df[SystemColumns.DURATION_COL] *
+                                                                 batch_df[SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL]) - \
+                                                                (batch_df[SystemColumns.DURATION_COL] *
+                                                                 self.__idle_details.energy_per_second)
+
+            batch_df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = batch_df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] * \
+                                                                batch_df[SystemColumns.ENERGY_RATIO_COL]
 
             results.append(batch_df)
 
         df = pd.concat(results, ignore_index=True)
         return df
 
-    def __filter_last_batch_records(self, df: pd.DataFrame) -> pd.DataFrame:
+    def __add_energy_ratio_column(self, df: pd.DataFrame, need_to_calculate: bool = False) -> pd.DataFrame:
+        if need_to_calculate:
+            df = self.__calculate_energy_ratio_by_resources(df)
+        else:
+            df[SystemColumns.ENERGY_RATIO_COL] = DEFAULT_ENERGY_RATIO
+
+        return df
+
+    def __calculate_energy_ratio_by_resources(self, batch_df: pd.DataFrame) -> pd.DataFrame:
+        resources_per_process_df = (
+            batch_df.groupby(ProcessColumns.PROCESS_ID_COL)[fields(ProcessEnergyModelFeatures)].agg(lambda s: sum(s))
+        )
+        processes_features_mapping = {
+            row[ProcessColumns.PROCESS_ID_COL]: ProcessEnergyModelFeatures.from_pandas_series(row)
+            for _, row in resources_per_process_df.iterrows()
+        }
+
+        processes_energy_by_resources = {
+            process_id: self.__resource_energy_calculator.calculate_total_energy_by_resources(process_features)
+            for process_id, process_features in processes_features_mapping.items()
+        }
+
+        sum_energy_processes_by_resources = sum(processes_energy_by_resources.values())
+        energy_ratio_per_process = {pid: process_energy / sum_energy_processes_by_resources
+                                    for pid, process_energy in processes_energy_by_resources.items()}
+
+        batch_df[SystemColumns.ENERGY_RATIO_COL] = batch_df[ProcessColumns.PROCESS_ID_COL].map(energy_ratio_per_process)
+
+        return batch_df
+
+    @staticmethod
+    def __filter_last_batch_records(df: pd.DataFrame) -> pd.DataFrame:
         # get last batch
         last_batch_id = df[SystemColumns.BATCH_ID_COL].max()
         last_batch = df[df[SystemColumns.BATCH_ID_COL] == last_batch_id]
@@ -189,9 +222,11 @@ class DatasetCreator:
 
         return df
 
-    def __remove_temporary_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+    @staticmethod
+    def __remove_temporary_columns(df: pd.DataFrame) -> pd.DataFrame:
         return df.drop([SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL,
                         SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL,
                         SystemColumns.BATCH_ID_COL, TIMESTAMP_COLUMN_NAME,
-                        SystemColumns.SESSION_ID_COL, ProcessColumns.PROCESS_ID_COL],
+                        SystemColumns.SESSION_ID_COL, ProcessColumns.PROCESS_ID_COL,
+                        SystemColumns.ENERGY_RATIO_COL],
                        axis=1)

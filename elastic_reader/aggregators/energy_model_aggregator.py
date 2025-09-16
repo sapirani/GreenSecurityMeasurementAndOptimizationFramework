@@ -16,33 +16,11 @@ from measurements_model.resource_energy_calculator import ResourceEnergyCalculat
 from measurements_model.sample_resources_energy import SampleResourcesEnergy
 
 
-class EnergyPerResourceConsts:
-    """
-    This class holds constant values that represent the energy consumption per one unit of a specific resource.
-    For example, the energy usage for acquiring 1 MB of RAM is 17.18 mwh.
-    """
-    cpu_time_seconds = 1
-    memory_gain_mb = 0.04 # todo: change
-    memory_release_mb = 0.03  # todo: change to actual number
-    disk_io_read_kbytes = 0.1261034238
-    disk_io_write_kbytes = 0.1324211241
-    network_received_kbytes = 0.1161303828
-    network_sent_kbytes = 0.005866983801
-
-
 class EnergyModelAggregator(AbstractAggregator):
     def __init__(self):
         self.__model = EnergyModel.get_instance()
         self.__model.initialize_model()
-        self.__resource_energy_calculator = ResourceEnergyCalculator(
-            energy_per_cpu_time=EnergyPerResourceConsts.cpu_time_seconds,
-            energy_per_gain_mb_ram=EnergyPerResourceConsts.memory_gain_mb,
-            energy_per_release_mb_ram=EnergyPerResourceConsts.memory_release_mb,
-            energy_per_disk_read_kb=EnergyPerResourceConsts.disk_io_read_kbytes,
-            energy_per_disk_write_kb=EnergyPerResourceConsts.disk_io_write_kbytes,
-            energy_per_network_received_kb=EnergyPerResourceConsts.network_received_kbytes,
-            energy_per_network_sent_kb=EnergyPerResourceConsts.network_sent_kbytes
-        )
+        self.__resource_energy_calculator = ResourceEnergyCalculator()
         self.__energy_model_feature_extractor = EnergyModelFeatureExtractor()
 
     def extract_features(self, raw_results: ProcessSystemRawResults,
@@ -61,7 +39,8 @@ class EnergyModelAggregator(AbstractAggregator):
             energy_prediction = self.__model.predict(sample_df)
             if energy_prediction < 0:
                 energy_prediction = 0
-                logging.warning(f"Received a negative value for energy prediction. Returning 0 mwh. The sample: {sample_df}")
+                logging.warning(
+                    f"Received a negative value for energy prediction. Returning 0 mwh. The sample: {sample_df}")
 
             energy_per_resource = self.__calculate_energy_per_resource(sample, energy_prediction)
             return EnergyModelResult(energy_mwh=energy_prediction,
@@ -79,4 +58,5 @@ class EnergyModelAggregator(AbstractAggregator):
 
     def __calculate_energy_per_resource(self, sample: EnergyModelFeatures,
                                         energy_prediction: float) -> SampleResourcesEnergy:
-        return self.__resource_energy_calculator.calculate_relative_energy_consumption(sample.process_features, energy_prediction)
+        return self.__resource_energy_calculator.calculate_relative_energy_consumption(sample.process_features,
+                                                                                       energy_prediction)

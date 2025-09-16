@@ -33,6 +33,7 @@ class SystemColumns:
     ENERGY_USAGE_PER_SECOND_SYSTEM_COL = "energy_consumption_per_second_system_mWh"
     BATCH_ID_COL = "batch_id"
     SESSION_ID_COL = "session_id"
+    ENERGY_RATIO_COL = "energy_ratio"
 
 
 class IDLEColumns:
