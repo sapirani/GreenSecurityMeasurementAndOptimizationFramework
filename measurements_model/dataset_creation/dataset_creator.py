@@ -143,7 +143,6 @@ class DatasetCreator:
         Steps:
         1. Calculate the average system energy consumption per second for each batch.
         2. Compute the process-level energy usage for each row, adjusted for idle consumption.
-        3. Change negative values to be 0 and print a warning if such case appeared.
         """
 
         # Step 1: Calculate system energy consumption rate (mWh/sec) for each batch

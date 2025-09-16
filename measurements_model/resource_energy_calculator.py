@@ -57,11 +57,11 @@ class ResourceEnergyCalculator:
     def __calculate_cpu_energy(self, cpu_usage: float) -> float:
         return self.__energy_per_cpu_time * cpu_usage
 
-    def __calculate_mb_released_ram_energy(self, mb_usage: float) -> float:
-        return self.__energy_per_release_mb_ram * mb_usage * -1
+    def __calculate_mb_released_ram_energy(self, mb_released: float) -> float:
+        return self.__energy_per_release_mb_ram * mb_released * -1
 
-    def __calculate_mb_gained_ram_energy(self, mb_usage: float) -> float:
-        return self.__energy_per_gain_mb_ram * mb_usage
+    def __calculate_mb_gained_ram_energy(self, mb_gained: float) -> float:
+        return self.__energy_per_gain_mb_ram * mb_gained
 
     def __calculate_disk_read_kb_energy(self, disk_read_kb: float) -> float:
         return self.__energy_per_disk_read_kb * disk_read_kb
