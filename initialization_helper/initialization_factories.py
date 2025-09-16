@@ -66,19 +66,20 @@ def summary_builder_factory(summary_type: SummaryType):
     raise Exception("Selected summary builder is not supported")
 
 
+def _get_filter(filter_type: CustomFilterType) -> AbstractProcessFilter:
+    if filter_type == CustomFilterType.FILTER_OUT_PYTHON:
+        return FilterOutPythonProcesses()
+    elif filter_type == CustomFilterType.FILTER_FOR_PYTHON:
+        return FilterForPythonProcesses()
+    elif filter_type == CustomFilterType.FILTER_OUT_CMD:
+        return FilterOutCMDProcesses()
+
+    raise ValueError("Invalid process filter type")
+
+
 def custom_process_filter_factory(
         custom_process_filter_types: List[CustomFilterType]
 ) -> Callable[[psutil.Process], bool]:
-
-    def _get_filter(filter_type: CustomFilterType) -> AbstractProcessFilter:
-        if filter_type == CustomFilterType.FILTER_OUT_PYTHON:
-            return FilterOutPythonProcesses()
-        elif filter_type == CustomFilterType.FILTER_FOR_PYTHON:
-            return FilterForPythonProcesses()
-        elif filter_type == CustomFilterType.FILTER_OUT_CMD:
-            return FilterOutCMDProcesses()
-
-        raise ValueError("Invalid process filter type")
 
     process_filters: List[AbstractProcessFilter] = [
         _get_filter(custom_process_filter_type) for custom_process_filter_type in custom_process_filter_types

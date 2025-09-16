@@ -18,11 +18,11 @@ running_os = running_os_factory(is_inside_container=is_inside_container)
 program = program_to_scan_factory(main_program_to_scan)
 background_programs = [program_to_scan_factory(background_program) for background_program in background_programs_types]
 
-custom_process_filter = custom_process_filter_factory(custom_process_filter_types)
+should_filter_process = custom_process_filter_factory(custom_process_filter_types)
 
 processes_resource_usage_recorder = process_resource_usage_recorder_factory(
     process_monitor_type, running_os, read_process_arguments,
-    lambda p: program.process_ignore_cond(p) or custom_process_filter(p)
+    lambda p: program.process_ignore_cond(p) or should_filter_process(p)
 )
 battery_usage_recorder = battery_usage_recorder_factory(battery_monitor_type, running_os)
 
