@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
 from measurements_model.sample_resources_energy import SampleResourcesEnergy
 
@@ -60,14 +62,9 @@ class ResourceEnergyCalculator:
         per_resource_energy_sum = self.__calculate_total_energy(energy_per_resource)
         return per_resource_energy_sum
 
-    @classmethod
-    def __calculate_total_energy(cls, energy_per_resource: SampleResourcesEnergy) -> float:
-        return energy_per_resource.cpu_energy_consumption + \
-            energy_per_resource.ram_energy_consumption + \
-            energy_per_resource.disk_io_write_energy_consumption + \
-            energy_per_resource.disk_io_read_energy_consumption + \
-            energy_per_resource.network_io_received_energy_consumption + \
-            energy_per_resource.network_io_sent_energy_consumption
+    @staticmethod
+    def __calculate_total_energy(energy_per_resource: SampleResourcesEnergy) -> float:
+        return sum(asdict(energy_per_resource).values())
 
     def calculate_relative_energy_consumption(self, process_features: ProcessEnergyModelFeatures,
                                               total_energy: float) -> SampleResourcesEnergy:
