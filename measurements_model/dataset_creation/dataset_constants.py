@@ -1,0 +1,2 @@
+TIMESTAMP_COLUMN_NAME = "timestamp"
+IDLE_SESSION_ID_NAME = "idle"
