@@ -17,20 +17,19 @@ from DTOs.session_host_info import SessionHostIdentity
 from elastic_reader.consts import ElasticIndex
 from elastic_reader.elastic_reader import ElasticReader
 from elastic_reader.elastic_reader_parameters import time_picker_input_strategy, preconfigured_time_picker_input
-from measurements_model.config import TIME_COLUMN_NAME, IDLE_SESSION_ID_NAME
+from measurements_model.dataset_creation.dataset_constants import TIMESTAMP_COLUMN_NAME, IDLE_SESSION_ID_NAME
 from measurements_model.dataset_parameters import FULL_DATASET_PATH
 from measurements_model.column_names import ProcessColumns, SystemColumns
 from measurements_model.energy_model_convertor import EnergyModelConvertor
 from measurements_model.energy_model_feature_extractor import EnergyModelFeatureExtractor
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
-from utils.general_consts import MINUTE
+from utils.general_consts import MINUTE, NANOSECONDS_IN_SECOND
 
 DEFAULT_BATCH_INTERVAL_SECONDS = 5 * MINUTE
-MINIMAL_BATCH_DURATION = DEFAULT_BATCH_INTERVAL_SECONDS * 0.2
+MINIMAL_BATCH_DURATION = DEFAULT_BATCH_INTERVAL_SECONDS * 0.5
 # todo: extend this logic when we want to use a baseline background activity instead of idle.
 # todo: extend to reading idle sessions from elastic and calculate the average energy per second
 DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT = 2.921666667
-ENERGY_MINIMAL_VALUE = 0
 
 
 # todo: change to consumer interface
@@ -55,7 +54,7 @@ class DatasetCreator:
             # todo: fix duration handling in case of multiple sessions and hostnames running at the same time (single iteration raw results may contain samples from different measurements)
             iteration_samples = self.__extract_iteration_samples(sample.system_raw_results,
                                                                  sample.processes_raw_results,
-                                                                 metadata.timestamp)
+                                                                 metadata.timestamp, metadata.session_host_identity)
 
             all_samples.extend(iteration_samples)
 
@@ -105,12 +104,12 @@ class DatasetCreator:
         full_df.to_csv(FULL_DATASET_PATH)
         return full_df
 
-    def __add_batch_id(self, df: pd.DataFrame, time_per_batch: int) -> pd.DataFrame:
+    def __add_batch_id(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
         df = df.copy()
 
         # Assign batch IDs (integer division of timestamp by batch duration)
         df[SystemColumns.BATCH_ID_COL] = (
-                df[TIME_COLUMN_NAME].astype("int64") // 10 ** 9 // time_per_batch
+                df[TIMESTAMP_COLUMN_NAME].astype("int64") // NANOSECONDS_IN_SECOND // batch_duration_seconds
         ).astype(int)
 
         return df
@@ -124,11 +123,20 @@ class DatasetCreator:
 
         if not bad_batches.empty:
             print("⚠️ Warning: Some batches contain multiple session_ids!")
-            for batch_id, count in bad_batches.items():
-                print(f" - Batch {batch_id} has {count} session_ids")
+            for batch_id in bad_batches.index:
+                batch_df = df[df[SystemColumns.BATCH_ID_COL] == batch_id]
 
-    def __extend_df_with_target(self, df: pd.DataFrame, time_per_batch: int) -> pd.DataFrame:
-        # TODO: beautify this code
+                session_ids = batch_df[SystemColumns.SESSION_ID_COL].unique()
+                start_time = batch_df[TIMESTAMP_COLUMN_NAME].min()
+                end_time = batch_df[TIMESTAMP_COLUMN_NAME].max()
+
+                print(
+                    f" - Batch {batch_id} has {len(session_ids)} session_ids: {list(session_ids)} "
+                    f"(from {start_time} to {end_time})"
+                )
+
+
+    def __extend_df_with_target(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
         """
         Extend the given DataFrame with energy usage targets.
 
@@ -141,7 +149,7 @@ class DatasetCreator:
         # Step 1: Calculate system energy consumption rate (mWh/sec) for each batch
         energy_per_batch = (
             df.groupby(SystemColumns.BATCH_ID_COL)[SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL]
-            .agg(lambda s: (s.iloc[0] - s.iloc[-1]) / time_per_batch)
+            .agg(lambda s: (s.iloc[0] - s.iloc[-1]) / batch_duration_seconds)
             .rename(SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL)
         )
 
@@ -159,25 +167,13 @@ class DatasetCreator:
             else:
                 # Case 2: single process_id → regular implementation
                 batch_df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = (
-                        batch_df[SystemColumns.DURATION_COL] * batch_df[
-                    SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL]
+                        batch_df[SystemColumns.DURATION_COL] * batch_df[SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL]
                         - batch_df[SystemColumns.DURATION_COL] * self.__idle_details.energy_per_second
                 )
 
             results.append(batch_df)
 
         df = pd.concat(results, ignore_index=True)
-
-        # df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = (
-        #         df[SystemColumns.DURATION_COL] * df[SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL]
-        #         - df[SystemColumns.DURATION_COL] * self.__idle_details.energy_per_second
-        # )
-
-        # Step 3: Change negative values (if appear) to zero
-        if (df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] < ENERGY_MINIMAL_VALUE).any():
-            logging.warning("Some values for process energy turned out negative after calculating total - idle energy.")
-            df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = df[ProcessColumns.ENERGY_USAGE_PROCESS_COL].clip(
-                lower=ENERGY_MINIMAL_VALUE)
         return df
 
     def __filter_last_batch_records(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -186,7 +182,7 @@ class DatasetCreator:
         last_batch = df[df[SystemColumns.BATCH_ID_COL] == last_batch_id]
 
         # compute its duration (max - min timestamp)
-        duration = (last_batch[TIME_COLUMN_NAME].max() - last_batch[TIME_COLUMN_NAME].min()).total_seconds()
+        duration = (last_batch[TIMESTAMP_COLUMN_NAME].max() - last_batch[TIMESTAMP_COLUMN_NAME].min()).total_seconds()
 
         # check if it's shorter than MINIMAL_BATCH_DURATION minutes
         if duration < MINIMAL_BATCH_DURATION:
@@ -197,6 +193,6 @@ class DatasetCreator:
     def __remove_temporary_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         return df.drop([SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL,
                         SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL,
-                        SystemColumns.BATCH_ID_COL, TIME_COLUMN_NAME,
+                        SystemColumns.BATCH_ID_COL, TIMESTAMP_COLUMN_NAME,
                         SystemColumns.SESSION_ID_COL, ProcessColumns.PROCESS_ID_COL],
-                       axis=1, errors='ignore')
+                       axis=1)
