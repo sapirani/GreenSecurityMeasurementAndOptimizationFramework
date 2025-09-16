@@ -12,18 +12,17 @@ SLEEPING_TIME_BETWEEN_MEASUREMENTS = 30
 SCANNER_PROGRAM_FILE = "scanner.py"
 SESSION_ID_SCANNER_FLAG = "--measurement_session_id"
 
+SCANNER_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), SCANNER_PROGRAM_FILE)
+
 
 def run_scanner(scanner_path: str, session_id: str):
     subprocess.run([sys.executable, scanner_path, SESSION_ID_SCANNER_FLAG, session_id], check=True)
 
 
 def automate_experiments(num_of_experiments: int, main_session_id: str):
-    repo_root = os.path.dirname(os.path.dirname(__file__))
-    scanner_path = os.path.join(repo_root, SCANNER_PROGRAM_FILE)
-
     for experiment_id in range(num_of_experiments):
         current_session = f"{main_session_id}_{experiment_id}"
-        run_scanner(scanner_path, current_session)
+        run_scanner(SCANNER_PATH, current_session)
         sleep(SLEEPING_TIME_BETWEEN_MEASUREMENTS)
 
 
