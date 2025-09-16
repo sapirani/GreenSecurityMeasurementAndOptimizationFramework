@@ -170,7 +170,7 @@ class DatasetCreator:
                                                                  self.__idle_details.energy_per_second)
 
             batch_df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = batch_df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] * \
-                                                                batch_df[SystemColumns.ENERGY_RATIO_COL]
+                                                                batch_df[SystemColumns.ENERGY_RATIO_SHARE]
 
             results.append(batch_df)
 
@@ -181,7 +181,7 @@ class DatasetCreator:
         if need_to_calculate:
             df = self.__calculate_energy_ratio_by_resources(df)
         else:
-            df[SystemColumns.ENERGY_RATIO_COL] = DEFAULT_ENERGY_RATIO
+            df[SystemColumns.ENERGY_RATIO_SHARE] = DEFAULT_ENERGY_RATIO
 
         return df
 
@@ -203,7 +203,7 @@ class DatasetCreator:
         energy_ratio_per_process = {pid: process_energy / sum_energy_processes_by_resources
                                     for pid, process_energy in processes_energy_by_resources.items()}
 
-        batch_df[SystemColumns.ENERGY_RATIO_COL] = batch_df[ProcessColumns.PROCESS_ID_COL].map(energy_ratio_per_process)
+        batch_df[SystemColumns.ENERGY_RATIO_SHARE] = batch_df[ProcessColumns.PROCESS_ID_COL].map(energy_ratio_per_process)
 
         return batch_df
 
@@ -228,5 +228,5 @@ class DatasetCreator:
                         SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL,
                         SystemColumns.BATCH_ID_COL, TIMESTAMP_COLUMN_NAME,
                         SystemColumns.SESSION_ID_COL, ProcessColumns.PROCESS_ID_COL,
-                        SystemColumns.ENERGY_RATIO_COL],
+                        SystemColumns.ENERGY_RATIO_SHARE],
                        axis=1)
