@@ -6,7 +6,7 @@ class EnergyPerResourceConsts:
     This class holds constant values that represent the energy consumption per one unit of a specific resource.
     For example, the energy usage for acquiring 1 MB of RAM is 17.18 mwh.
     """
-    cpu_time_seconds = 1
+    cpu_time_seconds = 1.17
     memory_gain_mb = 0.04 # todo: change
     memory_release_mb = 0.03  # todo: change to actual number
     disk_io_read_kbytes = 0.1261034238
@@ -24,8 +24,8 @@ class ResourceEnergyCalculator:
         self.__energy_per_network_received_kb = EnergyPerResourceConsts.network_received_kbytes
         self.__energy_per_network_sent_kb = EnergyPerResourceConsts.network_sent_kbytes
 
-    def calculate_energy_consumption_per_resource(self,
-                                                  process_features: ProcessEnergyModelFeatures) -> SampleResourcesEnergy:
+    def calculate_energy_consumption_per_resource(self, process_features: ProcessEnergyModelFeatures) \
+            -> SampleResourcesEnergy:
         cpu_energy = self.__calculate_cpu_energy(
             process_features.cpu_usage_seconds_process)
 

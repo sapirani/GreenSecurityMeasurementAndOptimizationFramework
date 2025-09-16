@@ -165,7 +165,8 @@ class DatasetCreator:
             batch_df = self.__add_energy_ratio_column(df, unique_procs > 1)
 
             batch_df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = (batch_df[SystemColumns.DURATION_COL] *
-                                                                 batch_df[SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL]) - \
+                                                                 batch_df[
+                                                                     SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL]) - \
                                                                 (batch_df[SystemColumns.DURATION_COL] *
                                                                  self.__idle_details.energy_per_second)
 
@@ -189,21 +190,19 @@ class DatasetCreator:
         resources_per_process_df = (
             batch_df.groupby(ProcessColumns.PROCESS_ID_COL)[fields(ProcessEnergyModelFeatures)].agg(lambda s: sum(s))
         )
-        processes_features_mapping = {
-            row[ProcessColumns.PROCESS_ID_COL]: ProcessEnergyModelFeatures.from_pandas_series(row)
-            for _, row in resources_per_process_df.iterrows()
-        }
 
         processes_energy_by_resources = {
-            process_id: self.__resource_energy_calculator.calculate_total_energy_by_resources(process_features)
-            for process_id, process_features in processes_features_mapping.items()
+            row[ProcessColumns.PROCESS_ID_COL]: self.__resource_energy_calculator.calculate_total_energy_by_resources(
+                ProcessEnergyModelFeatures.from_pandas_series(row))
+            for _, row in resources_per_process_df.iterrows()
         }
 
         sum_energy_processes_by_resources = sum(processes_energy_by_resources.values())
         energy_ratio_per_process = {pid: process_energy / sum_energy_processes_by_resources
                                     for pid, process_energy in processes_energy_by_resources.items()}
 
-        batch_df[SystemColumns.ENERGY_RATIO_SHARE] = batch_df[ProcessColumns.PROCESS_ID_COL].map(energy_ratio_per_process)
+        batch_df[SystemColumns.ENERGY_RATIO_SHARE] = batch_df[ProcessColumns.PROCESS_ID_COL].map(
+            energy_ratio_per_process)
 
         return batch_df
 
