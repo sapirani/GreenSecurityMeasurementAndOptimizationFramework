@@ -9,8 +9,15 @@ class EnergyFilter:
         self.__energy_column = energy_column
 
     def filter_data(self, data: pd.DataFrame) -> pd.DataFrame:
-        if (data[self.__energy_column] < self.__energy_threshold).any():
-            logging.warning("Some values for process energy turned out negative after calculating total - idle energy.")
+        mask = data[self.__energy_column] >= self.__energy_threshold
 
-        data = data[data[self.__energy_column] >= self.__energy_threshold]
-        return data
+        # rows that do NOT meet the condition
+        bad_rows = data[~mask]
+
+        if not bad_rows.empty:
+            logging.warning(
+                "Some values for process energy turned out negative after calculating total - idle energy. "
+                f"Filtered out rows with indices: {bad_rows.index.tolist()}"
+            )
+
+        return data[mask]
