@@ -81,11 +81,11 @@ def custom_process_filter_factory(
         custom_process_filter_types: List[CustomFilterType]
 ) -> Callable[[psutil.Process], bool]:
 
-    process_filters: List[AbstractProcessFilter] = [
+    process_filters = [
         _get_filter(custom_process_filter_type) for custom_process_filter_type in custom_process_filter_types
     ]
 
-    def custom_filters(process: psutil.Process):
+    def custom_filters(process: psutil.Process) -> bool:
         return any(process_filter.should_ignore_process(process) for process_filter in process_filters)
 
     return custom_filters
