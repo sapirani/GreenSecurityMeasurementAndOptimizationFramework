@@ -114,8 +114,7 @@ class EnergyModelFeatureExtractor:
             system_data.cpu_percent_sum_across_cores,
             self.__previous_sample.cpu_percent_sum_across_cores_system,
             duration) / 100
-        system_memory_relative_usage_mb = (
-                                                      system_data.total_memory_gb - self.__previous_sample.memory_gb_usage_system) * KB
+        system_memory_relative_usage_mb = (system_data.total_memory_gb - self.__previous_sample.memory_gb_usage_system) * KB
         return SystemEnergyModelFeatures(
             cpu_seconds_system=system_cpu_time,
             memory_mb_relative_system=system_memory_relative_usage_mb,

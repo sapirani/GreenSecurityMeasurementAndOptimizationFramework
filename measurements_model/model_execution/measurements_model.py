@@ -4,7 +4,7 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 
 class BestModelConfig:
     MODEL_NAME = HistGradientBoostingRegressor
-    MODEL_PARAMETERS = {
+    MODEL_HYPER_PARAMETERS = {
         "max_depth": 11,
         "min_samples_leaf": 10
     }
@@ -12,7 +12,7 @@ class BestModelConfig:
 
 class MeasurementsModel:
     def __init__(self):
-        self.__model = BestModelConfig.MODEL_NAME(**BestModelConfig.MODEL_PARAMETERS)
+        self.__model = BestModelConfig.MODEL_NAME(**BestModelConfig.MODEL_HYPER_PARAMETERS)
 
     def fit(self, X, y):
         y = np.array(y)
