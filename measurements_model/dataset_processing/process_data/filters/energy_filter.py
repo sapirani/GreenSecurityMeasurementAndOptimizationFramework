@@ -1,3 +1,5 @@
+import logging
+
 import pandas as pd
 
 
@@ -7,5 +9,9 @@ class EnergyFilter:
         self.__energy_column = energy_column
 
     def filter_data(self, data: pd.DataFrame) -> pd.DataFrame:
+        # Step 3: Change negative values (if appear) to zero
+        if (data[self.__energy_column] < self.__energy_threshold).any():
+            logging.warning("Some values for process energy turned out negative after calculating total - idle energy.")
+
         data = data[data[self.__energy_column] >= self.__energy_threshold]
         return data

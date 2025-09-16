@@ -1,14 +1,15 @@
 import pandas as pd
 
-from measurements_model.column_names import ProcessColumns
 from measurements_model.dataset_processing.process_data.filters.energy_filter import EnergyFilter
 from measurements_model.dataset_processing.process_data.processors.categorial_variable_processor import \
     CategoricalVariableProcessor
 
+ENERGY_MINIMAL_VALUE = 0
+
 
 class DatasetProcessor:
     def __init__(self, energy_column: str):
-        self.__filters = [EnergyFilter(energy_threshold=0, energy_column=energy_column)]
+        self.__filters = [EnergyFilter(energy_threshold=ENERGY_MINIMAL_VALUE, energy_column=energy_column)]
         self.__processors = [CategoricalVariableProcessor()]
 
     def __filter_dataset(self, df: pd.DataFrame) -> pd.DataFrame:
