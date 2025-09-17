@@ -264,7 +264,7 @@ class ExperimentManager:
                 # 'batch_size': config.batch_size,
                 # 'n_epochs': config.n_epochs,
                 'ent_coef': config.ent_coef,
-                'sde_sample_freq': 6,
+                'sde_sample_freq': 12,
                 'use_sde': True,
                 "policy_kwargs": {
                     "net_arch": [512, 128, 128, 64],
@@ -335,13 +335,13 @@ class ExperimentManager:
             self.eval_env = self.create_environment(eval_config)
             self.eval_env.unwrapped.splunk_tools.load_real_logs_distribution_bucket(datetime.datetime.strptime(env.unwrapped.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(self.eval_env.unwrapped.time_manager.end_time, '%m/%d/%Y:%H:%M:%S'))
 
-            # if "test_experiment" not  in config.experiment_name:
-            #     # clean and warm up the env
-            #     clean_env(env.unwrapped.splunk_tools, (env.unwrapped.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
-            #     env.unwrapped.warmup()
-            # else:
-            #     env.unwrapped.disable_injection()
-            #     self.eval_env.unwrapped.disable_injection()
+            if "test_experiment" not  in config.experiment_name:
+                # clean and warm up the env
+                clean_env(env.unwrapped.splunk_tools, (env.unwrapped.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
+                env.unwrapped.warmup()
+            else:
+                env.unwrapped.disable_injection()
+                self.eval_env.unwrapped.disable_injection()
             # Setup callbacks
             config.experiment_name = experiment_name
             callbacks = self._setup_callbacks(config)
@@ -589,17 +589,20 @@ if __name__ == "__main__":
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250620175311_35000_steps"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250623144601_43000_steps.zip"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250711001649_264000_steps.zip"
-    num_episodes = 5000000
     action_type = "Action8"
+    num_episodes = 5000000
+
+
     for steps in range(45000, 160000, 500000):
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250626010440_{steps}_steps.zip"
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250726233927_243000_steps.zip"
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250806144736_355000_steps.zip"
-        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250908172215_520000_steps.zip"
+        # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250908172215_520000_steps.zip"
+        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250916132254_180000_steps.zip"
         print(f"Model path: {model_path}")
         for learning_rate in [0.0001]:
-            for n_steps in [256]:
-                for ent_coef in [0.1]:
+            for n_steps in [64]:
+                for ent_coef in [0.05]:
                     for is_random in [False]:
                         lr = 1e-2
                         env_config = SplunkConfig(
@@ -640,8 +643,10 @@ if __name__ == "__main__":
                             
                         )
                         
+                        
                         #retrain model
                         experiment_config.mode = "train"#"eval_post_training"  # eval after training
+                        experiment_config.num_episodes = 500000000
                         manager = ExperimentManager(base_dir="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments")
                         results = manager.run_experiment(experiment_config)
 

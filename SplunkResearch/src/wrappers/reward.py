@@ -28,7 +28,7 @@ std = 13
 class AlertPredictor:
     """Separate class to handle alert prediction logic"""
     
-    def __init__(self, expected_alerts: Dict, epsilon: float = .000001):
+    def __init__(self, expected_alerts: Dict, epsilon: float = 1):
         self.expected_alerts = expected_alerts
         self.epsilon = epsilon
         self.current_alerts = {}
@@ -74,6 +74,7 @@ class AlertPredictor:
         # return sum(self.current_alerts.values())
         normal_alert_rate = sum(baseline_alerts.values())
         return min(-(sum(self.current_alerts.values()) - normal_alert_rate  + self.epsilon)/ (normal_alert_rate + self.epsilon), 0)
+        # return min(-(sum(self.current_alerts.values()) - 7 )/ (7 + self.epsilon), 0)
         # return min(-(sum(self.current_alerts.values()) - sum(self.expected_alerts.values()))/ (sum(self.expected_alerts.values()) + self.epsilon), 0)
 
 
@@ -128,9 +129,9 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         if path.exists(model_path):
             self.energy_models['all'] = joblib.load(model_path)
             # self.energy_models[rule] = joblib.load(model_path)
-        self.max_distribution = 0
-        self.max_alert = 0
-        self.epsilon = 1e-8
+        self.distributions = []
+        self.alerts = []
+        self.epsilon = .00000001
 
         
     def _get_baseline_path(self) -> Path:
@@ -348,7 +349,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # Store prediction info
             info['predicted_alert_reward'] = predicted_alert_reward
             info['execution_skipped'] = not should_execute and False # TRY!!!!!!!
-            if  ((random.randint(0, 10000) < 10   or self.is_eval) and should_execute):
+            if  ((random.randint(0, 100000) < 10   or self.is_eval) and should_execute):
                 logger.info(f"Measuring")
                 self.measuring = True
             else:
@@ -402,20 +403,27 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 
             ############## Distribution reward ##############    
             # info['ac_distribution_reward'] = -200*(info['ac_distribution_value'] ** 2)
-            self.max_distribution = max(self.max_distribution, info['ac_distribution_value'])
-            info['ac_distribution_reward'] = -(info['ac_distribution_value']) / (self.max_distribution + self.epsilon)
+            self.distributions.append(info['ac_distribution_value'])
+            self.alerts.append(-predicted_alert_reward)
+            mean_distribution = np.mean(self.distributions) if len(self.distributions) > 0 else 0
+            std_distribution = np.std(self.distributions) if len(self.distributions) > 0 else 0
+            mean_alert = np.mean(self.alerts) if len(self.alerts) > 0 else 0
+            std_alert = np.std(self.alerts) if len(self.alerts) > 0 else 0
+            
+            info['ac_distribution_reward'] = -((info['ac_distribution_value'] - mean_distribution)/ (std_distribution + self.epsilon))
+            
             
             # info['ac_distribution_reward'] = dist_reward
             # info['ac_distribution_reward'] = 30*info['ac_distribution_value']
             
             ############## Alert reward ##############
             # info['alert_reward'] = ((predicted_alert_reward - sum(self.expected_alerts.values()))/std)
-            self.max_alert = max(self.max_alert, -predicted_alert_reward)
+            # self.mean_alert = (self.unwrapped.all_steps_counter//self.unwrapped.total_steps - 1)*self.mean_alert + sum(raw_baseline_metrics[rule]['alert'] for rule in self.expected_alerts)/(self.unwrapped.all_steps_counter//self.unwrapped.total_steps)
             info['alert_reward'] = predicted_alert_reward
             
             ############### Total reward ##############
             reward = 0.2*info['ac_distribution_reward']
-            reward += 0.2*info['alert_reward']/(self.max_alert + self.epsilon)
+            reward += -0.2*(-predicted_alert_reward - mean_alert)/(std_alert + self.epsilon)
 
             # reward = 0
             # if info.get('ac_distribution_value', 0) > self.env.distribution_threshold or predicted_alert_reward < self.alert_threshold:
@@ -443,7 +451,8 @@ class EnergyRewardWrapper(RewardWrapper):
         super().__init__(env)
         self.alpha = alpha
         self.is_mock = is_mock
-        self.max_energy = 0
+        self.energies = []
+        self.epsilon = 1e-8
     
     def estimate_energy_consumption(self, fake_dist, rules_alerts):
         # Placeholder for energy consumption estimation logic
@@ -496,8 +505,10 @@ class EnergyRewardWrapper(RewardWrapper):
             # reward += self.alpha*energy_reward
             # if reward != 1:
             #     return obs, reward, terminated, truncated, info
-            self.max_energy = max(self.max_energy, energy_reward)
-            reward += 0.6*max(energy_reward, 0)/(self.max_energy + 1e-8)
+            self.energies.append(energy_reward)
+            mean_energy = np.mean(self.energies) if len(self.energies) > 0 else 0
+            std_energy = np.std(self.energies) if len(self.energies) > 0 else 0
+            reward += 0.6*(max((energy_reward - mean_energy)/(std_energy + self.epsilon), 0))
             # reward += 0.6*max(energy_reward, 0)
     
 

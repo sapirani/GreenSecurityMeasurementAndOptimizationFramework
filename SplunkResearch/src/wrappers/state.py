@@ -11,7 +11,7 @@ import pandas as pd
 from torch import normal
 
 logger = logging.getLogger(__name__)
-
+ALERT_NORMALIZE_FACTOR = 100  # based on max alerts observed in training data
 # ignore warnings
 logging.getLogger('sklearn').setLevel(logging.ERROR)
 
@@ -169,7 +169,8 @@ class StateWrapper(ObservationWrapper):
         # reset episode logs which are placed at lower wrapper (action)
         # self.action_wrapper.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.unwrapped.top_logtypes for istrigger in [0, 1]}
         
-    
+
+            
         new_obs = self.observation(None)
         # new_obs = np.append(self.ac_real_state, self.ac_real_state)
         options = self.get_step_info()
@@ -303,8 +304,10 @@ class StateWrapper4(StateWrapper):
         
         # normalized_distribution = np.array(list(self.unwrapped.ac_real_distribution.values())[:-1]) / 237158
         normalized_distribution = pd.DataFrame([self.unwrapped.ac_real_distribution]).drop("other", axis=1)/237158
-        
-        diversities = self.env.env.env.env.env.diversity_episode_logs
+        if self.unwrapped.step_counter == self.unwrapped.total_steps:
+            diversities = {f"{'_'.join(key)}_1": 0 for key in self.unwrapped.top_logtypes}
+        else:
+            diversities = self.env.env.env.env.env.diversity_episode_logs
         
         expected_normal_alert_rates = []
         expected_fake_alert_rates = []
@@ -316,19 +319,22 @@ class StateWrapper4(StateWrapper):
             if rule in self.unwrapped.savedsearches:
                 if rule not in self.baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)]:
                     # self.baseline_alerts[self.unwrapped.time_manager.action_window.end][rule] = 0
-                    self.baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)][rule] = self.normal_alert_predictors[rule].predict(normalized_distribution)[0] # PROBLEM!!
+                    self.baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)][rule] = self.normal_alert_predictors[rule].predict(normalized_distribution)[0]
                     # normal_alert_rate = self.normal_alert_predictors[rule].predict(normalized_distribution.reshape(1, -1))[0]
                 normal_alert_rate = self.baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)][rule]
-                expected_normal_alert_rates.append(int(normal_alert_rate)/150)
+                if (self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.start) in self.baseline_alerts and rule in self.baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.start)]:
+                    normal_alert_rate = max(normal_alert_rate, self.baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.start)][rule])
+                expected_normal_alert_rates.append(normal_alert_rate/100)
                 if rule in ['ESCU Windows Rapid Authentication On Multiple Hosts Rule']:
-                    expected_fake_alert_rates.append((int(normal_alert_rate))/150)  
+                    expected_fake_alert_rates.append((normal_alert_rate)/100)  
                 else:
-                    expected_fake_alert_rates.append((int(normal_alert_rate) + diversities[key])/150)  
+                    expected_fake_alert_rates.append((normal_alert_rate + diversities[key])/100)  
             
         state = np.append(state, expected_normal_alert_rates)
         state = np.append(state, expected_fake_alert_rates)
 
-
+        logger.info(f"Expected normal alerts: {expected_normal_alert_rates}")
+        logger.info(f"Expected fake alerts: {expected_fake_alert_rates}")
         logger.debug(f"State: {state}")
         self.unwrapped.obs = state
         return state

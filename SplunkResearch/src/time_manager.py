@@ -94,7 +94,7 @@ class TimeManager:
             # On violation, stay at current window
             return self.current_window
         # clean env in action window
-        if not self.is_test and self.rule_frequency < self.window_size and should_delete:
+        if not self.is_test and should_delete: #and self.rule_frequency < self.window_size 
             clean_env(self.splunk_tools, (self.current_window.start, self.current_window.end))
         new_start_dt = datetime.datetime.strptime(self.current_window.start, '%m/%d/%Y:%H:%M:%S')
         new_start_dt += datetime.timedelta(minutes=self.rule_frequency)

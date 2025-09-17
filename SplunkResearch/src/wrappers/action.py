@@ -29,8 +29,8 @@ class Action(ActionWrapper):
         self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.unwrapped.relevant_logtypes for istrigger in [0, 1]}
         self.remaining_quota = 0
         self.inserted_logs = 0
-        self.diversity_factor = 31
-        self.diversity_episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.unwrapped.relevant_logtypes for istrigger in [0, 1]}
+        self.diversity_factor = 30
+        self.diversity_episode_logs = {f"{key[0]}_{key[1]}_1":0 for key in self.unwrapped.relevant_logtypes}
         self.info = {}
         self._disable_injection = False
         self.test_random = test_random
@@ -599,9 +599,9 @@ class Action8(Action):
                 shape=(len(self.unwrapped.top_logtypes)+ len(self.unwrapped.relevant_logtypes),),
                 dtype=np.float32
             )
-            self.diversity_episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.unwrapped.top_logtypes for istrigger in [0, 1]}
+            self.diversity_episode_logs = {f"{key[0]}_{key[1]}_1":0 for key in self.unwrapped.top_logtypes}
             self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.unwrapped.top_logtypes for istrigger in [0, 1]}
-            self.diversity_factor = 31
+            self.diversity_factor = 30
             self.current_real_quantity = 0
             
         def action(self, action):
@@ -659,8 +659,8 @@ class Action8(Action):
     
                     self.episode_logs[key] += log_count
                     self.diversity_episode_logs[key] = max(logs_to_inject[key]['diversity'], self.diversity_episode_logs[key])
-                    if logtype in self.unwrapped.relevant_logtypes and is_trigger == 1:
-                        self.unwrapped.rules_rel_diff_alerts[logtype] =  self.diversity_episode_logs[key]/ (self.diversity_factor)
+                    # if logtype in self.unwrapped.relevant_logtypes and is_trigger == 1:
+                    #     self.unwrapped.rules_rel_diff_alerts[logtype] =  self.diversity_episode_logs[key]/ (self.diversity_factor)
             return logs_to_inject
 
     
