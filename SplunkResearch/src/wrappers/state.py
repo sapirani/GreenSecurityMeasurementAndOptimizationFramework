@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 from importlib.metadata import distribution
 from math import dist
@@ -311,7 +312,7 @@ class StateWrapper4(StateWrapper):
         
         expected_normal_alert_rates = []
         expected_fake_alert_rates = []
-        if self.unwrapped.time_manager.action_window.end not in self.baseline_alerts:
+        if (self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end) not in self.baseline_alerts:
             self.baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)] = {}
         for rule, logtypes in self.unwrapped.section_logtypes.items():
             key = "_".join(logtypes[0])
@@ -324,6 +325,96 @@ class StateWrapper4(StateWrapper):
                 normal_alert_rate = self.baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)][rule]
                 if (self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.start) in self.baseline_alerts and rule in self.baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.start)]:
                     normal_alert_rate = max(normal_alert_rate, self.baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.start)][rule])
+                expected_normal_alert_rates.append(normal_alert_rate/100)
+                if rule in ['ESCU Windows Rapid Authentication On Multiple Hosts Rule']:
+                    expected_fake_alert_rates.append((normal_alert_rate)/100)  
+                else:
+                    expected_fake_alert_rates.append((normal_alert_rate + diversities[key])/100)  
+            
+        state = np.append(state, expected_normal_alert_rates)
+        state = np.append(state, expected_fake_alert_rates)
+
+        logger.info(f"Expected normal alerts: {expected_normal_alert_rates}")
+        logger.info(f"Expected fake alerts: {expected_fake_alert_rates}")
+        logger.debug(f"State: {state}")
+        self.unwrapped.obs = state
+        return state
+    
+    def _normalize(self, state):
+        """Normalize state vector"""
+        # return (state+ 0.0000000001) / (100000)  # Avoid division by zero
+        return state / (sum(state) + 0.0000000001)
+     
+
+class StateWrapper5(StateWrapper):
+    """Manages log type distributions and state normalization"""
+
+    def __init__(self, env):
+        super().__init__(env)
+        self.observation_space = spaces.Box(
+            low=0,
+            high=1,
+            shape=(len(self.unwrapped.top_logtypes)*2+len(self.unwrapped.relevant_logtypes)*2 + 2,),  # +1 for 'other' category
+            # shape=(len(self.unwrapped.top_logtypes),),  # +1 for 'other' category
+            dtype=np.float64
+        )
+        self.baseline_alerts = {}
+        self.ac_baseline_alerts = {}
+        
+    def observation(self, obs):
+        """Convert current distributions to normalized state"""
+        # Calculate fake distribution using the latest episode_logs   
+        # This happens AFTER action wrapper has updated episode_logs
+        # Update real distribution AFTER action is executed
+        if not self.unwrapped.done:
+            self.update_real_distribution(self.unwrapped.time_manager.action_window.to_tuple())
+
+        # Create state vectors
+        real_state = self._get_state_vector(self.unwrapped.real_distribution)
+        self.unwrapped.real_state = self._normalize(real_state)
+        ac_real_state = self._get_state_vector(self.unwrapped.ac_real_distribution)
+        self.unwrapped.ac_real_state = self._normalize(ac_real_state)
+        real_sum = sum(ac_real_state)
+        
+        self.unwrapped.real_relevant_distribution = {"_".join(logtype): self.unwrapped.ac_real_state[self.unwrapped.relevant_logtypes_indices[logtype]] for logtype in self.unwrapped.top_logtypes}
+        if not self.unwrapped.done:
+            self.update_fake_distribution_from_real()
+        fake_state = self._get_state_vector(self.unwrapped.fake_distribution)
+        self.unwrapped.fake_state = self._normalize(fake_state)
+        ac_fake_state = self._get_state_vector(self.unwrapped.ac_fake_distribution)
+        self.unwrapped.ac_fake_state = self._normalize(ac_fake_state)
+        fake_sum = sum(ac_fake_state)
+        self.unwrapped.fake_relevant_distribution = {"_".join(logtype): self.unwrapped.ac_fake_state[self.unwrapped.relevant_logtypes_indices[logtype]] for logtype in self.unwrapped.top_logtypes}
+
+        state = np.append(real_sum/100000, self.unwrapped.ac_real_state)
+        state = np.append(state, fake_sum/100000)
+        state = np.append(state, self.unwrapped.ac_fake_state)
+        
+        # normalized_distribution = np.array(list(self.unwrapped.ac_real_distribution.values())[:-1]) / 237158
+        # normalized_distribution = pd.DataFrame([self.unwrapped.ac_real_distribution]).drop("other", axis=1)/237158
+        if self.unwrapped.step_counter == self.unwrapped.total_steps:
+            diversities = {f"{'_'.join(key)}_1": 0 for key in self.unwrapped.top_logtypes}
+        else:
+            diversities = self.env.env.env.env.env.diversity_episode_logs
+        
+        results = asyncio.run(self.unwrapped.splunk_tools.run_saved_searches_no_measurement(self.unwrapped.time_manager.action_window.to_tuple()))
+        expected_normal_alert_rates = []
+        expected_fake_alert_rates = []
+        if (self.unwrapped.time_manager.action_window.start, self.unwrapped.time_manager.action_window.end) not in self.baseline_alerts:
+            self.baseline_alerts[(self.unwrapped.time_manager.action_window.start, self.unwrapped.time_manager.action_window.end)] = {}
+        if (self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end) not in self.ac_baseline_alerts:
+            self.ac_baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)] = {}
+        for rule in self.unwrapped.savedsearches:
+            logtypes = self.unwrapped.section_logtypes[rule]
+            key = "_".join(logtypes[0])
+            key = f"{key}_1"
+            if rule in self.unwrapped.savedsearches:
+                if rule not in self.baseline_alerts[(self.unwrapped.time_manager.action_window.start, self.unwrapped.time_manager.action_window.end)]:
+                    self.baseline_alerts[(self.unwrapped.time_manager.action_window.start, self.unwrapped.time_manager.action_window.end)][rule] = len(results[rule])
+                    self.ac_baseline_alerts[(self.unwrapped.time_manager.action_window.start, self.unwrapped.time_manager.action_window.end)][rule] = len(results[rule])
+                if rule not in self.ac_baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)]:
+                    self.ac_baseline_alerts[(self.unwrapped.time_manager.action_window.start, self.unwrapped.time_manager.action_window.end)][rule] = self.ac_baseline_alerts[(self.unwrapped.time_manager.action_window.start, self.unwrapped.time_manager.action_window.start)][rule] + len(results[rule])   
+                normal_alert_rate = self.ac_baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)][rule]
                 expected_normal_alert_rates.append(normal_alert_rate/100)
                 if rule in ['ESCU Windows Rapid Authentication On Multiple Hosts Rule']:
                     expected_fake_alert_rates.append((normal_alert_rate)/100)  

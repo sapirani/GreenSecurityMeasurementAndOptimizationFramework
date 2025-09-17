@@ -179,6 +179,49 @@ class SplunkTools(object):
             self._cpu_monitor_thread = None
 
       
+    async def execute_query_no_measurement(self, query: str, earliest_time: float, latest_time: float) -> List[Dict[str, Any]]:
+        query = f" search {query}"
+        job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
+        
+        # Wait for job to complete
+        while True:
+            job.refresh()
+            if job.content['isDone'] == '1':
+                break
+            await asyncio.sleep(0.1)
+        # Get results
+        response = job.results(output_mode='json')
+        results =  [result for result in splunk_results.JSONResultsReader(response) if isinstance(result, dict)]
+        return results
+    
+    async def run_saved_searches_no_measurement(
+        self, 
+        time_range: Tuple[str, str], 
+        running_plan: Dict[str, int]=None,
+        num_measurements: int = 1        
+    ) -> List[List[Dict[str, Any]]]:
+        """
+        Run multiple saved searches without measurement.
+        """
+        all_tasks = []
+        if running_plan is None:
+            running_plan = {search: num_measurements for search in self.active_saved_searches}
+        
+        for search_name, num_measurements in running_plan.items():
+            for i in range(num_measurements):
+                query = self.active_saved_searches[search_name]['search']
+                # Parse time range
+                earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
+                latest_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').timestamp()
+                # Create a task for each measurement
+                task = asyncio.create_task(self.execute_query_no_measurement(
+                    query, earliest_time, latest_time))
+                all_tasks.append(task)
+        
+        # Run all tasks concurrently
+        results = await asyncio.gather(*all_tasks)
+        results = {search_name: res for search_name, res in zip(running_plan.keys(), results)}
+        return results
 
     async def execute_query(self, search_name: str, query: str, earliest_time: float, latest_time: float) -> QueryMetrics:
         query = f" search {query}"

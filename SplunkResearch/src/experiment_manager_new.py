@@ -144,7 +144,8 @@ class ExperimentManager:
         env = make(
             id=config.env_config.env_id,
             config=config.env_config,
-            top_logtypes=top_logtypes
+            top_logtypes=top_logtypes,
+            baseline_dir=self.dirs['baseline']
         )
         # env = SingleAction2(env)
         # env = Action(env)
@@ -168,7 +169,7 @@ class ExperimentManager:
                 distribution_threshold=config.distribution_threshold
             )
             
-        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = config.alert_threshold, skip_on_low_alert = True, use_energy = config.use_energy_reward, use_alert = config.use_alert_reward, is_train = (config.mode.__contains__('train')) , is_eval = (config.mode == "eval_post_training"))  
+        env = BaseRuleExecutionWrapperWithPrediction(env, is_mock=config.is_mock, enable_prediction = True, alert_threshold = config.alert_threshold, skip_on_low_alert = True, use_energy = config.use_energy_reward, use_alert = config.use_alert_reward, is_train = (config.mode.__contains__('train')) , is_eval = (config.mode == "eval_post_training"))  
         # alert_threshold = -6, -2, -10
         
         if config.use_energy_reward:
@@ -205,7 +206,7 @@ class ExperimentManager:
         #                         low=0,
         #                         high=1)
         env = TimeWrapper(env)
-        env = StateWrapper4(env)
+        env = StateWrapper5(env)
 
         return env
 
@@ -335,13 +336,13 @@ class ExperimentManager:
             self.eval_env = self.create_environment(eval_config)
             self.eval_env.unwrapped.splunk_tools.load_real_logs_distribution_bucket(datetime.datetime.strptime(env.unwrapped.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(self.eval_env.unwrapped.time_manager.end_time, '%m/%d/%Y:%H:%M:%S'))
 
-            if "test_experiment" not  in config.experiment_name:
-                # clean and warm up the env
-                clean_env(env.unwrapped.splunk_tools, (env.unwrapped.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
-                env.unwrapped.warmup()
-            else:
-                env.unwrapped.disable_injection()
-                self.eval_env.unwrapped.disable_injection()
+            # if "test_experiment" not  in config.experiment_name:
+            #     # clean and warm up the env
+            #     clean_env(env.unwrapped.splunk_tools, (env.unwrapped.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
+            #     env.unwrapped.warmup()
+            # else:
+            #     env.unwrapped.disable_injection()
+            #     self.eval_env.unwrapped.disable_injection()
             # Setup callbacks
             config.experiment_name = experiment_name
             callbacks = self._setup_callbacks(config)

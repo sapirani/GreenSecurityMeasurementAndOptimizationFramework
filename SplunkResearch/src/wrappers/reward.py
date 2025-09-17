@@ -81,12 +81,11 @@ class AlertPredictor:
 class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
     """Enhanced base wrapper with alert prediction capability"""
     
-    def __init__(self, env, baseline_dir: str = "baselines", is_mock: bool = False,
+    def __init__(self, env, is_mock: bool = False,
                  enable_prediction: bool = True, alert_threshold: float = -0.5,
                  skip_on_low_alert: bool = True, use_energy: bool = True,use_alert: bool = True, is_eval: bool = False, is_train: bool = False):
         super().__init__(env)
-        self.baseline_dir = Path(baseline_dir)
-        self.baseline_dir.mkdir(parents=True, exist_ok=True)
+
         self.is_mock = is_mock
         
         # Prediction configuration
@@ -94,9 +93,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         self.alert_threshold = alert_threshold
         self.skip_on_low_alert = skip_on_low_alert
         
-        # Load or create baseline table
-        self.baseline_path = self._get_baseline_path()
-        self.baseline_df = self._load_baseline_table()
+
         self.use_energy = use_energy
         self.use_alert = use_alert
         self.energy_models = {}
@@ -133,26 +130,12 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         self.alerts = []
         self.epsilon = .00000001
 
-        
-    def _get_baseline_path(self) -> Path:
-        """Get path for baseline data based on environment config"""
-        env_id = self.unwrapped.config.env_id
-        search_window = self.unwrapped.config.search_window
-        return self.baseline_dir / f"baseline_{env_id}_{search_window}.csv"
-        
-    def _load_baseline_table(self) -> pd.DataFrame:
-        """Load existing baseline table or create new one"""
-        if self.baseline_path.exists():
-            df = pd.read_csv(self.baseline_path)
-            # create a time_range column
-            df['time_range'] = list(zip(pd.to_datetime(df['start_time'], format="%m/%d/%Y:%H:%M:%S"), pd.to_datetime(df['end_time'], format="%m/%d/%Y:%H:%M:%S")))
-            return df
-        return pd.DataFrame(columns=['start_time', 'end_time', 'alert_values', 'duration_values'])
 
+  
     def get_baseline_data(self, time_range: TimeWindow) -> Dict:
         """Get baseline data - execute after cleaning if needed"""
         num_of_measurements = self.unwrapped.config.baseline_num_of_measurements
-        relevant_rows = self.baseline_df[(self.baseline_df['start_time'] == time_range[0]) & (self.baseline_df['end_time'] == time_range[1])]
+        relevant_rows = self.unwrapped.baseline_df[(self.unwrapped.baseline_df['start_time'] == time_range[0]) & (self.unwrapped.baseline_df['end_time'] == time_range[1])]
         actual_num_of_measurements = relevant_rows.groupby(['start_time', 'end_time', 'search_name']).size().values[0] if not relevant_rows.empty else 0
         needed_measurements = num_of_measurements - actual_num_of_measurements
         
@@ -185,15 +168,15 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 rules_metrics, total_cpu = asyncio.run(self.unwrapped.splunk_tools.run_saved_searches(time_range, running_dict))
                 new_lines = self.convert_metrics(time_range, rules_metrics)
                 if len(new_lines) != 0:
-                    self.baseline_df = pd.concat([self.baseline_df, pd.DataFrame(new_lines)])
+                    self.unwrapped.baseline_df = pd.concat([self.unwrapped.baseline_df, pd.DataFrame(new_lines)])
             
 
                 
         random_val = np.random.randint(0, 10)
         if random_val % 3 == 0 and not self.is_mock:
-            self.baseline_df.to_csv(self.baseline_path, index=False)
+            self.unwrapped.baseline_df.to_csv(self.unwrapped.baseline_path, index=False)
             
-        relevant_rows = self.baseline_df[(self.baseline_df['start_time'] == time_range[0]) & (self.baseline_df['end_time'] == time_range[1])]
+        relevant_rows = self.unwrapped.baseline_df[(self.unwrapped.baseline_df['start_time'] == time_range[0]) & (self.unwrapped.baseline_df['end_time'] == time_range[1])]
         
         return relevant_rows
     
@@ -334,7 +317,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 info.get('ac_distribution_value', 0)
             )
             # dump baseline metrics to all data (once)
-            if len(self.unwrapped.all_baseline_data) < len(self.baseline_df.time_range.unique()):
+            if len(self.unwrapped.all_baseline_data) < len(self.unwrapped.baseline_df.time_range.unique()):
                 self.unwrapped.all_baseline_data.append({
                     'time_range': info['current_window'],
                     'ac_real_distribution': self.unwrapped.ac_real_distribution,
