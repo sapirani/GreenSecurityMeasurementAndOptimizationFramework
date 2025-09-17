@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from measurements_model.dataset_processing.split_data.dataset_spliter import DatasetSpliter
+from measurements_model_pipeline.dataset_processing.split_data.dataset_spliter import DatasetSpliter
 
 
 class RegularDatasetSplitter(DatasetSpliter):

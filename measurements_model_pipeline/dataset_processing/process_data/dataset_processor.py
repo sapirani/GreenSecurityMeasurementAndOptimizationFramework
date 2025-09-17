@@ -1,7 +1,7 @@
 import pandas as pd
 
-from measurements_model.dataset_processing.process_data.filters.energy_filter import EnergyFilter
-from measurements_model.dataset_processing.process_data.processors.categorial_variable_processor import \
+from measurements_model_pipeline.dataset_processing.process_data.filters.energy_filter import EnergyFilter
+from measurements_model_pipeline.dataset_processing.process_data.processors.categorial_variable_processor import \
     CategoricalVariableProcessor
 
 ENERGY_MINIMAL_VALUE = 0

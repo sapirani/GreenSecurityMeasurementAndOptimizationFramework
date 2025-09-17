@@ -1,7 +1,7 @@
 import pandas as pd
 
-from measurements_model.column_names import SystemColumns
-from measurements_model.dataset_processing.feature_selection.feature_selector import FeatureSelector
+from measurements_model_pipeline.column_names import SystemColumns
+from measurements_model_pipeline.dataset_processing.feature_selection.feature_selector import FeatureSelector
 
 
 class ProcessAndHardwareFeatureSelector(FeatureSelector):
@@ -12,7 +12,6 @@ class ProcessAndHardwareFeatureSelector(FeatureSelector):
     """
 
     def select_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        df = super().select_features(df)
         return df.drop([SystemColumns.CPU_SYSTEM_COL,
                         SystemColumns.MEMORY_SYSTEM_COL,
                         SystemColumns.DISK_READ_BYTES_SYSTEM_COL,

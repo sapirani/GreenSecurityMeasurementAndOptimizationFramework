@@ -33,4 +33,4 @@ Windows*
 program_parameters.py
 *backup*
 elastic_reader/elastic_reader_parameters.py
-measurements_model/dataset_parameters.py
+measurements_model_pipeline/dataset_parameters.py

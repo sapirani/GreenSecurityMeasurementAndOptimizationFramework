@@ -17,12 +17,12 @@ from DTOs.session_host_info import SessionHostIdentity
 from elastic_reader.consts import ElasticIndex
 from elastic_reader.elastic_reader import ElasticReader
 from elastic_reader.elastic_reader_parameters import time_picker_input_strategy, preconfigured_time_picker_input
-from measurements_model.dataset_creation.dataset_constants import TIMESTAMP_COLUMN_NAME, IDLE_SESSION_ID_NAME
-from measurements_model.dataset_parameters import FULL_DATASET_PATH
-from measurements_model.column_names import ProcessColumns, SystemColumns
-from measurements_model.energy_model_convertor import EnergyModelConvertor
-from measurements_model.energy_model_feature_extractor import EnergyModelFeatureExtractor
-from measurements_model.resource_energy_calculator import ResourceEnergyCalculator
+from measurements_model_pipeline.dataset_creation.dataset_constants import TIMESTAMP_COLUMN_NAME, IDLE_SESSION_ID_NAME
+from measurements_model_pipeline.dataset_parameters import FULL_DATASET_PATH
+from measurements_model_pipeline.column_names import ProcessColumns, SystemColumns
+from measurements_model_pipeline.energy_model_convertor import EnergyModelConvertor
+from measurements_model_pipeline.energy_model_feature_extractor import EnergyModelFeatureExtractor
+from measurements_model_pipeline.resource_energy_calculator import ResourceEnergyCalculator
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 from utils.general_consts import MINUTE, NANOSECONDS_IN_SECOND
 
@@ -89,6 +89,9 @@ class DatasetCreator:
     def __convert_objects_to_dataframe(self, all_samples_features: list[ExtendedEnergyModelFeatures]):
         samples_as_df = [EnergyModelConvertor.convert_features_to_pandas(sample,
                                                                          timestamp=sample.timestamp,
+                                                                         session_id=sample.session_id,
+                                                                         hostname=sample.hostname,
+                                                                         pid=sample.pid,
                                                                          battery_capacity_mwh_system=sample.battery_remaining_capacity_mWh,
                                                                          **asdict(sample.hardware_features))
                          for sample in all_samples_features]

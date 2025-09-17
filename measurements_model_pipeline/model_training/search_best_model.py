@@ -9,9 +9,9 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.model_selection import GridSearchCV, KFold
 from sklearn.pipeline import Pipeline
 
-from measurements_model.dataset_parameters import GRID_SEARCH_TEST_RESULTS_PATH, RESULTS_TOP_MODELS_PATH
-from measurements_model.model_training.models_config import MODELS_WITHOUT_PARAMETERS
-from measurements_model.model_training.utils import calculate_and_print_scores
+from measurements_model_pipeline.dataset_parameters import GRID_SEARCH_TEST_RESULTS_PATH, RESULTS_TOP_MODELS_PATH
+from measurements_model_pipeline.model_training.models_config import MODELS_WITHOUT_PARAMETERS
+from measurements_model_pipeline.model_training.utils import calculate_and_print_scores
 
 TEST_REAL_LABEL_COLUMN = "Actual"
 CLASSIFIER_KEYWORD = "classifier"

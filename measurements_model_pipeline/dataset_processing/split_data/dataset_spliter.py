@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 from typing import Optional
 
-from measurements_model.column_names import ProcessColumns
+from measurements_model_pipeline.column_names import ProcessColumns
 
 
 class DatasetSpliter(ABC):

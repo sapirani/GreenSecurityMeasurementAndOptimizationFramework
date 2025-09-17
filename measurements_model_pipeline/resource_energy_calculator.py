@@ -1,7 +1,7 @@
 from dataclasses import asdict
 
 from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
-from measurements_model.sample_resources_energy import SampleResourcesEnergy
+from measurements_model_pipeline.sample_resources_energy import SampleResourcesEnergy
 
 class EnergyPerResourceConsts:
     """

@@ -4,7 +4,7 @@ import threading
 import joblib
 import pandas as pd
 
-from measurements_model.config import MODEL_FILE_NAME
+from measurements_model_pipeline.config import MODEL_FILE_NAME
 
 
 class EnergyModel:

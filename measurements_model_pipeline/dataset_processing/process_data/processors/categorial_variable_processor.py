@@ -1,6 +1,6 @@
 import pandas as pd
 
-from measurements_model.dataset_processing.process_data.processors.data_processor import Processor
+from measurements_model_pipeline.dataset_processing.process_data.processors.data_processor import Processor
 
 
 class CategoricalVariableProcessor(Processor):

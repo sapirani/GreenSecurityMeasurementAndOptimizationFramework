@@ -11,7 +11,7 @@ from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from DTOs.session_host_info import SessionHostIdentity
-from measurements_model.dataset_creation.data_extractors.hardware_extractor import HardwareExtractor
+from measurements_model_pipeline.dataset_creation.data_extractors.hardware_extractor import HardwareExtractor
 from utils.general_consts import KB
 
 

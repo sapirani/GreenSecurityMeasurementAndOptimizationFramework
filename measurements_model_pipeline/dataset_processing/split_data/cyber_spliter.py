@@ -1,6 +1,6 @@
 import pandas as pd
 
-from measurements_model.dataset_processing.split_data.dataset_spliter import DatasetSpliter
+from measurements_model_pipeline.dataset_processing.split_data.dataset_spliter import DatasetSpliter
 
 
 class CyberDatasetSplitter(DatasetSpliter):
