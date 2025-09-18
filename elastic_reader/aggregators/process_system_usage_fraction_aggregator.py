@@ -3,9 +3,9 @@ from typing import List
 from DTOs.aggregated_results_dtos.process_share_usage_from_total import ProcessShareUsageFromTotal
 from DTOs.aggregators_features.process_system_usage_fraction_features import \
     ProcessSystemUsageFractionFeatures
-from aggregators.abstract_aggregator import AbstractAggregator
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata
 from DTOs.raw_results_dtos.system_processes_raw_results import FullScopeRawResults
+from elastic_reader.aggregators.abstract_aggregator import AbstractAggregator
 
 
 class ProcessSystemUsageFractionAggregator(AbstractAggregator):
@@ -65,16 +65,22 @@ class ProcessSystemUsageFractionAggregator(AbstractAggregator):
         return desired_process_result / all_processes_results_sum
 
     def process_sample(self, sample: ProcessSystemUsageFractionFeatures) -> ProcessShareUsageFromTotal:
-
         return ProcessShareUsageFromTotal(
             cpu_usage_share=self.safe_division(sample.desired_process_cpu, sample.processes_cpu),
             memory_usage_share=self.safe_division(sample.desired_process_memory_mb, sample.processes_memory_mb),
-            disk_read_count_share=self.safe_division(sample.desired_process_disk_read_count, sample.processes_disk_read_count),
-            disk_write_count_share=self.safe_division(sample.desired_process_disk_write_count, sample.processes_disk_write_count),
-            disk_read_volume_share=self.safe_division(sample.desired_process_disk_read_kb, sample.processes_disk_read_kb),
-            disk_write_volume_share=self.safe_division(sample.desired_process_disk_write_kb, sample.processes_disk_write_kb),
-            network_volume_sent_share=self.safe_division(sample.desired_process_network_kb_sent, sample.processes_network_kb_sent),
+            disk_read_count_share=self.safe_division(sample.desired_process_disk_read_count,
+                                                     sample.processes_disk_read_count),
+            disk_write_count_share=self.safe_division(sample.desired_process_disk_write_count,
+                                                      sample.processes_disk_write_count),
+            disk_read_volume_share=self.safe_division(sample.desired_process_disk_read_kb,
+                                                      sample.processes_disk_read_kb),
+            disk_write_volume_share=self.safe_division(sample.desired_process_disk_write_kb,
+                                                       sample.processes_disk_write_kb),
+            network_volume_sent_share=self.safe_division(sample.desired_process_network_kb_sent,
+                                                         sample.processes_network_kb_sent),
             packets_sent_share=self.safe_division(sample.desired_process_packets_sent, sample.processes_packets_sent),
-            network_volume_received_share=self.safe_division(sample.desired_process_network_kb_received, sample.processes_network_kb_received),
-            packets_received_share=self.safe_division(sample.desired_process_packets_received, sample.processes_packets_received),
+            network_volume_received_share=self.safe_division(sample.desired_process_network_kb_received,
+                                                             sample.processes_network_kb_received),
+            packets_received_share=self.safe_division(sample.desired_process_packets_received,
+                                                      sample.processes_packets_received),
         )

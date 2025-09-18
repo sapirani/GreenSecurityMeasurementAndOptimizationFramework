@@ -7,10 +7,10 @@ from DTOs.raw_results_dtos.iteration_info import IterationRawResults
 from application_logging.formatters.pretty_extra_formatter import PrettyExtrasFormatter
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 from application_logging.logging_utils import get_measurement_logger
-from consts import Verbosity
-from elastic_reader_parameters import ES_URL, ES_USER, ES_PASS, custom_pipeline_name
-from elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
-from utils.general_consts import LoggerName, IndexName
+from elastic_reader.consts import Verbosity
+from elastic_reader.elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
+from elastic_reader.elastic_reader_parameters import ES_USER, ES_PASS, ES_URL
+from utils.general_consts of import LoggerName, IndexName
 
 
 class ElasticAggregationsLogger(AbstractElasticConsumer):
