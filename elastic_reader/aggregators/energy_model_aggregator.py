@@ -1,5 +1,4 @@
 import logging
-import threading
 from typing import Union
 
 from DTOs.aggregated_results_dtos.empty_aggregation_results import EmptyAggregationResults
@@ -22,6 +21,7 @@ class EnergyModelAggregator(AbstractAggregator):
         self.__model.initialize_model()
         self.__resource_energy_calculator = ResourceEnergyCalculator()
         self.__energy_model_feature_extractor = EnergyModelFeatureExtractor()
+        # todo: maybe support here the "DatasetProcessor" in order to remove unnecessary columns, change categorical columns, etc.
 
     def extract_features(self, raw_results: ProcessSystemRawResults,
                          iteration_metadata: IterationMetadata) -> Union[EnergyModelFeatures, EmptyFeatures]:

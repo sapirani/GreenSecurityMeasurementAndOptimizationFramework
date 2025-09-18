@@ -1,6 +1,6 @@
 import pandas as pd
 
-from measurements_model_pipeline.column_names import HardwareColumns
+from measurements_model_pipeline.column_names import HardwareColumns, SystemColumns
 from measurements_model_pipeline.dataset_processing.feature_selection.feature_selector import FeatureSelector
 
 
@@ -29,5 +29,5 @@ class ProcessAndSystemFeatureSelector(FeatureSelector):
                         HardwareColumns.LOGICAL_DISK_NUMBER_OF_PARTITIONS, HardwareColumns.PHYSICAL_SECTOR_SIZE,
                         HardwareColumns.LOGICAL_SECTOR_SIZE,
                         HardwareColumns.BUS_TYPE, HardwareColumns.FILESYSTEM, HardwareColumns.BATTERY_DESIGN_CAPACITY,
-                        HardwareColumns.FULLY_CHARGED_BATTERY_CAPACITY],
+                        HardwareColumns.FULLY_CHARGED_BATTERY_CAPACITY, SystemColumns.HOSTNAME_COL],
                        axis=1)
