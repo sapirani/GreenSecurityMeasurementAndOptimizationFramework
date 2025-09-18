@@ -188,6 +188,7 @@ class DatasetCreator:
         return df
 
     def __calculate_energy_ratio_by_resources(self, batch_df: pd.DataFrame) -> pd.DataFrame:
+        # todo: a key can be (pid, process_name) in the future
         resources_per_process_df = (
             batch_df.groupby(ProcessColumns.PROCESS_ID_COL)[fields(ProcessEnergyModelFeatures)].agg(lambda s: sum(s))
         )

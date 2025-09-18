@@ -21,7 +21,7 @@ class EnergyModelAggregator(AbstractAggregator):
         self.__model.initialize_model()
         self.__resource_energy_calculator = ResourceEnergyCalculator()
         self.__energy_model_feature_extractor = EnergyModelFeatureExtractor()
-        # todo: maybe support here the "DatasetProcessor" in order to remove unnecessary columns, change categorical columns, etc.
+        # todo: maybe support here the "DatasetProcessor" in order to change categorical columns, etc. Use when hardware columns are part of the train of the model
 
     def extract_features(self, raw_results: ProcessSystemRawResults,
                          iteration_metadata: IterationMetadata) -> Union[EnergyModelFeatures, EmptyFeatures]:
