@@ -1,9 +1,14 @@
 import platform
-from typing import Callable
+from typing import Callable, List
 
 import psutil
 from scapy.interfaces import get_working_ifaces
 
+from custom_process_filter.abstarct_process_filter import AbstractProcessFilter
+from custom_process_filter.filter_out_cmd import FilterOutCMDProcesses
+from custom_process_filter.filter_out_python import FilterOutPythonProcesses
+
+from custom_process_filter.filter_for_python import FilterForPythonProcesses
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from operating_systems.os_linux import LinuxOS
 from operating_systems.os_windows import WindowsOS
@@ -22,14 +27,14 @@ from summary_builder import SystemResourceIsolationSummaryBuilder, NativeSummary
 from tasks.program_classes.resources_consumers_programs.disk_io_read_program import DiskIOReadConsumer
 from tasks.program_classes.resources_consumers_programs.disk_io_write_program import DiskIOWriteConsumer
 from tasks.program_classes.resources_consumers_programs.memory_releaser_program import MemoryReleaser
-from utils.general_consts import SummaryType, ProgramToScan, AntivirusType, IDSType, ProcessMonitorType, BatteryMonitorType
+from utils.general_consts import SummaryType, ProgramToScan, AntivirusType, IDSType, ProcessMonitorType, \
+    BatteryMonitorType, CustomFilterType
 from tasks.program_classes.abstract_program import ProgramInterface
 from tasks.program_classes.antiviruses.clam_av_program import ClamAVProgram
 from tasks.program_classes.antiviruses.defender_program import DefenderProgram
 from tasks.program_classes.antiviruses.dummy_antivirus_program import DummyAntivirusProgram
 from tasks.program_classes.antiviruses.sophos_av_program import SophosAVProgram
 from tasks.program_classes.resources_consumers_programs.cpu_consumer_program import CPUConsumer
-from tasks.program_classes.dummy_io_writer_consumer_program import IOWriteConsumer
 from tasks.program_classes.resources_consumers_programs.memory_consumer_program import MemoryConsumer
 from tasks.program_classes.ids.snort_program import SnortProgram
 from tasks.program_classes.ids.suricata_program import SuricataProgram
@@ -61,18 +66,54 @@ def summary_builder_factory(summary_type: SummaryType):
     raise Exception("Selected summary builder is not supported")
 
 
+def _get_filter(filter_type: CustomFilterType) -> AbstractProcessFilter:
+    if filter_type == CustomFilterType.FILTER_OUT_PYTHON:
+        return FilterOutPythonProcesses()
+    elif filter_type == CustomFilterType.FILTER_FOR_PYTHON:
+        return FilterForPythonProcesses()
+    elif filter_type == CustomFilterType.FILTER_OUT_CMD:
+        return FilterOutCMDProcesses()
+
+    raise ValueError("Invalid process filter type")
+
+
+def custom_process_filter_factory(
+        custom_process_filter_types: List[CustomFilterType]
+) -> Callable[[psutil.Process], bool]:
+
+    process_filters = [
+        _get_filter(custom_process_filter_type) for custom_process_filter_type in custom_process_filter_types
+    ]
+
+    def custom_filters(process: psutil.Process) -> bool:
+        return any(process_filter.should_ignore_process(process) for process_filter in process_filters)
+
+    return custom_filters
+
+
 def process_resource_usage_recorder_factory(
         process_monitor_type: ProcessMonitorType,
         running_os: AbstractOSFuncs,
+        read_process_args: bool,
         should_ignore_process: Callable[[psutil.Process], bool]
 ) -> AbstractProcessResourceUsageRecorder:
     interfaces_for_packets_capturing = get_working_ifaces()
     process_network_monitor = ProcessNetworkUsageRecorder(interfaces_for_packets_capturing)
 
     if process_monitor_type == ProcessMonitorType.FULL:
-        return AllProcessesResourceUsageRecorder(process_network_monitor, running_os, should_ignore_process)
+        return AllProcessesResourceUsageRecorder(
+            process_network_monitor,
+            running_os,
+            read_process_args,
+            should_ignore_process
+        )
     elif process_monitor_type == ProcessMonitorType.PROCESSES_OF_INTEREST_ONLY:
-        return ProcessesOfInterestOnlyRecorder(process_network_monitor, running_os, should_ignore_process)
+        return ProcessesOfInterestOnlyRecorder(
+            process_network_monitor,
+            running_os,
+            read_process_args,
+            should_ignore_process
+        )
 
     raise Exception("Selected process monitor type is not supported")
 

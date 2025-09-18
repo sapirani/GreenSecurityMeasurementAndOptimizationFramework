@@ -10,13 +10,18 @@ from application_logging.logging_utils import get_measurement_logger
 from elastic_reader.consts import Verbosity
 from elastic_reader.elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
 from elastic_reader.elastic_reader_parameters import ES_USER, ES_PASS, ES_URL
-from utils.general_consts import LoggerName, IndexName
+from utils.general_consts of import LoggerName, IndexName
 
 
 class ElasticAggregationsLogger(AbstractElasticConsumer):
     logger = get_measurement_logger(
         logger_name=LoggerName.METRICS_AGGREGATIONS,
-        logger_handler=get_elastic_logging_handler(ES_USER, ES_PASS, ES_URL, IndexName.METRICS_AGGREGATIONS),
+        logger_handler=get_elastic_logging_handler(
+            ES_USER,
+            ES_PASS, ES_URL,
+            IndexName.METRICS_AGGREGATIONS,
+            pipeline_name=custom_pipeline_name
+        ),
     )
 
     def __init__(self, verbosity_level: Verbosity):

@@ -10,6 +10,11 @@ summary_type = SummaryType.NATIVE
 process_monitor_type = ProcessMonitorType.FULL
 battery_monitor_type = BatteryMonitorType.FULL
 
+custom_process_filter_types = []     # [CustomFilterType.FILTER_OUT_PYTHON, CustomFilterType.FILTER_OUT_CMD]
+
+# Reading the process arguments may significantly harm performance. Set this variable to False if it is not needed.
+read_process_arguments = True
+
 power_plan = PowerPlan.BALANCED
 scan_option = ScanMode.ONE_SCAN
 scan_type = ScanType.QUICK_SCAN  # relevant only for one scan or continuous scan
