@@ -13,6 +13,7 @@ NUMBER_OF_CORES = psutil.cpu_count()
 
 SECOND = 1
 MINUTE = 60
+NANOSECONDS_IN_SECOND = 10 ** 9
 
 NEVER_TURN_SCREEN_OFF = 0
 NEVER_GO_TO_SLEEP_MODE = 0
@@ -167,8 +168,8 @@ class NetworkIOColumns(str, Enum):
 class BatteryColumns(str, Enum):
     TIME = "seconds_from_start"
     PERCENTS = "battery_percent"
-    CAPACITY = "battery_voltage_mV"
-    VOLTAGE = "battery_remaining_capacity_mWh"
+    CAPACITY = "battery_remaining_capacity_mWh"
+    VOLTAGE = "battery_voltage_mV"
 
 
 class LoggerName:
