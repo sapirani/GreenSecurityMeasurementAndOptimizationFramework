@@ -1,3 +1,4 @@
+import logging
 from dataclasses import asdict
 
 from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
@@ -109,6 +110,7 @@ class ResourceEnergyCalculator:
     @staticmethod
     def __normalize_energy_consumption(resource_energy: float, resource_sum_energy: float,
                                        model_energy_prediction: float):
-        if model_energy_prediction <= 0 or resource_sum_energy <= 0:
+        if model_energy_prediction < 0 or resource_sum_energy < 0:
+            logging.warning("Energy prediction or Energy sum by resources is negative!")
             return 0
         return (model_energy_prediction / resource_sum_energy) * resource_energy

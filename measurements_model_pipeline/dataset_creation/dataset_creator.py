@@ -166,8 +166,7 @@ class DatasetCreator:
             batch_df = self.__add_energy_ratio_column(batch_df)
 
             batch_df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = (batch_df[SystemColumns.DURATION_COL] *
-                                                                 batch_df[
-                                                                     SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL]) - \
+                                                                 batch_df[SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL]) - \
                                                                 (batch_df[SystemColumns.DURATION_COL] *
                                                                  self.__idle_details.energy_per_second)
 
