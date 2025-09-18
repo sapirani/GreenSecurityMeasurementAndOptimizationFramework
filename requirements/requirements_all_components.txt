@@ -43,4 +43,7 @@ tzdata==2023.3
 Werkzeug==2.3.3
 elasticsearch-dsl==8.18.0
 
+# ===== Energy Model =====
+joblib==1.5.1
+scikit-learn==1.7.1
 # TODO: ADD NEW REQUIREMENTS (KIVY)
