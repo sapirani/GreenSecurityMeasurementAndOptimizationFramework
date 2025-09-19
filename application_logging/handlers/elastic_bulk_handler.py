@@ -1,14 +1,10 @@
+import atexit
 import time
-from datetime import datetime, timezone
-import logging
-import os
 from logging import Handler
-from queue import Queue, Empty
-from typing import Optional
-
-from elasticsearch import Elasticsearch, helpers
-
-INDEX_NAME = os.getenv("ELASTIC_INDEX_NAME", "scanner")
+from queue import Queue
+from typing import Optional, Dict, Any
+from elasticsearch import helpers
+from application_logging.handlers.abstract_elastic_handler import AbstractElasticSearchHandler
 
 
 def get_elastic_bulk_handler(
@@ -17,7 +13,8 @@ def get_elastic_bulk_handler(
         elastic_url: str,
         index_name: str,
         starting_time: float = time.time(),
-        pipeline_name: Optional[str] = None
+        pipeline_name: Optional[str] = None,
+        max_queue_size: int = 10000
 ) -> Handler:
     try:
         return ElasticSearchBulkHandler(
@@ -26,13 +23,14 @@ def get_elastic_bulk_handler(
             elastic_url=elastic_url,
             index_name=index_name,
             start_timestamp=starting_time,
-            pipeline_name=pipeline_name
+            pipeline_name=pipeline_name,
+            max_queue_size=max_queue_size
         )
     except ConnectionError:
         return None
 
 
-class ElasticSearchBulkHandler(logging.Handler):
+class ElasticSearchBulkHandler(AbstractElasticSearchHandler):
     def __init__(
             self,
             elastic_username: str,
@@ -40,51 +38,29 @@ class ElasticSearchBulkHandler(logging.Handler):
             elastic_url: str,
             index_name: str,
             start_timestamp: float = time.time(),
-            pipeline_name: Optional[str] = None
+            pipeline_name: Optional[str] = None,
+            max_queue_size: int = 10000
     ):
-        super().__init__()
-        self.es = Elasticsearch(elastic_url, basic_auth=(elastic_username, elastic_password))
-        self.index_name = index_name
-        self.start_date = datetime.fromtimestamp(start_timestamp, tz=timezone.utc).isoformat()
-        self.pipeline_name = pipeline_name
-
+        super().__init__(elastic_username, elastic_password, elastic_url, index_name, start_timestamp, pipeline_name)
         self.queue = Queue()
+        self.max_queue_size = max_queue_size
+        atexit.register(self.flush)
 
-        if not self.es.ping():
-            print("Cannot connect to Elastic")
-            raise ConnectionError("Elasticsearch cluster is not reachable")
-
-    def emit(self, record: logging.LogRecord):
-        doc = {
-            "level": record.levelname,
-            "message": record.getMessage(),
-            # TODO: try to find a way to avoid sending start_date inside each log
-            "start_date": self.start_date
-        }
-
-        # Emit extra log data
-        reserved = set(vars(logging.makeLogRecord({})).keys())
-        for key, value in record.__dict__.items():
-            if key not in reserved:
-                doc[key] = value
-
-        if "timestamp" not in doc:
-            doc["timestamp"]: datetime.now(timezone.utc).isoformat()
-
+    def _inner_emit(self, doc: Dict[str, Any]) -> None:
         self.queue.put(doc)
 
-    def _drain_queue_gen(self):
-        while True:
-            try:
-                yield self.queue.get_nowait()
-            except Empty:
-                break
+        if self.queue.qsize() >= self.max_queue_size:
+            self.flush()
+
+    def _drain_queue_gen(self) -> Dict[str, Any]:
+        while not self.queue.empty():
+            yield self.queue.get_nowait()
 
     def flush(self):
         """Send all queued logs to Elasticsearch"""
         actions = ({"_index": self.index_name, "_source": doc} for doc in self._drain_queue_gen())
         try:
-            for success, info in helpers.streaming_bulk(self.es, actions):
+            for success, info in helpers.streaming_bulk(self.es, actions, pipeline=self.pipeline_name):
                 if not success:
                     print(f"Streaming bulk failed: {info}")
         except Exception as e:
