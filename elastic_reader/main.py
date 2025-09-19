@@ -29,6 +29,16 @@ def iterate_results(
                 print(e)
 
 
+def trigger_post_processing(consumers: List[AbstractElasticConsumer]):
+    print("Post processing")
+    for consumer in consumers:
+        try:
+            consumer.post_processing()
+        except Exception as e:
+            print(f"Warning! consumer {consumer.__class__.__name__} raised an exception:")
+            print(e)
+
+
 def main(
     time_picker_input: TimePickerChosenInput,
     consumers: List[AbstractElasticConsumer],
@@ -45,11 +55,14 @@ def main(
         print("Note: last iteration results might be incomplete due to interruption")
         iterate_results(reader.identify_last_iterations(force=True), consumers, aggregation_manager)
 
+    trigger_post_processing(consumers)
+
 
 if __name__ == '__main__':
+    time_picker_input = get_time_picker_input(time_picker_input_strategy, preconfigured_time_picker_input)
     main(
-        time_picker_input=get_time_picker_input(time_picker_input_strategy, preconfigured_time_picker_input),
-        consumers=get_consumers(consumer_types, verbosity),
+        time_picker_input=time_picker_input,
+        consumers=get_consumers(consumer_types, time_picker_input.mode, verbosity),
         # TODO: SUPPORT COMBINATIONS OF INDICES TO READ FROM (as a user input in the elastic_reader_parameters.py)
         indices_to_read_from=[ElasticIndex.PROCESS, ElasticIndex.SYSTEM]
     )
