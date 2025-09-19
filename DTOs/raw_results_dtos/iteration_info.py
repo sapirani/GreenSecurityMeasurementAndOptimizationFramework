@@ -19,11 +19,11 @@ class IterationMetadata:
     start_date: datetime
     session_host_identity: SessionHostIdentity
 
-    seconds_from_starting_measurement: timedelta = field(init=False)
+    seconds_from_scanner_start: timedelta = field(init=False)
 
     def __post_init__(self):
         delta = self.timestamp - self.start_date
-        object.__setattr__(self, 'seconds_from_starting_measurement', delta.total_seconds())
+        object.__setattr__(self, 'seconds_from_scanner_start', delta.total_seconds())
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'IterationMetadata':

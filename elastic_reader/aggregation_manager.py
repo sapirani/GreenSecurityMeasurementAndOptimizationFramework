@@ -1,5 +1,4 @@
 from collections import defaultdict
-from logging import getLogger
 from typing import List, Dict, Callable, Type, DefaultDict, Optional, TypeAlias
 
 from DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
@@ -19,9 +18,7 @@ from DTOs.raw_results_dtos.iteration_info import IterationMetadata, IterationRaw
 from DTOs.raw_results_dtos.abstract_raw_results import AbstractRawResults
 from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
 from DTOs.raw_results_dtos.system_processes_raw_results import FullScopeRawResults
-from utils.general_consts import LoggerName
 
-logger = getLogger(LoggerName.METRICS_AGGREGATIONS)
 
 PerProcesAggregators: TypeAlias = DefaultDict[ProcessIdentity, List[AbstractAggregator]]
 SessionHostProcessAggregators: TypeAlias = DefaultDict[SessionHostIdentity, PerProcesAggregators]
