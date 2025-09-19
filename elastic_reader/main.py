@@ -30,7 +30,7 @@ def iterate_results(
 
 
 def trigger_post_processing(consumers: List[AbstractElasticConsumer]):
-    print("Post processing")
+    print("Calling consumers' post processing")
     for consumer in consumers:
         try:
             consumer.post_processing()
