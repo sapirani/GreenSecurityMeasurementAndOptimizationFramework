@@ -35,7 +35,7 @@ class AggregationManager:
     SYSTEM_AGGREGATOR_TYPES = [CPUIntegralAggregator]
     PROCESS_ONLY_AGGREGATOR_TYPES = [CPUIntegralAggregator]
     PROCESS_SYSTEM_AGGREGATORS_TYPES = [EnergyModelAggregator]
-    FULL_SCOPE_AGGREGATORS_TYPES = [ProcessSystemUsageFractionAggregator]
+    FULL_SCOPE_AGGREGATORS_TYPES = []
 
     def __init__(self):
         self.system_aggregators: SessionHostSystemAggregators = defaultdict(self.__get_system_aggregators)
