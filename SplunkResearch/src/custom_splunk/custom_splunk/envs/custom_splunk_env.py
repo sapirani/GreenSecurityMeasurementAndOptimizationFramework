@@ -172,7 +172,7 @@ class SplunkEnv(gym.Env):
             # create a time_range column
             df['time_range'] = list(zip(pd.to_datetime(df['start_time'], format="%m/%d/%Y:%H:%M:%S"), pd.to_datetime(df['end_time'], format="%m/%d/%Y:%H:%M:%S")))
             return df
-        return pd.DataFrame(columns=['start_time', 'end_time', 'alert_values', 'duration_values'])
+        return pd.DataFrame(columns=['start_time', 'end_time', 'time_range', 'search_name', 'alert', 'duration_values'])
    
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
         """Execute environment step."""

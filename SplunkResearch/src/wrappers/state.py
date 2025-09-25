@@ -2,6 +2,8 @@ import asyncio
 import datetime
 from importlib.metadata import distribution
 from math import dist
+import os
+import pickle
 from gymnasium.core import ObservationWrapper
 import joblib
 import numpy as np
@@ -358,9 +360,19 @@ class StateWrapper5(StateWrapper):
             # shape=(len(self.unwrapped.top_logtypes),),  # +1 for 'other' category
             dtype=np.float64
         )
-        self.baseline_alerts = {}
-        self.ac_baseline_alerts = {}
-        
+        self.baseline_alerts = self._load_pickle("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/baseline/baseline_alerts.pkl", default={})
+        self.ac_baseline_alerts = self._load_pickle("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/baseline/ac_baseline_alerts.pkl", default={})
+    
+    def _load_pickle(self, filename, default):
+        if os.path.exists(filename):
+            with open(filename, "rb") as f:
+                return pickle.load(f)
+        return default
+
+    def _dump_pickle(self, obj, filename):
+        with open(filename, "wb") as f:
+            pickle.dump(obj, f)
+   
     def observation(self, obs):
         """Convert current distributions to normalized state"""
         # Calculate fake distribution using the latest episode_logs   
@@ -397,30 +409,81 @@ class StateWrapper5(StateWrapper):
         else:
             diversities = self.env.env.env.env.env.diversity_episode_logs
         
-        results = asyncio.run(self.unwrapped.splunk_tools.run_saved_searches_no_measurement(self.unwrapped.time_manager.action_window.to_tuple()))
+        # baseline_df_row = self.unwrapped.baseline_df[(self.unwrapped.baseline_df['start_time'] == self.unwrapped.time_manager.current_window.start) &
+        #                                               (self.unwrapped.baseline_df['end_time'] == self.unwrapped.time_manager.action_window.end)]
+        # alert_rate = sum(baseline_df_row.groupby('search_name').first()['alert'])
+        # if alert_rate != 0:
+        #     results = asyncio.run(self.unwrapped.splunk_tools.run_saved_searches_no_measurement(self.unwrapped.time_manager.action_window.to_tuple()))
+        # else:
+        #     results = {rule: [] for rule in self.unwrapped.savedsearches}
+        step_time = self.unwrapped.time_manager.action_window.to_tuple()
+        ac_episode_time = (self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)
+        prev_ac_episode_time = (self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.start)
+
+        if step_time not in self.baseline_alerts:
+            self.baseline_alerts[step_time] = {}
+        if ac_episode_time not in self.ac_baseline_alerts:
+            self.ac_baseline_alerts[ac_episode_time] = {}
+        if step_time not in self.ac_baseline_alerts:
+            self.ac_baseline_alerts[step_time] = {}
+        created_new_baseline = False
+        # --- Check if results already exist ---
+        results_available = all(
+            rule in self.baseline_alerts[step_time]
+            for rule in self.unwrapped.savedsearches
+        )
+
+        if results_available:
+            # ✅ Load from cache
+            results = {
+                rule: [None] * self.baseline_alerts[step_time][rule]
+                for rule in self.unwrapped.savedsearches
+            }
+        else:
+            # ❌ Run Splunk only if missing
+            baseline_df_row = self.unwrapped.baseline_df[
+                (self.unwrapped.baseline_df["start_time"] == self.unwrapped.time_manager.current_window.start)
+                & (self.unwrapped.baseline_df["end_time"] == self.unwrapped.time_manager.action_window.end)
+            ]
+            alert_rate = sum(baseline_df_row.groupby("search_name").first()["alert"])
+
+            if alert_rate != 0:
+                results = asyncio.run(
+                    self.unwrapped.splunk_tools.run_saved_searches_no_measurement(
+                        step_time
+                    )
+                )
+                created_new_baseline = True
+            else:
+                results = {rule: [] for rule in self.unwrapped.savedsearches}
         expected_normal_alert_rates = []
         expected_fake_alert_rates = []
-        if (self.unwrapped.time_manager.action_window.start, self.unwrapped.time_manager.action_window.end) not in self.baseline_alerts:
-            self.baseline_alerts[(self.unwrapped.time_manager.action_window.start, self.unwrapped.time_manager.action_window.end)] = {}
-        if (self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end) not in self.ac_baseline_alerts:
-            self.ac_baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)] = {}
-        for rule in self.unwrapped.savedsearches:
-            logtypes = self.unwrapped.section_logtypes[rule]
+
+
+
+        for rule, logtypes in self.unwrapped.section_logtypes.items():
             key = "_".join(logtypes[0])
             key = f"{key}_1"
             if rule in self.unwrapped.savedsearches:
-                if rule not in self.baseline_alerts[(self.unwrapped.time_manager.action_window.start, self.unwrapped.time_manager.action_window.end)]:
-                    self.baseline_alerts[(self.unwrapped.time_manager.action_window.start, self.unwrapped.time_manager.action_window.end)][rule] = len(results[rule])
-                    self.ac_baseline_alerts[(self.unwrapped.time_manager.action_window.start, self.unwrapped.time_manager.action_window.end)][rule] = len(results[rule])
-                if rule not in self.ac_baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)]:
-                    self.ac_baseline_alerts[(self.unwrapped.time_manager.action_window.start, self.unwrapped.time_manager.action_window.end)][rule] = self.ac_baseline_alerts[(self.unwrapped.time_manager.action_window.start, self.unwrapped.time_manager.action_window.start)][rule] + len(results[rule])   
-                normal_alert_rate = self.ac_baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)][rule]
+                if rule not in self.baseline_alerts[step_time]:
+                    self.baseline_alerts[step_time][rule] = len(results[rule])
+                if rule not in self.ac_baseline_alerts[step_time]:
+                    self.ac_baseline_alerts[ac_episode_time][rule] = len(results[rule])
+                if prev_ac_episode_time in self.ac_baseline_alerts and rule in self.ac_baseline_alerts[prev_ac_episode_time]:
+                    self.ac_baseline_alerts[ac_episode_time][rule] = self.ac_baseline_alerts[prev_ac_episode_time][rule] + len(results[rule])
+                
+                normal_alert_rate = self.ac_baseline_alerts[ac_episode_time][rule]
                 expected_normal_alert_rates.append(normal_alert_rate/100)
                 if rule in ['ESCU Windows Rapid Authentication On Multiple Hosts Rule']:
                     expected_fake_alert_rates.append((normal_alert_rate)/100)  
                 else:
                     expected_fake_alert_rates.append((normal_alert_rate + diversities[key])/100)  
-            
+
+                # --- Only dump if we created new entries ---
+                if created_new_baseline:
+                    self._dump_pickle(self.baseline_alerts, "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/baseline/baseline_alerts.pkl")
+                if created_new_baseline:
+                    self._dump_pickle(self.ac_baseline_alerts, "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/baseline/ac_baseline_alerts.pkl")
         state = np.append(state, expected_normal_alert_rates)
         state = np.append(state, expected_fake_alert_rates)
 
