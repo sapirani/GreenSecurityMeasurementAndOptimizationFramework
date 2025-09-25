@@ -109,7 +109,6 @@ class AbstractProcessResourceUsageRecorder(ABC):
                     pid = p.pid
                     process_name = p.name()
                     process_args = p.cmdline()[1:]
-                    process_args = None
                     process_of_interest = True if p in self.mark_processes else False
                     cpu_percent_sum_across_cores = round(p.cpu_percent(), 2)
                     process_traffic = self.process_network_usage_recorder.get_current_network_stats(p)
