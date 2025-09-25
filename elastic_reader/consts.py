@@ -7,24 +7,24 @@ class ElasticIndex(str, Enum):
     AGGREGATIONS = "metrics_aggregations"
 
 
-class ElasticConsumerType(Enum):
+class ElasticConsumerType(str, Enum):
     DRL = "DRL"
     CSV = "CSV"
     AGGREGATIONS_LOGGER = "AGGREGATIONS_LOGGER"
 
 
-class Verbosity(Enum):
+class Verbosity(str, Enum):
     VERBOSE = "verbose"
     NONE = "none"
 
 
-class TimePickerInputStrategy:
+class TimePickerInputStrategy(str, Enum):
     GUI = "GUI"
     CLI = "CLI"
     FROM_CONFIGURATION = "from_configuration"
 
 
-class AggregationStrategy(Enum):
+class AggregationStrategy(str, Enum):
     PULL_FROM_ELASTIC = "pull"  # TODO: SUPPORT
     CALCULATE = "calculate"
     NONE = "none"

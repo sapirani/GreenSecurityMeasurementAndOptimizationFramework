@@ -420,7 +420,6 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # Store in info for other wrappers to use
             info['raw_metrics'] = raw_metrics
             info['raw_baseline_metrics'] = raw_baseline_metrics
-
             
         return obs, reward, terminated, truncated, info
     
@@ -513,7 +512,6 @@ class DistributionRewardWrapper(RewardWrapper):
 
         step_counter = info.get('step', 0)
         # if  random.randint(0, 10) % self.distribution_reward_freq == 0:
-
         #     info['distribution_value'] = dist_value
         #     dist_reward = self._calculate_distribution_reward(dist_value)
         #     # dist_reward /= 0.6 # NOrmalize the reward

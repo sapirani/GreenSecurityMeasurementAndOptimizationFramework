@@ -13,6 +13,7 @@ NUMBER_OF_CORES = psutil.cpu_count()
 
 SECOND = 1
 MINUTE = 60
+NANOSECONDS_IN_SECOND = 10 ** 9
 
 NEVER_TURN_SCREEN_OFF = 0
 NEVER_GO_TO_SLEEP_MODE = 0
@@ -92,6 +93,12 @@ class ScanType:
     FULL_SCAN = "FullScan"
     QUICK_SCAN = "QuickScan"
     CUSTOM_SCAN = "CustomScan"
+
+
+class CustomFilterType(Enum):
+    FILTER_OUT_PYTHON = 1
+    FILTER_FOR_PYTHON = 2
+    FILTER_OUT_CMD = 3
     
     
 class IDSType:
@@ -167,8 +174,8 @@ class NetworkIOColumns(str, Enum):
 class BatteryColumns(str, Enum):
     TIME = "seconds_from_start"
     PERCENTS = "battery_percent"
-    CAPACITY = "battery_voltage_mV"
-    VOLTAGE = "battery_remaining_capacity_mWh"
+    CAPACITY = "battery_remaining_capacity_mWh"
+    VOLTAGE = "battery_voltage_mV"
 
 
 class LoggerName:

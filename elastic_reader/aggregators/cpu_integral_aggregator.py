@@ -4,9 +4,9 @@ from DTOs.aggregated_results_dtos.cpu_integral_result import CPUIntegralResult
 from DTOs.aggregators_features.cpu_integral_features import CPUIntegralFeatures
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
-from aggregators.abstract_aggregator import AbstractAggregator
 from DTOs.aggregated_results_dtos.empty_aggregation_results import EmptyAggregationResults
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata
+from elastic_reader.aggregators.abstract_aggregator import AbstractAggregator
 
 
 class CPUIntegralAggregator(AbstractAggregator):
@@ -15,7 +15,7 @@ class CPUIntegralAggregator(AbstractAggregator):
 
     def extract_features(
             self,
-            raw_results: SystemRawResults | ProcessRawResults,
+            raw_results: Union[SystemRawResults, ProcessRawResults],
             iteration_metadata: IterationMetadata
     ) -> CPUIntegralFeatures:
         return CPUIntegralFeatures(

@@ -1,22 +1,27 @@
 from dataclasses import asdict
 from logging import StreamHandler
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationAggregatedResults
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
 from application_logging.formatters.pretty_extra_formatter import PrettyExtrasFormatter
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 from application_logging.logging_utils import get_measurement_logger
-from consts import Verbosity
-from elastic_reader_parameters import ES_URL, ES_USER, ES_PASS
-from elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
+from elastic_reader.consts import Verbosity
+from elastic_reader.elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
+from elastic_reader.elastic_reader_parameters import ES_USER, ES_PASS, ES_URL, custom_pipeline_name
 from utils.general_consts import LoggerName, IndexName
 
 
 class ElasticAggregationsLogger(AbstractElasticConsumer):
     logger = get_measurement_logger(
         logger_name=LoggerName.METRICS_AGGREGATIONS,
-        logger_handler=get_elastic_logging_handler(ES_USER, ES_PASS, ES_URL, IndexName.METRICS_AGGREGATIONS),
+        logger_handler=get_elastic_logging_handler(
+            ES_USER,
+            ES_PASS, ES_URL,
+            IndexName.METRICS_AGGREGATIONS,
+            pipeline_name=custom_pipeline_name
+        ),
     )
 
     def __init__(self, verbosity_level: Verbosity):
@@ -24,6 +29,16 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
             handler = StreamHandler()
             handler.setFormatter(PrettyExtrasFormatter())
             self.logger.addHandler(handler)
+
+    def _flatten_dict(self, nested_dict: Dict[str, Any]) -> Dict[str, Any]:
+        flat = {}
+        for key, value in nested_dict.items():
+            if isinstance(value, dict):
+                # Recursively flatten nested dicts
+                flat.update(self._flatten_dict(value))
+            else:
+                flat[key] = value
+        return flat
 
     # TODO: IF CALCAULTIONS ARE SELECTED - ENSURE THAT NO AGGREGATIONS ARE FOUND IN THE INDEX DURING THE ENTIRE REQUESTED TIMERANGE (RAISE AN EXCEPTION AND CRASH)
     def consume(
@@ -40,7 +55,7 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
                 "Process Aggregation Results",
                 extra=
                 {
-                    **asdict(iteration_aggregation_results.iteration_metadata),
+                    **self._flatten_dict(asdict(iteration_aggregation_results.iteration_metadata)),
                     **asdict(process_identity),
                     **asdict(process_results.process_metadata),
                     **{
@@ -54,7 +69,7 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
             "System Aggregation Results",
             extra=
             {
-                **asdict(iteration_aggregation_results.iteration_metadata),
+                **self._flatten_dict(asdict(iteration_aggregation_results.iteration_metadata)),
                 **{key: value for aggregation_result in iteration_aggregation_results.system_aggregated_results
                    for key, value in asdict(aggregation_result).items()}
             }

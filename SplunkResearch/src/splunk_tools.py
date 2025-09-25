@@ -179,28 +179,47 @@ class SplunkTools(object):
             self._cpu_monitor_thread = None
 
       
-
     async def execute_query(self, search_name: str, query: str, earliest_time: float, latest_time: float) -> QueryMetrics:
+        """FIXED: Made truly async by running blocking calls in executor"""
         query = f" search {query}"
-        # loop = asyncio.get_event_loop()
-
-        job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
-        io_counters_dict = { "read_count": 0,  "write_count": 0, "read_bytes": 0, "write_bytes": 0}
+        
+        # Get the event loop
+        loop = asyncio.get_event_loop()
+        
+        # FIX 1: Run the blocking job creation in executor
+        job = await loop.run_in_executor(
+            None,
+            lambda: self.service.jobs.create(
+                query, 
+                earliest_time=earliest_time, 
+                latest_time=latest_time
+            )
+        )
+        
+        io_counters_dict = {"read_count": 0, "write_count": 0, "read_bytes": 0, "write_bytes": 0}
         
         # Wait for job to get PID
         while True:
-            job.refresh()  # Make job.refresh()() non-blocking
+            # FIX 2: Run blocking refresh in executor
+            await loop.run_in_executor(None, job.refresh)
             stats = job.content
             pid = stats.get('pid', None)
             if pid is not None:
                 break
             if stats['isDone'] == '1':
-                job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
-            await asyncio.sleep(0.01)  # Use asyncio.sleep instead of time.sleep
+                # FIX 3: Run blocking job creation in executor
+                job = await loop.run_in_executor(
+                    None,
+                    self.service.jobs.create,
+                    query,
+                    {'earliest_time': earliest_time, 'latest_time': latest_time}
+                )
+            await asyncio.sleep(0.01)
 
         process_end_cpu_time = 0
         process_start_cpu_time = 0
         logger.info(f"Monitoring process {pid}")
+        
         if pid is not None:
             try:
                 self.pids.append(pid)
@@ -214,36 +233,42 @@ class SplunkTools(object):
                     )
                 process = psutil.Process(int(pid))
                 process_start_time = time.time()
-                # Get initial CPU times in a non-blocking way
-                process_start_cpu_time =  process.cpu_times().user
-                # process_start_cpu_time = await loop.run_in_executor(
-                #     None, lambda: process.cpu_times().user  # + process.cpu_times().system
-                # )
+                # FIX 4: Get CPU times in executor
+                process_start_cpu_time = await loop.run_in_executor(
+                    None, 
+                    lambda: process.cpu_times().user
+                )
                 
                 while True:
                     try:
-                        # Get CPU times non-blockingly
-                        process_end_cpu_time =  process.cpu_times().user
-                        # Check if process is running in a non-blocking way
-                        is_running = process.is_running
+                        # FIX 5: Run blocking operations in executor
+                        process_end_cpu_time = await loop.run_in_executor(
+                            None,
+                            lambda: process.cpu_times().user
+                        )
+                        
+                        # FIX 6: is_running should be called with parentheses
+                        is_running = await loop.run_in_executor(
+                            None,
+                            process.is_running  # This is the method reference
+                        )
+                        
                         if not is_running:
                             logger.debug(f"Process {pid} has finished running")
                             break
                             
-                        # Refresh job status non-blockingly
-                        job.refresh()
+                        # FIX 7: Refresh job status in executor
+                        await loop.run_in_executor(None, job.refresh)
                         if job.content['isDone'] == '1':
                             logger.debug(f"Job is marked as done")
                             break
 
-                        # Get IO counters non-blockingly
+                        # FIX 8: Get IO counters in executor
                         try:
-                            # Run the oneshot operation in a thread
-                            def get_io_counters():
-                                with process.oneshot():
-                                    return process.io_counters()
-                                    
-                            io_counters = get_io_counters()
+                            io_counters = await loop.run_in_executor(
+                                None,
+                                process.io_counters
+                            )
                             
                             # Update IO metrics
                             for key in io_counters_dict:
@@ -252,11 +277,11 @@ class SplunkTools(object):
                         except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
                             logger.debug(f"Error getting IO counters: {e}")
                         
-                        await asyncio.sleep(0.1)  # Non-blocking sleep
+                        await asyncio.sleep(0.1)
                         
                     except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
-                        # If the process disappeared but the job isn't done, it might have spawned a new process
-                        job.refresh()
+                        # If the process disappeared but the job isn't done
+                        await loop.run_in_executor(None, job.refresh)
                         if job.content['isDone'] == '0':
                             logger.error(e)
                             logger.error(f"Process {pid} disappeared but job isn't done. Waiting for job completion.")
@@ -267,9 +292,9 @@ class SplunkTools(object):
                             break
                         
                     # Add timeout protection
-                    if time.time() - process_start_time > 600:  # 5 minute timeout
+                    if time.time() - process_start_time > 600:  # 10 minute timeout
                         logger.warning(f"Process monitoring timed out after 10 minutes for pid {pid}")
-                        job.cancel()
+                        await loop.run_in_executor(None, job.cancel)
                         break
                         
             except psutil.NoSuchProcess:
@@ -279,7 +304,7 @@ class SplunkTools(object):
             finally:
                 # Ensure we get the final job status
                 try:
-                    job.refresh()
+                    await loop.run_in_executor(None, job.refresh)
                 except Exception as e:
                     logger.error(f"Error refreshing job status: {e}")
         
@@ -287,16 +312,21 @@ class SplunkTools(object):
         process_cpu_time = process_end_cpu_time - process_start_cpu_time
         
         # Get final job status
-        job.refresh()
+        await loop.run_in_executor(None, job.refresh)
         stats = job.content
         run_duration = float(stats.get('runDuration', 0))
         
-        # Get results 
-        response = job.results(output_mode='json')
+        # FIX 9: Get results in executor
+        response = await loop.run_in_executor(
+            None,
+            lambda: job.results(output_mode='json', count=0)
+        )
         
-        # Parse results non-blockingly
-
-        results =  [result for result in splunk_results.JSONResultsReader(response) if isinstance(result, dict)]
+        # Parse results
+        results = await loop.run_in_executor(
+            None,
+            lambda: [result for result in splunk_results.JSONResultsReader(response) if isinstance(result, dict)]
+        )
         
         # Get results count
         results_count = len(results)
@@ -396,6 +426,77 @@ class SplunkTools(object):
             }
         )
         
+    def monitor_total_cpu(self):
+        """Monitor total CPU usage across all Splunk processes"""
+        start_time = time.time()
+        start_cpu = psutil.cpu_times().user
+
+        while not self.stop_cpu_monitor.is_set():
+            time.sleep(0.1)
+
+        self.total_cpu_time = psutil.cpu_times().user - start_cpu
+        
+    
+    async def run_saved_search(self, saved_search: str, time_range: Tuple[str, str]) -> QueryMetrics:
+        """Run a saved search and collect metrics"""
+        search_name = saved_search
+        query = self.active_saved_searches[saved_search]['search']
+        
+        # Parse time range
+        earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
+        latest_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').timestamp()
+        
+        logger.info(f'Running saved search {search_name}')
+        return await self.execute_query(search_name, query, earliest_time, latest_time)
+
+    async def run_saved_searches(
+        self, 
+        time_range: Tuple[str, str], 
+        running_plan: Dict[str, int]=None,
+        num_measurements: int = 1        
+    ) -> Tuple[List[QueryMetrics], float]:
+        """
+        FIXED: Already properly parallelized with asyncio.gather
+        Just needed the execute_query to be truly async
+        """
+        # Start CPU monitoring
+        self.start_cpu_monitoring()
+        
+        try:
+            all_tasks = []
+            if running_plan is None:
+                running_plan = {search: num_measurements for search in self.active_saved_searches}
+            
+            for search_name, num_measurements in running_plan.items():
+                for i in range(num_measurements):
+                    # Create a task for each measurement
+                    task = asyncio.create_task(self.run_saved_search(
+                        search_name, time_range))
+                    all_tasks.append(task)
+
+            results = await asyncio.gather(*all_tasks)
+            
+            # Filter out any failed measurements
+            valid_results = [m for m, r in results if isinstance(m, QueryMetrics)]
+            for result in valid_results:
+                result.start_time = time_range[0]
+                result.end_time = time_range[1]
+            
+            if len(valid_results) < len(results):
+                logger.warning(f"Some measurements failed: {len(results) - len(valid_results)} failures")
+            # log each res in line
+            for result in valid_results:
+                logger.info(f"Search: {result.search_name}, "
+                          f"Results: {result.results_count}, "
+                          f"Execution Time: {result.execution_time:.2f}s, "
+                          f"CPU: {result.cpu:.2f}s, ")
+                        #   f"IO Metrics: {result.io_metrics}")
+            return valid_results, self.total_cpu_time
+            
+        finally:
+            # Stop CPU monitoring
+            self.stop_cpu_monitoring()
+
     def monitor_total_cpu(self):
         """Monitor total CPU usage across all Splunk processes"""
         start_time = time.time()
