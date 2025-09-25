@@ -37,7 +37,7 @@ class MetricsLoggerCallback:
             self._log_metrics('action_window', f"{action_window}")
 
         # Log reward components
-        for reward_type in ['distribution_reward', 'energy_reward', 'alert_reward']:
+        for reward_type in ['distribution_reward']:
             if reward_type in info:
                 self._log_metrics(reward_type, info[reward_type])
         
@@ -75,6 +75,9 @@ class MetricsLoggerCallback:
         self._log_metrics('final_distribution_value', info.get('distribution_value'))
         self._log_metrics('ac_distribution_value', info.get('ac_distribution_value'))
         self._log_metrics('ac_distribution_reward', info.get('ac_distribution_reward'))
+        self._log_metrics('energy_reward', info.get('energy_reward'))
+        self._log_metrics('alert_reward', info.get('alert_reward'))
+        
         self._log_metrics('total_episode_logs', info.get('total_episode_logs'))
         
         if current_metrics and baseline_metrics:
@@ -87,7 +90,9 @@ class MetricsLoggerCallback:
                     self._log_metrics(f'{metric}', current_val)
                     self._log_metrics(f'baseline_{metric}', baseline_val)
                     self._log_metrics(f'{metric}_gap', current_val - baseline_val)
-
+            if 'real_cpu' in current_metrics:
+                    self._log_metrics('measured_cpu', current_metrics.get('real_cpu', 0))
+                    self._log_metrics('cpu_error', (current_metrics.get('cpu', 0) - current_metrics.get('real_cpu', 0))/current_metrics.get('real_cpu', 0))
             # Log detailed rules metrics
             raw_current_metrics = info.get('raw_metrics', {})
             raw_baseline_metrics = info.get('raw_baseline_metrics', {})
@@ -98,12 +103,18 @@ class MetricsLoggerCallback:
             
             for search_name in self.rules:
                 for metric in self.episodic_metrics:
-                    current_val = raw_current_metrics[search_name].get(metric)
-                    baseline_val = raw_baseline_metrics[search_name].get(metric)
+                    raw_current_metrics_search = raw_current_metrics.get(search_name, None)
+                    raw_baseline_metrics_search = raw_baseline_metrics.get(search_name, None)
+                    if raw_current_metrics_search is None or raw_baseline_metrics_search is None:
+                        continue
+                    current_val = raw_current_metrics_search.get(metric, None)
+                    baseline_val = raw_baseline_metrics_search.get(metric, None)
                     if current_val is not None and baseline_val is not None:
-                        self.writers[search_name].add_scalar(f'{self.phase}/rules_{metric}', current_val, global_step=info['all_steps_counter'])
-                        self.writers[search_name].add_scalar(f'{self.phase}/rules_baseline_{metric}', baseline_val, global_step=info['all_steps_counter'])
-                        self.writers[search_name].add_scalar(f'{self.phase}/rules_{metric}_gap', current_val - baseline_val, global_step=info['all_steps_counter'])
+                        self.writers[search_name].add_scalar(f'{self.phase}/rules_baseline_{metric}', baseline_val, global_step=info['n_calls'])
+                        self.writers[search_name].add_scalar(f'{self.phase}/rules_{metric}', current_val, global_step=info['n_calls'])
+                        # if (metric == 'cpu' and current_val == 0) or (metric == 'duration' and current_val == 0):
+                        #     continue  # Skip logging gaps for zero values                        
+                        self.writers[search_name].add_scalar(f'{self.phase}/rules_{metric}_gap', current_val - baseline_val, global_step=info['n_calls'])
                         # current_dict[metric][search_name] = current_val
                         # baseline_dict[metric][search_name] = baseline_val
                         # gap_dict[metric][search_name] = current_val - baseline_val
@@ -115,8 +126,8 @@ class MetricsLoggerCallback:
 
         # Log episodic policy
         for event_type in info.get('episode_logs', {}):
-            self.writers[f"{event_type}"].add_scalar(f'{self.phase}/episodic_policy', info['episode_logs'][f"{event_type}"], global_step=info['all_steps_counter'])
-            self.writers[f"{event_type}"].add_scalar(f'{self.phase}/diversity_policy', info['diversity_episode_logs'][f"{event_type}"], global_step=info['all_steps_counter'])
+            self.writers[f"{event_type}"].add_scalar(f'{self.phase}/episodic_policy', info['episode_logs'][f"{event_type}"], global_step=info['n_calls'])
+            self.writers[f"{event_type}"].add_scalar(f'{self.phase}/diversity_policy', info['diversity_episode_logs'][f"{event_type}"], global_step=info['n_calls'])
         
         # if 'episode_logs' in info:
         #     self._log_metrics('episodic_policy', info['episode_logs'], exclude_from_csv=True)
@@ -131,8 +142,8 @@ class MetricsLoggerCallback:
         #     self._log_metrics('diversity_episode_logs', info['diversity_episode_logs'], exclude_from_csv=True)
         
         for event_type in self.event_types:
-            self.writers[event_type].add_scalar(f'{self.phase}/real_relevant_distribution', info['real_relevant_distribution'].get(event_type, 0), global_step=info['all_steps_counter'])
-            self.writers[event_type].add_scalar(f'{self.phase}/fake_relevant_distribution', info['fake_relevant_distribution'].get(event_type, 0), global_step=info['all_steps_counter'])
+            self.writers[event_type].add_scalar(f'{self.phase}/real_relevant_distribution', info['real_relevant_distribution'].get(event_type, 0), global_step=info['n_calls'])
+            self.writers[event_type].add_scalar(f'{self.phase}/fake_relevant_distribution', info['fake_relevant_distribution'].get(event_type, 0), global_step=info['n_calls'])
         
         # if 'real_relevant_distribution' in info:
         #     current_sum = np.sum(list(info['real_relevant_distribution'].values()))
@@ -157,7 +168,7 @@ class CustomTensorboardCallback(MetricsLoggerCallback, BaseCallback):
     def _on_step(self) -> bool:
         """Log metrics at each step"""
         info = self.locals['infos'][0]  # Get info from environment step
-        num_time_steps = self.num_timesteps
+        info['n_calls'] = self.n_calls  # Add current step count to info
         self.log_step_metrics(info)
 
         # Log episode end metrics
@@ -201,6 +212,7 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
         
         def _log_info_callback(locals_, globals_):
             info = locals_['info']
+            info['n_calls'] = self.n_calls  # Add current step count to info
             self.eval_infos.append(info)
             return True
             
@@ -224,8 +236,10 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
                     
         # Log mean metrics
         for metric, values in mean_metrics.items():
-            if values:
+            try:
                 self._log_metrics(f'mean_{metric}', np.mean(values))
+            except Exception as e:
+                print(f"Error logging metric {metric}: {e}")
         
         # Log the final episode metrics using the base class method
         self.log_episode_metrics(last_info, self.eval_env)

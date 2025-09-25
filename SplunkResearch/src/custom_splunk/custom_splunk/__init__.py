@@ -362,8 +362,11 @@ savedsearches = ["Windows Event For Service Disabled",
                  "Kerberoasting spn request with RC4 encryption",
                  "Clop Ransomware Known Service Name",
                  'Windows AD Replication Request Initiated from Unsanctioned Location',
-                 'ESCU Windows Rapid Authentication On Multiple Hosts Rule']
-fake_start_datetime = "08/01/2024:00:00:00"#"07/01/2024:00:00:00"
+                 'ESCU Windows Rapid Authentication On Multiple Hosts Rule',
+                #  'WinEvent Scheduled Task Created Within Public Path',
+                #  'Monitor for Administrative and Guest Logon Failures'
+                 ]
+fake_start_datetime = "08/13/2024:00:00:00"#"07/01/2024:00:00:00"
 env_id = "splunk_train-v32"
 register(id=env_id,
         entry_point='custom_splunk.envs:SplunkEnv', 

@@ -39,7 +39,7 @@ class LogGenerator:
         # Initialize log templates on demand (lazy loading)
         self._init_variation_templates()
         
-        logger.info(f"LogGenerator initialization completed in {time.time() - start_time:.3f} seconds")
+        # logger.info(f"LogGenerator initialization completed in {time.time() - start_time:.3f} seconds")
         
     def _init_variation_templates(self):
         """Initialize the variation templates for faster substitution"""
@@ -133,7 +133,7 @@ class LogGenerator:
         
         if key not in self.logs_to_duplicate_dict:
             # Load just this template
-            logger.info(f"Loading template for {key}")
+            # logger.info(f"Loading template for {key}")
             start_time = time.time()
             templates = self.load_logs_to_duplicate_dict([(logsource, eventcode, istrigger)])
             self.logs_to_duplicate_dict.update(templates)

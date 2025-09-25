@@ -94,7 +94,7 @@ class TimeManager:
             # On violation, stay at current window
             return self.current_window
         # clean env in action window
-        if not self.is_test and self.rule_frequency < self.window_size:
+        if not self.is_test and self.rule_frequency < self.window_size and should_delete:
             clean_env(self.splunk_tools, (self.current_window.start, self.current_window.end))
         new_start_dt = datetime.datetime.strptime(self.current_window.start, '%m/%d/%Y:%H:%M:%S')
         new_start_dt += datetime.timedelta(minutes=self.rule_frequency)
@@ -164,7 +164,7 @@ class TimeWrapper(Wrapper):
     def step(self, action):
         obs, reward, done, truncated, info = super().step(action)
         if not info['done']:
-            action_window = self.time_manager.step()
+            action_window = self.unwrapped.time_manager.step()
             info['action_window'] = action_window
         return obs, reward, done, truncated, info
         # return self.env.step(action)

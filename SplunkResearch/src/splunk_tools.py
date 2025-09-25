@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from enum import Enum
 import json
 import logging
 from multiprocessing import Pool
@@ -7,6 +8,7 @@ import re
 import time
 import splunklib.client as client
 import splunklib.results as splunk_results
+import splunklib.binding
 import psutil
 import concurrent.futures
 from datetime import timezone
@@ -24,6 +26,8 @@ from datetime import timezone
 from random import randint
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple, Any, Optional
+from utils.general_consts import LoggerName
+from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env')
 # Precompile the regex pattern
@@ -37,6 +41,15 @@ PREFIX_PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/'
 import logging
 logger = logging.getLogger(__name__)
 
+from application_logging.logging_utils import get_measurement_logger
+ES_URL = "http://127.0.0.1:9200"
+ES_USER = "elastic"
+ES_PASS = "SwmQNU7y"
+PULL_INTERVAL_SECONDS = 2  # seconds
+es_logger = get_measurement_logger(
+    logger_name=LoggerName.METRICS_AGGREGATIONS,
+    logger_handler=get_elastic_logging_handler(ES_USER, ES_PASS, ES_URL, "sid"),
+)
 
 @dataclass
 class ProcessMetrics:
@@ -58,6 +71,10 @@ class QueryMetrics:
 
 
 
+class Mode(Enum):
+    PROFILE = 'profile'
+    ATTACK = 'attack'
+
 class SplunkTools(object):
     _instance = None
 
@@ -67,10 +84,11 @@ class SplunkTools(object):
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, active_saved_searches=None, rule_frequency=1):
+    def __init__(self, active_saved_searches=None, rule_frequency=1, mode=Mode.ATTACK):
         if self._initialized:
             return
-        
+        self.mode = mode
+        self.pids = []
         self.splunk_host = os.getenv("SPLUNK_HOST")
         self.splunk_port = os.getenv("SPLUNK_PORT")
         self.base_url = f"https://{self.splunk_host}:{self.splunk_port}"
@@ -204,6 +222,15 @@ class SplunkTools(object):
         
         if pid is not None:
             try:
+                self.pids.append(pid)
+                sid = job.content.get('sid', None)
+                if self.mode == Mode.PROFILE:
+                    es_logger.info(f"PID SID MAPPING", extra={
+                        'pid': pid,
+                        'sid': sid,
+                        'search_name': search_name
+                    }
+                    )
                 process = psutil.Process(int(pid))
                 process_start_time = time.time()
                 # FIX 4: Get CPU times in executor
@@ -313,6 +340,102 @@ class SplunkTools(object):
         )
         
         return metric, results
+        
+
+    
+    async def run_saved_search(self, saved_search: str, time_range: Tuple[str, str]) -> QueryMetrics:
+        """Run a saved search and collect metrics"""
+        search_name = saved_search
+        query = self.active_saved_searches[saved_search]['search']
+        
+        # Parse time range
+        earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
+        latest_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').timestamp()
+        
+        logger.info(f'Running saved search {search_name}')
+        return await self.execute_query(search_name, query, earliest_time, latest_time)
+
+    async def run_saved_searches(
+        self, 
+        time_range: Tuple[str, str], 
+        running_plan: Dict[str, int]=None,
+        num_measurements: int = 1        
+    ) -> Tuple[List[QueryMetrics], float]:
+        """
+        FIXED: Already properly parallelized with asyncio.gather
+        Just needed the execute_query to be truly async
+        """
+        # Start CPU monitoring
+        # self.start_cpu_monitoring()
+        
+        all_tasks = []
+        if running_plan is None:
+            running_plan = {search: num_measurements for search in self.active_saved_searches}
+        
+        for search_name, num_measurements in running_plan.items():
+            for i in range(num_measurements):
+                # Create a task for each measurement
+                task = asyncio.create_task(self.run_saved_search(
+                    search_name, time_range))
+                all_tasks.append(task)
+        # run a thread that check if all pids founded and then enrich elasic index
+        if self.mode == Mode.PROFILE:
+            pids_thread = threading.Thread(
+                target=self.enrich_elastic_index_with_pids,
+            )
+            pids_thread.start()
+        # Run all tasks concurrently
+        results = await asyncio.gather(*all_tasks)
+        if self.mode == Mode.PROFILE:        
+            # Wait for the pids thread to finish
+            pids_thread.join()
+            self.pids = []
+        
+        # Filter out any failed measurements
+        valid_results = [m for m, r in results if isinstance(m, QueryMetrics)]
+        for result in valid_results:
+            result.start_time = time_range[0]
+            result.end_time = time_range[1]
+        
+        if len(valid_results) < len(results):
+            logger.warning(f"Some measurements failed: {len(results) - len(valid_results)} failures")
+        # log each res in line
+        for result in valid_results:
+            logger.info(f"Search: {result.search_name}, "
+                        f"Results: {result.results_count}, "
+                        f"Execution Time: {result.execution_time:.2f}s, "
+                        f"CPU: {result.cpu:.2f}s, ")
+                    #   f"IO Metrics: {result.io_metrics}")
+        return valid_results, self.total_cpu_time
+            
+        # finally:
+        #     # Stop CPU monitoring
+        #     self.stop_cpu_monitoring()
+        
+    def enrich_elastic_index_with_pids(self):
+        while len(self.pids)!= len(self.active_saved_searches):
+            time.sleep(0.1)
+        logger.info(f"Enriching Elastic index with PIDs: {self.pids}")
+        # Enrich the Elastic index with the PIDs
+        # # Execute the enrich policy using 'target' and provide authentication explicitly
+        response = es_logger.handlers[0].es.transport.perform_request(
+            method="POST",
+            target="/_enrich/policy/search_name/_execute",  # 'target' is the correct parameter here
+            headers={
+                "Authorization": "Basic ZWxhc3RpYzpTd21RTlU3eQ=="  # base64 encoded "elastic:SVR4mUZl"
+            }
+        )
+        
+    def monitor_total_cpu(self):
+        """Monitor total CPU usage across all Splunk processes"""
+        start_time = time.time()
+        start_cpu = psutil.cpu_times().user
+
+        while not self.stop_cpu_monitor.is_set():
+            time.sleep(0.1)
+
+        self.total_cpu_time = psutil.cpu_times().user - start_cpu
+        
     
     async def run_saved_search(self, saved_search: str, time_range: Tuple[str, str]) -> QueryMetrics:
         """Run a saved search and collect metrics"""
@@ -533,7 +656,10 @@ class SplunkTools(object):
                     df = pd.read_csv(f'{PREFIX_PATH}resources/output_buckets/{file}')
                     df['_time'] = pd.to_datetime(df['_time'], format='%Y-%m-%d %H:%M:%S',  errors='coerce')
                     df = df.dropna(subset=['_time'])
-                    
+                    for col in df.select_dtypes(include=['float64']).columns:
+                        df[col] = df[col].astype('float32')
+                    for col in df.select_dtypes(include=['int64']).columns:
+                        df[col] = df[col].astype('int32')
                     # Filter data for current time slice
                     # mask = (df['_time'] >= current_ts)
                     # if current_ts + (end_date_time_file - start_date_time_file) > ts_end_time:
@@ -548,6 +674,7 @@ class SplunkTools(object):
             if not bucket_found:
                 self.create_new_distribution_bucket(current_ts, ts_end_time)
                 continue
+            
         
         if all_data:
             self.real_logs_distribution = pd.concat(all_data, ignore_index=True)
@@ -555,6 +682,8 @@ class SplunkTools(object):
             self.real_logs_distribution = self.real_logs_distribution[
                 self.real_logs_distribution['source'].str.contains('Security|System', case=False, regex=True)
             ]
+            self.real_logs_distribution = self.real_logs_distribution.set_index('_time').sort_index()
+
             return
         
 
@@ -631,21 +760,28 @@ class SplunkTools(object):
         #     self.real_logs_distribution['_time'] = self.real_logs_distribution['_time'].dt.tz_localize('UTC')
         
         # Now compare the timezone-aware datetimes
-        relevant_logs = self.real_logs_distribution[
-            (self.real_logs_distribution['_time'] >= pd.Timestamp(start_time, unit='s') ) & 
-            (self.real_logs_distribution['_time'] <= pd.Timestamp(end_time, unit='s') )
-        ]
+        # Then your lookup becomes:
+        start_ts = pd.Timestamp(start_time, unit='s')
+        end_ts = pd.Timestamp(end_time, unit='s')
+        relevant_logs = self.real_logs_distribution.loc[start_ts:end_ts]
         
         # Check if we have full coverage
-        if len(relevant_logs) == 0 or \
-        relevant_logs['_time'].min() > start_time or \
-        relevant_logs['_time'].max() < end_time:
-            logger.info('Loading missing distribution data from disk.')
-            self.load_real_logs_distribution_bucket(start_time, end_time)
-            relevant_logs = pd.concat((relevant_logs, self.real_logs_distribution[
-                (self.real_logs_distribution['_time'] >= pd.Timestamp(start_time, unit='s')) & 
-                (self.real_logs_distribution['_time'] <= pd.Timestamp(end_time, unit='s'))
-            ]))
+        # if len(relevant_logs) == 0 or \
+        # relevant_logs.index.min() > start_time or \
+        # relevant_logs.index.max() < end_time:
+            # logger.info('Loading missing distribution data from disk.')
+            # self.load_real_logs_distribution_bucket(start_time, end_time)
+            # new_logs = self.real_logs_distribution.loc[
+            #     pd.Timestamp(start_time, unit='s'):pd.Timestamp(end_time, unit='s')
+            # ]
+
+            # # Concatenate with existing
+        
+            # relevant_logs = pd.concat([relevant_logs, new_logs])
+            # logger.info('No relevant logs found for the given time range.')
+            # logger.info(f'Start time: {start_time}, End time: {end_time}')
+            # logger.info(f'Relevant logs shape: {relevant_logs.shape}')
+            # logger.info(f'Relevant logs index range: {relevant_logs.index.min()} - {relevant_logs.index.max()}')
         relevant_logs.loc[:, 'count'] = relevant_logs['count'].astype(int)
         
         return relevant_logs       
@@ -765,15 +901,25 @@ class SplunkTools(object):
         # Use RFC3339 format for Splunk query
         if time_range is None:
             time_range = ("0", datetime.now())
-        start_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
-        end_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
-        job = self.service.jobs.create(
-            f'search index=main host="dt-splunk" | delete', 
-            earliest_time=start_time, 
-            latest_time=end_time,
-            time_format='%Y-%m-%d %H:%M:%S',
-            count=0
-        )
+        if type(time_range) is str:
+            start_time = f"-{time_range}"
+
+            job = self.service.jobs.create(
+                f'search index=main host="dt-splunk" earliest={start_time}| delete', 
+                earliest_time=start_time, 
+                time_format='%Y-%m-%d %H:%M:%S',
+                count=0
+            )
+        else:
+            start_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+            end_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+            job = self.service.jobs.create(
+                f'search index=main host="dt-splunk" | delete', 
+                earliest_time=start_time, 
+                latest_time=end_time,
+                time_format='%Y-%m-%d %H:%M:%S',
+                count=0
+            )
         while True:
             job.refresh()
             if job.content['isDone'] == '1':

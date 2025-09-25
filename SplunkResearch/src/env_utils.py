@@ -52,15 +52,17 @@ def clean_env(splunk_tools_instance, time_range=None):
         empty_monitored_files(SYSTEM_MONITOR_FILE_PATH)
         empty_monitored_files(SECURITY_MONITOR_FILE_PATH)
         return time_range
+        
     # date = time_range[1].split(':')[0]
     # time_range = (f'{date}:00:00:00', f'{date}:23:59:59')
     # add small mergine to the time range
-    start_time = datetime.datetime.strptime(time_range[0], "%m/%d/%Y:%H:%M:%S")
-    end_time = datetime.datetime.strptime(time_range[1], "%m/%d/%Y:%H:%M:%S")
-    start_time = start_time - datetime.timedelta(minutes=5)
-    end_time = end_time + datetime.timedelta(minutes=5)
-    time_range = (start_time.strftime("%m/%d/%Y:%H:%M:%S"), end_time.strftime("%m/%d/%Y:%H:%M:%S"))
-    logger.info(f'update time range to {time_range}')
+    if not type(time_range) is str: 
+        start_time = datetime.datetime.strptime(time_range[0], "%m/%d/%Y:%H:%M:%S")
+        end_time = datetime.datetime.strptime(time_range[1], "%m/%d/%Y:%H:%M:%S")
+        start_time = start_time - datetime.timedelta(minutes=5)
+        end_time = end_time + datetime.timedelta(minutes=5)
+        time_range = (start_time.strftime("%m/%d/%Y:%H:%M:%S"), end_time.strftime("%m/%d/%Y:%H:%M:%S"))
+        logger.info(f'update time range to {time_range}')
     empty_monitored_files(SYSTEM_MONITOR_FILE_PATH)
     empty_monitored_files(SECURITY_MONITOR_FILE_PATH)
     splunk_tools_instance.delete_fake_logs(time_range)

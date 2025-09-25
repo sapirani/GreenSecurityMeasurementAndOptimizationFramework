@@ -859,7 +859,7 @@ def main(user_args):
 
     application_flow_logger.info("The scanner has finished measuring")
 
-    print("Finished scanning")
+    print(f"Finished scanning {session_id}")
 
 
 if __name__ == '__main__':
