@@ -394,7 +394,8 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             std_alert = np.std(self.alerts) if len(self.alerts) > 0 else 0
             
             info['ac_distribution_reward'] = -((info['ac_distribution_value'] - mean_distribution)/ (std_distribution + self.epsilon))
-            
+            # clip the reward to be between 0 and -1
+            info['ac_distribution_reward'] = np.clip(info['ac_distribution_reward'], -1, 0)
             
             # info['ac_distribution_reward'] = dist_reward
             # info['ac_distribution_reward'] = 30*info['ac_distribution_value']
@@ -403,10 +404,12 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # info['alert_reward'] = ((predicted_alert_reward - sum(self.expected_alerts.values()))/std)
             # self.mean_alert = (self.unwrapped.all_steps_counter//self.unwrapped.total_steps - 1)*self.mean_alert + sum(raw_baseline_metrics[rule]['alert'] for rule in self.expected_alerts)/(self.unwrapped.all_steps_counter//self.unwrapped.total_steps)
             info['alert_reward'] = predicted_alert_reward
-            
+            info['norm_alert_reward'] = -(-predicted_alert_reward - mean_alert)/(std_alert + self.epsilon)
+            # clip the reward to be between 0 and -1
+            info['norm_alert_reward'] = np.clip(info['norm_alert_reward'], -1, 0)
             ############### Total reward ##############
             reward = 0.2*info['ac_distribution_reward']
-            reward += -0.2*(-predicted_alert_reward - mean_alert)/(std_alert + self.epsilon)
+            reward += 0.2*info['norm_alert_reward'] 
 
             # reward = 0
             # if info.get('ac_distribution_value', 0) > self.env.distribution_threshold or predicted_alert_reward < self.alert_threshold:
