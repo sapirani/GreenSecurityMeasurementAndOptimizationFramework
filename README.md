@@ -158,7 +158,7 @@ To import the dashboard, you should:
 3. press the import button
 4. press `request action on conflict` under `Import options`
 5. select a dashboard file from `kibana_dashboards` directory (an ndjson file).
-6. you will probably encounter conflicts. Kibana will ask you to align an with with a name of a dataview
+6. you will probably encounter conflicts. Kibana will ask you to align an ID with a name of a dataview. The following represent mappings between IDs you might encounter and the names of the relevant dataviews. If an ID does not appear in your conflicts screen, continue on.
 a. choose `metrics_aggregations` near the ID of `1834a0cf-20ff-4e11-b006-62faedde6305`
 b. choose `system_metrics` near the ID of `91b6f9d7-ac38-4fe6-824d-1e89c31d129b`
 c. choose `process_metrics` near the ID of `b4c611a0-f002-4d56-b2f5-92b4a70a3cb1`
