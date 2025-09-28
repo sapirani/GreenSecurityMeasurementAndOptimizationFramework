@@ -14,4 +14,15 @@ class AbstractElasticConsumer(ABC):
             iteration_raw_results: IterationRawResults,
             iteration_aggregation_results: Optional[IterationAggregatedResults]
     ):
+        """
+        This function is the main function that each consumer should implement.
+        The consumer receives the iteration results and decides what to do with them.
+        """
+        pass
+
+    def post_processing(self):
+        """
+        This function is called after all results are fetched and transferred to the consumer via the consume function.
+        This function allows performing operations when knowing no more data is going to be fetched.
+        """
         pass
