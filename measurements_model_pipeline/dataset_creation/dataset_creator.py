@@ -189,19 +189,25 @@ class DatasetCreator:
 
     def __calculate_energy_ratio_by_resources(self, batch_df: pd.DataFrame) -> pd.DataFrame:
         # todo: a key can be (pid, process_name) in the future
+        group_by_energy_columns = [energy_field.name for energy_field in fields(ProcessEnergyModelFeatures)]
         resources_per_process_df = (
-            batch_df.groupby(ProcessColumns.PROCESS_ID_COL)[fields(ProcessEnergyModelFeatures)].agg(lambda s: sum(s))
+            batch_df.groupby(ProcessColumns.PROCESS_ID_COL)[group_by_energy_columns].agg(lambda s: sum(s))
         )
 
         processes_energy_by_resources = {
-            row[ProcessColumns.PROCESS_ID_COL]: self.__resource_energy_calculator.calculate_total_energy_by_resources(
+            row.name: self.__resource_energy_calculator.calculate_total_energy_by_resources(
                 ProcessEnergyModelFeatures.from_pandas_series(row))
             for _, row in resources_per_process_df.iterrows()
         }
 
         sum_energy_processes_by_resources = sum(processes_energy_by_resources.values())
-        energy_ratio_per_process = {pid: process_energy / sum_energy_processes_by_resources
-                                    for pid, process_energy in processes_energy_by_resources.items()}
+        if sum_energy_processes_by_resources > 0:
+            energy_ratio_per_process = {pid: process_energy / sum_energy_processes_by_resources
+                                        for pid, process_energy in processes_energy_by_resources.items()}
+        else:
+            # all energy values for processes are 0 and have the same ratio compared the total energy
+            energy_ratio_per_process = {pid: 1 / len(processes_energy_by_resources)
+                                        for pid, _ in processes_energy_by_resources.items()}
 
         batch_df[SystemColumns.ENERGY_RATIO_SHARE] = batch_df[ProcessColumns.PROCESS_ID_COL].map(
             energy_ratio_per_process)
