@@ -14,6 +14,18 @@ def run_scanner(scanner_path: str, session_id: str):
 
 
 def update_parameter(current_content: str, field_name: str, field_value: str) -> str:
+    """
+    This method finds specific parameter in the content and replace its value with the given value.
+    The regex finds the pattern that matches the following:
+    field_name(possible spaces)=(possible spaces)(any possible value)end_of_line
+
+    Input:
+        current_content: content to be updated
+        field_name: the name of the parameter
+        field_value: the new value of the parameter
+    Output:
+        updated_content: content with the new value for the specific parameter
+    """
     new_content = re.sub(
         fr'^{field_name}\s*=\s*.*$',
         f'{field_name} = {field_value}',

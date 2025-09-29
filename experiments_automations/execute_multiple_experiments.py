@@ -53,7 +53,7 @@ if __name__ == '__main__':
                         default=DEFAULT_NUMBER_OF_EXPERIMENTS,
                         help="number of repetitions of a single experiment.")
 
-    parser.add_argument("-d", "--use_default",
+    parser.add_argument("-d", "--run_default_tasks",
                         type=bool,
                         default=False,
                         help="choose whether to run the scanner with the current program_parameters configuration, or run all default tasks.")
@@ -75,10 +75,10 @@ if __name__ == '__main__':
 
     arguments = parser.parse_args()
     number_of_experiments = arguments.number_of_repetitions_per_experiment
-    measurement_session = arguments.measurement_session_id
+    measurement_session_id = arguments.measurement_session_id
 
-    if arguments.use_default:
+    if arguments.run_default_tasks:
         run_various_experiments(number_of_experiments, arguments.task_rate, arguments.task_unit_size)
 
     else:
-        run_identical_experiments(number_of_experiments, measurement_session)
+        run_identical_experiments(number_of_experiments, measurement_session_id)
