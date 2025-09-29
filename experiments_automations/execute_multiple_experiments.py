@@ -36,8 +36,14 @@ def run_identical_experiments(num_of_experiments: int, main_session_id: str):
 
 def run_various_experiments(num_of_experiments: int, rate: Optional[float], size: Optional[int]):
     update_dummy_task_values(PROGRAM_PARAMETERS_PATH, rate=rate, size=size)
+    session_id_addition = ""
+    if size is not None:
+        session_id_addition += f"_{size}_bytes"
+    if rate is not None:
+        session_id_addition += f"_{rate}_rate"
+
     for task_id, task in enumerate(DEFAULT_TASKS):
-        task_session = f"default_task_{task.name}"
+        task_session = f"default_task_{task.name}{session_id_addition}"
         update_main_program(PROGRAM_PARAMETERS_PATH, main_program_value=task)
         run_identical_experiments(num_of_experiments, task_session)
         sleep(SLEEPING_TIME_BETWEEN_TASKS)
