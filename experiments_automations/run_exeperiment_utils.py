@@ -22,7 +22,8 @@ def update_parameter(current_content: str, field_name: str, field_value: str) ->
     Input:
         current_content: content to be updated
         field_name: the name of the parameter
-        field_value: the new value of the parameter
+        field_value: the new value of the parameter.
+                     Should be a string that contains the requested value (e.g. float, enum, str, etc.)
     Output:
         updated_content: content with the new value for the specific parameter
     """

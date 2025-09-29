@@ -8,11 +8,11 @@ from human_id import generate_id
 
 from experiments_automations.run_exeperiment_utils import run_scanner, update_main_program, \
     update_dummy_task_values
-from utils.general_consts import MINUTE, ProgramToScan
+from utils.general_consts import ProgramToScan
 
 DEFAULT_NUMBER_OF_EXPERIMENTS = 3
-SLEEPING_TIME_BETWEEN_MEASUREMENTS = 30
-SLEEPING_TIME_BETWEEN_TASKS = 2 * MINUTE
+SLEEPING_TIME_BETWEEN_MEASUREMENTS = 15
+SLEEPING_TIME_BETWEEN_TASKS = 15
 DEFAULT_TASK_UNIT_SIZE = 1024
 
 SCANNER_PROGRAM_FILE = "scanner.py"
@@ -34,7 +34,7 @@ def run_identical_experiments(num_of_experiments: int, main_session_id: str):
         sleep(SLEEPING_TIME_BETWEEN_MEASUREMENTS)
 
 
-def run_various_experiments(num_of_experiments: int, rate: Optional[float], size: Optional[int]):
+def run_various_experiments(num_of_experiments: int, main_session_id: str, rate: Optional[float], size: Optional[int]):
     update_dummy_task_values(PROGRAM_PARAMETERS_PATH, rate=rate, size=size)
     session_id_addition = ""
     if size is not None:
@@ -43,7 +43,7 @@ def run_various_experiments(num_of_experiments: int, rate: Optional[float], size
         session_id_addition += f"_{rate}_rate"
 
     for task_id, task in enumerate(DEFAULT_TASKS):
-        task_session = f"default_task_{task.name}{session_id_addition}"
+        task_session = f"{main_session_id}_task_{task.name}{session_id_addition}"
         update_main_program(PROGRAM_PARAMETERS_PATH, main_program_value=task)
         run_identical_experiments(num_of_experiments, task_session)
         sleep(SLEEPING_TIME_BETWEEN_TASKS)
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     measurement_session_id = arguments.measurement_session_id
 
     if arguments.run_default_tasks:
-        run_various_experiments(number_of_experiments, arguments.task_rate, arguments.task_unit_size)
+        run_various_experiments(number_of_experiments, measurement_session_id, arguments.task_rate, arguments.task_unit_size)
 
     else:
         run_identical_experiments(number_of_experiments, measurement_session_id)
