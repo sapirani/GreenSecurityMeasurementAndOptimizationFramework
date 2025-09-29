@@ -27,7 +27,7 @@ class AbstractElasticSearchHandler(logging.Handler, ABC):
             raise ConnectionError("Elasticsearch cluster is not reachable")
 
     @abstractmethod
-    def _inner_emit(self, doc: Dict[str, Any]) -> None:
+    def _inner_emit(self, doc: Dict[str, Any]):
         pass
 
     def emit(self, record: logging.LogRecord):

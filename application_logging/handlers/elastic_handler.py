@@ -26,6 +26,6 @@ def get_elastic_logging_handler(
 
 
 class ElasticSearchLogHandler(AbstractElasticSearchHandler):
-    def _inner_emit(self, doc: Dict[str, Any]) -> None:
+    def _inner_emit(self, doc: Dict[str, Any]):
         self.es.index(index=self.index_name, body=doc, pipeline=self.pipeline_name)
 

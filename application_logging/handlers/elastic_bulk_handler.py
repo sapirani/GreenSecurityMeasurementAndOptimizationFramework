@@ -46,7 +46,7 @@ class ElasticSearchBulkHandler(AbstractElasticSearchHandler):
         self.max_queue_size = max_queue_size
         atexit.register(self.flush)
 
-    def _inner_emit(self, doc: Dict[str, Any]) -> None:
+    def _inner_emit(self, doc: Dict[str, Any]):
         self.queue.put(doc)
 
         if self.queue.qsize() >= self.max_queue_size:
