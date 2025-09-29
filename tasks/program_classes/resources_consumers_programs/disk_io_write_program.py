@@ -16,5 +16,5 @@ class DiskIOWriteConsumer(ProgramInterface):
     def get_command(self) -> str:
         command = rf"python {os.path.join('tasks/resources_consumers', 'disk_io_writer_task.py')} -r {self.__rate} "
         if self.__file_size is not None:
-            command += f"-n {self.__file_size}"
+            command += f"-s {self.__file_size}"
         return command

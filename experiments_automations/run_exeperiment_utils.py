@@ -30,7 +30,7 @@ def update_multiple_parameters(program_parameters_file_path: str,
 
     for field_name, field_value in field_names_and_values:
         if field_value is not None:
-            update_parameter(content, field_name, field_value)
+            content = update_parameter(content, field_name, field_value)
 
     program_parameters_file.write_text(content)
 
@@ -38,7 +38,7 @@ def update_multiple_parameters(program_parameters_file_path: str,
 def update_main_program(program_parameters_file_path: str,
                         main_program_value: ProgramToScan):
     update_multiple_parameters(program_parameters_file_path,
-                               [("main_program", f'"ProgramToScan.{main_program_value.name}"')])
+                               [("main_program_to_scan", f"ProgramToScan.{main_program_value.name}")])
 
 
 def update_dummy_task_values(program_parameters_file_path: str,
