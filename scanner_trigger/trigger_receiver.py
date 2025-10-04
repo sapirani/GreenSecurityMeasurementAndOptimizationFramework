@@ -8,6 +8,7 @@ from typing import Optional, List
 import logging
 
 from scanner_trigger import logging_configuration
+BUFFER_SIZE = 4192
 
 SCANNER_TERMINATION_WAITING_SECONDS = 30
 
@@ -69,7 +70,7 @@ def main(host: str, port: int, python_path: str, scanner_path: str, nice: int):
             conn, addr = s.accept()
             with conn:
                 logging.info(f"Connected to {addr}")
-                message = conn.recv(64)
+                message = conn.recv(BUFFER_SIZE)
                 logging.debug(f"Received a message: {message}")
 
                 if b"start_measurement" in message:
