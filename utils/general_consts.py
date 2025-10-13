@@ -76,6 +76,7 @@ class BatteryMonitorType(Enum):
 class ProcessMonitorType(Enum):
     FULL = 1
     PROCESSES_OF_INTEREST_ONLY = 2
+    PROCESSES_OF_INTEREST_AND_CHILDREN = 3
 
 
 class SummaryType(Enum):
