@@ -10,5 +10,6 @@ from measurements_model_pipeline.evaluation.evaluation_metrics.abstract_evaluati
 class RootMeanSquaredErrorMetric(AbstractEvaluationMetric):
     def get_metric_name(self) -> str:
         return "RMSE"
+
     def calculate_metric(self, y: pd.Series, y_pred: pd.Series) -> float:
         return math.sqrt(mean_squared_error(y_pred, y))
