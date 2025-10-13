@@ -3,7 +3,8 @@ from typing import List
 import psutil
 from overrides import override
 
-from resource_usage_recorder.processes_recorder.strategies.abstract_processes_recorder import AbstractProcessResourceUsageRecorder, \
+from resource_usage_recorder.processes_recorder.strategies.abstract_processes_recorder import \
+    AbstractProcessResourceUsageRecorder, \
     ProcessMetrics
 
 
@@ -17,5 +18,6 @@ class ProcessesOfInterestAndChildrenRecorder(AbstractProcessResourceUsageRecorde
 
     @override
     def set_processes_to_mark(self, processes: List[psutil.Process]):
-        processes_children = [parent_process.children(recursive=True) for parent_process in processes]
+        processes_children = [process_child for parent_process in processes for process_child in
+                              parent_process.children(recursive=True)]
         self.mark_processes = processes + processes_children

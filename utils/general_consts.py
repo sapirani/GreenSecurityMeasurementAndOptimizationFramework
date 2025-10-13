@@ -198,9 +198,13 @@ def get_scanner_version_name(battery_monitor_type: BatteryMonitorType, process_m
         return "Full Process Monitoring Including Battery"
     elif battery_monitor_type == battery_monitor_type.FULL and process_monitor_type == process_monitor_type.PROCESSES_OF_INTEREST_ONLY:
         return "Only Process of Interest Monitoring Including Battery"
+    elif battery_monitor_type == battery_monitor_type.FULL and process_monitor_type == process_monitor_type.PROCESSES_OF_INTEREST_AND_CHILDREN:
+        return "Process of Interest with it's Sub-processes Monitoring Including Battery"
     elif battery_monitor_type == battery_monitor_type.WITHOUT_BATTERY and process_monitor_type == process_monitor_type.FULL:
         return "Full Process Monitoring Excluding Battery"
     elif battery_monitor_type == battery_monitor_type.WITHOUT_BATTERY and process_monitor_type == process_monitor_type.PROCESSES_OF_INTEREST_ONLY:
         return "Only Process of Interest Monitoring Excluding Battery"
+    elif battery_monitor_type == battery_monitor_type.WITHOUT_BATTERY and process_monitor_type == process_monitor_type.PROCESSES_OF_INTEREST_AND_CHILDREN:
+        return "Process of Interest with it's Sub-processes Monitoring Excluding Battery"
 
     raise Exception("Scanner version is not supported")
