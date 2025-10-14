@@ -9,6 +9,8 @@ ES_PASS = "<your_password>"
 
 consumer_types = [ElasticConsumerType.AGGREGATIONS_LOGGER, ElasticConsumerType.CSV, ElasticConsumerType.DRL]
 
+custom_pipeline_name = None
+
 verbosity = Verbosity.NONE
 aggregation_strategy = AggregationStrategy.CALCULATE
 
