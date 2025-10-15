@@ -18,5 +18,11 @@ class RootMeanSquaredPercentErrorMetric(AbstractEvaluationMetric):
         y = y[mask]
         y_pred = y_pred[mask]
 
+        if len(y) == 0:
+            if len(y_pred) == 0:
+                    return 0
+            else:
+                return float('inf')
+
         percentage_errors = ((y - y_pred) / y) ** 2
         return np.sqrt(np.mean(percentage_errors)) * 100

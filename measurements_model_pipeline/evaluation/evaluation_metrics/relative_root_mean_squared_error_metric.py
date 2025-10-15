@@ -16,5 +16,9 @@ class RelativeRootMeanSquaredErrorMetric(RootMeanSquaredErrorMetric):
         y_average = y.mean()
 
         if y_average == 0:
-            return 0
+            if rmse == 0:
+                return 0
+            else:
+                return float('inf')
+
         return (rmse / y_average) * 100
