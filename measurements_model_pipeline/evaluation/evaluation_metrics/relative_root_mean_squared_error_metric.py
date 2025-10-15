@@ -9,10 +9,9 @@ from measurements_model_pipeline.evaluation.evaluation_metrics.root_mean_squared
 
 class RelativeRootMeanSquaredErrorMetric(RootMeanSquaredErrorMetric):
     def get_metric_name(self) -> str:
-        return "Relative RMSE"
+        return "Relative Root Mean Squared Error (Relative RMSE)"
 
-    def calculate_metric(self, y: pd.Series, y_pred: pd.Series) -> float:
-        mse = mean_squared_error(y_pred, y)
-        relative_den = (y_pred ** 2).sum()
-        relative_mse = mse / relative_den
-        return math.sqrt(relative_mse)
+    def evaluate(self, y: pd.Series, y_pred: pd.Series) -> float:
+        rmse = super().evaluate(y, y_pred)
+        y_average = y.mean()
+        return (rmse / y_average) * 100

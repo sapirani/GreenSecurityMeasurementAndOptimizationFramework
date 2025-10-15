@@ -9,5 +9,5 @@ class AbstractEvaluationMetric(ABC):
         pass
 
     @abstractmethod
-    def calculate_metric(self, y: pd.Series, y_pred: pd.Series) -> float:
+    def evaluate(self, y: pd.Series, y_pred: pd.Series) -> float:
         pass

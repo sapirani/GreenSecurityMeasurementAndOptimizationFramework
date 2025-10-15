@@ -7,7 +7,7 @@ from measurements_model_pipeline.evaluation.evaluation_metrics.abstract_evaluati
 
 class MeanAbsoluteErrorMetric(AbstractEvaluationMetric):
     def get_metric_name(self) -> str:
-        return "MAE"
+        return "Mean Absolute Error (MAE)"
 
-    def calculate_metric(self, y: pd.Series, y_pred: pd.Series) -> float:
+    def evaluate(self, y: pd.Series, y_pred: pd.Series) -> float:
         return mean_absolute_error(y_pred, y)

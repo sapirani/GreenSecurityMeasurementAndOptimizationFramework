@@ -117,5 +117,4 @@ class ResourceEnergyCalculator:
             logging.warning(f"Energy sum by resources is negative or 0, equals to: {resource_sum_energy}")
             return 0
 
-        logging.info(f"Energy prediction is positive and equals to {model_energy_prediction} mwh")
         return (model_energy_prediction / resource_sum_energy) * resource_energy
