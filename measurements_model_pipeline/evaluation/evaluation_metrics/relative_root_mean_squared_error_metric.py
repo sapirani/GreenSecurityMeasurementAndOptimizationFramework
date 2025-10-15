@@ -14,4 +14,7 @@ class RelativeRootMeanSquaredErrorMetric(RootMeanSquaredErrorMetric):
     def evaluate(self, y: pd.Series, y_pred: pd.Series) -> float:
         rmse = super().evaluate(y, y_pred)
         y_average = y.mean()
+
+        if y_average == 0:
+            return 0
         return (rmse / y_average) * 100
