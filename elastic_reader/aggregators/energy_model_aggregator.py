@@ -36,7 +36,7 @@ class EnergyModelAggregator(AbstractAggregator):
                 return EmptyAggregationResults()
 
             sample_df = EnergyModelConvertor.convert_features_to_pandas(sample)
-            energy_prediction = self.__model.predict(sample_df)
+            energy_prediction = self.__model.predict(sample_df)[0]
             if energy_prediction < 0:
                 energy_prediction = 0
                 logging.warning(
