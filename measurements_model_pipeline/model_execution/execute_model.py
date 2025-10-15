@@ -9,7 +9,7 @@ from measurements_model_pipeline.dataset_processing.feature_selection.process_an
 from measurements_model_pipeline.model_execution.dataset_pipeline_executor import DatasetPipelineExecutor
 from measurements_model_pipeline.dataset_processing.split_data.regular_spliter import RegularDatasetSplitter
 from measurements_model_pipeline.model_execution.measurements_model import MeasurementsModel
-from measurements_model_pipeline.model_training.utils import calculate_and_print_scores
+from measurements_model_pipeline.utils import calculate_and_print_scores
 
 
 def run_model():
