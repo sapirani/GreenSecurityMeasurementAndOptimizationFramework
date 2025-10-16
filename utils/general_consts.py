@@ -182,14 +182,14 @@ class BatteryColumns(str, Enum):
 class LoggerName:
     SYSTEM_METRICS = "system_metrics"
     PROCESS_METRICS = "process_metrics"
-    APPLICATION_FLOW = "system_metrics"
+    APPLICATION_FLOW = "application_flow"
     METRICS_AGGREGATIONS = "metrics_aggregations"
 
 
 class IndexName:
     SYSTEM_METRICS = "system_metrics"
     PROCESS_METRICS = "process_metrics"
-    APPLICATION_FLOW = "system_metrics"
+    APPLICATION_FLOW = "application_flow"
     METRICS_AGGREGATIONS = "metrics_aggregations"
 
 
