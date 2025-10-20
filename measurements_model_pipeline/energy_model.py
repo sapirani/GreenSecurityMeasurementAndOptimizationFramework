@@ -37,5 +37,14 @@ class EnergyModel:
                     else:
                         raise RuntimeError(f"Model file {MODEL_FILE_NAME} does not exist, build the model first.")
 
-    def predict(self, sample: pd.DataFrame) -> float:
-        return self.__model.predict(sample)
+    def predict(self, samples: pd.DataFrame) -> list[float]:
+        """
+        This method predicts the energy of the given samples using the energy prediction model.
+        :param samples: DataFrame with samples to predict their energy.
+        :return: Predicted energy for each sample.
+        """
+        predictions = self.__model.predict(samples)
+        if len(predictions) > 0:
+            return predictions
+        else:
+            raise RuntimeError(f"No predictions found for samples {samples}.")

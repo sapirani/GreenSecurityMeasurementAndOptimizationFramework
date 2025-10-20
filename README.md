@@ -122,16 +122,21 @@ This project currently supports the following programs (it is very easy to add a
 8. etc.
 
 
-#### Using Elastic to Analyze Results:
-Make sure your elastic details are written inside the program_parameters.py file.
+# Using Elasticsearach and Kibana to Analyze Results:
+Use the following link to start Elasticsearch and Kibana locally: [link](https://www.elastic.co/docs/deploy-manage/deploy/self-managed/local-development-installation-quickstart).
+
+Insert your elastic details (username, password, and url - should appear in your terminal when installation is terminated) into the `program_parameters.py` file.
+If you lost your credentials, they should appear inside a directory called `elastic-start-local` in your `home` folder. Specifically, look at the `.env` file.
 
 To compare graphs across multiple measurement sessions, you should create a runtime field.
-1. Go to "Stack management" -> Kibana -> Data Views.
-2. Choose the scanner data view.
-3. Click on create field, insert `seconds_from_scanner_start` as the name of the field.
-4. Choose 'long' as the field's type.
-5. Toggle the "Set value".
-6. Insert the following script:
+1. Open your broweser and enter Kibana ([link](http://127.0.0.1:5601))
+2. Insert your credentials
+3. Go to "Stack management" -> Kibana -> Data Views.
+4. Choose the scanner data view.
+5. Click on create field, insert `seconds_from_scanner_start` as the name of the field.
+6. Choose 'long' as the field's type.
+7. Toggle the "Set value".
+8. Insert the following script:
 ```
 if (doc.containsKey('timestamp') && doc.containsKey('start_date')
     && !doc['timestamp'].empty && !doc['start_date'].empty) {
@@ -140,9 +145,38 @@ if (doc.containsKey('timestamp') && doc.containsKey('start_date')
     emit((ts - start) / 1000); // return in seconds
 }
 ```
-7. Create a graph such that the new `seconds_from_scanner_start` field is the x-axis.
-8. To observe graphs resulting from different measurements onto each other, tap the "Break down by" and choose the session_id.
-9. You may add control (inside the dashboard screen) based on the session_id field, to compare specific measurement sessions of your choice.
+9. Create a graph such that the new `seconds_from_scanner_start` field is the x-axis.
+10. To observe graphs resulting from different measurements onto each other, tap the "Break down by" and choose the session_id.
+11. You may add control (inside the dashboard screen) based on the session_id field, to compare specific measurement sessions of your choice.
+
+## Import Dashboards
+Inside `kibana_dashboards`, we have exported multiple interactive dashboards to easily estimate the performance of measured processes and system.
+
+To import the dashboard, you should:
+1. press the search bar in Kibana ([link](http://127.0.0.1:5601))
+2. search for `saved objects`
+3. press the import button
+4. press `request action on conflict` under `Import options`
+5. select a dashboard file from `kibana_dashboards` directory (an ndjson file).
+6. you will probably encounter conflicts. Kibana will ask you to align an ID with a name of a dataview. The following represent mappings between IDs you might encounter and the names of the relevant dataviews. If an ID does not appear in your conflicts screen, continue on.
+a. choose `metrics_aggregations` near the ID of `1834a0cf-20ff-4e11-b006-62faedde6305`
+b. choose `system_metrics` near the ID of `91b6f9d7-ac38-4fe6-824d-1e89c31d129b`
+c. choose `process_metrics` near the ID of `b4c611a0-f002-4d56-b2f5-92b4a70a3cb1`
+7. press 'confirm all changes' and 'done'
+8. search for `dashboards` in the search bar
+9. select the imported dashboard
+10. you might encounter an error in the controls. If you do, edit the control - choose the relevant dataview and field. For example, if you encounter an error in the `pid` control, choose `process_metrics` as dataview and `pid` as field.
+
+### Export Dashboards
+If you wish to export your own dashboard (as we did in the `kibana_dashboards` directory):
+1. press the search bar in Kibana ([link](http://127.0.0.1:5601))
+2. search for `saved objects`
+3. select the the dashboards you wish to export (using the checkboxes)
+4. press the export button
+5. **DO NOT TOGGLE `include relevant objects`**
+6. press 'export'
+7. the dashboard will be downloaded (ensure you select keep file in your browser)
+
 
 #### Control Custome Logging Extras
 When logging into elastic, we allow additional, user-defined extras that will be attached to any log produced by the scanner.

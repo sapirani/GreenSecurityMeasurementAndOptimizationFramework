@@ -1,13 +1,7 @@
 import time
-from datetime import datetime, timezone
-import logging
-import os
 from logging import Handler
-from typing import Optional
-
-from elasticsearch import Elasticsearch
-
-INDEX_NAME = os.getenv("ELASTIC_INDEX_NAME", "scanner")
+from typing import Optional, Dict, Any
+from application_logging.handlers.abstract_elastic_handler import AbstractElasticSearchHandler
 
 
 def get_elastic_logging_handler(
@@ -31,45 +25,7 @@ def get_elastic_logging_handler(
         return None
 
 
-class ElasticSearchLogHandler(logging.Handler):
-    def __init__(
-            self,
-            elastic_username: str,
-            elastic_password: str,
-            elastic_url: str,
-            index_name: str,
-            start_timestamp: float = time.time(),
-            pipeline_name: Optional[str] = None
-    ):
-        super().__init__()
-        self.es = Elasticsearch(elastic_url, basic_auth=(elastic_username, elastic_password))
-        self.index_name = index_name
-        self.start_date = datetime.fromtimestamp(start_timestamp, tz=timezone.utc).isoformat()
-        self.pipeline_name = pipeline_name
-
-        if not self.es.ping():
-            print("Cannot connect to Elastic")
-            raise ConnectionError("Elasticsearch cluster is not reachable")
-
-    def emit(self, record: logging.LogRecord):
-        doc = {
-            "level": record.levelname,
-            "message": record.getMessage(),
-            # TODO: try to find a way to avoid sending start_date inside each log
-            "start_date": self.start_date
-        }
-
-        # Emit extra log data
-        reserved = set(vars(logging.makeLogRecord({})).keys())
-        for key, value in record.__dict__.items():
-            if key not in reserved:
-                doc[key] = value
-
-        if "timestamp" not in doc:
-            doc["timestamp"]: datetime.now(timezone.utc).isoformat()
-
-        if self.pipeline_name:
-            self.es.index(index=self.index_name, body=doc, pipeline=self.pipeline_name)
-        else:
-            self.es.index(index=self.index_name, body=doc)
+class ElasticSearchLogHandler(AbstractElasticSearchHandler):
+    def _inner_emit(self, doc: Dict[str, Any]):
+        self.es.index(index=self.index_name, body=doc, pipeline=self.pipeline_name)
 

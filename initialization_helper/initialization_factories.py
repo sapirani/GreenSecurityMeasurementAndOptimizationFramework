@@ -17,8 +17,12 @@ from program_parameters import antivirus_type, scan_type, custom_scan_path, recu
     model_name, model_action, script_relative_path, installation_dir, cpu_percent_to_consume, RUNNING_TIME, \
     dummy_task_rate, dummy_task_unit_size
 from resource_usage_recorder.processes_recorder.process_network_usage_recorder import ProcessNetworkUsageRecorder
-from resource_usage_recorder.processes_recorder.strategies.abstract_processes_recorder import AbstractProcessResourceUsageRecorder
-from resource_usage_recorder.processes_recorder.strategies.all_processes_recorder import AllProcessesResourceUsageRecorder
+from resource_usage_recorder.processes_recorder.strategies.abstract_processes_recorder import \
+    AbstractProcessResourceUsageRecorder
+from resource_usage_recorder.processes_recorder.strategies.all_processes_recorder import \
+    AllProcessesResourceUsageRecorder
+from resource_usage_recorder.processes_recorder.strategies.process_of_interest_and_children_recorder import \
+    ProcessesOfInterestAndChildrenRecorder
 from resource_usage_recorder.processes_recorder.strategies.process_of_interest_only_recorder import \
     ProcessesOfInterestOnlyRecorder
 from resource_usage_recorder.system_recorder.battery.battery_usage_recorder import SystemBatteryUsageRecorder
@@ -80,7 +84,6 @@ def _get_filter(filter_type: CustomFilterType) -> AbstractProcessFilter:
 def custom_process_filter_factory(
         custom_process_filter_types: List[CustomFilterType]
 ) -> Callable[[psutil.Process], bool]:
-
     process_filters = [
         _get_filter(custom_process_filter_type) for custom_process_filter_type in custom_process_filter_types
     ]
@@ -109,6 +112,13 @@ def process_resource_usage_recorder_factory(
         )
     elif process_monitor_type == ProcessMonitorType.PROCESSES_OF_INTEREST_ONLY:
         return ProcessesOfInterestOnlyRecorder(
+            process_network_monitor,
+            running_os,
+            read_process_args,
+            should_ignore_process
+        )
+    elif process_monitor_type == ProcessMonitorType.PROCESSES_OF_INTEREST_AND_CHILDREN:
+        return ProcessesOfInterestAndChildrenRecorder(
             process_network_monitor,
             running_os,
             read_process_args,

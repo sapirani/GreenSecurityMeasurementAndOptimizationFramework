@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 import os.path
 import platform
 import shutil
@@ -14,6 +15,7 @@ from prettytable import PrettyTable
 from threading import Thread, Timer
 import pandas as pd
 
+from application_logging.handlers.elastic_bulk_handler import get_elastic_bulk_handler
 from application_logging.logging_utils import get_measurement_logger
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 from application_logging.filters.scanner_filter import ScannerLoggerFilter
@@ -45,9 +47,9 @@ starting_time = 0
 main_process_id = None
 max_timeout_reached = False
 main_process = None
-system_metrics_logger = None
-process_metrics_logger = None
-application_flow_logger = None
+system_metrics_logger: Optional[logging.Logger] = None
+process_metrics_logger: Optional[logging.Logger] = None
+application_flow_logger: Optional[logging.Logger] = None
 session_id: str = ""
 start_date: datetime = datetime.now(timezone.utc)
 
@@ -89,7 +91,10 @@ def dataframe_append(df: pd.DataFrame, element: Dict) -> pd.DataFrame:
     :param df: dataframe to append to
     :param element: element to append
     """
-    return pd.concat([df, pd.DataFrame([{"seconds_from_start": time_since_start(), **element}])], ignore_index=True)
+    new_df = pd.DataFrame([{"seconds_from_start": time_since_start(), **element}], columns=df.columns)
+    if df.empty:
+        return new_df
+    return pd.concat([df, new_df], ignore_index=True)
 
 
 def time_since_start() -> float:
@@ -182,6 +187,9 @@ def save_metrics_results(
             }
         )
         processes_df = dataframe_append(processes_df, process_results.to_dict())
+
+    for handler in process_metrics_logger.handlers:
+        handler.flush()
 
     system_metrics_logger.info(
         "System Measurements",
@@ -608,7 +616,8 @@ def scan_and_measure():
     while not main_program_to_scan == ProgramToScan.BASELINE_MEASUREMENT and not done_scanning_event.is_set():
         main_process, main_process_id = start_process(program)
         timeout_timer = start_timeout(main_process)
-        background_processes = start_background_processes()
+        background_processes_and_ids = start_background_processes()
+        background_processes = [p for p, _ in background_processes_and_ids]
         processes_resource_usage_recorder.set_processes_to_mark([main_process] + background_processes)
 
         print("Waiting for the main process to terminate")
@@ -617,7 +626,7 @@ def scan_and_measure():
         cancel_timeout_timer(timeout_timer)
 
         # kill background programs after main program finished
-        kill_background_processes(background_processes)
+        kill_background_processes(background_processes_and_ids)
 
         finished_scanning_time.append(time_since_start())
         # check whether another iteration of scan is needed or not
@@ -829,7 +838,7 @@ def main(user_args):
     process_metrics_logger = get_measurement_logger(
         logger_name=LoggerName.PROCESS_METRICS,
         custom_filter=logger_filter,
-        logger_handler=get_elastic_logging_handler(
+        logger_handler=get_elastic_bulk_handler(    # bulk handler is used as an optimization
             elastic_username,
             elastic_password,
             elastic_url,

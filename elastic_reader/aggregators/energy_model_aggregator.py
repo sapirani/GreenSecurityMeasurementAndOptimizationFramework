@@ -14,6 +14,7 @@ from measurements_model_pipeline.energy_model_feature_extractor import EnergyMod
 from measurements_model_pipeline.resource_energy_calculator import ResourceEnergyCalculator
 from measurements_model_pipeline.sample_resources_energy import SampleResourcesEnergy
 
+logger = logging.getLogger(__name__)
 
 class EnergyModelAggregator(AbstractAggregator):
     def __init__(self):
@@ -36,10 +37,10 @@ class EnergyModelAggregator(AbstractAggregator):
                 return EmptyAggregationResults()
 
             sample_df = EnergyModelConvertor.convert_features_to_pandas(sample)
-            energy_prediction = self.__model.predict(sample_df)
+            energy_prediction = self.__model.predict(sample_df)[0]
             if energy_prediction < 0:
                 energy_prediction = 0
-                logging.warning(
+                logger.warning(
                     f"Received a negative value for energy prediction. Returning 0 mwh. The sample: {sample_df}")
 
             energy_per_resource = self.__calculate_energy_per_resource(sample, energy_prediction)
@@ -51,8 +52,7 @@ class EnergyModelAggregator(AbstractAggregator):
                                      network_io_received_energy_consumption=energy_per_resource.network_io_received_energy_consumption,
                                      network_io_sent_energy_consumption=energy_per_resource.network_io_sent_energy_consumption)
         except Exception as e:
-            print(
-                "Error occurred when using the energy model. Returning empty aggregation results. \nThe error is: {}".format(
+            logger.warning("Error occurred when using the energy model. Returning empty aggregation results. \nThe error is: {}".format(
                     e))
             return EmptyAggregationResults()
 
