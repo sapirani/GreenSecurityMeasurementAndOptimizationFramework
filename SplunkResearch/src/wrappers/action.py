@@ -1,10 +1,13 @@
 import logging
+import subprocess
+import sys
 from time import sleep
 from gymnasium.core import ActionWrapper
 from gymnasium import make, spaces
 import numpy as np
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
+SPLUNK_BINARY_PATH = "/opt/splunk/bin/splunk"
 class Action(ActionWrapper):
     """Wrapper for managing log injection actions"""
     
@@ -44,6 +47,14 @@ class Action(ActionWrapper):
     #                         self.unwrapped.config.action_duration // 60)
     #     self.remaining_quota = self.step_size
     
+        self.fake_storage_state = []
+        self.logs_to_delete = []
+        self.action_time_indexer = {}
+        self.log_type_indexer = {}
+        for i, logtype in enumerate(self.unwrapped.top_logtypes):
+            self.log_type_indexer[f"{logtype[0]}_{logtype[1]}_0"] = i
+            if logtype in self.unwrapped.relevant_logtypes:
+                self.log_type_indexer[f"{logtype[0]}_{logtype[1]}_1"] = i + len(self.unwrapped.top_logtypes)
 
     def _calculate_quota(self) -> None:
         """Calculate injection quotas"""
@@ -136,6 +147,19 @@ class Action(ActionWrapper):
                 f"inserted {len(fake_logs)} logs of type {logsource} "
                 f"{eventcode} {is_trigger} with diversity {diversity}"
             )
+    def delete_episodic_logs(self):
+        """Delete episodic logs from environment according to logs_to_delete"""
+        if self._disable_injection:
+            logger.info("Log deletion disabled, not deleting episodic logs")
+            return
+        # TBD
+        # for time_index in self.logs_to_delete:
+        #     time_range = list(self.action_time_indexer.keys())[list(self.action_time_indexer.values()).index(time_index)]
+        #     for key in 
+        #     logger.info(f"Deleting episodic logs at time range {time_range}")
+        #     for logtype, count in logs.items():
+        #         if count > 0:
+        #             self.unwrapped.splunk_tools.delete_fake_logs(
 
     def inject_episodic_logs(self):
         """Inject episodic logs into environment"""
@@ -145,9 +169,71 @@ class Action(ActionWrapper):
         for logs_to_inject, time_range in self.episodic_logs_to_inject:
             logger.info(f"Injecting episodic logs: {logs_to_inject} at time range {time_range}")
             self.inject_logs(logs_to_inject, time_range)
-        logger.info(f"Waiting for {sum(self.episode_logs.values())} logs to be written")
-        sleep(sum(self.episode_logs.values())/4500)  # wait for logs to be written
-        
+        # logger.info(f"Waiting for {sum(self.episode_logs.values())} logs to be written")
+        # sleep(sum(self.episode_logs.values())/4500)  # wait for logs to be written
+        security_log_file_path = self.unwrapped.splunk_tools.log_file_prefix + "wineventlog:security.txt"
+        system_log_file_path = self.unwrapped.splunk_tools.log_file_prefix + "wineventlog:system.txt"
+        self.flush_logs(security_log_file_path, log_type="Security")
+        self.flush_logs(system_log_file_path, log_type="System")
+        sleep(5)  # wait for logs to be indexed
+
+    def flush_logs(self, log_file_path, log_type="Security"):
+        cmd_list = [
+            'sudo', '-S',
+            SPLUNK_BINARY_PATH,
+            "add",
+            "oneshot",
+            log_file_path,
+            "-index", "main",
+            "-sourcetype", "WinEventLog:" + log_type,
+            "-auth", "shouei:123456789" # Add this if you need to authenticate
+        ]
+
+        # print(f"Injecting {log_file_path} into Splunk. This will block until complete...")
+        # 4. Run the command
+        try:
+            # input: Sends the password string to the command's stdin
+            # text=True: Encodes the input and decodes stdout/stderr as text (using UTF-8)
+            # capture_output=True: Captures stdout and stderr
+            # check=True: Raises an error if the command returns a non-zero exit code
+            result = subprocess.run(
+                cmd_list,
+                input=" \n",
+                text=True,
+                capture_output=True,
+                check=True
+            )
+            
+            # If the command was successful
+            # print("Command executed successfully:")
+            if result.stdout:
+                logger.info("\n--- STDOUT ---")
+                logger.info(result.stdout)
+            if result.stderr:
+                logger.info("\n--- STDERR ---")
+                logger.info(result.stderr)
+
+        except subprocess.CalledProcessError as e:
+            # This block runs if check=True and the command fails
+            print("Command failed:", file=sys.stderr)
+            print(f"Return Code: {e.returncode}", file=sys.stderr)
+            
+            if e.stdout:
+                print("\n--- STDOUT ---", file=sys.stderr)
+                print(e.stdout, file=sys.stderr)
+            
+            if e.stderr:
+                print("\n--- STDERR ---", file=sys.stderr)
+                # Check for the specific sudo error
+                if "no password was provided" in e.stderr or "incorrect password" in e.stderr:
+                    print("Hint: The password may have been incorrect.", file=sys.stderr)
+                else:
+                    print(e.stderr, file=sys.stderr)
+
+        except FileNotFoundError:
+            # This block runs if "sudo" or the splunk path is not found
+            print(f"Error: Command not found.", file=sys.stderr)
+            print(f"Please check the path: {cmd_list[2]}", file=sys.stderr)
         
         
     def step(self, action):
@@ -161,6 +247,11 @@ class Action(ActionWrapper):
         # logger.info(f"Action: {logs_to_inject}")
         logger.info(f"Action window: {self.unwrapped.time_manager.action_window.to_tuple()}")
         # self.inject_logs(logs_to_inject, self.env.time_manager.action_window.to_tuple())
+
+        
+
+
+
         self.episodic_logs_to_inject.append((logs_to_inject, self.unwrapped.time_manager.action_window.to_tuple()))
         self.update_fake_distribution()
         
@@ -608,6 +699,7 @@ class Action8(Action):
             """Convert raw action to log injection dictionary"""
             # Split action into quota and distribution
             # check zero action 
+            logger.info(f"Raw action: {action}")
             distribution = action[:len(self.unwrapped.top_logtypes)]
             # softmax normalization
             # distribution = np.exp(distribution) / np.sum(np.exp(distribution))
@@ -648,19 +740,27 @@ class Action8(Action):
                         
                         
                     key = f"{logtype[0]}_{logtype[1]}_{is_trigger}"
+                    # if self.unwrapped.time_manager.action_window.to_tuple() not in self.action_time_indexer:
+                    #      self.action_time_indexer[self.unwrapped.time_manager.action_window.to_tuple()] = self.unwrapped.step_counter
+                    # if (key,self.unwrapped.time_manager.action_window.to_tuple()) in self.fake_storage_state:
+                    #      diff = log_count - self.fake_storage_state[self.action_time_indexer[self.unwrapped.time_manager.action_window.to_tuple()]][self.log_type_indexer[key]]
                     logs_to_inject[key] = {
+                        # 'count': max(0, -diff),
                         'count': log_count,
                         'diversity': diversity
                     }
+                        #  self.logs_to_delete[self.action_time_indexer[self.unwrapped.time_manager.action_window.to_tuple()]][self.log_type_indexer[key]] = max(0, diff)
+                        #  self.fake_storage_state[(key,self.unwrapped.time_manager.action_window.to_tuple())] -= diff
                     
                     # Track logs
-                    
                     self.current_logs[key] = log_count
     
                     self.episode_logs[key] += log_count
                     self.diversity_episode_logs[key] = max(logs_to_inject[key]['diversity'], self.diversity_episode_logs[key])
                     # if logtype in self.unwrapped.relevant_logtypes and is_trigger == 1:
                     #     self.unwrapped.rules_rel_diff_alerts[logtype] =  self.diversity_episode_logs[key]/ (self.diversity_factor)
+                    self.unwrapped.episodic_fake_logs_qnt += log_count
+                    
             return logs_to_inject
 
     
@@ -671,12 +771,13 @@ class Action8(Action):
             self._calculate_quota()
             self.diversity_episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.unwrapped.top_logtypes for istrigger in [0, 1]}
             self.episodic_logs_to_inject = []
-
+            self.logs_to_delete = {}
             # self.remaining_quota = self.quota
             self.info = kwargs["options"]
             self.unwrapped.episodic_inserted_logs = 0
-            
+            self.unwrapped.episodic_fake_logs_qnt = 0
             obs, info = self.env.reset(**kwargs)
+            
             return obs, info
 
 class SngleAction(Action):

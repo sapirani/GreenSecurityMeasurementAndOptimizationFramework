@@ -156,7 +156,8 @@ class SplunkEnv(gym.Env):
         self.baseline_dir.mkdir(parents=True, exist_ok=True)
         # Load or create baseline table
         self.baseline_path = self._get_baseline_path()
-        self.baseline_df = self._load_baseline_table()   
+        self.baseline_df = self._load_baseline_table() 
+        self.episodic_fake_logs_qnt = 0  
         
           
     def _get_baseline_path(self) -> Path:

@@ -83,7 +83,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
     
     def __init__(self, env, is_mock: bool = False,
                  enable_prediction: bool = True, alert_threshold: float = -0.5,
-                 skip_on_low_alert: bool = True, use_energy: bool = True,use_alert: bool = True, is_eval: bool = False, is_train: bool = False):
+                 skip_on_low_alert: bool = True, use_energy: bool = True,use_alert: bool = True, is_eval: bool = False, is_train: bool = False, beta: float = 0.33, gamma: float = 0.33):
         super().__init__(env)
 
         self.is_mock = is_mock
@@ -97,6 +97,9 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         self.use_energy = use_energy
         self.use_alert = use_alert
         self.energy_models = {}
+        self.beta = beta
+        self.gamma = gamma
+
         # if is_mock:
         #     for rule in self.unwrapped.splunk_tools.active_saved_searches:
         #         self.energy_models[rule] = pickle.load(open(f"/home/shouei/GreenSecurity-FirstExperiment/baseline_splunk_train-v32_2880_cpu_regressor_results/RandomForestRegressor_{rule}_with alert = 0.pkl", "rb"))
@@ -132,7 +135,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
 
 
   
-    def get_baseline_data(self, time_range: TimeWindow) -> Dict:
+    def get_baseline_data(self, time_range: TimeWindow, rerun=False) -> Dict:
         """Get baseline data - execute after cleaning if needed"""
         num_of_measurements = self.unwrapped.config.baseline_num_of_measurements
         relevant_rows = self.unwrapped.baseline_df[(self.unwrapped.baseline_df['start_time'] == time_range[0]) & (self.unwrapped.baseline_df['end_time'] == time_range[1])]
@@ -147,7 +150,8 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             running_dict.update({search: needed_measurements for search in existing_searches})
         missing_searches = set([search for search in self.unwrapped.splunk_tools.active_saved_searches]) - existing_searches
         running_dict.update({search: num_of_measurements for search in missing_searches})
-        
+        if rerun:
+            running_dict = {search: num_of_measurements for search in self.unwrapped.splunk_tools.active_saved_searches}
 
         if self.use_energy or self.use_alert :
             if sum(running_dict.values()) > 0:
@@ -168,6 +172,9 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 rules_metrics, total_cpu = asyncio.run(self.unwrapped.splunk_tools.run_saved_searches(time_range, running_dict))
                 new_lines = self.convert_metrics(time_range, rules_metrics)
                 if len(new_lines) != 0:
+                    if rerun:
+                        # remove existing rows for the time range
+                        self.unwrapped.baseline_df = self.unwrapped.baseline_df[~((self.unwrapped.baseline_df['start_time'] == time_range[0]) & (self.unwrapped.baseline_df['end_time'] == time_range[1]))]
                     self.unwrapped.baseline_df = pd.concat([self.unwrapped.baseline_df, pd.DataFrame(new_lines)])
             
 
@@ -316,18 +323,18 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 diversity_logs,
                 info.get('ac_distribution_value', 0)
             )
-            # dump baseline metrics to all data (once)
-            if len(self.unwrapped.all_baseline_data) < len(self.unwrapped.baseline_df.time_range.unique()):
-                self.unwrapped.all_baseline_data.append({
-                    'time_range': info['current_window'],
-                    'ac_real_distribution': self.unwrapped.ac_real_distribution,
-                    'raw_metrics':raw_baseline_metrics,
-                })
-            else:
-                # dump and empty the all_data to csv in path if exists
-                all_baseline_data_df = pd.json_normalize(self.unwrapped.all_baseline_data, sep='_')
-                all_baseline_data_df.to_csv(self.unwrapped.all_baseline_data_path, index=False, mode='w')          
-                self.unwrapped.all_baseline_data = []
+            # # dump baseline metrics to all data (once)
+            # if len(self.unwrapped.all_baseline_data) < len(self.unwrapped.baseline_df.time_range.unique()):
+            #     self.unwrapped.all_baseline_data.append({
+            #         'time_range': info['current_window'],
+            #         'ac_real_distribution': self.unwrapped.ac_real_distribution,
+            #         'raw_metrics':raw_baseline_metrics,
+            #     })
+            # else:
+            #     # dump and empty the all_data to csv in path if exists
+            #     all_baseline_data_df = pd.json_normalize(self.unwrapped.all_baseline_data, sep='_')
+            #     all_baseline_data_df.to_csv(self.unwrapped.all_baseline_data_path, index=False, mode='w')          
+            #     self.unwrapped.all_baseline_data = []
             
             # Store prediction info
             info['predicted_alert_reward'] = predicted_alert_reward
@@ -343,29 +350,59 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # self.unwrapped.is_mock = (not should_execute or not self.use_energy or not self.use_alert) 
             # inject logs if not is_mock
             if (not self.is_mock  or self.measuring) and should_execute and self.use_energy and self.use_alert:
+                self.env.env.delete_episodic_logs() # access to action wrapper0
                 self.env.env.inject_episodic_logs() # access to action wrapper0
                 # wait for the logs to be injected
                 # sleep(4)
-            # Normal execution flow
-            raw_metrics, combined_metrics = self.get_current_reward_values(info['current_window'], should_execute)
-            _, combined_baseline_metrics = self.process_metrics(
-                self.get_baseline_data(info['current_window']).groupby('search_name')
-            )
-            
-            if self.is_mock and self.measuring and should_execute:  
-                combined_metrics['real_cpu'] = combined_metrics['cpu'] 
-
-            info['combined_metrics'] = combined_metrics
-            info['combined_baseline_metrics'] = combined_baseline_metrics
-            if self.is_mock and (self.use_alert or self.use_energy):
-                current_alerts = self.alert_predictor.current_alerts
-                # baseline_alerts = {rule: raw_baseline_metrics[rule]['alert'] for rule in self.expected_alerts}
-                for rule in self.expected_alerts:
-                    raw_metrics[rule]['alert'] = current_alerts[rule]
+                should_run = True
+                attempt = 0
+                while should_run:
+                    rerun = False
+                    if attempt > 4:
+                        logger.info(f"Re-running due to mismatch in alerts difference")
+                        rerun = True
+                        
+                    attempt += 1
+                    # Normal execution flow
+                    raw_metrics, combined_metrics = self.get_current_reward_values(info['current_window'], should_execute)
+                    should_run = False
+                    baseline_raw_metrics, combined_baseline_metrics = self.process_metrics(
+                        self.get_baseline_data(info['current_window'], rerun).groupby('search_name')
+                    )
+                    # find the difference of alerts between raw_metrics and baseline_raw_metrics
+                    alerts_diff = {rule: raw_metrics[rule]['alert'] - baseline_raw_metrics.get(rule, {}).get('alert', 0) for rule in self.expected_alerts}
                     
-                    # raw_baseline_metrics[rule]['cpu'] = 0
-                    # raw_baseline_metrics[rule]['duration'] = 0
-                info['combined_metrics']['alert'] = sum(current_alerts.values())# + sum(baseline_alerts.values())
+                    # check compatibility of alerts_diff with diversity info
+                    for rule in self.expected_alerts:
+                        if rule == 'ESCU Windows Rapid Authentication On Multiple Hosts Rule':
+                            continue
+                        relevant_log = self.unwrapped.section_logtypes.get(rule, None)
+                        if relevant_log:
+                            relevant_log = "_".join(relevant_log[0]) + "_1"
+                            diversity_value = diversity_logs.get(relevant_log, 0)
+                            if alerts_diff[rule] != diversity_value:
+                                logger.warning(f"Alert difference mismatch for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
+                                should_run = True
+                            else:
+                                logger.info(f"Alert difference match for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
+                                
+                    if self.is_mock and self.measuring and should_execute:  
+                        combined_metrics['real_cpu'] = combined_metrics['cpu'] 
+
+                    info['combined_metrics'] = combined_metrics
+                    info['combined_baseline_metrics'] = combined_baseline_metrics
+                    if self.is_mock and (self.use_alert or self.use_energy):
+                        current_alerts = self.alert_predictor.current_alerts
+                        # baseline_alerts = {rule: raw_baseline_metrics[rule]['alert'] for rule in self.expected_alerts}
+                        for rule in self.expected_alerts:
+                            raw_metrics[rule]['alert'] = current_alerts[rule]
+                            
+                            # raw_baseline_metrics[rule]['cpu'] = 0
+                            # raw_baseline_metrics[rule]['duration'] = 0
+                        info['combined_metrics']['alert'] = sum(current_alerts.values())# + sum(baseline_alerts.values())
+                    sleep(2)
+
+                
             if should_execute:
                 self.unwrapped.all_data.append({
                     'time_range': info['current_window'],
@@ -393,9 +430,9 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             mean_alert = np.mean(self.alerts) if len(self.alerts) > 0 else 0
             std_alert = np.std(self.alerts) if len(self.alerts) > 0 else 0
             
-            info['ac_distribution_reward'] = -((info['ac_distribution_value'] - mean_distribution)/ (std_distribution + self.epsilon))
-            # clip the reward to be between 0 and -1
-            info['ac_distribution_reward'] = np.clip(info['ac_distribution_reward'], -1, 0)
+            info['ac_distribution_reward'] = ((info['ac_distribution_value'] - mean_distribution)/ (std_distribution + self.epsilon))
+            # rescale to be between 0 and -1 with sigmoid
+            info['ac_distribution_reward'] = -1/(1 + np.exp(-info['ac_distribution_reward']))
             
             # info['ac_distribution_reward'] = dist_reward
             # info['ac_distribution_reward'] = 30*info['ac_distribution_value']
@@ -404,12 +441,13 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # info['alert_reward'] = ((predicted_alert_reward - sum(self.expected_alerts.values()))/std)
             # self.mean_alert = (self.unwrapped.all_steps_counter//self.unwrapped.total_steps - 1)*self.mean_alert + sum(raw_baseline_metrics[rule]['alert'] for rule in self.expected_alerts)/(self.unwrapped.all_steps_counter//self.unwrapped.total_steps)
             info['alert_reward'] = predicted_alert_reward
-            info['norm_alert_reward'] = -(-predicted_alert_reward - mean_alert)/(std_alert + self.epsilon)
+            info['norm_alert_reward'] = (-predicted_alert_reward - mean_alert)/(std_alert + self.epsilon)
             # clip the reward to be between 0 and -1
-            info['norm_alert_reward'] = np.clip(info['norm_alert_reward'], -1, 0)
+            # info['norm_alert_reward'] = np.clip(info['norm_alert_reward'], -1, 0)
+            info['norm_alert_reward'] = -1/(1 + np.exp(-info['norm_alert_reward']))
             ############### Total reward ##############
-            reward = 0.2*info['ac_distribution_reward']
-            reward += 0.2*info['norm_alert_reward'] 
+            reward = self.gamma*info['ac_distribution_reward']
+            reward += self.beta*info['norm_alert_reward'] 
 
             # reward = 0
             # if info.get('ac_distribution_value', 0) > self.env.distribution_threshold or predicted_alert_reward < self.alert_threshold:
@@ -482,19 +520,23 @@ class EnergyRewardWrapper(RewardWrapper):
 
             
             energy_reward = (current  - baseline) / baseline
+            self.energies.append(energy_reward)
+
             # if energy_reward <= 0.1:
             #     energy_reward = 0
             # energy_reward = np.clip(energy_reward, 0, 1) # Normalize to [0, 1]
             info['energy_reward'] = energy_reward
+            mean_energy = np.mean(self.energies) if len(self.energies) > 0 else 0
+            std_energy = np.std(self.energies) if len(self.energies) > 0 else 0
+            info['norm_energy_reward'] = (energy_reward - mean_energy)/(std_energy + self.epsilon)
+            info['norm_energy_reward'] = 1/(1 + np.exp(-info['norm_energy_reward']))
             logger.info(f"Energy reward: {energy_reward:.3f}, current: {current:.3f}, baseline: {baseline:.3f}")
             # reward +=  energy_reward
             # reward += self.alpha*energy_reward
             # if reward != 1:
             #     return obs, reward, terminated, truncated, info
-            self.energies.append(energy_reward)
-            mean_energy = np.mean(self.energies) if len(self.energies) > 0 else 0
-            std_energy = np.std(self.energies) if len(self.energies) > 0 else 0
-            reward += 0.6*(max((energy_reward - mean_energy)/(std_energy + self.epsilon), 0))
+
+            reward += self.alpha*info['norm_energy_reward']
             # reward += 0.6*max(energy_reward, 0)
     
 

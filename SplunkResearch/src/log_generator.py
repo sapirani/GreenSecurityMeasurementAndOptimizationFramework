@@ -126,14 +126,14 @@ class LogGenerator:
                          if log != '':
                              logs_to_duplicate_dict[f"{logtype[0].lower()}_{logtype[1]}_{istrigger}"].append(log)
         return logs_to_duplicate_dict   
-     
+
     def _get_template(self, logsource, eventcode, istrigger):
         """Lazy-loading templates to avoid loading everything at once"""
         key = f"{logsource.lower()}_{eventcode}_{istrigger}"
         
         if key not in self.logs_to_duplicate_dict:
             # Load just this template
-            # logger.info(f"Loading template for {key}")
+            logger.info(f"Loading template for {key}")
             start_time = time.time()
             templates = self.load_logs_to_duplicate_dict([(logsource, eventcode, istrigger)])
             self.logs_to_duplicate_dict.update(templates)
@@ -166,11 +166,7 @@ class LogGenerator:
         # logger.info(f"Total timestamp pool generation completed in {time.time() - format_start:.3f} seconds")
         
         return timestamp_pool
-    
-    def _get_cached_variation_path(self, logsource, eventcode, istrigger, variation_id):
-        """Get the path to a cached variation template"""
-        return os.path.join(self.cache_dir, f"{logsource.lower()}_{eventcode}_{istrigger}_{variation_id}.template")
-    
+
     def _apply_variations(self, log, logsource, eventcode, variation_id):
         """Apply variations to a log template and cache the result"""
         if (logsource, eventcode) not in self.variations:
@@ -229,46 +225,32 @@ class LogGenerator:
         # Add fake flag
         return self.field_pattern.sub(r'\g<0>\nis_fake=1', log)
     
-    def _prepare_base_template(self, logsource, eventcode, istrigger):
-        """Get and prepare a base template with caching for efficiency"""
-        start_time = time.time()
+    # def _prepare_base_template(self, logsource, eventcode, istrigger):
+    #     """Get and prepare a base template with caching for efficiency"""
+    #     start_time = time.time()
         
-        # Check cache first
-        cache_key = f"{logsource.lower()}_{eventcode}_{istrigger}_base"
-        cache_path = os.path.join(self.cache_dir, f"{cache_key}.template")
+    #     # Check cache first
+    #     cache_key = f"{logsource.lower()}_{eventcode}_{istrigger}_base"
+    #     cache_path = os.path.join(self.cache_dir, f"{cache_key}.template")
         
-        if os.path.exists(cache_path):
-            # logger.info(f"Loading base template from cache: {cache_key}")
-            with open(cache_path, 'r') as f:
-                result = f.read()
-        else:
-            # logger.info(f"Creating base template for {cache_key}")
-            template = self._get_template(logsource, eventcode, istrigger)
+    #     if os.path.exists(cache_path):
+    #         # logger.info(f"Loading base template from cache: {cache_key}")
+    #         with open(cache_path, 'r') as f:
+    #             result = f.read()
+    #     else:
+    #         # logger.info(f"Creating base template for {cache_key}")
+    #         template = self._get_template(logsource, eventcode, istrigger)
             
-            # Add fake flag
-            result = self.field_pattern.sub(r'\g<0>\nis_fake=1', template)
+    #         # Add fake flag
+    #         result = self.field_pattern.sub(r'\g<0>\nis_fake=1', template)
             
-            # Cache the result
-            with open(cache_path, 'w') as f:
-                f.write(result)
+    #         # Cache the result
+    #         with open(cache_path, 'w') as f:
+    #             f.write(result)
         
-        # logger.info(f"Base template preparation completed in {time.time() - start_time:.3f} seconds")
-        return result
-    
-    def prepare_variation_templates(self, logsource, eventcode, istrigger, max_variations=100):
-        """Pre-prepare and cache all variation templates for a log type"""
-        # logger.info(f"Preparing variation templates for {logsource}:{eventcode}:{istrigger} (max={max_variations})")
-        start_time = time.time()
-        
-        # Get the base template
-        base_template = self._prepare_base_template(logsource, eventcode, istrigger)
-        
-        # Create and cache variations
-        if (logsource, eventcode) in self.variations:
-            for var_id in range(1, max_variations + 1):
-                self._get_variation_template(logsource, eventcode, istrigger, var_id, base_template)
-                
-        # logger.info(f"Prepared {max_variations} variation templates in {time.time() - start_time:.3f} seconds")
+    #     # logger.info(f"Base template preparation completed in {time.time() - start_time:.3f} seconds")
+    #     return result
+
     
     def _get_variation_template(self, logsource, eventcode, istrigger, variation_id, base_template=None):
         """Get a variation template, creating and caching it if necessary"""
@@ -397,70 +379,8 @@ class LogGenerator:
         #     batch = generation_tasks[i:i+batch_size]
         return list(map(apply_timestamp, generation_tasks))
     
-    def generate_log(self, logsource, eventcode, istrigger, time_range, variation_id=None):
-        """Generate a single log (optimized version)"""
-        # Get the template
-        template = self._prepare_base_template(logsource, eventcode, istrigger)
-        
-        # Apply variation if needed
-        if variation_id is not None:
-            template = self._apply_variations(template, logsource, eventcode, variation_id)
-        
-        # Generate time
-        if isinstance(time_range[0], str):
-            start_date = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S')
-            end_date = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S')
-        else:
-            start_date, end_date = time_range
-        
-        time_delta = end_date - start_date
-        total_seconds = time_delta.days * 86400 + time_delta.seconds
-        random_seconds = random.randint(0, total_seconds)
-        time = start_date + timedelta(seconds=random_seconds)
-        time_str = time.strftime("%m/%d/%Y %I:%M:%S %p")
-        
-        # Apply timestamp
-        return self.time_pattern.sub(time_str, template)
 
-    def _get_template(self, logsource, eventcode, istrigger):
-        """Lazy-loading templates to avoid loading everything at once"""
-        key = f"{logsource.lower()}_{eventcode}_{istrigger}"
-        
-        if key not in self.logs_to_duplicate_dict:
-            # Load just this template
-            logger.info(f"Loading template for {key}")
-            start_time = time.time()
-            templates = self.load_logs_to_duplicate_dict([(logsource, eventcode, istrigger)])
-            self.logs_to_duplicate_dict.update(templates)
-            # logger.info(f"Template loading for {key} completed in {time.time() - start_time:.3f} seconds")
-        
-        return self.logs_to_duplicate_dict[key][0]
-    
-    def _generate_timestamp_pool(self, start_date, end_date, size=1000):
-        """Pre-generate a pool of timestamps for better performance"""
-        format_start = time.time()
-        
-        if isinstance(start_date, str):
-            start_date = datetime.strptime(start_date, '%m/%d/%Y:%H:%M:%S')
-        if isinstance(end_date, str):
-            end_date = datetime.strptime(end_date, '%m/%d/%Y:%H:%M:%S')
-        
-        calc_start = time.time()
-        time_delta = end_date - start_date
-        total_seconds = time_delta.days * 86400 + time_delta.seconds
-        # logger.info(f"Time delta calculation completed in {time.time() - calc_start:.3f} seconds")
-        
-        generate_start = time.time()
-        timestamp_pool = []
-        for _ in range(size):
-            random_seconds = random.randint(0, total_seconds)
-            random_date_time = start_date + timedelta(seconds=random_seconds)
-            timestamp_pool.append(random_date_time.strftime("%m/%d/%Y %I:%M:%S %p"))
-        
-        # logger.info(f"Timestamp generation completed in {time.time() - generate_start:.3f} seconds")
-        # logger.info(f"Total timestamp pool generation completed in {time.time() - format_start:.3f} seconds")
-        
-        return timestamp_pool
+
     
     # def _apply_variations(self, log, logsource, eventcode, variation_id):
     #     """Apply variations to a log template using more efficient string operations"""

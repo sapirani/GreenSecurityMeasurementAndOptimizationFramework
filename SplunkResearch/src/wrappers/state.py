@@ -158,7 +158,7 @@ class StateWrapper(ObservationWrapper):
         self.unwrapped.ac_real_distribution['other'] = 0
         self.unwrapped.real_relevant_distribution = {"_".join(logtype): 0 for logtype in self.unwrapped.top_logtypes}
         self.unwrapped.step_counter = 0
-        self.unwrapped.time_manager.advance_window(global_step=self.unwrapped.all_steps_counter, violation=False, should_delete=self.unwrapped.should_delete)
+        self.unwrapped.time_manager.advance_window(global_step=self.unwrapped.all_steps_counter, violation=False, should_delete=self.unwrapped.should_delete, logs_qnt=self.unwrapped.episodic_fake_logs_qnt)
         if self.unwrapped.time_manager.is_delete:
             self.unwrapped.should_delete = False
         self.unwrapped.fake_distribution = {logtype: 0 for logtype in self.unwrapped.top_logtypes}
@@ -398,8 +398,8 @@ class StateWrapper5(StateWrapper):
         fake_sum = sum(ac_fake_state)
         self.unwrapped.fake_relevant_distribution = {"_".join(logtype): self.unwrapped.ac_fake_state[self.unwrapped.relevant_logtypes_indices[logtype]] for logtype in self.unwrapped.top_logtypes}
 
-        state = np.append(real_sum/100000, self.unwrapped.ac_real_state)
-        state = np.append(state, fake_sum/100000)
+        state = np.append(real_sum/1000000, self.unwrapped.ac_real_state)
+        state = np.append(state, fake_sum/1000000)
         state = np.append(state, self.unwrapped.ac_fake_state)
         
         # normalized_distribution = np.array(list(self.unwrapped.ac_real_distribution.values())[:-1]) / 237158
@@ -407,7 +407,8 @@ class StateWrapper5(StateWrapper):
         if self.unwrapped.step_counter == self.unwrapped.total_steps:
             diversities = {f"{'_'.join(key)}_1": 0 for key in self.unwrapped.top_logtypes}
         else:
-            diversities = self.env.env.env.env.env.diversity_episode_logs
+            action_env = self.get_wrapper(ActionWrapper)
+            diversities = action_env.diversity_episode_logs
         
         # baseline_df_row = self.unwrapped.baseline_df[(self.unwrapped.baseline_df['start_time'] == self.unwrapped.time_manager.current_window.start) &
         #                                               (self.unwrapped.baseline_df['end_time'] == self.unwrapped.time_manager.action_window.end)]
@@ -487,9 +488,10 @@ class StateWrapper5(StateWrapper):
         state = np.append(state, expected_normal_alert_rates)
         state = np.append(state, expected_fake_alert_rates)
 
-        logger.info(f"Expected normal alerts: {expected_normal_alert_rates}")
-        logger.info(f"Expected fake alerts: {expected_fake_alert_rates}")
-        logger.debug(f"State: {state}")
+        # logger.info(f"Expected normal alerts: {expected_normal_alert_rates}")
+        # logger.info(f"Expected fake alerts: {expected_fake_alert_rates}")
+        state = np.round(state, 2)
+        # logger.info(f"State: {state}")
         self.unwrapped.obs = state
         return state
     

@@ -76,6 +76,7 @@ class MetricsLoggerCallback:
         self._log_metrics('ac_distribution_value', info.get('ac_distribution_value'))
         self._log_metrics('ac_distribution_reward', info.get('ac_distribution_reward'))
         self._log_metrics('energy_reward', info.get('energy_reward'))
+        self._log_metrics('norm_energy_reward', info.get('norm_energy_reward'))
         self._log_metrics('alert_reward', info.get('alert_reward'))
         self._log_metrics('norm_alert_reward', info.get('norm_alert_reward'))
         
@@ -181,6 +182,8 @@ class CustomTensorboardCallback(MetricsLoggerCallback, BaseCallback):
         return True
 
 
+
+
 class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
     def __init__(self, 
                  eval_env,
@@ -230,7 +233,7 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
         # Calculate mean of step-wise metrics across all infos
         mean_metrics = defaultdict(list)
         for info in infos:
-            for metric in ['distribution_reward', 'energy_reward', 'alert_reward','norm_alert_reward', 
+            for metric in ['distribution_reward', 'energy_reward', 'alert_reward', 
                          'distribution_value', 'inserted_logs', 'total_current_logs']:
                 if metric in info:
                     mean_metrics[metric].append(info[metric])
