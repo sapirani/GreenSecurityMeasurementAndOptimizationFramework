@@ -1,3 +1,7 @@
+*.csv
+SplunkResearch/experiments/*
+!SplunkResearch/experiments/baseline/
+!SplunkResearch/experiments/baseline/*
 __pycache__
 .idea
 .ipynb_checkpoints
@@ -7,7 +11,6 @@ VMware*
 ASUSTeK* COMPUTER*
 data
 session_log.log
-*.csv
 *.json
 green_sec_env
 visualization*
@@ -15,9 +18,7 @@ screenlog.*
 .env
 SplunkResearch/unused_folders
 SplunkResearch/src/unused_scripts
-experiments
 config.json
-SplunkResearch/experiments*
 SplunkResearch/monitor_files/wineventlog:security.txt
 SplunkResearch/monitor_files/wineventlog:system.txt
 SplunkResearch/best_experiments

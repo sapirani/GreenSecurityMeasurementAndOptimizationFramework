@@ -73,7 +73,8 @@ class SplunkEnv(gym.Env):
                  savedsearches: List[str],
                  fake_start_datetime: str,
                  config: SplunkConfig,
-                 top_logtypes: List[Tuple[str, str]]):
+                 top_logtypes: List[Tuple[str, str]],
+                 baseline_dir: str = "./baselines"):
         """Initialize environment."""
         super().__init__()
         self.splunk_tools  = SplunkTools(savedsearches, config.rule_frequency)
@@ -82,6 +83,7 @@ class SplunkEnv(gym.Env):
         self.all_data_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/all_data.csv"
         self.all_baseline_data = []
         self.all_baseline_data_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/all_baseline_data.csv"
+        
 
         # Initialize time manager
         self.time_manager = TimeManager(
@@ -150,10 +152,29 @@ class SplunkEnv(gym.Env):
         self.rules_rel_diff_alerts = {rule : 0 for rule in self.relevant_logtypes}
         self.is_mock = False
         self.should_delete = False
+        self.baseline_dir = Path(baseline_dir)
+        self.baseline_dir.mkdir(parents=True, exist_ok=True)
+        # Load or create baseline table
+        self.baseline_path = self._get_baseline_path()
+        self.baseline_df = self._load_baseline_table() 
+        self.episodic_fake_logs_qnt = 0  
         
-        self.rules_rel_diff_alerts = {rule : 0 for rule in self.relevant_logtypes}
-        self.is_mock = False
-        self.should_delete = False
+          
+    def _get_baseline_path(self) -> Path:
+        """Get path for baseline data based on environment config"""
+        env_id = self.unwrapped.config.env_id
+        search_window = self.unwrapped.config.search_window
+        return self.baseline_dir / f"baseline_{env_id}_{search_window}.csv"
+     
+    def _load_baseline_table(self) -> pd.DataFrame:
+        """Load existing baseline table or create new one"""
+        if self.baseline_path.exists():
+            df = pd.read_csv(self.baseline_path)
+            # create a time_range column
+            df['time_range'] = list(zip(pd.to_datetime(df['start_time'], format="%m/%d/%Y:%H:%M:%S"), pd.to_datetime(df['end_time'], format="%m/%d/%Y:%H:%M:%S")))
+            return df
+        return pd.DataFrame(columns=['start_time', 'end_time', 'time_range', 'search_name', 'alert', 'duration_values'])
+   
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
         """Execute environment step."""
         self.step_counter += 1

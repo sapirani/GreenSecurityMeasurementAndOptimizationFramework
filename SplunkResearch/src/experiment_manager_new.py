@@ -2,6 +2,7 @@ from dataclasses import dataclass, replace
 import inspect
 from operator import is_
 import ssl
+from tkinter import NO
 from typing import Dict, Any, Optional, List
 import sb3_contrib
 import stable_baselines3
@@ -144,7 +145,8 @@ class ExperimentManager:
         env = make(
             id=config.env_config.env_id,
             config=config.env_config,
-            top_logtypes=top_logtypes
+            top_logtypes=top_logtypes,
+            baseline_dir=self.dirs['baseline']
         )
         # env = SingleAction2(env)
         # env = Action(env)
@@ -168,7 +170,7 @@ class ExperimentManager:
                 distribution_threshold=config.distribution_threshold
             )
             
-        env = BaseRuleExecutionWrapperWithPrediction(env, baseline_dir=self.dirs['baseline'], is_mock=config.is_mock, enable_prediction = True, alert_threshold = config.alert_threshold, skip_on_low_alert = True, use_energy = config.use_energy_reward, use_alert = config.use_alert_reward, is_train = (config.mode.__contains__('train')) , is_eval = (config.mode == "eval_post_training"))  
+        env = BaseRuleExecutionWrapperWithPrediction(env, is_mock=config.is_mock, enable_prediction = True, alert_threshold = config.alert_threshold, skip_on_low_alert = True, use_energy = config.use_energy_reward, use_alert = config.use_alert_reward, is_train = (config.mode.__contains__('train')) , is_eval = (config.mode == "eval_post_training"))  
         # alert_threshold = -6, -2, -10
         
         if config.use_energy_reward:
@@ -205,7 +207,7 @@ class ExperimentManager:
         #                         low=0,
         #                         high=1)
         env = TimeWrapper(env)
-        env = StateWrapper3(env)
+        env = StateWrapper5(env)
 
         return env
 
@@ -251,6 +253,7 @@ class ExperimentManager:
         model_kwargs = {
             'env': env,
             'policy': config.policy_type,
+            'max_grad_norm': 0.5,
             'learning_rate': config.learning_rate,
             'gamma': config.gamma,
             'tensorboard_log': f"{str(self.dirs['tensorboard'])}/{config.experiment_name}",
@@ -264,7 +267,7 @@ class ExperimentManager:
                 # 'batch_size': config.batch_size,
                 # 'n_epochs': config.n_epochs,
                 'ent_coef': config.ent_coef,
-                'sde_sample_freq': 24,
+                'sde_sample_freq': 12,
                 'use_sde': True,
                 "policy_kwargs": {
                     "net_arch": [512, 128, 128, 64],
@@ -329,19 +332,26 @@ class ExperimentManager:
             else:
                 eval_config = config
             eval_config.env_config.env_id = "splunk_eval-v32"
-            eval_config.env_config.rule_frequency = 60 #2880
+            eval_config.env_config.rule_frequency = 2880
             eval_config.env_config.end_time = "04/26/2025:23:59:59"
-            # eval_config = replace(eval_config, is_mock=False)
+            eval_config = replace(eval_config, is_mock=False)
             self.eval_env = self.create_environment(eval_config)
             self.eval_env.unwrapped.splunk_tools.load_real_logs_distribution_bucket(datetime.datetime.strptime(env.unwrapped.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(self.eval_env.unwrapped.time_manager.end_time, '%m/%d/%Y:%H:%M:%S'))
-
             # if "test_experiment" not  in config.experiment_name:
             #     # clean and warm up the env
+            #     logger.info("Cleaning and warming up the environment")
             #     clean_env(env.unwrapped.splunk_tools, (env.unwrapped.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
             #     env.unwrapped.warmup()
             # else:
-            #     env.unwrapped.disable_injection()
-            #     self.eval_env.unwrapped.disable_injection()
+            #     action_env = env
+            #     action_eval_env = self.eval_env
+            #     while not isinstance(action_env, Action8):
+            #         action_env = action_env.env
+            #     while not isinstance(action_eval_env, Action8):
+            #         action_eval_env = action_eval_env.env
+
+            #     action_env.disable_injection()
+            #     action_eval_env.disable_injection()
             # Setup callbacks
             config.experiment_name = experiment_name
             callbacks = self._setup_callbacks(config)
@@ -387,6 +397,7 @@ class ExperimentManager:
             "total_timesteps": total_timesteps
         }
 
+   
     def _run_evaluation(self, model, env, config):
         """evaluate the model for a specific number of episodes. Create summary writers for the evaluation """
         model.set_env(env)
@@ -413,6 +424,21 @@ class ExperimentManager:
         eval_callback.model = model
         for _ in range(eval_episodes):
             eval_callback.on_step()
+
+    def create_summary_writers(self, log_dir, rules, event_types):
+        writers = {
+        rule: SummaryWriter(log_dir=log_dir + f"/{rule}") for rule in rules
+        }
+        writers.update({
+            event_type: SummaryWriter(log_dir=log_dir + f"/{event_type.replace(':','_')}") for event_type in event_types
+        })
+        writers.update({
+            f"{event_type}_{is_trigger}": SummaryWriter(log_dir=log_dir + f"/{event_type.replace(':','_')}_{is_trigger}")   for event_type in event_types  for is_trigger in  [0,1]
+        })
+
+        return writers
+
+
 
     def create_summary_writers(self, log_dir, rules, event_types):
         writers = {
@@ -526,8 +552,8 @@ class ExperimentManager:
             CustomEvalCallback3(
                 eval_env=self.eval_env,
                 log_dir=f"{self.dirs['tensorboard']._str}/{config.experiment_name}", rules=rules, event_types=event_types,
-                n_eval_episodes=3,
-                eval_freq=9600,
+                n_eval_episodes=1,
+                eval_freq=7200,
                 best_model_save_path=self.dirs['models'],
                 log_path=self.dirs['logs'],
                 # eval_log_dir=str(self.dirs['tensorboard']/f"eval_{config.experiment_name}"),
@@ -589,17 +615,30 @@ if __name__ == "__main__":
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250620175311_35000_steps"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250623144601_43000_steps.zip"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250711001649_264000_steps.zip"
-    num_episodes = 600000
     action_type = "Action8"
+    num_episodes = 5000000
+
+    # get model name from arguments
+    model_name = sys.argv[1] if len(sys.argv) > 1 else None
+    alpha_energy = sys.argv[2] if len(sys.argv) > 2 else None
+    beta_alert = sys.argv[3] if len(sys.argv) > 3 else None
+    gamma_dist = sys.argv[4] if len(sys.argv) > 4 else None
+    # model_name = "train_20250927214506_70000_steps"
+    # model_name = "train_20251010153827_70000_steps"
     for steps in range(45000, 160000, 500000):
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250626010440_{steps}_steps.zip"
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250726233927_243000_steps.zip"
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250806144736_355000_steps.zip"
-        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250815121629_990000_steps.zip"
+        # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250908172215_520000_steps.zip"
+        # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250916132254_180000_steps.zip"
+        # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250916224025_1010000_steps.zip"
+        # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250918150833_1920000_steps.zip"
+        # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250927214506_70000_steps.zip"
+        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/{model_name}.zip"
         print(f"Model path: {model_path}")
-        for learning_rate in [0.0001]:
-            for n_steps in [256]:
-                for ent_coef in [0.1]:
+        for learning_rate in [5e-5]: #0.0001
+            for n_steps in [64]:
+                for ent_coef in [0.05]:
                     for is_random in [False]:
                         lr = 1e-2
                         env_config = SplunkConfig(
@@ -611,7 +650,7 @@ if __name__ == "__main__":
                             additional_percentage=1,
                             action_duration=7200, 
                             num_of_measurements=1,
-                            baseline_num_of_measurements=2,
+                            baseline_num_of_measurements=1,
                             env_id="splunk_train-v32",
                             end_time="12/31/2024:23:59:59"       
                         )
@@ -625,23 +664,25 @@ if __name__ == "__main__":
                             n_steps=n_steps,
                             ent_coef=ent_coef,
                             gamma=1,
-                            gamma_dist=1,#0.33,
-                            alpha_energy=1,
-                            beta_alert=1,
+                            gamma_dist= float(gamma_dist) if gamma_dist else 0.2,
+                            alpha_energy= float(alpha_energy) if alpha_energy else 0.5,
+                            beta_alert= float(beta_alert) if beta_alert else 0.3,
                             action_type=action_type,
                             # experiment_name="test_experiment",
                             use_alert_reward=True,
                             use_energy_reward=True,
                             use_random_agent=is_random,
-                            is_mock=True,
+                            is_mock=False,
                             model_path=model_path if model_path else None,
                             distribution_threshold=0.22,
                             alert_threshold=-10,
                             
                         )
                         
+                        
                         #retrain model
-                        experiment_config.mode = "train"#"eval_post_training"  # eval after training
+                        experiment_config.mode = "retrain"#"eval_post_training"  # eval after training
+                        experiment_config.num_episodes = 2500
                         manager = ExperimentManager(base_dir="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments")
                         results = manager.run_experiment(experiment_config)
 

@@ -122,6 +122,8 @@ class SplunkTools(object):
                 logger.error(f'Failed to connect to Splunk: {str(e)}')
                 time.sleep(120)#TODO: change to 5
         self._initialized = True
+        self.log_file_prefix = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/'
+
 
 
     def check_license_usage(self):
@@ -179,6 +181,50 @@ class SplunkTools(object):
             self._cpu_monitor_thread = None
 
       
+    async def execute_query_no_measurement(self, query: str, earliest_time: float, latest_time: float) -> List[Dict[str, Any]]:
+        query = f" search {query}"
+        job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
+        
+        # Wait for job to complete
+        while True:
+            job.refresh()
+            if job.content['isDone'] == '1':
+                break
+            await asyncio.sleep(0.1)
+        # Get results
+        response = job.results(output_mode='json')
+        results =  [result for result in splunk_results.JSONResultsReader(response) if isinstance(result, dict)]
+        return results
+    
+    async def run_saved_searches_no_measurement(
+        self, 
+        time_range: Tuple[str, str], 
+        running_plan: Dict[str, int]=None,
+        num_measurements: int = 1        
+    ) -> List[List[Dict[str, Any]]]:
+        """
+        Run multiple saved searches without measurement.
+        """
+        all_tasks = []
+        if running_plan is None:
+            running_plan = {search: num_measurements for search in self.active_saved_searches}
+        
+        for search_name, num_measurements in running_plan.items():
+            for i in range(num_measurements):
+                query = self.active_saved_searches[search_name]['search']
+                # Parse time range
+                earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
+                latest_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').timestamp()
+                # Create a task for each measurement
+                task = asyncio.create_task(self.execute_query_no_measurement(
+                    query, earliest_time, latest_time))
+                all_tasks.append(task)
+        
+        # Run all tasks concurrently
+        results = await asyncio.gather(*all_tasks)
+        results = {search_name: res for search_name, res in zip(running_plan.keys(), results)}
+        return results
+
     async def execute_query(self, search_name: str, query: str, earliest_time: float, latest_time: float) -> QueryMetrics:
         """FIXED: Made truly async by running blocking calls in executor"""
         query = f" search {query}"
@@ -564,7 +610,7 @@ class SplunkTools(object):
         return None  
                     
     def write_logs_to_monitor(self, logs, log_source):
-        with open(f'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/{log_source}.txt', 'a') as f:
+        with open(f'{self.log_file_prefix}/{log_source}.txt', 'a') as f:
             for log in logs:
                 f.write(f'{log}\n\n')        
         
@@ -896,39 +942,88 @@ class SplunkTools(object):
         results = json.loads(response.text)
         results = int(results['results'][0]['count'])
         return results
-    
-    def delete_fake_logs(self, time_range=None):
-        # Use RFC3339 format for Splunk query
-        if time_range is None:
-            time_range = ("0", datetime.now())
-        if type(time_range) is str:
-            start_time = f"-{time_range}"
-
-            job = self.service.jobs.create(
-                f'search index=main host="dt-splunk" earliest={start_time}| delete', 
-                earliest_time=start_time, 
-                time_format='%Y-%m-%d %H:%M:%S',
-                count=0
-            )
-        else:
-            start_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
-            end_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
-            job = self.service.jobs.create(
-                f'search index=main host="dt-splunk" | delete', 
-                earliest_time=start_time, 
-                latest_time=end_time,
-                time_format='%Y-%m-%d %H:%M:%S',
-                count=0
-            )
-        while True:
-            job.refresh()
-            if job.content['isDone'] == '1':
-                break
-            time.sleep(2)
         
-        # Get the results properly
-        results = job.results(output_mode='json')
-        logger.info(results)
+    def delete_fake_logs(self, time_range=None, condition=None, logs_qnt=None, max_attempts=5):
+        """
+        Deletes logs from Splunk and retries if not all logs are deleted.
+        Stops after `max_attempts` attempts to avoid infinite recursion.
+        """
+
+        def run_delete_query(time_range, condition):
+            """Runs the delete query once and returns number of deleted logs."""
+            if condition:
+                query = f'search index=main host="dt-splunk" {condition} | delete'
+            else:
+                query = f'search index=main host="dt-splunk" | delete'
+
+            # Time range handling
+            if time_range is None:
+                time_range = ("0", datetime.now())
+
+            if isinstance(time_range, str):
+                start_time = f"-{time_range}"
+                job = self.service.jobs.create(
+                    query,
+                    earliest_time=start_time,
+                    time_format='%Y-%m-%d %H:%M:%S',
+                    count=0,
+                )
+            else:
+                start_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+                end_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+                job = self.service.jobs.create(
+                    query,
+                    earliest_time=start_time,
+                    latest_time=end_time,
+                    time_format='%Y-%m-%d %H:%M:%S',
+                    count=0,
+                )
+
+            # Wait for job to complete
+            while True:
+                job.refresh()
+                if job.content['isDone'] == '1':
+                    break
+                time.sleep(2)
+
+            # Parse results
+            results_json = json.load(job.results(output_mode='json'))
+            try:
+                deleted_logs_qnt = int(results_json['results'][1]['deleted'])
+            except Exception:
+                deleted_logs_qnt = int(results_json['results'][0]['deleted'])
+
+            return deleted_logs_qnt
+
+        # --- Main loop with stop condition ---
+        total_deleted = 0
+        attempts = 0
+
+        while attempts < max_attempts:
+            deleted = run_delete_query(time_range, condition)
+            total_deleted += deleted
+            attempts += 1
+
+            logger.info(f"Attempt {attempts}: deleted {deleted} logs (total {total_deleted})")
+
+            if logs_qnt is not None:
+                remaining = logs_qnt - total_deleted
+                if remaining <= 0:
+                    logger.info(f"Deleted all {logs_qnt} logs successfully.")
+                    break
+                elif remaining <= 50:
+                    logger.warning(f"{remaining} logs remain — within tolerance, stopping.")
+                    break
+                else:
+                    logger.warning(f"{remaining} logs remain, retrying...")
+            else:
+                # No expected quantity, run only once
+                break
+
+        if attempts == max_attempts:
+            logger.error(f"Reached max attempts ({max_attempts}) with incomplete deletion.")
+
+        return total_deleted
 
     def save_logs(self, log_source, eventcode, logs):
         path = f'{PREFIX_PATH}logs_to_duplicate_files'

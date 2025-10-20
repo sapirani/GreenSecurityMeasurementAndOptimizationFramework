@@ -87,15 +87,15 @@ class TimeManager:
         self.action_window = self._create_action_window(self.get_current_time())        
         return self.action_window
         
-    def advance_window(self, global_step, violation: bool = False, should_delete: bool = False) -> TimeWindow:
+    def advance_window(self, global_step, violation: bool = False, should_delete: bool = False, logs_qnt = None) -> TimeWindow:
         """Advance the main time window"""
         self.is_delete = False
         if violation:
             # On violation, stay at current window
             return self.current_window
         # clean env in action window
-        if not self.is_test and self.rule_frequency < self.window_size and should_delete:
-            clean_env(self.splunk_tools, (self.current_window.start, self.current_window.end))
+        if not self.is_test and should_delete: #and self.rule_frequency < self.window_size 
+            clean_env(self.splunk_tools, (self.current_window.start, self.current_window.end), logs_qnt=logs_qnt)
         new_start_dt = datetime.datetime.strptime(self.current_window.start, '%m/%d/%Y:%H:%M:%S')
         new_start_dt += datetime.timedelta(minutes=self.rule_frequency)
         if self.end_time:

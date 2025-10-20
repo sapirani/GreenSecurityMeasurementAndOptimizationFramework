@@ -1,13 +1,22 @@
+import asyncio
 import datetime
 from importlib.metadata import distribution
 from math import dist
+import os
+import pickle
 from gymnasium.core import ObservationWrapper
+import joblib
 import numpy as np
 from gymnasium import make, spaces
 import logging
 from gymnasium.core import ActionWrapper
+import pandas as pd
+from torch import normal
 
 logger = logging.getLogger(__name__)
+ALERT_NORMALIZE_FACTOR = 100  # based on max alerts observed in training data
+# ignore warnings
+logging.getLogger('sklearn').setLevel(logging.ERROR)
 
 class StateWrapper(ObservationWrapper):
     """Manages log type distributions and state normalization"""
@@ -16,10 +25,10 @@ class StateWrapper(ObservationWrapper):
         super().__init__(env)
 
         self.action_wrapper = self.get_wrapper(ActionWrapper)
-        
-        # Initialize distributions
+        self.normal_alert_predictors = {}
+        for rule in self.unwrapped.savedsearches:
+            self.normal_alert_predictors[rule] = joblib.load(f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/models_{rule}_alerts.joblib")
 
-        
 
         self.total_current_logs = 0
         self.total_episode_logs = 0
@@ -149,7 +158,7 @@ class StateWrapper(ObservationWrapper):
         self.unwrapped.ac_real_distribution['other'] = 0
         self.unwrapped.real_relevant_distribution = {"_".join(logtype): 0 for logtype in self.unwrapped.top_logtypes}
         self.unwrapped.step_counter = 0
-        self.unwrapped.time_manager.advance_window(global_step=self.unwrapped.all_steps_counter, violation=False, should_delete=self.unwrapped.should_delete)
+        self.unwrapped.time_manager.advance_window(global_step=self.unwrapped.all_steps_counter, violation=False, should_delete=self.unwrapped.should_delete, logs_qnt=self.unwrapped.episodic_fake_logs_qnt)
         if self.unwrapped.time_manager.is_delete:
             self.unwrapped.should_delete = False
         self.unwrapped.fake_distribution = {logtype: 0 for logtype in self.unwrapped.top_logtypes}
@@ -163,7 +172,8 @@ class StateWrapper(ObservationWrapper):
         # reset episode logs which are placed at lower wrapper (action)
         # self.action_wrapper.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.unwrapped.top_logtypes for istrigger in [0, 1]}
         
-    
+
+            
         new_obs = self.observation(None)
         # new_obs = np.append(self.ac_real_state, self.ac_real_state)
         options = self.get_step_info()
@@ -248,30 +258,247 @@ class StateWrapper3(StateWrapper):
     def _normalize(self, state):
         """Normalize state vector"""
         return (state+ 0.0000000001) / (100000)  # Avoid division by zero
-        # return state / (sum(state) + 0.0000000001)
+        # return tate / (sum(state) + 0.0000000001)
      
 
      
-# Example usage:
-if __name__ == "__main__":
-    env = make('Splunk-v0')
+class StateWrapper4(StateWrapper):
+    """Manages log type distributions and state normalization"""
+
+    def __init__(self, env):
+        super().__init__(env)
+        self.observation_space = spaces.Box(
+            low=0,
+            high=1,
+            shape=(len(self.unwrapped.top_logtypes)*2+len(self.unwrapped.relevant_logtypes)*2 + 2,),  # +1 for 'other' category
+            # shape=(len(self.unwrapped.top_logtypes),),  # +1 for 'other' category
+            dtype=np.float64
+        )
+        self.baseline_alerts = {}
+        
+    def observation(self, obs):
+        """Convert current distributions to normalized state"""
+        # Calculate fake distribution using the latest episode_logs   
+        # This happens AFTER action wrapper has updated episode_logs
+        # Update real distribution AFTER action is executed
+        if not self.unwrapped.done:
+            self.update_real_distribution(self.unwrapped.time_manager.action_window.to_tuple())
+
+        # Create state vectors
+        real_state = self._get_state_vector(self.unwrapped.real_distribution)
+        self.unwrapped.real_state = self._normalize(real_state)
+        ac_real_state = self._get_state_vector(self.unwrapped.ac_real_distribution)
+        self.unwrapped.ac_real_state = self._normalize(ac_real_state)
+        real_sum = sum(ac_real_state)
+        
+        self.unwrapped.real_relevant_distribution = {"_".join(logtype): self.unwrapped.ac_real_state[self.unwrapped.relevant_logtypes_indices[logtype]] for logtype in self.unwrapped.top_logtypes}
+        if not self.unwrapped.done:
+            self.update_fake_distribution_from_real()
+        fake_state = self._get_state_vector(self.unwrapped.fake_distribution)
+        self.unwrapped.fake_state = self._normalize(fake_state)
+        ac_fake_state = self._get_state_vector(self.unwrapped.ac_fake_distribution)
+        self.unwrapped.ac_fake_state = self._normalize(ac_fake_state)
+        fake_sum = sum(ac_fake_state)
+        self.unwrapped.fake_relevant_distribution = {"_".join(logtype): self.unwrapped.ac_fake_state[self.unwrapped.relevant_logtypes_indices[logtype]] for logtype in self.unwrapped.top_logtypes}
+
+        state = np.append(real_sum/100000, self.unwrapped.ac_real_state)
+        state = np.append(state, fake_sum/100000)
+        state = np.append(state, self.unwrapped.ac_fake_state)
+        
+        # normalized_distribution = np.array(list(self.unwrapped.ac_real_distribution.values())[:-1]) / 237158
+        normalized_distribution = pd.DataFrame([self.unwrapped.ac_real_distribution]).drop("other", axis=1)/237158
+        if self.unwrapped.step_counter == self.unwrapped.total_steps:
+            diversities = {f"{'_'.join(key)}_1": 0 for key in self.unwrapped.top_logtypes}
+        else:
+            diversities = self.env.env.env.env.env.diversity_episode_logs
+        
+        expected_normal_alert_rates = []
+        expected_fake_alert_rates = []
+        if (self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end) not in self.baseline_alerts:
+            self.baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)] = {}
+        for rule, logtypes in self.unwrapped.section_logtypes.items():
+            key = "_".join(logtypes[0])
+            key = f"{key}_1"
+            if rule in self.unwrapped.savedsearches:
+                if rule not in self.baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)]:
+                    # self.baseline_alerts[self.unwrapped.time_manager.action_window.end][rule] = 0
+                    self.baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)][rule] = self.normal_alert_predictors[rule].predict(normalized_distribution)[0]
+                    # normal_alert_rate = self.normal_alert_predictors[rule].predict(normalized_distribution.reshape(1, -1))[0]
+                normal_alert_rate = self.baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)][rule]
+                if (self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.start) in self.baseline_alerts and rule in self.baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.start)]:
+                    normal_alert_rate = max(normal_alert_rate, self.baseline_alerts[(self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.start)][rule])
+                expected_normal_alert_rates.append(normal_alert_rate/100)
+                if rule in ['ESCU Windows Rapid Authentication On Multiple Hosts Rule']:
+                    expected_fake_alert_rates.append((normal_alert_rate)/100)  
+                else:
+                    expected_fake_alert_rates.append((normal_alert_rate + diversities[key])/100)  
+            
+        state = np.append(state, expected_normal_alert_rates)
+        state = np.append(state, expected_fake_alert_rates)
+
+        logger.info(f"Expected normal alerts: {expected_normal_alert_rates}")
+        logger.info(f"Expected fake alerts: {expected_fake_alert_rates}")
+        logger.debug(f"State: {state}")
+        self.unwrapped.obs = state
+        return state
     
-    top_logtypes = [
-        ('wineventlog:security', '4624'),
-        ('wineventlog:security', '4625'),
-        # ... other important log types
-    ]
+    def _normalize(self, state):
+        """Normalize state vector"""
+        # return (state+ 0.0000000001) / (100000)  # Avoid division by zero
+        return state / (sum(state) + 0.0000000001)
+     
+
+class StateWrapper5(StateWrapper):
+    """Manages log type distributions and state normalization"""
+
+    def __init__(self, env):
+        super().__init__(env)
+        self.observation_space = spaces.Box(
+            low=0,
+            high=1,
+            shape=(len(self.unwrapped.top_logtypes)*2+len(self.unwrapped.relevant_logtypes)*2 + 2,),  # +1 for 'other' category
+            # shape=(len(self.unwrapped.top_logtypes),),  # +1 for 'other' category
+            dtype=np.float64
+        )
+        self.baseline_alerts = self._load_pickle("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/baseline/baseline_alerts.pkl", default={})
+        self.ac_baseline_alerts = self._load_pickle("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/baseline/ac_baseline_alerts.pkl", default={})
     
-    env = StateWrapper(env, top_logtypes)
+    def _load_pickle(self, filename, default):
+        if os.path.exists(filename):
+            with open(filename, "rb") as f:
+                return pickle.load(f)
+        return default
+
+    def _dump_pickle(self, obj, filename):
+        with open(filename, "wb") as f:
+            pickle.dump(obj, f)
+   
+    def observation(self, obs):
+        """Convert current distributions to normalized state"""
+        # Calculate fake distribution using the latest episode_logs   
+        # This happens AFTER action wrapper has updated episode_logs
+        # Update real distribution AFTER action is executed
+        if not self.unwrapped.done:
+            self.update_real_distribution(self.unwrapped.time_manager.action_window.to_tuple())
+
+        # Create state vectors
+        real_state = self._get_state_vector(self.unwrapped.real_distribution)
+        self.unwrapped.real_state = self._normalize(real_state)
+        ac_real_state = self._get_state_vector(self.unwrapped.ac_real_distribution)
+        self.unwrapped.ac_real_state = self._normalize(ac_real_state)
+        real_sum = sum(ac_real_state)
+        
+        self.unwrapped.real_relevant_distribution = {"_".join(logtype): self.unwrapped.ac_real_state[self.unwrapped.relevant_logtypes_indices[logtype]] for logtype in self.unwrapped.top_logtypes}
+        if not self.unwrapped.done:
+            self.update_fake_distribution_from_real()
+        fake_state = self._get_state_vector(self.unwrapped.fake_distribution)
+        self.unwrapped.fake_state = self._normalize(fake_state)
+        ac_fake_state = self._get_state_vector(self.unwrapped.ac_fake_distribution)
+        self.unwrapped.ac_fake_state = self._normalize(ac_fake_state)
+        fake_sum = sum(ac_fake_state)
+        self.unwrapped.fake_relevant_distribution = {"_".join(logtype): self.unwrapped.ac_fake_state[self.unwrapped.relevant_logtypes_indices[logtype]] for logtype in self.unwrapped.top_logtypes}
+
+        state = np.append(real_sum/1000000, self.unwrapped.ac_real_state)
+        state = np.append(state, fake_sum/1000000)
+        state = np.append(state, self.unwrapped.ac_fake_state)
+        
+        # normalized_distribution = np.array(list(self.unwrapped.ac_real_distribution.values())[:-1]) / 237158
+        # normalized_distribution = pd.DataFrame([self.unwrapped.ac_real_distribution]).drop("other", axis=1)/237158
+        if self.unwrapped.step_counter == self.unwrapped.total_steps:
+            diversities = {f"{'_'.join(key)}_1": 0 for key in self.unwrapped.top_logtypes}
+        else:
+            action_env = self.get_wrapper(ActionWrapper)
+            diversities = action_env.diversity_episode_logs
+        
+        # baseline_df_row = self.unwrapped.baseline_df[(self.unwrapped.baseline_df['start_time'] == self.unwrapped.time_manager.current_window.start) &
+        #                                               (self.unwrapped.baseline_df['end_time'] == self.unwrapped.time_manager.action_window.end)]
+        # alert_rate = sum(baseline_df_row.groupby('search_name').first()['alert'])
+        # if alert_rate != 0:
+        #     results = asyncio.run(self.unwrapped.splunk_tools.run_saved_searches_no_measurement(self.unwrapped.time_manager.action_window.to_tuple()))
+        # else:
+        #     results = {rule: [] for rule in self.unwrapped.savedsearches}
+        step_time = self.unwrapped.time_manager.action_window.to_tuple()
+        ac_episode_time = (self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.end)
+        prev_ac_episode_time = (self.unwrapped.time_manager.current_window.start, self.unwrapped.time_manager.action_window.start)
+
+        if step_time not in self.baseline_alerts:
+            self.baseline_alerts[step_time] = {}
+        if ac_episode_time not in self.ac_baseline_alerts:
+            self.ac_baseline_alerts[ac_episode_time] = {}
+        if step_time not in self.ac_baseline_alerts:
+            self.ac_baseline_alerts[step_time] = {}
+        created_new_baseline = False
+        # --- Check if results already exist ---
+        results_available = all(
+            rule in self.baseline_alerts[step_time]
+            for rule in self.unwrapped.savedsearches
+        )
+
+        if results_available:
+            # ✅ Load from cache
+            results = {
+                rule: [None] * self.baseline_alerts[step_time][rule]
+                for rule in self.unwrapped.savedsearches
+            }
+        else:
+            # ❌ Run Splunk only if missing
+            baseline_df_row = self.unwrapped.baseline_df[
+                (self.unwrapped.baseline_df["start_time"] == self.unwrapped.time_manager.current_window.start)
+                & (self.unwrapped.baseline_df["end_time"] == self.unwrapped.time_manager.action_window.end)
+            ]
+            alert_rate = sum(baseline_df_row.groupby("search_name").first()["alert"])
+
+            if alert_rate != 0:
+                results = asyncio.run(
+                    self.unwrapped.splunk_tools.run_saved_searches_no_measurement(
+                        step_time
+                    )
+                )
+                created_new_baseline = True
+            else:
+                results = {rule: [] for rule in self.unwrapped.savedsearches}
+        expected_normal_alert_rates = []
+        expected_fake_alert_rates = []
+
+
+
+        for rule, logtypes in self.unwrapped.section_logtypes.items():
+            key = "_".join(logtypes[0])
+            key = f"{key}_1"
+            if rule in self.unwrapped.savedsearches:
+                if rule not in self.baseline_alerts[step_time]:
+                    self.baseline_alerts[step_time][rule] = len(results[rule])
+                if rule not in self.ac_baseline_alerts[step_time]:
+                    self.ac_baseline_alerts[ac_episode_time][rule] = len(results[rule])
+                if prev_ac_episode_time in self.ac_baseline_alerts and rule in self.ac_baseline_alerts[prev_ac_episode_time]:
+                    self.ac_baseline_alerts[ac_episode_time][rule] = self.ac_baseline_alerts[prev_ac_episode_time][rule] + len(results[rule])
+                
+                normal_alert_rate = self.ac_baseline_alerts[ac_episode_time][rule]
+                expected_normal_alert_rates.append(normal_alert_rate/100)
+                if rule in ['ESCU Windows Rapid Authentication On Multiple Hosts Rule']:
+                    expected_fake_alert_rates.append((normal_alert_rate)/100)  
+                else:
+                    expected_fake_alert_rates.append((normal_alert_rate + diversities[key])/100)  
+
+                # --- Only dump if we created new entries ---
+                if created_new_baseline:
+                    self._dump_pickle(self.baseline_alerts, "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/baseline/baseline_alerts.pkl")
+                if created_new_baseline:
+                    self._dump_pickle(self.ac_baseline_alerts, "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/baseline/ac_baseline_alerts.pkl")
+        state = np.append(state, expected_normal_alert_rates)
+        state = np.append(state, expected_fake_alert_rates)
+
+        # logger.info(f"Expected normal alerts: {expected_normal_alert_rates}")
+        # logger.info(f"Expected fake alerts: {expected_fake_alert_rates}")
+        state = np.round(state, 2)
+        # logger.info(f"State: {state}")
+        self.unwrapped.obs = state
+        return state
     
-    obs = env.reset()
-    
-    # In your environment's step method:
-    action = env.action_space.sample()
-    injected_logs = {
-        ('wineventlog:security', '4624'): 10,
-        ('wineventlog:security', '4625'): 5
-    }
-    env.update_fake_distribution(injected_logs)  # Update fake distribution
-    
-    obs, reward, done, info = env.step(action)
+    def _normalize(self, state):
+        """Normalize state vector"""
+        # return (state+ 0.0000000001) / (100000)  # Avoid division by zero
+        return state / (sum(state) + 0.0000000001)
+     
+
+     

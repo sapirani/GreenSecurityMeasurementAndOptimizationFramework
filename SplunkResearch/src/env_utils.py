@@ -45,7 +45,7 @@ def empty_monitored_files(monitored_file_path):
     with open(monitored_file_path, 'w') as fp:
         fp.write('')
         
-def clean_env(splunk_tools_instance, time_range=None):
+def clean_env(splunk_tools_instance, time_range=None,logs_qnt=None):
     if time_range is None:
         time_range = ("04/29/2023:00:00:00","05/30/2023:00:00:00")
         splunk_tools_instance.delete_fake_logs(time_range)
@@ -65,6 +65,6 @@ def clean_env(splunk_tools_instance, time_range=None):
         logger.info(f'update time range to {time_range}')
     empty_monitored_files(SYSTEM_MONITOR_FILE_PATH)
     empty_monitored_files(SECURITY_MONITOR_FILE_PATH)
-    splunk_tools_instance.delete_fake_logs(time_range)
+    splunk_tools_instance.delete_fake_logs(time_range, logs_qnt=logs_qnt)
 
     return time_range

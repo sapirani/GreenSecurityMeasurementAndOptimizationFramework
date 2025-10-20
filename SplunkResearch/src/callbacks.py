@@ -76,7 +76,9 @@ class MetricsLoggerCallback:
         self._log_metrics('ac_distribution_value', info.get('ac_distribution_value'))
         self._log_metrics('ac_distribution_reward', info.get('ac_distribution_reward'))
         self._log_metrics('energy_reward', info.get('energy_reward'))
+        self._log_metrics('norm_energy_reward', info.get('norm_energy_reward'))
         self._log_metrics('alert_reward', info.get('alert_reward'))
+        self._log_metrics('norm_alert_reward', info.get('norm_alert_reward'))
         
         self._log_metrics('total_episode_logs', info.get('total_episode_logs'))
         
@@ -178,6 +180,8 @@ class CustomTensorboardCallback(MetricsLoggerCallback, BaseCallback):
         all_steps = info.get('all_steps_counter', 0)
         self.logger.dump(self.n_calls)
         return True
+
+
 
 
 class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
