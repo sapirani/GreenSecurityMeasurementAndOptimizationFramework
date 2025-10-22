@@ -6,14 +6,11 @@ from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationA
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from DTOs.session_host_info import SessionHostIdentity
-from aggregators.abstract_aggregator import AbstractAggregator
+from elastic_reader.aggregators.abstract_aggregator import AbstractAggregator
 from DTOs.process_info import ProcessIdentity, ProcessMetadata
 from DTOs.aggregated_results_dtos.aggregated_process_results import AggregatedProcessResults
-from aggregators.cpu_integral_aggregator import CPUIntegralAggregator
-from aggregators.energy_model_aggregator import EnergyModelAggregator
-from aggregators.process_system_usage_fraction_aggregator import \
-    ProcessSystemUsageFractionAggregator
-
+from elastic_reader.aggregators.cpu_integral_aggregator import CPUIntegralAggregator
+from elastic_reader.aggregators.energy_model_aggregator import EnergyModelAggregator
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata, IterationRawResults
 from DTOs.raw_results_dtos.abstract_raw_results import AbstractRawResults
 from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
