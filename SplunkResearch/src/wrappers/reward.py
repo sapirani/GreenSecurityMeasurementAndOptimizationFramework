@@ -350,13 +350,13 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # self.unwrapped.is_mock = (not should_execute or not self.use_energy or not self.use_alert) 
             # inject logs if not is_mock
             if (not self.is_mock  or self.measuring) and should_execute and self.use_energy and self.use_alert:
-                self.env.env.delete_episodic_logs() # access to action wrapper0
                 self.env.env.inject_episodic_logs() # access to action wrapper0
                 # wait for the logs to be injected
                 # sleep(4)
                 should_run = True
                 attempt = 0
-                while should_run:
+                stop_loop = False
+                while should_run and not stop_loop:
                     rerun = False
                     if attempt > 4:
                         logger.info(f"Re-running due to mismatch in alerts difference")
@@ -369,6 +369,9 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                     baseline_raw_metrics, combined_baseline_metrics = self.process_metrics(
                         self.get_baseline_data(info['current_window'], rerun).groupby('search_name')
                     )
+                    if rerun:
+                        stop_loop = True
+
                     # find the difference of alerts between raw_metrics and baseline_raw_metrics
                     alerts_diff = {rule: raw_metrics[rule]['alert'] - baseline_raw_metrics.get(rule, {}).get('alert', 0) for rule in self.expected_alerts}
                     
