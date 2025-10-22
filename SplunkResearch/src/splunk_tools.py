@@ -942,7 +942,29 @@ class SplunkTools(object):
         results = json.loads(response.text)
         results = int(results['results'][0]['count'])
         return results
+    def run_search(self, query, earliest_time, latest_time):
+        job = self.service.jobs.create(
+            f" search {query}", 
+            earliest_time=earliest_time, 
+            latest_time=latest_time
+        )
         
+        while True:
+            job.refresh()
+            if job.content['isDone'] == '1':
+                break
+            time.sleep(2)
+        
+        response = job.results(output_mode='json', count=0)
+        reader = splunk_results.JSONResultsReader(response)
+        results = []
+        
+        for result in reader:
+            if isinstance(result, dict):
+                results.append(result)
+        
+        return results
+    
     def delete_fake_logs(self, time_range=None, condition=None, logs_qnt=None, max_attempts=5):
         """
         Deletes logs from Splunk and retries if not all logs are deleted.

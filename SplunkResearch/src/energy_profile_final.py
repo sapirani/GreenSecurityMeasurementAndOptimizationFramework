@@ -23,10 +23,78 @@ logging.basicConfig(filename='/home/shouei/GreenSecurity-FirstExperiment/SplunkR
                     level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 # add elastic handler to logger
-
-
+SPLUNK_BINARY_PATH = "/opt/splunk/bin/splunk"
+log_file_prefix = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/"
 # logger = logging.getLogger()
 
+def inject_episodic_logs():
+    """Inject episodic logs into environment"""
+
+    # logging.info(f"Waiting for {sum(self.episode_logs.values())} logs to be written")
+    # sleep(sum(self.episode_logs.values())/4500)  # wait for logs to be written
+    security_log_file_path = log_file_prefix + "wineventlog:security.txt"
+    system_log_file_path = log_file_prefix + "wineventlog:system.txt"
+    flush_logs(security_log_file_path, log_type="Security")
+    flush_logs(system_log_file_path, log_type="System")
+    sleep(5)  # wait for logs to be indexed
+
+def flush_logs(log_file_path, log_type="Security"):
+    cmd_list = [
+        'sudo', '-S',
+        SPLUNK_BINARY_PATH,
+        "add",
+        "oneshot",
+        log_file_path,
+        "-index", "main",
+        "-sourcetype", "WinEventLog:" + log_type,
+        "-auth", "shouei:123456789" # Add this if you need to authenticate
+    ]
+
+    # print(f"Injecting {log_file_path} into Splunk. This will block until complete...")
+    # 4. Run the command
+    try:
+        # input: Sends the password string to the command's stdin
+        # text=True: Encodes the input and decodes stdout/stderr as text (using UTF-8)
+        # capture_output=True: Captures stdout and stderr
+        # check=True: Raises an error if the command returns a non-zero exit code
+        result = subprocess.run(
+            cmd_list,
+            input=" \n",
+            text=True,
+            capture_output=True,
+            check=True
+        )
+        
+        # If the command was successful
+        # print("Command executed successfully:")
+        if result.stdout:
+            logging.info("\n--- STDOUT ---")
+            logging.info(result.stdout)
+        if result.stderr:
+            logging.info("\n--- STDERR ---")
+            logging.info(result.stderr)
+
+    except subprocess.CalledProcessError as e:
+        # This block runs if check=True and the command fails
+        print("Command failed:", file=sys.stderr)
+        print(f"Return Code: {e.returncode}", file=sys.stderr)
+        
+        if e.stdout:
+            print("\n--- STDOUT ---", file=sys.stderr)
+            print(e.stdout, file=sys.stderr)
+        
+        if e.stderr:
+            print("\n--- STDERR ---", file=sys.stderr)
+            # Check for the specific sudo error
+            if "no password was provided" in e.stderr or "incorrect password" in e.stderr:
+                print("Hint: The password may have been incorrect.", file=sys.stderr)
+            else:
+                print(e.stderr, file=sys.stderr)
+
+    except FileNotFoundError:
+        # This block runs if "sudo" or the splunk path is not found
+        print(f"Error: Command not found.", file=sys.stderr)
+        print(f"Please check the path: {cmd_list[2]}", file=sys.stderr)
 
 def write_logs_to_monitor( logs, log_source):
     with open(f'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/{log_source}.txt', 'a') as f:
@@ -46,6 +114,22 @@ def handle_process_output(process, logger):
     # Start threads for stdout and stderr
     return threading.Thread(target=read_output, args=(process.stdout, logger.info), daemon=True), threading.Thread(target=read_output, args=(process.stderr, logger.error), daemon=True)
 
+
+def check_logs_flushed(earliest_time, latest_time, expected_count, timeout=100):
+    """Check if all logs are flushed to Splunk within the timeout period"""
+    splunk_tools = SplunkTools()
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        search_query = f'index="main" host="dt-splunk"'
+        results = splunk_tools.run_search(search_query, earliest_time, latest_time)
+        if results and int(results[0]['log_count']) >= expected_count:
+            logging.info(f'All {expected_count} logs have been flushed to Splunk.')
+            return True
+        time.sleep(2)  # wait before checking again
+    logging.warning(f'Timeout reached: Not all logs were flushed to Splunk.')
+    return False
+
+
 # Main execution
 async def overload_profile(savedsearches, splunk_tools):
     top_logtypes = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
@@ -59,7 +143,7 @@ async def overload_profile(savedsearches, splunk_tools):
     # quantities = [100, 200]
     quantities = [1000, 25000, 50000, 75000, 100000, 250000, 500000, 750000, 1000000]
     # diversities = [0, 1]
-    diversities = [1/32]
+    diversities = [0, 0.01, 0.1, 0.5, 1, 5]
     # diversities = [0, 0.5, 1, 5, 10]
     time_range = ("08/11/2024:09:00:00", "08/13/2024:09:00:00")
     logging.info(clean_env(splunk_tools, time_range))
@@ -79,14 +163,16 @@ async def overload_profile(savedsearches, splunk_tools):
                                                    eventcode=eventcode,
                                                    istrigger=int(diversity > 0),
                                                    num_logs=quantity_to_add,
-                                                   diversity=int(diversity*31+1),
+                                                   diversity=max(1, int(diversity*100)),
                                                    time_range=time_range)
-                waiting_time = len(logs)/ 4500  # 4500 logs per second 
+
+                write_logs_to_monitor(logs, log_source) # send to splunk    
+                inject_episodic_logs()
+                waiting_time = len(logs)/ 30000  # 30000 logs per second 
                 logging.info(f'Waiting for {waiting_time} seconds before executing rules for {rule}')
-                write_logs_to_monitor(logs, log_source) # send to splunk
 
                 await asyncio.sleep(waiting_time)
-                scanner_id = f"{rule}_{log_source}_{eventcode}_{int(diversity*31+1)}_{quantity}_{datetime.now()}"
+                scanner_id = f"{rule}_{log_source}_{eventcode}_{int(diversity*100)}_{quantity}_{datetime.now()}"
                 # # config logger handler
                 # elastic_handler = ElasticSearchLogHandler(session_id=scanner_id)
                 # # Remove all previous ElasticSearchLogHandlers
@@ -94,6 +180,8 @@ async def overload_profile(savedsearches, splunk_tools):
                 #     if isinstance(h, ElasticSearchLogHandler):
                 #         logger.removeHandler(h)
                 # logger.addHandler(elastic_handler)
+                # check all logs are flushed
+
                 logging.info(f"scanner_id: {scanner_id}")
                
                 # process = subprocess.Popen(["sudo", "-S", "-E", "env", "PATH=/usr/bin:/bin:/usr/sbin:/sbin:/home/shouei/anaconda3/envs/py38/bin", "/home/shouei/anaconda3/envs/py38/bin/python3", "../scanner.py", "--measurement_session_id", scanner_id],
