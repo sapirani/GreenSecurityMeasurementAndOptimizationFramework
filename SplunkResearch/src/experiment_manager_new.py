@@ -170,7 +170,7 @@ class ExperimentManager:
                 distribution_threshold=config.distribution_threshold
             )
             
-        env = BaseRuleExecutionWrapperWithPrediction(env, is_mock=config.is_mock, enable_prediction = True, alert_threshold = config.alert_threshold, skip_on_low_alert = True, use_energy = config.use_energy_reward, use_alert = config.use_alert_reward, is_train = (config.mode.__contains__('train')) , is_eval = (config.mode == "eval_post_training"))  
+        env = BaseRuleExecutionWrapperWithPrediction(env, is_mock=config.is_mock, enable_prediction = True, alert_threshold = config.alert_threshold, skip_on_low_alert = True, use_energy = config.use_energy_reward, use_alert = config.use_alert_reward, is_train = (config.mode.__contains__('train')) , is_eval = (config.mode == "eval_post_training"), beta = config.beta_alert, gamma = config.gamma_dist) 
         # alert_threshold = -6, -2, -10
         
         if config.use_energy_reward:
@@ -337,21 +337,21 @@ class ExperimentManager:
             eval_config = replace(eval_config, is_mock=False)
             self.eval_env = self.create_environment(eval_config)
             self.eval_env.unwrapped.splunk_tools.load_real_logs_distribution_bucket(datetime.datetime.strptime(env.unwrapped.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(self.eval_env.unwrapped.time_manager.end_time, '%m/%d/%Y:%H:%M:%S'))
-            # if "test_experiment" not  in config.experiment_name:
-            #     # clean and warm up the env
-            #     logger.info("Cleaning and warming up the environment")
-            #     clean_env(env.unwrapped.splunk_tools, (env.unwrapped.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
-            #     env.unwrapped.warmup()
-            # else:
-            #     action_env = env
-            #     action_eval_env = self.eval_env
-            #     while not isinstance(action_env, Action8):
-            #         action_env = action_env.env
-            #     while not isinstance(action_eval_env, Action8):
-            #         action_eval_env = action_eval_env.env
+            if "test_experiment" not  in config.experiment_name:
+                # clean and warm up the env
+                logger.info("Cleaning and warming up the environment")
+                clean_env(env.unwrapped.splunk_tools, (env.unwrapped.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
+                env.unwrapped.warmup()
+            else:
+                action_env = env
+                action_eval_env = self.eval_env
+                while not isinstance(action_env, Action8):
+                    action_env = action_env.env
+                while not isinstance(action_eval_env, Action8):
+                    action_eval_env = action_eval_env.env
 
-            #     action_env.disable_injection()
-            #     action_eval_env.disable_injection()
+                action_env.disable_injection()
+                action_eval_env.disable_injection()
             # Setup callbacks
             config.experiment_name = experiment_name
             callbacks = self._setup_callbacks(config)
@@ -681,8 +681,8 @@ if __name__ == "__main__":
                         
                         
                         #retrain model
-                        experiment_config.mode = "retrain"#"eval_post_training"  # eval after training
-                        experiment_config.num_episodes = 2500
+                        experiment_config.mode = "eval_post_training"#"eval_post_training"  # eval after training
+                        experiment_config.num_episodes = 100
                         manager = ExperimentManager(base_dir="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments")
                         results = manager.run_experiment(experiment_config)
 
