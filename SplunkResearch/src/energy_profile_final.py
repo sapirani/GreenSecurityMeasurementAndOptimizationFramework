@@ -14,7 +14,7 @@ import subprocess
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 from program_parameters import *
 from resources.section_logtypes import section_logtypes
-from SplunkResearch.src.splunk_tools import SplunkTools
+from SplunkResearch.src.splunk_tools import *
 from SplunkResearch.src.env_utils import clean_env
 sys.stdout.reconfigure(line_buffering=True)
 
@@ -185,13 +185,13 @@ async def overload_profile(savedsearches, splunk_tools):
                 logging.info(f"scanner_id: {scanner_id}")
                
                 # process = subprocess.Popen(["sudo", "-S", "-E", "env", "PATH=/usr/bin:/bin:/usr/sbin:/sbin:/home/shouei/anaconda3/envs/py38/bin", "/home/shouei/anaconda3/envs/py38/bin/python3", "../scanner.py", "--measurement_session_id", scanner_id],
-                process = subprocess.Popen(["/home/shouei/anaconda3/envs/py310_modelenv/bin/python3", "-u", "scanner.py", "--measurement_session_id", scanner_id],
+                process = subprocess.Popen([ "/home/shouei/anaconda3/envs/py310_modelenv/bin/python3", "-u", "scanner.py", "--measurement_session_id", scanner_id, "--elastic_pipeline_processes", "enrich_pid_to_rule_name"],
                                         stdin=subprocess.PIPE,
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
                                         text=True,
                                         bufsize=1)  # Line buffered
-                
+
                 # Send the password to sudo without waiting for completion
                 # process.stdin.write(' \n')
                 # process.stdin.flush()
@@ -211,7 +211,7 @@ async def overload_profile(savedsearches, splunk_tools):
                 #                 # input=' \n',
                 #                 text=True,
                 #                 check=False)
-                process.send_signal(2)
+                process.send_signal(9)
                 logging.warning('Killed all scanner.py processes as last resort')
                 thred_1.join()
                 thred_2.join()
@@ -249,5 +249,5 @@ if __name__ == "__main__":
                  'Windows AD Replication Request Initiated from Unsanctioned Location',
                  'ESCU Windows Rapid Authentication On Multiple Hosts Rule']
     
-    splunk_tools = SplunkTools(active_saved_searches=savedsearches, mode="profile")
+    splunk_tools = SplunkTools(active_saved_searches=savedsearches, mode=Mode.PROFILE)
     asyncio.run(overload_profile(savedsearches, splunk_tools))

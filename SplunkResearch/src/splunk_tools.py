@@ -274,7 +274,7 @@ class SplunkTools(object):
                     es_logger.info(f"PID SID MAPPING", extra={
                         'pid': pid,
                         'sid': sid,
-                        'search_name': search_name
+                        'rule_name': search_name
                     }
                     )
                 process = psutil.Process(int(pid))
@@ -401,76 +401,22 @@ class SplunkTools(object):
         logger.info(f'Running saved search {search_name}')
         return await self.execute_query(search_name, query, earliest_time, latest_time)
 
-    async def run_saved_searches(
-        self, 
-        time_range: Tuple[str, str], 
-        running_plan: Dict[str, int]=None,
-        num_measurements: int = 1        
-    ) -> Tuple[List[QueryMetrics], float]:
-        """
-        FIXED: Already properly parallelized with asyncio.gather
-        Just needed the execute_query to be truly async
-        """
-        # Start CPU monitoring
-        # self.start_cpu_monitoring()
-        
-        all_tasks = []
-        if running_plan is None:
-            running_plan = {search: num_measurements for search in self.active_saved_searches}
-        
-        for search_name, num_measurements in running_plan.items():
-            for i in range(num_measurements):
-                # Create a task for each measurement
-                task = asyncio.create_task(self.run_saved_search(
-                    search_name, time_range))
-                all_tasks.append(task)
-        # run a thread that check if all pids founded and then enrich elasic index
-        if self.mode == Mode.PROFILE:
-            pids_thread = threading.Thread(
-                target=self.enrich_elastic_index_with_pids,
-            )
-            pids_thread.start()
-        # Run all tasks concurrently
-        results = await asyncio.gather(*all_tasks)
-        if self.mode == Mode.PROFILE:        
-            # Wait for the pids thread to finish
-            pids_thread.join()
-            self.pids = []
-        
-        # Filter out any failed measurements
-        valid_results = [m for m, r in results if isinstance(m, QueryMetrics)]
-        for result in valid_results:
-            result.start_time = time_range[0]
-            result.end_time = time_range[1]
-        
-        if len(valid_results) < len(results):
-            logger.warning(f"Some measurements failed: {len(results) - len(valid_results)} failures")
-        # log each res in line
-        for result in valid_results:
-            logger.info(f"Search: {result.search_name}, "
-                        f"Results: {result.results_count}, "
-                        f"Execution Time: {result.execution_time:.2f}s, "
-                        f"CPU: {result.cpu:.2f}s, ")
-                    #   f"IO Metrics: {result.io_metrics}")
-        return valid_results, self.total_cpu_time
-            
-        # finally:
-        #     # Stop CPU monitoring
-        #     self.stop_cpu_monitoring()
+    
         
     def enrich_elastic_index_with_pids(self):
         while len(self.pids)!= len(self.active_saved_searches):
             time.sleep(0.1)
-        logger.info(f"Enriching Elastic index with PIDs: {self.pids}")
+        es_logger.info(f"Enriching Elastic index with PIDs: {self.pids}")
         # Enrich the Elastic index with the PIDs
         # # Execute the enrich policy using 'target' and provide authentication explicitly
         response = es_logger.handlers[0].es.transport.perform_request(
             method="POST",
-            target="/_enrich/policy/search_name/_execute",  # 'target' is the correct parameter here
+            target="/_enrich/policy/pid_to_rule_name/_execute",  # 'target' is the correct parameter here
             headers={
                 "Authorization": "Basic ZWxhc3RpYzpTd21RTlU3eQ=="  # base64 encoded "elastic:SVR4mUZl"
             }
         )
+        # print("Enrich response:", response)
         
     def monitor_total_cpu(self):
         """Monitor total CPU usage across all Splunk processes"""
@@ -494,21 +440,20 @@ class SplunkTools(object):
         
         logger.info(f'Running saved search {search_name}')
         return await self.execute_query(search_name, query, earliest_time, latest_time)
-
+    
     async def run_saved_searches(
-        self, 
-        time_range: Tuple[str, str], 
-        running_plan: Dict[str, int]=None,
-        num_measurements: int = 1        
-    ) -> Tuple[List[QueryMetrics], float]:
-        """
-        FIXED: Already properly parallelized with asyncio.gather
-        Just needed the execute_query to be truly async
-        """
-        # Start CPU monitoring
-        self.start_cpu_monitoring()
-        
-        try:
+            self, 
+            time_range: Tuple[str, str], 
+            running_plan: Dict[str, int]=None,
+            num_measurements: int = 1        
+        ) -> Tuple[List[QueryMetrics], float]:
+            """
+            FIXED: Already properly parallelized with asyncio.gather
+            Just needed the execute_query to be truly async
+            """
+            # Start CPU monitoring
+            # self.start_cpu_monitoring()
+            
             all_tasks = []
             if running_plan is None:
                 running_plan = {search: num_measurements for search in self.active_saved_searches}
@@ -519,8 +464,19 @@ class SplunkTools(object):
                     task = asyncio.create_task(self.run_saved_search(
                         search_name, time_range))
                     all_tasks.append(task)
-
+            # run a thread that check if all pids founded and then enrich elasic index
+            if self.mode == Mode.PROFILE:
+                # print("Starting PID enrichment thread")
+                pids_thread = threading.Thread(
+                    target=self.enrich_elastic_index_with_pids,
+                )
+                pids_thread.start()
+            # Run all tasks concurrently
             results = await asyncio.gather(*all_tasks)
+            if self.mode == Mode.PROFILE:        
+                # Wait for the pids thread to finish
+                pids_thread.join()
+                self.pids = []
             
             # Filter out any failed measurements
             valid_results = [m for m, r in results if isinstance(m, QueryMetrics)]
@@ -533,15 +489,63 @@ class SplunkTools(object):
             # log each res in line
             for result in valid_results:
                 logger.info(f"Search: {result.search_name}, "
-                          f"Results: {result.results_count}, "
-                          f"Execution Time: {result.execution_time:.2f}s, "
-                          f"CPU: {result.cpu:.2f}s, ")
+                            f"Results: {result.results_count}, "
+                            f"Execution Time: {result.execution_time:.2f}s, "
+                            f"CPU: {result.cpu:.2f}s, ")
                         #   f"IO Metrics: {result.io_metrics}")
             return valid_results, self.total_cpu_time
+                
+            # finally:
+            #     # Stop CPU monitoring
+            #     self.stop_cpu_monitoring()
             
-        finally:
-            # Stop CPU monitoring
-            self.stop_cpu_monitoring()
+    # async def run_saved_searches(
+    #     self, 
+    #     time_range: Tuple[str, str], 
+    #     running_plan: Dict[str, int]=None,
+    #     num_measurements: int = 1        
+    # ) -> Tuple[List[QueryMetrics], float]:
+    #     """
+    #     FIXED: Already properly parallelized with asyncio.gather
+    #     Just needed the execute_query to be truly async
+    #     """
+    #     # Start CPU monitoring
+    #     self.start_cpu_monitoring()
+        
+    #     try:
+    #         all_tasks = []
+    #         if running_plan is None:
+    #             running_plan = {search: num_measurements for search in self.active_saved_searches}
+            
+    #         for search_name, num_measurements in running_plan.items():
+    #             for i in range(num_measurements):
+    #                 # Create a task for each measurement
+    #                 task = asyncio.create_task(self.run_saved_search(
+    #                     search_name, time_range))
+    #                 all_tasks.append(task)
+
+    #         results = await asyncio.gather(*all_tasks)
+            
+    #         # Filter out any failed measurements
+    #         valid_results = [m for m, r in results if isinstance(m, QueryMetrics)]
+    #         for result in valid_results:
+    #             result.start_time = time_range[0]
+    #             result.end_time = time_range[1]
+            
+    #         if len(valid_results) < len(results):
+    #             logger.warning(f"Some measurements failed: {len(results) - len(valid_results)} failures")
+    #         # log each res in line
+    #         for result in valid_results:
+    #             logger.info(f"Search: {result.search_name}, "
+    #                       f"Results: {result.results_count}, "
+    #                       f"Execution Time: {result.execution_time:.2f}s, "
+    #                       f"CPU: {result.cpu:.2f}s, ")
+    #                     #   f"IO Metrics: {result.io_metrics}")
+    #         return valid_results, self.total_cpu_time
+            
+    #     finally:
+    #         # Stop CPU monitoring
+    #         self.stop_cpu_monitoring()
 
     def monitor_total_cpu(self):
         """Monitor total CPU usage across all Splunk processes"""

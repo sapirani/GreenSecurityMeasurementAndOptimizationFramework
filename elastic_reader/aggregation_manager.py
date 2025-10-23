@@ -1,17 +1,17 @@
 from collections import defaultdict
-from typing import List, Dict, Callable, Type, DefaultDict, Optional, TypeAlias
+from typing import List, Dict, Callable, Type, DefaultDict, Optional
 
 from DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
 from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationAggregatedResults
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from DTOs.session_host_info import SessionHostIdentity
-from aggregators.abstract_aggregator import AbstractAggregator
+from elastic_reader.aggregators.abstract_aggregator import AbstractAggregator
 from DTOs.process_info import ProcessIdentity, ProcessMetadata
 from DTOs.aggregated_results_dtos.aggregated_process_results import AggregatedProcessResults
-from aggregators.cpu_integral_aggregator import CPUIntegralAggregator
-from aggregators.energy_model_aggregator import EnergyModelAggregator
-from aggregators.process_system_usage_fraction_aggregator import \
+from elastic_reader.aggregators.cpu_integral_aggregator import CPUIntegralAggregator
+from elastic_reader.aggregators.energy_model_aggregator import EnergyModelAggregator
+from elastic_reader.aggregators.process_system_usage_fraction_aggregator import \
     ProcessSystemUsageFractionAggregator
 
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata, IterationRawResults
@@ -20,10 +20,10 @@ from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawRes
 from DTOs.raw_results_dtos.system_processes_raw_results import FullScopeRawResults
 
 
-PerProcesAggregators: TypeAlias = DefaultDict[ProcessIdentity, List[AbstractAggregator]]
-SessionHostProcessAggregators: TypeAlias = DefaultDict[SessionHostIdentity, PerProcesAggregators]
-SessionHostSystemAggregators: TypeAlias = DefaultDict[SessionHostIdentity, List[AbstractAggregator]]
-PerProcessAggregationResults: TypeAlias = Dict[ProcessIdentity, AggregatedProcessResults]
+PerProcesAggregators = DefaultDict[ProcessIdentity, List[AbstractAggregator]]
+SessionHostProcessAggregators = DefaultDict[SessionHostIdentity, PerProcesAggregators]
+SessionHostSystemAggregators = DefaultDict[SessionHostIdentity, List[AbstractAggregator]]
+PerProcessAggregationResults = Dict[ProcessIdentity, AggregatedProcessResults]
 
 
 class AggregationManager:
