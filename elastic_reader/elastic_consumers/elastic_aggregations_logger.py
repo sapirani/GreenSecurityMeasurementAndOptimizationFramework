@@ -6,7 +6,6 @@ from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationA
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
 from application_logging.formatters.pretty_extra_formatter import PrettyExtrasFormatter
 from application_logging.handlers.elastic_bulk_handler import get_elastic_bulk_handler
-from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 from application_logging.logging_utils import get_measurement_logger
 from elastic_reader.consts import Verbosity
 from elastic_reader.elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
@@ -16,16 +15,6 @@ from utils.general_consts import LoggerName, IndexName
 
 
 class ElasticAggregationsLogger(AbstractElasticConsumer):
-    logger = get_measurement_logger(
-        logger_name=LoggerName.METRICS_AGGREGATIONS,
-        logger_handler=get_elastic_bulk_handler(
-            ES_USER,
-            ES_PASS, ES_URL,
-            IndexName.METRICS_AGGREGATIONS,
-            pipeline_name=custom_pipeline_name
-        ),
-    )
-
     def __init__(
             self,
             *,
@@ -33,6 +22,16 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
             verbosity_level: Verbosity = Verbosity.NONE,
             queued_iterations_num_max: int = 15     # used as an optimization for in offline mode
     ):
+        self.logger = get_measurement_logger(
+            logger_name=LoggerName.METRICS_AGGREGATIONS,
+            logger_handler=get_elastic_bulk_handler(
+                ES_USER,
+                ES_PASS, ES_URL,
+                IndexName.METRICS_AGGREGATIONS,
+                pipeline_name=custom_pipeline_name
+            ),
+        )
+
         self.reading_mode = reading_mode
 
         if verbosity_level == Verbosity.VERBOSE:
