@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 from threading import Lock
 from typing import Optional, List, Union
 
@@ -17,10 +17,41 @@ HOSTNAME_FIELD = "hostname"
 ALL_HOSTS = "all_hosts"
 
 
+class TimezoneAwareTimeRolling(utils.TimeRolling):
+    def __init__(self, obj: Rollable, period: timedelta):
+        super().__init__(obj, period)
+        self._latest = datetime(1, 1, 1, tzinfo=UTC)
+
+    def flush_expired(self):
+        """
+        This function is mostly copied from TimeRolling update function.
+        The original implementation is updated only when a new element is inserted.
+        This function enables the removal of old events, even though no new elements are inserted.
+        """
+        # Update latest time marker
+        self._latest = datetime.now(timezone.utc)
+
+        # Find all expired points (older than now - period)
+        i = 0
+        for ti, (argsi, kwargsi) in zip(self._timestamps, self._datum):
+            if ti > self._latest - self.period:
+                break
+            self.obj.revert(*argsi, **kwargsi)
+            i += 1
+
+        # Remove expired events
+        if i > 0:
+            self._timestamps = self._timestamps[i:]
+            self._datum = self._datum[i:]
+
+
 # TODO: CONSIDER ADDING THE WINDOW SIZE AS A PART OF THE INDEX / NAME
 class CustomAgg(Agg):
     @property
     def state(self) -> pd.Series:
+        for time_rolling in self._groups.values():
+            time_rolling.flush_expired()    # Assuming our TimezoneAwareTimeRolling is used
+
         if not self.by:
             return pd.Series(
                 (stat.get() for stat in self._groups.values()),
@@ -34,12 +65,6 @@ class TimeAwareTransformerUnion(TransformerUnion):
     def learn_one(self, x, t=None):
         for transformer in self.transformers.values():
             transformer.learn_one(x, t)
-
-
-class TimezoneAwareTimeRolling(utils.TimeRolling):
-    def __init__(self, obj: Rollable, period: timedelta):
-        super().__init__(obj, period)
-        self._latest = datetime(1, 1, 1, tzinfo=UTC)
 
 
 class DRLState:
@@ -57,8 +82,7 @@ class DRLState:
             split_by: Union[str, list[str], None] = None,
     ):
         self.split_by = split_by
-        self.time_windows = [
-            timedelta(seconds=window_seconds) for window_seconds in time_windows_seconds]
+        self.time_windows = [timedelta(seconds=window_seconds) for window_seconds in time_windows_seconds]
         self.lock = Lock()
 
         # TODO: INCORPORATE AGGREGATIONS SUCH AS CPU INTEGRAL AND ENERGY CONSUMPTION
@@ -134,6 +158,9 @@ class DRLState:
 
     @property
     def state(self) -> pd.Series:
+        """
+        Note: some metrics may result in negative value that is very close to 0, due to numeric errors
+        """
         with self.lock:
             return pd.concat(
                 [transformer.state for transformer in self.time_aware_transformer.transformers.values()],
