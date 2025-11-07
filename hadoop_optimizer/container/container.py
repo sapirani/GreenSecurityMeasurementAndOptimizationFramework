@@ -5,6 +5,7 @@ from dependency_injector.providers import Provider
 
 from consts import TimePickerInputStrategy
 from hadoop_optimizer.drl_model.drl_model import DRLModel
+from hadoop_optimizer.drl_model.drl_state import DRLState
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 
@@ -12,7 +13,17 @@ from user_input.elastic_reader_input.time_picker_input_factory import get_time_p
 class Container(containers.DeclarativeContainer):
     config = providers.Configuration()
 
-    drl_model: Provider[DRLModel] = providers.Singleton(DRLModel)
+    drl_state: Provider[DRLState] = providers.Factory(
+        DRLState,
+        time_windows_seconds=config.drl_state.time_windows_seconds,
+        split_by=config.drl_state.split_by,
+    )
+
+    drl_model: Provider[DRLModel] = providers.Singleton(
+        DRLModel,
+        drl_state=drl_state
+    )
+
     drl_time_picker_input: Provider[TimePickerChosenInput] = providers.Factory(
         get_time_picker_input,
         TimePickerInputStrategy.FROM_CONFIGURATION,

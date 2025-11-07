@@ -50,12 +50,14 @@ def choose_the_best_configuration_for_a_new_task_under_the_current_load(
     param1: float = Query(...),
     param2: float = Query(...),
 ):
-    return {"configuration": drl_model.get_best_configuration(param1=param1, param2=param2)}
+    return drl_model.get_best_configuration(param1=param1, param2=param2)
 
 
 if __name__ == '__main__':
     container = Container()
     container.config.indices_to_read_from.from_value([ElasticIndex.PROCESS, ElasticIndex.SYSTEM])
+    container.config.drl_state.split_by.from_value("hostname")
+    container.config.drl_state.time_windows_seconds.from_value([1 * 60, 5 * 60, 10 * 60, 20 * 60])
     container.wire(modules=[__name__])
     app.container = container
 

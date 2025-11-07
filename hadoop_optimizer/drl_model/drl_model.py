@@ -1,16 +1,14 @@
 from typing import Optional
-
+import pandas as pd
 from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationAggregatedResults
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
 from elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
+from hadoop_optimizer.drl_model.drl_state import DRLState
 
 
-# TODO: IMPLEMENT LOCKS INSIDE CONSUME (A BACKGROUND TASK) AND GET BEST CONFIGURATION (API), AS THE HAPPEN CONCURRENTLY
 class DRLModel(AbstractElasticConsumer):
-    def __init__(self):
-        self.raw_results = []
-        self.aggregation_results = []
-        print("inside constructor")
+    def __init__(self, drl_state: DRLState):
+        self.drl_state = drl_state
 
     def consume(
             self,
@@ -18,10 +16,8 @@ class DRLModel(AbstractElasticConsumer):
             iteration_aggregation_results: Optional[IterationAggregatedResults]
     ):
         print("Inside DRL model")
-        self.raw_results.append(iteration_raw_results)
-        self.aggregation_results.append(iteration_aggregation_results)
+        self.drl_state.update_state(iteration_raw_results, iteration_aggregation_results)
 
     def get_best_configuration(self, param1, param2):
-        print("Returning the best configuration")
-        print(self.raw_results)
-        print(self.aggregation_results)
+        with pd.option_context('display.max_columns', None):
+            print(self.drl_state.state)
