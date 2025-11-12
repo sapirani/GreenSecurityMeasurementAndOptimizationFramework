@@ -30,7 +30,7 @@ DEFAULT_BATCH_INTERVAL_SECONDS = 5 * MINUTE
 MINIMAL_BATCH_DURATION = DEFAULT_BATCH_INTERVAL_SECONDS * 0.5
 # todo: extend this logic when we want to use a baseline background activity instead of idle.
 # todo: extend to reading idle sessions from elastic and calculate the average energy per second
-DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT = 2.921666667
+DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT = 1.57
 DEFAULT_ENERGY_RATIO = 1.0
 
 
@@ -113,10 +113,13 @@ class DatasetCreator:
     def __add_batch_id(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
         df = df.copy()
 
-        # Assign batch IDs (integer division of timestamp by batch duration)
-        df[SystemColumns.BATCH_ID_COL] = (
-                df[TIMESTAMP_COLUMN_NAME].astype("int64") // NANOSECONDS_IN_SECOND // batch_duration_seconds
-        ).astype(int)
+        # Group by session id.
+        # For each group, calculate time delta of each sample (time passed since the beginning of the session).
+        # Then, split the time delta by batch_duration_seconds to define the index of the batch.
+        df[SystemColumns.BATCH_ID_COL] = df[SystemColumns.SESSION_ID_COL] + '_' + (
+            df.groupby(SystemColumns.SESSION_ID_COL)[TIMESTAMP_COLUMN_NAME]
+            .transform(lambda x: ((x - x.min()).dt.total_seconds() // batch_duration_seconds).astype(int).astype(str))
+        )
 
         return df
 
@@ -166,7 +169,8 @@ class DatasetCreator:
             batch_df = self.__add_energy_ratio_column(batch_df)
 
             batch_df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = (batch_df[SystemColumns.DURATION_COL] *
-                                                                 batch_df[SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL]) - \
+                                                                 batch_df[
+                                                                     SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL]) - \
                                                                 (batch_df[SystemColumns.DURATION_COL] *
                                                                  self.__idle_details.energy_per_second)
 
