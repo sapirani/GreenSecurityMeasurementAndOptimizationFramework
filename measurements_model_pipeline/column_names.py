@@ -35,6 +35,7 @@ class SystemColumns:
     SESSION_ID_COL = "session_id"
     HOSTNAME_COL = "hostname"
     ENERGY_RATIO_SHARE = "energy_share"
+    ENERGY_USAGE_SYSTEM_COL = "system_energy_usage_mwh"
 
 
 class IDLEColumns:
