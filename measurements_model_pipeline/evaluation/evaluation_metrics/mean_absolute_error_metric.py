@@ -10,4 +10,4 @@ class MeanAbsoluteErrorMetric(AbstractEvaluationMetric):
         return "Mean Absolute Error (MAE)"
 
     def evaluate(self, y: pd.Series, y_pred: pd.Series) -> float:
-        return mean_absolute_error(y_pred, y)
+        return mean_absolute_error(y, y_pred)

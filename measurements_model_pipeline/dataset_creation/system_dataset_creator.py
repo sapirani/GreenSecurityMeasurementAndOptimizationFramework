@@ -186,6 +186,5 @@ class SystemDatasetCreator:
         return df.drop([SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL,
                         SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL,
                         SystemColumns.BATCH_ID_COL, TIMESTAMP_COLUMN_NAME,
-                        SystemColumns.SESSION_ID_COL, ProcessColumns.PROCESS_ID_COL,
-                        SystemColumns.ENERGY_RATIO_SHARE],
+                        SystemColumns.SESSION_ID_COL, ProcessColumns.PROCESS_ID_COL],
                        axis=1)

@@ -10,4 +10,4 @@ class MeanSquaredErrorMetric(AbstractEvaluationMetric):
         return "Mean Squared Error (MSE)"
 
     def evaluate(self, y: pd.Series, y_pred: pd.Series) -> float:
-        return mean_squared_error(y_pred, y)
+        return mean_squared_error(y, y_pred)
