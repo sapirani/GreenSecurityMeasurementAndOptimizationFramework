@@ -21,7 +21,6 @@ from measurements_model_pipeline.dataset_parameters import FULL_DATASET_PATH
 from energy_model.configs.columns import ProcessColumns, SystemColumns
 from measurements_model_pipeline.energy_model_convertor import EnergyModelConvertor
 from measurements_model_pipeline.energy_model_feature_extractor import EnergyModelFeatureExtractor
-from measurements_model_pipeline.resource_energy_calculator import ResourceEnergyCalculator
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 from utils.general_consts import MINUTE
 
@@ -37,7 +36,6 @@ class DatasetCreator(ABC):
             [ElasticIndex.PROCESS, ElasticIndex.SYSTEM]).read()
         self.__processes_features_extractor_mapping: Dict[ProcessIdentity, EnergyModelFeatureExtractor] = defaultdict(
             lambda: EnergyModelFeatureExtractor())
-        self.__resource_energy_calculator = ResourceEnergyCalculator()
         self.__batch_time_interval = batch_time_interval
 
     def __create_system_process_dataset(self) -> list[ExtendedEnergyModelFeatures]:

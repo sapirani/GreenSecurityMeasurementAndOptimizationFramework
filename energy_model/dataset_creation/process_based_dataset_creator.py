@@ -1,7 +1,7 @@
 from dataclasses import fields
 from overrides import overrides
 import pandas as pd
-
+from measurements_model_pipeline.resource_energy_calculator import ResourceEnergyCalculator
 from DTOs.aggregators_features.energy_model_features.idle_energy_model_features import IdleEnergyModelFeatures
 from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
 from energy_model.dataset_creation.dataset_creator import DatasetCreator
@@ -20,6 +20,7 @@ class ProcessBasedDatasetCreator(DatasetCreator):
         self.__idle_details = IdleEnergyModelFeatures(
             energy_per_second=DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT
         )
+        self.__resource_energy_calculator = ResourceEnergyCalculator()
 
     def _add_target_to_batch(self, batch_df: pd.DataFrame) -> pd.DataFrame:
         batch_df = self.__add_energy_ratio_column(batch_df)
