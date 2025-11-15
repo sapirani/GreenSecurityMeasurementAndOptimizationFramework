@@ -1,7 +1,7 @@
 import pandas as pd
 
 from energy_model.dataset_creation.dataset_creator import DatasetCreator
-from measurements_model_pipeline.column_names import SystemColumns
+from energy_model.configs.columns import SystemColumns
 
 
 # todo: change to consumer interface

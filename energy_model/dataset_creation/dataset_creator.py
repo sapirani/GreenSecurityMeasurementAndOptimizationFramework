@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from dataclasses import asdict, fields
+from dataclasses import asdict
 from datetime import datetime
 from typing import Dict
 
@@ -8,8 +8,6 @@ import pandas as pd
 
 from DTOs.aggregators_features.empty_features import EmptyFeatures
 from DTOs.aggregators_features.energy_model_features.full_energy_model_features import ExtendedEnergyModelFeatures
-from DTOs.aggregators_features.energy_model_features.idle_energy_model_features import IdleEnergyModelFeatures
-from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
 from DTOs.process_info import ProcessIdentity
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
@@ -20,18 +18,15 @@ from elastic_reader.elastic_reader import ElasticReader
 from elastic_reader.elastic_reader_parameters import time_picker_input_strategy, preconfigured_time_picker_input
 from measurements_model_pipeline.dataset_creation.dataset_constants import TIMESTAMP_COLUMN_NAME, IDLE_SESSION_ID_NAME
 from measurements_model_pipeline.dataset_parameters import FULL_DATASET_PATH
-from measurements_model_pipeline.column_names import ProcessColumns, SystemColumns
+from energy_model.configs.columns import ProcessColumns, SystemColumns
 from measurements_model_pipeline.energy_model_convertor import EnergyModelConvertor
 from measurements_model_pipeline.energy_model_feature_extractor import EnergyModelFeatureExtractor
 from measurements_model_pipeline.resource_energy_calculator import ResourceEnergyCalculator
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
-from utils.general_consts import MINUTE, NANOSECONDS_IN_SECOND
+from utils.general_consts import MINUTE
 
 DEFAULT_BATCH_INTERVAL_SECONDS = 5 * MINUTE
 MINIMAL_BATCH_DURATION = DEFAULT_BATCH_INTERVAL_SECONDS * 0.5
-# todo: extend this logic when we want to use a baseline background activity instead of idle.
-# todo: extend to reading idle sessions from elastic and calculate the average energy per second
-DEFAULT_ENERGY_RATIO = 1.0
 
 
 # todo: change to consumer interface

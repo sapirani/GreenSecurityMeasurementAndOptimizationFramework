@@ -5,7 +5,7 @@ import pandas as pd
 from DTOs.aggregators_features.energy_model_features.idle_energy_model_features import IdleEnergyModelFeatures
 from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
 from energy_model.dataset_creation.dataset_creator import DatasetCreator
-from measurements_model_pipeline.column_names import ProcessColumns, SystemColumns
+from energy_model.configs.columns import ProcessColumns, SystemColumns
 
 # todo: extend this logic when we want to use a baseline background activity instead of idle.
 # todo: extend to reading idle sessions from elastic and calculate the average energy per second
