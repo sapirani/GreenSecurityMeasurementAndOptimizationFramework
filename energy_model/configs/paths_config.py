@@ -1,3 +1,3 @@
-FULL_DATASET_BEFORE_PROCESSING_PATH = r"full_dataset.csv"
+FULL_DATASET_BEFORE_PROCESSING_PATH = r"dataset_creation\full_dataset_system_based.csv"
 
 DEFAULT_ENERGY_MODEL_PATH = r"energy_model_elements"
