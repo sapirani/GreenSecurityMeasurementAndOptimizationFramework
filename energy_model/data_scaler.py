@@ -4,7 +4,7 @@ from sklearn.preprocessing import StandardScaler
 
 class DataScaler:
     def __init__(self):
-        self.__scaler = StandardScaler()  # todo: change to read from file
+        self.__scaler = StandardScaler()
 
     def fit(self, X: pd.DataFrame):
         self.__scaler.fit(X)

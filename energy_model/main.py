@@ -7,7 +7,6 @@ import pandas as pd
 from energy_model.configs.paths_config import FULL_DATASET_BEFORE_PROCESSING_PATH, MODEL_FILE_NAME
 from energy_model.models.energy_prediction_model import EnergyPredictionModel
 
-
 if __name__ == "__main__":
     energy_model = EnergyPredictionModel()
     full_df = pd.read_csv(FULL_DATASET_BEFORE_PROCESSING_PATH, index_col=0)
