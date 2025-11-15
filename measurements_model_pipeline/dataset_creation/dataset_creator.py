@@ -177,6 +177,10 @@ class DatasetCreator:
             batch_df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = batch_df[ProcessColumns.ENERGY_USAGE_PROCESS_COL] * \
                                                                 batch_df[SystemColumns.ENERGY_RATIO_SHARE]
 
+            batch_df[SystemColumns.ENERGY_USAGE_SYSTEM_COL] = (batch_df[SystemColumns.DURATION_COL] *
+                                                               batch_df[
+                                                                   SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL])
+
             results.append(batch_df)
 
         df = pd.concat(results, ignore_index=True)
