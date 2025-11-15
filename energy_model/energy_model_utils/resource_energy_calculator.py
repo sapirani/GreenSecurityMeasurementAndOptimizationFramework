@@ -2,7 +2,7 @@ import logging
 from dataclasses import asdict
 
 from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
-from measurements_model_pipeline.sample_resources_energy import SampleResourcesEnergy
+from energy_model.energy_model_utils.sample_resources_energy import SampleResourcesEnergy
 
 class EnergyPerResourceConsts:
     """

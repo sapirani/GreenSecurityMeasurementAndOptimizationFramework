@@ -1,3 +1,6 @@
+from energy_model.configs.columns import SystemColumns
+from energy_model.dataset_processing.filters.negative_value_filter import NegativeValueFilter
+from energy_model.dataset_processing.filters.outliers_filter import OutlierFilter
 from energy_model.evaluation.evaluation_metrics.average_per_metric import AveragePERMetric
 from energy_model.evaluation.evaluation_metrics.mean_absolute_error_metric import MeanAbsoluteErrorMetric
 from energy_model.evaluation.evaluation_metrics.mean_squared_error_metric import MeanSquaredErrorMetric
@@ -12,3 +15,10 @@ DEFAULT_EVALUATION_METRICS = [RelativeRootMeanSquaredErrorMetric(), StandardDevi
                               AveragePERMetric(), MeanSquaredErrorMetric(),
                               RootMeanSquaredErrorMetric(), MeanAbsoluteErrorMetric(),
                               RootMeanSquaredPercentErrorMetric()]
+
+NON_ZERO_COLUMNS = [SystemColumns.DURATION_COL, SystemColumns.DISK_READ_BYTES_SYSTEM_COL,
+                    SystemColumns.DISK_WRITE_BYTES_SYSTEM_COL, SystemColumns.CPU_SYSTEM_COL]
+OUTLIERS_COLUMNS = [SystemColumns.MEMORY_SYSTEM_COL, SystemColumns.DISK_READ_BYTES_SYSTEM_COL,
+                    SystemColumns.DISK_WRITE_BYTES_SYSTEM_COL, SystemColumns.CPU_SYSTEM_COL]
+DEFAULT_FILTERS = [NegativeValueFilter(NON_ZERO_COLUMNS),
+                   OutlierFilter(OUTLIERS_COLUMNS)]
