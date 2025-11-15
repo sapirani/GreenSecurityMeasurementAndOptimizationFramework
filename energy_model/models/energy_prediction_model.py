@@ -1,24 +1,45 @@
+import os
+from typing import Optional
+
+import joblib
 import pandas as pd
 
 from energy_model.configs.columns import SystemColumns, ProcessColumns, COLUMNS_MAPPING
 from energy_model.configs.defaults_configs import DEFAULT_FILTERS
+from energy_model.configs.paths_config import DEFAULT_ENERGY_MODEL_PATH, PROCESS_SYSTEM_DF_PATH
 from energy_model.data_scaler import DataScaler
 from energy_model.dataset_processing.data_processor import DataProcessor
-from energy_model.dataset_processing.feature_selection.feature_selector import FeatureSelector
 from energy_model.dataset_processing.feature_selection.process_and_system_feature_selector import \
     ProcessAndSystemFeatureSelector
 from energy_model.dataset_processing.feature_selection.process_only_feature_selector import ProcessOnlyFeatureSelector
 from energy_model.dataset_processing.feature_selection.system_only_feature_selector import SystemOnlyFeatureSelector
 from energy_model.dataset_processing.filters.energy_filter import EnergyFilter
-from energy_model.model import Model
-from energy_model.pipelines.pipeline_executor import PipelineExecutor
+from energy_model.models.model import Model
+from energy_model.pipelines.model_pipeline_executor import PipelineExecutor
+
+MODEL_FILE_PATH = "energy_model.pickle"
+SCALER_FILE_PATH = "energy_scaler.pickle"
 
 
 class EnergyPredictionModel:
-    def __init__(self):
-        self.__model = None  # todo: initialize from file if exists
+    def __init__(self, saved_info_dir_path: str = None):
+        self.__model = None
         self.__scaler = None
         self.__system_only_feature_selector = SystemOnlyFeatureSelector()
+        self.__results_dir_path = saved_info_dir_path if saved_info_dir_path else DEFAULT_ENERGY_MODEL_PATH
+        self.__initialize_model_and_scaler(self.__results_dir_path)
+
+    def __initialize_model_and_scaler(self, dir_path: str):
+        if os.path.exists(dir_path):
+            self.__model = joblib.load(os.path.join(dir_path, MODEL_FILE_PATH))
+            self.__scaler = joblib.load(os.path.join(dir_path, SCALER_FILE_PATH))
+
+    def __save_model_and_scaler(self, dir_path: Optional[str]):
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+
+        joblib.dump(self.__scaler, os.path.join(dir_path, SCALER_FILE_PATH))
+        joblib.dump(self.__model, os.path.join(dir_path, MODEL_FILE_PATH))
 
     def build_energy_model(self, full_df: pd.DataFrame):
         if self.__model is not None:
@@ -49,10 +70,10 @@ class EnergyPredictionModel:
         process_energy_predictions = system_only_df[
                                          SystemColumns.ENERGY_USAGE_SYSTEM_COL] - system_no_process_energy_predictions
 
-
         # Build process+system dataset
         full_df_processed[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = process_energy_predictions
-        full_df_processed_with_energy = full_df_processed[full_df_processed[ProcessColumns.ENERGY_USAGE_PROCESS_COL].notna()]
+        full_df_processed_with_energy = full_df_processed[
+            full_df_processed[ProcessColumns.ENERGY_USAGE_PROCESS_COL].notna()]
 
         process_data_processor = DataProcessor(
             feature_selector=ProcessAndSystemFeatureSelector(),
@@ -61,12 +82,14 @@ class EnergyPredictionModel:
         full_df_processed_with_energy_filtered = process_data_processor.filter_dataset(full_df_processed_with_energy)
         process_system_df = process_data_processor.select_features(full_df_processed_with_energy_filtered)
         process_system_df = process_system_df.drop(SystemColumns.ENERGY_USAGE_SYSTEM_COL, axis=1)
+        process_system_df.to_csv(PROCESS_SYSTEM_DF_PATH)
         # Train full energy measurement model
         process_model, process_scaler = self.__build_and_evaluate_process_model(process_system_df)
 
         # Save elements to use
         self.__model = process_model
         self.__scaler = process_scaler
+        self.__save_model_and_scaler(self.__results_dir_path)
 
     def predict(self, df: pd.DataFrame) -> pd.Series:
         if self.__model is None:

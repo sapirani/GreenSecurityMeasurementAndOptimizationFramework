@@ -4,17 +4,18 @@ import threading
 import joblib
 import pandas as pd
 
-from measurements_model_pipeline.config import MODEL_FILE_NAME
+from energy_model.configs.paths_config import MODEL_FILE_NAME
+from energy_model.models.energy_prediction_model import EnergyPredictionModel
 
 
-class EnergyModel:
+class AggregationsEnergyModel:
     """
     This class is the measurement model after loading it from a pickle file.
-    The model (after loading) should be of type 'MeasurememtModel', after calling 'fit' and training the model.
+    The model (after loading) should be of type 'EnergyPredictionModel', after calling 'fit' and training the model.
     """
     __instance = None
     __lock = threading.Lock()  # for thread safe - maybe unnecessary
-    __model = None
+    __model: EnergyPredictionModel = None
 
     def __init__(self):
         raise RuntimeError("This is a Singleton. Invoke get_instance() instead.")
@@ -45,6 +46,6 @@ class EnergyModel:
         """
         predictions = self.__model.predict(samples)
         if len(predictions) > 0:
-            return predictions
+            return predictions.tolist()
         else:
             raise RuntimeError(f"No predictions found for samples {samples}.")

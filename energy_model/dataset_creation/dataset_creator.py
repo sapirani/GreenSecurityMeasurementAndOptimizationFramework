@@ -16,9 +16,8 @@ from DTOs.session_host_info import SessionHostIdentity
 from elastic_reader.consts import ElasticIndex
 from elastic_reader.elastic_reader import ElasticReader
 from elastic_reader.elastic_reader_parameters import time_picker_input_strategy, preconfigured_time_picker_input
-from measurements_model_pipeline.dataset_creation.dataset_constants import TIMESTAMP_COLUMN_NAME, IDLE_SESSION_ID_NAME
-from measurements_model_pipeline.dataset_parameters import FULL_DATASET_PATH
 from energy_model.configs.columns import ProcessColumns, SystemColumns
+from energy_model.configs.paths_config import FULL_DATASET_BEFORE_PROCESSING_PATH
 from energy_model.energy_model_utils.energy_model_convertor import EnergyModelConvertor
 from energy_model.energy_model_utils.energy_model_feature_extractor import EnergyModelFeatureExtractor
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
@@ -26,6 +25,9 @@ from utils.general_consts import MINUTE
 
 DEFAULT_BATCH_INTERVAL_SECONDS = 5 * MINUTE
 MINIMAL_BATCH_DURATION = DEFAULT_BATCH_INTERVAL_SECONDS * 0.5
+
+TIMESTAMP_COLUMN_NAME = "timestamp"
+IDLE_SESSION_ID_NAME = "idle"
 
 
 # todo: change to consumer interface
@@ -98,7 +100,7 @@ class DatasetCreator(ABC):
         full_df = self.__extend_df_with_target(full_df_with_batch_id, self.__batch_time_interval)
         full_df = self.__filter_last_batch_records(full_df)
         full_df = self._remove_temporary_columns(full_df)
-        full_df.to_csv(FULL_DATASET_PATH)
+        full_df.to_csv(FULL_DATASET_BEFORE_PROCESSING_PATH)
         return full_df
 
     def __add_batch_id(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:

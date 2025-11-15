@@ -8,7 +8,7 @@ from DTOs.aggregators_features.energy_model_features.full_energy_model_features 
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata
 from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
 from elastic_reader.aggregators.abstract_aggregator import AbstractAggregator
-from measurements_model_pipeline.energy_model import EnergyModel
+from energy_model.models.aggregations_energy_model import AggregationsEnergyModel
 from energy_model.energy_model_utils.energy_model_convertor import EnergyModelConvertor
 from energy_model.energy_model_utils.energy_model_feature_extractor import EnergyModelFeatureExtractor
 from energy_model.energy_model_utils.resource_energy_calculator import ResourceEnergyCalculator
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class EnergyModelAggregator(AbstractAggregator):
     def __init__(self):
-        self.__model = EnergyModel.get_instance()
+        self.__model = AggregationsEnergyModel.get_instance()
         self.__model.initialize_model()
         self.__resource_energy_calculator = ResourceEnergyCalculator()
         self.__energy_model_feature_extractor = EnergyModelFeatureExtractor()

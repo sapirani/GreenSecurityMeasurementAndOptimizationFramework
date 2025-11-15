@@ -7,8 +7,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, KFold
 from sklearn.pipeline import Pipeline
 
-from measurements_model_pipeline.dataset_parameters import GRID_SEARCH_TEST_RESULTS_PATH, RESULTS_TOP_MODELS_PATH
-from measurements_model_pipeline.utils import calculate_and_print_scores
+from energy_model.configs.paths_config import GRID_SEARCH_TEST_RESULTS_PATH, RESULTS_TOP_MODELS_PATH
+from energy_model.evaluation.model_evaluator import ModelEvaluator
 
 TEST_REAL_LABEL_COLUMN = "Actual"
 CLASSIFIER_KEYWORD = "classifier"
@@ -23,6 +23,7 @@ class ModelSelector:
         self.__num_of_splits = num_of_splits
         self.__num_of_top_models = num_of_top_models
         self.__models_to_experiment = models_to_experiment
+        self.__model_evaluator = ModelEvaluator()
 
     def __print_grid_search_top_models(self, best_models, score_method: str):
         print(f"~~~~~~~~~~~~~~~ Best {self.__num_of_top_models} models based on {score_method} score ~~~~~~~~~~~~~~~")
@@ -76,7 +77,9 @@ class ModelSelector:
         print(best_estimator)
         y_pred_test = best_estimator.predict(x_test)
         y_pred_test = pd.Series(y_pred_test).reset_index(drop=True)
-        calculate_and_print_scores(y_test, y_pred_test)
+        
+        results = self.__model_evaluator.evaluate(y_test, y_pred_test)
+        self.__model_evaluator.print_results(results)
         return y_pred_test
 
     def choose_best_model(self, scoring_methods: list[str], x_train: pd.DataFrame, x_test: pd.DataFrame,

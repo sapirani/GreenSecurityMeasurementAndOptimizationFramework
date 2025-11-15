@@ -1,14 +1,19 @@
 import pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor
 
+class BestModelConfig:
+    MODEL_NAME = HistGradientBoostingRegressor
+    MODEL_HYPER_PARAMETERS = {
+        "max_depth": 11,
+        "min_samples_leaf": 10
+    }
 
 class Model:
     def __init__(self):
         self.__model = self.__initialize_model()
 
     def __initialize_model(self):
-        # Todo: change model to read from configuration if exists
-        return HistGradientBoostingRegressor(max_depth=11, min_samples_leaf=10)
+        return BestModelConfig.MODEL_NAME(**BestModelConfig.MODEL_HYPER_PARAMETERS)
 
     def fit(self, X: pd.DataFrame, y: pd.Series):
         self.__model.fit(X, y)

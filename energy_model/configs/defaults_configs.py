@@ -22,3 +22,5 @@ OUTLIERS_COLUMNS = [SystemColumns.MEMORY_SYSTEM_COL, SystemColumns.DISK_READ_BYT
                     SystemColumns.DISK_WRITE_BYTES_SYSTEM_COL, SystemColumns.CPU_SYSTEM_COL]
 DEFAULT_FILTERS = [NegativeValueFilter(NON_ZERO_COLUMNS),
                    OutlierFilter(OUTLIERS_COLUMNS)]
+
+DEFAULT_SCORING_METHODS_GRID_SEARCH = ['neg_mean_absolute_error', 'neg_root_mean_squared_error']
