@@ -5,7 +5,7 @@ from pathlib import Path
 FULL_DATASET_BEFORE_PROCESSING_PATH = r"C:\Users\Administrator\Desktop\GreenSecurityAll\framework_code\energy_model\dataset_creation\full_dataset_system_based.csv"
 
 # For saving dataset after all processing
-PROCESS_SYSTEM_DF_PATH = r""
+PROCESS_SYSTEM_DF_PATH = r"C:\Users\Administrator\Desktop\GreenSecurityAll\framework_code\energy_model\system_process_df.csv"
 
 # For saving the energy model
 DEFAULT_ENERGY_MODEL_PATH = r"energy_model_elements"
