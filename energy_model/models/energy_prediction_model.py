@@ -6,7 +6,7 @@ import pandas as pd
 
 from energy_model.configs.columns import SystemColumns, ProcessColumns, COLUMNS_MAPPING
 from energy_model.configs.defaults_configs import DEFAULT_FILTERS
-from energy_model.configs.paths_config import DEFAULT_ENERGY_MODEL_PATH
+from energy_model.configs.paths_config import DEFAULT_ENERGY_MODEL_PATH, PROCESS_SYSTEM_DF_PATH
 from energy_model.data_scaler import DataScaler
 from energy_model.dataset_processing.data_processor import DataProcessor
 from energy_model.dataset_processing.feature_selection.process_and_system_feature_selector import \
@@ -15,7 +15,7 @@ from energy_model.dataset_processing.feature_selection.process_only_feature_sele
 from energy_model.dataset_processing.feature_selection.system_only_feature_selector import SystemOnlyFeatureSelector
 from energy_model.dataset_processing.filters.energy_filter import EnergyFilter
 from energy_model.models.model import Model
-from energy_model.pipelines.pipeline_executor import PipelineExecutor
+from energy_model.pipelines.model_pipeline_executor import PipelineExecutor
 
 MODEL_FILE_PATH = "energy_model.pickle"
 SCALER_FILE_PATH = "energy_scaler.pickle"
@@ -82,6 +82,7 @@ class EnergyPredictionModel:
         full_df_processed_with_energy_filtered = process_data_processor.filter_dataset(full_df_processed_with_energy)
         process_system_df = process_data_processor.select_features(full_df_processed_with_energy_filtered)
         process_system_df = process_system_df.drop(SystemColumns.ENERGY_USAGE_SYSTEM_COL, axis=1)
+        process_system_df.to_csv(PROCESS_SYSTEM_DF_PATH)
         # Train full energy measurement model
         process_model, process_scaler = self.__build_and_evaluate_process_model(process_system_df)
 
