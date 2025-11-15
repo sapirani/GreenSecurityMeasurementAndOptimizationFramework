@@ -4,9 +4,9 @@ import threading
 import joblib
 import pandas as pd
 
+from energy_model.configs.paths_config import MODEL_FILE_NAME
 from energy_model.models.energy_prediction_model import EnergyPredictionModel
 
-ENERGY_MODEL_PATH = r"../energy_model.pkl"
 
 class AggregationsEnergyModel:
     """
@@ -33,10 +33,10 @@ class AggregationsEnergyModel:
         if self.__model is None:
             with self.__lock:
                 if self.__model is None:
-                    if os.path.exists(ENERGY_MODEL_PATH):
-                        self.__model = joblib.load(ENERGY_MODEL_PATH)
+                    if os.path.exists(MODEL_FILE_NAME):
+                        self.__model = joblib.load(MODEL_FILE_NAME)
                     else:
-                        raise RuntimeError(f"Model file {ENERGY_MODEL_PATH} does not exist, build the model first.")
+                        raise RuntimeError(f"Model file {MODEL_FILE_NAME} does not exist, build the model first.")
 
     def predict(self, samples: pd.DataFrame) -> list[float]:
         """

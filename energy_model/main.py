@@ -1,8 +1,12 @@
+import os
+from pathlib import Path
+
 import joblib
 import pandas as pd
 
-from energy_model.configs.paths_config import FULL_DATASET_BEFORE_PROCESSING_PATH
+from energy_model.configs.paths_config import FULL_DATASET_BEFORE_PROCESSING_PATH, MODEL_FILE_NAME
 from energy_model.models.energy_prediction_model import EnergyPredictionModel
+
 
 if __name__ == "__main__":
     energy_model = EnergyPredictionModel()
@@ -13,4 +17,4 @@ if __name__ == "__main__":
         print("Model was loaded from file :) You can use the model now.")
     print("Done")
 
-    joblib.dump("energy_model.pkl", energy_model)
+    joblib.dump(energy_model, MODEL_FILE_NAME)
