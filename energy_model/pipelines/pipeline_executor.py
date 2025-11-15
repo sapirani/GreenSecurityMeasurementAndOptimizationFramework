@@ -9,15 +9,10 @@ from energy_model.model import Model
 
 
 class PipelineExecutor(ABC):
-    def __init__(self, data_processor: DataProcessor, target_column: str):
-        self.__data_processor = data_processor
+    def __init__(self, target_column: str):
         self.__target_column = target_column
         self.__model_evaluator = ModelEvaluator()
 
-    def process_dataset(self, df: pd.DataFrame) -> pd.DataFrame:
-        filtered_df = self.__data_processor.filter_dataset(df)
-        processed_df = self.__data_processor.select_features(filtered_df)
-        return processed_df
 
     def build_train_test(self, df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
         X = df.drop(columns=[self.__target_column])

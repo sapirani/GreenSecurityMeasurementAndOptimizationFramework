@@ -10,9 +10,11 @@ class DataProcessor:
         self.__filters = filters
 
     def select_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        return self.__feature_selector.select_features(df)
+        processed_df = df.copy()
+        return self.__feature_selector.select_features(processed_df)
 
     def filter_dataset(self, df: pd.DataFrame) -> pd.DataFrame:
+        filtered_df = df.copy()
         for df_filter in self.__filters:
-            df = df_filter.filter(df)
-        return df
+            filtered_df = df_filter.filter(filtered_df)
+        return filtered_df
