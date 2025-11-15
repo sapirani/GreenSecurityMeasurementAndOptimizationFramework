@@ -1,7 +1,12 @@
+import os
+from typing import Optional
+
+import joblib
 import pandas as pd
 
 from energy_model.configs.columns import SystemColumns, ProcessColumns, COLUMNS_MAPPING
 from energy_model.configs.defaults_configs import DEFAULT_FILTERS
+from energy_model.configs.paths_config import DEFAULT_ENERGY_MODEL_PATH
 from energy_model.data_scaler import DataScaler
 from energy_model.dataset_processing.data_processor import DataProcessor
 from energy_model.dataset_processing.feature_selection.feature_selector import FeatureSelector
@@ -13,12 +18,36 @@ from energy_model.dataset_processing.filters.energy_filter import EnergyFilter
 from energy_model.model import Model
 from energy_model.pipelines.pipeline_executor import PipelineExecutor
 
+MODEL_FILE_PATH = "energy_model.pickle"
+SCALER_FILE_PATH = "energy_scaler.pickle"
 
 class EnergyPredictionModel:
-    def __init__(self):
+    def __init__(self, saved_info_dir_path: str = None):
         self.__model = None  # todo: initialize from file if exists
         self.__scaler = None
         self.__system_only_feature_selector = SystemOnlyFeatureSelector()
+
+        self.__initialize_model_and_scaler(saved_info_dir_path)
+
+        self.__results_dir_path = saved_info_dir_path
+
+    def __initialize_model_and_scaler(self, dir_path: str):
+        if dir_path is None:
+            dir_path = DEFAULT_ENERGY_MODEL_PATH
+
+        if os.path.exists(dir_path):
+            self.__model = joblib.load(os.path.join(dir_path, MODEL_FILE_PATH))
+            self.__scaler = joblib.load(os.path.join(dir_path, SCALER_FILE_PATH))
+
+    def __save_model_and_scaler(self, dir_path: Optional[str]):
+        if dir_path is None:
+            dir_path = DEFAULT_ENERGY_MODEL_PATH
+
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+
+        joblib.dump(self.__scaler, os.path.join(dir_path, SCALER_FILE_PATH))
+        joblib.dump(self.__model, os.path.join(dir_path, MODEL_FILE_PATH))
 
     def build_energy_model(self, full_df: pd.DataFrame):
         if self.__model is not None:
@@ -67,6 +96,8 @@ class EnergyPredictionModel:
         # Save elements to use
         self.__model = process_model
         self.__scaler = process_scaler
+        self.__save_model_and_scaler(self.__results_dir_path)
+
 
     def predict(self, df: pd.DataFrame) -> pd.Series:
         if self.__model is None:
