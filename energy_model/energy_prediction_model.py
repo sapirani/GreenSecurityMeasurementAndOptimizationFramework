@@ -23,26 +23,18 @@ SCALER_FILE_PATH = "energy_scaler.pickle"
 
 class EnergyPredictionModel:
     def __init__(self, saved_info_dir_path: str = None):
-        self.__model = None  # todo: initialize from file if exists
+        self.__model = None
         self.__scaler = None
         self.__system_only_feature_selector = SystemOnlyFeatureSelector()
-
-        self.__initialize_model_and_scaler(saved_info_dir_path)
-
-        self.__results_dir_path = saved_info_dir_path
+        self.__results_dir_path = saved_info_dir_path if saved_info_dir_path else DEFAULT_ENERGY_MODEL_PATH
+        self.__initialize_model_and_scaler(self.__results_dir_path)
 
     def __initialize_model_and_scaler(self, dir_path: str):
-        if dir_path is None:
-            dir_path = DEFAULT_ENERGY_MODEL_PATH
-
         if os.path.exists(dir_path):
             self.__model = joblib.load(os.path.join(dir_path, MODEL_FILE_PATH))
             self.__scaler = joblib.load(os.path.join(dir_path, SCALER_FILE_PATH))
 
     def __save_model_and_scaler(self, dir_path: Optional[str]):
-        if dir_path is None:
-            dir_path = DEFAULT_ENERGY_MODEL_PATH
-
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
