@@ -21,6 +21,7 @@ from energy_model.pipelines.pipeline_executor import PipelineExecutor
 MODEL_FILE_PATH = "energy_model.pickle"
 SCALER_FILE_PATH = "energy_scaler.pickle"
 
+
 class EnergyPredictionModel:
     def __init__(self, saved_info_dir_path: str = None):
         self.__model = None
@@ -70,10 +71,10 @@ class EnergyPredictionModel:
         process_energy_predictions = system_only_df[
                                          SystemColumns.ENERGY_USAGE_SYSTEM_COL] - system_no_process_energy_predictions
 
-
         # Build process+system dataset
         full_df_processed[ProcessColumns.ENERGY_USAGE_PROCESS_COL] = process_energy_predictions
-        full_df_processed_with_energy = full_df_processed[full_df_processed[ProcessColumns.ENERGY_USAGE_PROCESS_COL].notna()]
+        full_df_processed_with_energy = full_df_processed[
+            full_df_processed[ProcessColumns.ENERGY_USAGE_PROCESS_COL].notna()]
 
         process_data_processor = DataProcessor(
             feature_selector=ProcessAndSystemFeatureSelector(),
@@ -89,7 +90,6 @@ class EnergyPredictionModel:
         self.__model = process_model
         self.__scaler = process_scaler
         self.__save_model_and_scaler(self.__results_dir_path)
-
 
     def predict(self, df: pd.DataFrame) -> pd.Series:
         if self.__model is None:

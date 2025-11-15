@@ -3,7 +3,6 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 
 from energy_model.data_scaler import DataScaler
-from energy_model.dataset_processing.data_processor import DataProcessor
 from energy_model.evaluation.model_evaluator import ModelEvaluator
 from energy_model.model import Model
 
@@ -12,7 +11,6 @@ class PipelineExecutor(ABC):
     def __init__(self, target_column: str):
         self.__target_column = target_column
         self.__model_evaluator = ModelEvaluator()
-
 
     def build_train_test(self, df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
         X = df.drop(columns=[self.__target_column])
