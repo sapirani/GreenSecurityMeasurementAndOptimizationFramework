@@ -14,12 +14,14 @@ class PipelineExecutor(ABC):
         self.__target_column = target_column
         self.__model_evaluator = ModelEvaluator()
 
-    def build_train_test(self, df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+    def process_dataset(self, df: pd.DataFrame) -> pd.DataFrame:
         filtered_df = self.__data_processor.filter_dataset(df)
         processed_df = self.__data_processor.select_features(filtered_df)
+        return processed_df
 
-        X = processed_df.drop(columns=[self.__target_column])
-        y = processed_df[self.__target_column]
+    def build_train_test(self, df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+        X = df.drop(columns=[self.__target_column])
+        y = df[self.__target_column]
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
         X_train = X_train.copy()

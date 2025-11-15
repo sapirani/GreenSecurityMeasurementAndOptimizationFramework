@@ -1,7 +1,7 @@
 import pandas as pd
 
 from energy_model.configs.columns import SystemColumns
-from measurements_model_pipeline.dataset_processing.feature_selection.feature_selector import FeatureSelector
+from energy_model.dataset_processing.feature_selection.feature_selector import FeatureSelector
 
 
 class ProcessAndHardwareFeatureSelector(FeatureSelector):

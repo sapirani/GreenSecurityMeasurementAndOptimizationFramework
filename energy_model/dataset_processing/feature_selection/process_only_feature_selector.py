@@ -1,9 +1,9 @@
 import pandas as pd
 
 from energy_model.configs.columns import SystemColumns
-from measurements_model_pipeline.dataset_processing.feature_selection.process_and_hardware_feature_selector import \
+from energy_model.dataset_processing.feature_selection.process_and_hardware_feature_selector import \
     ProcessAndHardwareFeatureSelector
-from measurements_model_pipeline.dataset_processing.feature_selection.process_and_system_feature_selector import \
+from energy_model.dataset_processing.feature_selection.process_and_system_feature_selector import \
     ProcessAndSystemFeatureSelector
 
 

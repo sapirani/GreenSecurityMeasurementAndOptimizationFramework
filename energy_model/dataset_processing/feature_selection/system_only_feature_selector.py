@@ -13,7 +13,6 @@ class SystemOnlyFeatureSelector(ProcessAndSystemFeatureSelector):
                                                                          axis=1)
 
         return df_with_system_and_process.drop([
-            ProcessColumns.PROCESS_ID_COL,
             ProcessColumns.CPU_PROCESS_COL,
             ProcessColumns.MEMORY_PROCESS_COL,
             ProcessColumns.MEMORY_PROCESS_COL,

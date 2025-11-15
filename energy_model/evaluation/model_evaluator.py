@@ -1,5 +1,6 @@
 import pandas as pd
 
+from energy_model.configs.defaults_configs import DEFAULT_EVALUATION_METRICS
 from energy_model.evaluation.evaluation_metrics.abstract_evaluation_metric import AbstractEvaluationMetric
 
 class ModelEvaluator:
