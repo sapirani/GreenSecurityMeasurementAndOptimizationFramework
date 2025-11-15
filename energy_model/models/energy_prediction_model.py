@@ -9,13 +9,12 @@ from energy_model.configs.defaults_configs import DEFAULT_FILTERS
 from energy_model.configs.paths_config import DEFAULT_ENERGY_MODEL_PATH
 from energy_model.data_scaler import DataScaler
 from energy_model.dataset_processing.data_processor import DataProcessor
-from energy_model.dataset_processing.feature_selection.feature_selector import FeatureSelector
 from energy_model.dataset_processing.feature_selection.process_and_system_feature_selector import \
     ProcessAndSystemFeatureSelector
 from energy_model.dataset_processing.feature_selection.process_only_feature_selector import ProcessOnlyFeatureSelector
 from energy_model.dataset_processing.feature_selection.system_only_feature_selector import SystemOnlyFeatureSelector
 from energy_model.dataset_processing.filters.energy_filter import EnergyFilter
-from energy_model.model import Model
+from energy_model.models.model import Model
 from energy_model.pipelines.pipeline_executor import PipelineExecutor
 
 MODEL_FILE_PATH = "energy_model.pickle"

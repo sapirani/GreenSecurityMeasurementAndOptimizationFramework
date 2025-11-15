@@ -4,7 +4,7 @@ import pandas as pd
 
 from energy_model.data_scaler import DataScaler
 from energy_model.evaluation.model_evaluator import ModelEvaluator
-from energy_model.model import Model
+from energy_model.models.model import Model
 
 
 class PipelineExecutor(ABC):
