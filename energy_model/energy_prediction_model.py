@@ -60,7 +60,7 @@ class EnergyPredictionModel:
         )
         full_df_processed_with_energy_filtered = process_data_processor.filter_dataset(full_df_processed_with_energy)
         process_system_df = process_data_processor.select_features(full_df_processed_with_energy_filtered)
-
+        process_system_df = process_system_df.drop(SystemColumns.ENERGY_USAGE_SYSTEM_COL, axis=1)
         # Train full energy measurement model
         process_model, process_scaler = self.__build_and_evaluate_process_model(process_system_df)
 
