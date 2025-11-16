@@ -4,7 +4,7 @@ import threading
 import joblib
 import pandas as pd
 
-from energy_model.configs.paths_config import MODEL_FILE_NAME
+from energy_model.energy_model_parameters import MODEL_FILE_NAME
 from energy_model.models.energy_prediction_model import EnergyPredictionModel
 
 

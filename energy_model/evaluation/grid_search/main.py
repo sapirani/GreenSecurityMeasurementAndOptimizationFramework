@@ -1,7 +1,7 @@
 import pandas as pd
 
 from energy_model.configs.columns import ProcessColumns
-from energy_model.configs.paths_config import PROCESS_SYSTEM_DF_PATH
+from energy_model.energy_model_parameters import PROCESS_SYSTEM_DF_PATH
 from energy_model.pipelines.grid_search_pipeline_executor import GridSearchPipelineExecutor
 
 if __name__ == '__main__':

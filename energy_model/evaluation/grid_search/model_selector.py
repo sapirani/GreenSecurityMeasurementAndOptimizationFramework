@@ -7,7 +7,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, KFold
 from sklearn.pipeline import Pipeline
 
-from energy_model.configs.paths_config import GRID_SEARCH_TEST_RESULTS_PATH, RESULTS_TOP_MODELS_PATH
+from energy_model.energy_model_parameters import GRID_SEARCH_TEST_RESULTS_PATH, RESULTS_TOP_MODELS_PATH
 from energy_model.evaluation.model_evaluator import ModelEvaluator
 
 TEST_REAL_LABEL_COLUMN = "Actual"

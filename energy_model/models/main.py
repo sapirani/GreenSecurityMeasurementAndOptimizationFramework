@@ -4,7 +4,7 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
-from energy_model.configs.paths_config import FULL_DATASET_BEFORE_PROCESSING_PATH, MODEL_FILE_NAME
+from energy_model.energy_model_parameters import FULL_DATASET_BEFORE_PROCESSING_PATH, MODEL_FILE_NAME
 from energy_model.models.energy_prediction_model import EnergyPredictionModel
 
 if __name__ == "__main__":

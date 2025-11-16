@@ -1,6 +1,6 @@
 from energy_model.dataset_creation.process_based_dataset_creator import ProcessBasedDatasetCreator
 from energy_model.dataset_creation.system_based_dataset_creator import SystemBasedDatasetCreator
-from energy_model.configs.paths_config import FULL_DATASET_BEFORE_PROCESSING_PATH
+from energy_model.energy_model_parameters import FULL_DATASET_BEFORE_PROCESSING_PATH
 
 if __name__ == '__main__':
     print("Welcome to Dataset Creator!")
