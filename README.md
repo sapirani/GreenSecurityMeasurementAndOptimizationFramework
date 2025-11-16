@@ -244,6 +244,20 @@ In order for it to succeed, we should configure containers of elastic that will 
 8. Go to the burger sign in the top left of the site and clicke on Discover.
 9. In the DataView tab click on `scanner` to view the logs collected by running the scanner.
 
+# Energy Model
+This package contains the actual energy prediction model implementation.
+The package contains:
+   * dataset creators - objects that read the logs from the elastic, transforms them into a dataframe and calculate the target column (the GT).
+   * dataset processing - objects that perform filtering, scaling and feature selection on the collected dataframe.
+   * evaluation - simple evaluation pipeline with predefined metrics that inherit `AbstractEvaluationMetric`. This package also allows to perform grid-search easily.
+   * energy model utils - objects that are used by the dataset creators to process the data read from the elastic. Also used by the `EnergyModelAggregator`.
+   * models - the energy model and its wrapper for the energy model aggregator.
+   * pipelines - a pipeline that builds and evaluate the various model.
+
+The energy model class consists of a scalar and the actual sklearn model instance.
+The model's scaler and the sklearn model after training are saved to `DEFAULT_ENERGY_MODEL_PATH` directory and the energy model is saved to `MODEL_FILE_NAME`.
+All paths (including paths for datasets) can be configured in `energy_model_parameters.py`.
+
 # GNS3 
 The research continues with measuring and optimizing distributed task. 
 The network is simulated by a network that is generated using GNS3. 
