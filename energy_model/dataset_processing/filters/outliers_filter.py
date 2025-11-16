@@ -1,7 +1,7 @@
 import pandas as pd
 
-from energy_model.configs.defaults_configs import DEFAULT_MIN_QUANTILE_VALUE, DEFAULT_MAX_QUANTILE_VALUE
 from energy_model.dataset_processing.filters.abstract_filter import AbstractFilter
+from energy_model.energy_model_parameters import DEFAULT_MAX_QUANTILE_VALUE, DEFAULT_MIN_QUANTILE_VALUE
 
 
 class OutlierFilter(AbstractFilter):
@@ -14,6 +14,6 @@ class OutlierFilter(AbstractFilter):
     def filter(self, df: pd.DataFrame) -> pd.DataFrame:
         for col in self.__outliers_columns:
             low = df[col].quantile(self.__min_quantile_value)
-            high = df[col].quantile(self.__min_quantile_value)
+            high = df[col].quantile(self.__max_quantile_value)
             df = df[(df[col] >= low) & (df[col] <= high)]
         return df

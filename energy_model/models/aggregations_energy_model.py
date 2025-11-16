@@ -4,8 +4,8 @@ import threading
 import joblib
 import pandas as pd
 
-from energy_model.energy_model_parameters import MODEL_FILE_NAME
-from energy_model.models.energy_prediction_model import EnergyPredictionModel
+from energy_model.energy_model_parameters import PROCESS_ENERGY_MODEL_FILE_NAME
+from energy_model.models.process_energy_model import EnergyPredictionModel
 
 
 class AggregationsEnergyModel:
@@ -33,10 +33,10 @@ class AggregationsEnergyModel:
         if self.__model is None:
             with self.__lock:
                 if self.__model is None:
-                    if os.path.exists(MODEL_FILE_NAME):
-                        self.__model = joblib.load(MODEL_FILE_NAME)
+                    if os.path.exists(PROCESS_ENERGY_MODEL_FILE_NAME):
+                        self.__model = joblib.load(PROCESS_ENERGY_MODEL_FILE_NAME)
                     else:
-                        raise RuntimeError(f"Model file {MODEL_FILE_NAME} does not exist, build the model first.")
+                        raise RuntimeError(f"Model file {PROCESS_ENERGY_MODEL_FILE_NAME} does not exist, build the model first.")
 
     def predict(self, samples: pd.DataFrame) -> list[float]:
         """
