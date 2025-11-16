@@ -36,4 +36,4 @@ program_parameters.py
 *.joblib
 SplunkResearch/energy_profile_final.log
 elastic_reader/elastic_reader_parameters.py
-measurements_model_pipeline/dataset_parameters.py
+energy_model/energy_model_parameters.py

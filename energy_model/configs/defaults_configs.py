@@ -24,3 +24,6 @@ DEFAULT_FILTERS = [NegativeValueFilter(NON_NEGATIVE_COLUMNS),
                    OutlierFilter(OUTLIERS_COLUMNS)]
 
 DEFAULT_SCORING_METHODS_GRID_SEARCH = ['neg_mean_absolute_error', 'neg_root_mean_squared_error']
+
+DEFAULT_MIN_QUANTILE_VALUE = 0.01
+DEFAULT_MAX_QUANTILE_VALUE = 0.99
