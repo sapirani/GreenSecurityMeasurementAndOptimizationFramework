@@ -2,7 +2,7 @@ from abc import ABC
 from sklearn.model_selection import train_test_split
 import pandas as pd
 
-from energy_model.data_scaler import DataScaler
+from energy_model.dataset_processing.scalers.data_scaler import DataScaler
 from energy_model.evaluation.model_evaluator import ModelEvaluator
 from energy_model.models.model import Model
 

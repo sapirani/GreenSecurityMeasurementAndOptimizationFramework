@@ -138,7 +138,17 @@ class DatasetCreator(ABC):
                 )
 
     def __extend_df_with_target(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
+        """
+        This method calculates the target column and adds it to the dataframe.
+        First, split every session in the dataframe into batches.
+        For each batch:
+            - Calculate the total energy consumption per second of that batch, by calculating the battery drain during that batch.
+            - Calculate energy consumption of each record in that batch, depending on the dataset creator class.
 
+        Input:
+        df: pandas dataframe containing all samples.
+        batch_duration_seconds: the duration (in seconds) of each batch.
+        """
         # Step 1: Calculate system energy consumption rate (mWh/sec) for each batch
         energy_per_batch = (
             df.groupby(SystemColumns.BATCH_ID_COL)[SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL]

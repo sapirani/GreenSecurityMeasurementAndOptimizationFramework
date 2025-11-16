@@ -7,7 +7,7 @@ import pandas as pd
 from energy_model.configs.columns import SystemColumns, ProcessColumns, COLUMNS_MAPPING
 from energy_model.configs.defaults_configs import DEFAULT_FILTERS
 from energy_model.configs.paths_config import DEFAULT_ENERGY_MODEL_PATH, PROCESS_SYSTEM_DF_PATH
-from energy_model.data_scaler import DataScaler
+from energy_model.dataset_processing.scalers.data_scaler import DataScaler
 from energy_model.dataset_processing.data_processor import DataProcessor
 from energy_model.dataset_processing.feature_selection.process_and_system_feature_selector import \
     ProcessAndSystemFeatureSelector
