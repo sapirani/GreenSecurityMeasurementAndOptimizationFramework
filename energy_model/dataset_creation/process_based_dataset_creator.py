@@ -1,3 +1,4 @@
+import warnings
 from dataclasses import fields
 from overrides import overrides
 import pandas as pd
@@ -15,7 +16,16 @@ DEFAULT_ENERGY_RATIO = 1.0
 
 # todo: change to consumer interface
 class ProcessBasedDatasetCreator(DatasetCreator):
+    """
+        Deprecated: Use `SystemBasedDatasetCreator` instead.
+    """
     def __init__(self):
+        warnings.warn(
+            "`ProcessBasedDatasetCreator` is deprecated and will be removed in a future version. "
+            "Use `SystemBasedDatasetCreator` instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         super().__init__()
         self.__idle_details = IdleEnergyModelFeatures(
             energy_per_second=DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT
