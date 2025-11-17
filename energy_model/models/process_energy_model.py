@@ -14,8 +14,8 @@ from energy_model.models.system_energy_model import SystemEnergyModel
 
 
 class ProcessEnergyModel(AbstractEnergyModel):
-    def __init__(self, system_model: SystemEnergyModel, saved_info_dir_path: str = None):
-        super().__init__(saved_info_dir_path)
+    def __init__(self, system_model: SystemEnergyModel):
+        super().__init__()
         self.__system_model = system_model
 
     def build_energy_model(self, full_df: pd.DataFrame):
@@ -63,7 +63,6 @@ class ProcessEnergyModel(AbstractEnergyModel):
         # Save elements to use
         self._model = process_model
         self._scaler = process_scaler
-        self._save_model_and_scaler(self._results_dir_path, "Process")
 
     def __build_df_without_process(self, system_only_df: pd.DataFrame, process_only_df: pd.DataFrame) -> pd.DataFrame:
         system_no_process_df = system_only_df.copy()

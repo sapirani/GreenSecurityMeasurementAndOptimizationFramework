@@ -1,20 +1,15 @@
-import os
-from typing import Optional
-
-import joblib
 import pandas as pd
 
 from energy_model.configs.columns import SystemColumns
 from energy_model.configs.defaults_configs import DEFAULT_FILTERS
 from energy_model.dataset_processing.data_processor import DataProcessor
-from energy_model.dataset_processing.feature_selection.process_only_feature_selector import ProcessOnlyFeatureSelector
 from energy_model.dataset_processing.feature_selection.system_only_feature_selector import SystemOnlyFeatureSelector
 from energy_model.models.abstract_energy_model import AbstractEnergyModel
 
 
 class SystemEnergyModel(AbstractEnergyModel):
-    def __init__(self, saved_info_dir_path: str = None):
-        super().__init__(saved_info_dir_path)
+    def __init__(self):
+        super().__init__()
         self.__data_processor = DataProcessor(
             feature_selector=SystemOnlyFeatureSelector(),
             filters=DEFAULT_FILTERS
@@ -30,4 +25,3 @@ class SystemEnergyModel(AbstractEnergyModel):
 
         self._model = system_model
         self._scaler = system_scaler
-        self._save_model_and_scaler(self._results_dir_path, "system")
