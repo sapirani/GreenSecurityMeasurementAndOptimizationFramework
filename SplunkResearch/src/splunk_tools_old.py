@@ -31,9 +31,6 @@ from utils.general_consts import LoggerName
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 import traceback
 
-
-CLK_TCK = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
-
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env')
 # Precompile the regex pattern
 pattern = re.compile(r"'(.*?)' (\D+) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} IDT) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \s+(\d+)\s+(\d+\.\d+)") # IDT and IST are changed when the time is changed
@@ -65,6 +62,15 @@ BASIC_QUERIES = {"Windows Event For Service Disabled":"`wineventlog_system` Even
 "Clop Ransomware Known Service Name":"`wineventlog_system` EventCode=7045",
 'Windows AD Replication Request Initiated from Unsanctioned Location':"`wineventlog_security` EventCode=4662",
 'ESCU Windows Rapid Authentication On Multiple Hosts Rule':"`wineventlog_security` EventCode=4624",}
+
+@dataclass
+class ProcessMetrics:
+    cpu_time: float = 0.0
+    read_count: int = 0
+    write_count: int = 0
+    read_bytes: int = 0
+    write_bytes: int = 0
+
 @dataclass
 class QueryMetrics:
     search_name: str
@@ -72,59 +78,10 @@ class QueryMetrics:
     execution_time: float
     cpu: float
     io_metrics: Dict[str, int]
-    memory_mb: float
+    memory_mb: float   # <--- new field
     start_time: float = 0.0
     end_time: float = 0.0
 
-# ----------------------
-# Linux process metrics
-# ----------------------
-def read_proc_metrics(pid: int):
-    try:
-        metrics = {}
-        # CPU, memory, threads, page faults
-        with open(f"/proc/{pid}/stat") as f:
-            data = f.read().split()
-            utime = int(data[13])
-            stime = int(data[14])
-            tcount = int(data[19])
-            rss = int(data[23]) * os.sysconf('SC_PAGE_SIZE') / 1024**2
-            majflt = int(data[11])
-            minflt = int(data[10])
-            metrics.update({
-                "cpu_seconds": (utime + stime) / CLK_TCK,
-                "threads": tcount,
-                "mem_used_mb": rss,
-                "page_faults_minor": minflt,
-                "page_faults_major": majflt,
-            })
-        # IO stats
-        with open(f"/proc/{pid}/io") as f:
-            io_data = f.read().splitlines()
-            io_metrics = {}
-            for line in io_data:
-                k, v = line.split(":")
-                io_metrics[k.strip()] = int(v.strip())
-            metrics.update({
-                "read_bytes": io_metrics.get("read_bytes", 0),
-                "write_bytes": io_metrics.get("write_bytes", 0),
-                "read_count": io_metrics.get("syscr", 0),
-                "write_count": io_metrics.get("syscw", 0),
-            })
-        # FD count
-        metrics["fd_used"] = len(os.listdir(f"/proc/{pid}/fd"))
-        return metrics
-    except FileNotFoundError:
-        return None
-
-async def monitor_process(pid: int, interval=0.2):
-    """Async generator yielding snapshots of all metrics until process ends."""
-    while True:
-        metrics = read_proc_metrics(pid)
-        if metrics is None:
-            break
-        yield metrics, datetime.now()
-        await asyncio.sleep(interval)
 
 class Mode(Enum):
     PROFILE = 'profile'
@@ -191,83 +148,6 @@ class SplunkTools(object):
                 )
                 logger.info(f"Deleted {response['deleted']} documents from index sid")
 
-    async def run_saved_search(self, search_name: str, start_time: Optional[float] = None, end_time: Optional[float] = None, interval: float = 0.2) -> QueryMetrics:
-        saved_search = self.service.saved_searches[search_name]
-        search_query = saved_search.content['search']  # the actual SPL
-        search_query = f"search {search_query}"
-        logger.info(f'Running saved search: {search_name}')
-        job = self.service.jobs.create(
-            search_query,
-            earliest_time=start_time,
-            latest_time=end_time
-        )
-
-        while "pid" not in job["content"]:
-            await asyncio.sleep(0.2)
-            job.refresh()
-
-            # logger.info('Waiting for PID assignment...')
-            if job["content"]['isDone'] == '1':
-                job = self.service.jobs.create(
-                search_query,
-                earliest_time=start_time,
-                latest_time=end_time
-            )
-        pid = int(job["content"]["pid"])
-        logger.info(f'Saved search "{search_name}" started with PID: {pid}')
-        metrics_snapshots: List[Dict] = []
-
-        async def monitor_task():
-            async for m, _ in monitor_process(pid, interval):
-                metrics_snapshots.append(m)
-
-        task = asyncio.create_task(monitor_task())
-
-        while not job.is_done():
-            await asyncio.sleep(0.3)
-            job.refresh()
-
-        task.cancel()
-        await asyncio.gather(task, return_exceptions=True)
-
-        # compute delta metrics
-        if metrics_snapshots:
-            first, last = metrics_snapshots[0], metrics_snapshots[-1]
-            delta_metrics = {k: last[k] - first.get(k, 0) for k in last}
-        else:
-            delta_metrics = {}
-
-        # build QueryMetrics instance
-        qmetric = QueryMetrics(
-            search_name=search_name,
-            results_count=int(job["content"].get("resultCount", 0)),
-            execution_time=float(job["content"].get("runDuration", 0.0)),
-            cpu=delta_metrics.get("cpu_seconds", 0.0),
-            io_metrics={
-                "read_bytes": delta_metrics.get("read_bytes", 0),
-                "write_bytes": delta_metrics.get("write_bytes", 0),
-                "read_count": delta_metrics.get("read_count", 0),
-                "write_count": delta_metrics.get("write_count", 0),
-            },
-            memory_mb=delta_metrics.get("mem_used_mb", 0.0)
-        )
-        return qmetric
-
-    async def run_saved_searches(self,time_range = None, max_parallel: int = 10) -> List[QueryMetrics]:
-        sem = asyncio.Semaphore(max_parallel)
-        earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
-        latest_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').timestamp()
-        async def wrapped(name):
-            async with sem:
-                return await self.run_saved_search(name, start_time=earliest_time, end_time=latest_time)
-
-        tasks = [asyncio.create_task(wrapped(name)) for name in self.active_saved_searches]
-        results = await asyncio.gather(*tasks)
-        # Update results with time_range
-        for result in results:
-            result.start_time = time_range[0]
-            result.end_time = time_range[1]
-        return results
         
     def load_real_logs_distribution_bucket(self, start_time, end_time):
             """
@@ -281,8 +161,8 @@ class SplunkTools(object):
             current_ts = ts_start_time
 
             logger.info('Loading sampled real logs distribution from splunk_results.csv')
-            # df  = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/splunk_results_non_freq.csv")
-            df  = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/splunk_results.csv")
+            df  = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/splunk_results_non_freq.csv")
+            # df  = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/splunk_results.csv")
             # df['_time'] = pd.to_datetime(df['_time'], format="%Y-%m-%dT%H:%M:%S.000%z",  errors='coerce')
             # # convert _time format from 2023-09-01T00:00:00 to 2023-09-01 00:00:00
             # df['_time'] = df['_time'].dt.strftime('%Y-%m-%d %H:%M:%S')
@@ -388,9 +268,587 @@ class SplunkTools(object):
     def get_num_of_searches(self):
         return len(self.active_saved_searches)
     
+    def start_cpu_monitoring(self):
+        """Start CPU monitoring in a separate thread"""
+        self.stop_cpu_monitor.clear()
+        self._cpu_monitor_thread = threading.Thread(target=self.monitor_total_cpu)
+        self._cpu_monitor_thread.start()
+
+    def stop_cpu_monitoring(self):
+        """Stop CPU monitoring and wait for thread to finish"""
+        if self._cpu_monitor_thread is not None:
+            self.stop_cpu_monitor.set()
+            self._cpu_monitor_thread.join()
+            self._cpu_monitor_thread = None
+
+      
+    async def execute_query_no_measurement(self, query: str, earliest_time: float, latest_time: float) -> List[Dict[str, Any]]:
+        query = f" search {query}"
+        job = self.service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
+        
+        # Wait for job to complete
+        while True:
+            job.refresh()
+            if job.content['isDone'] == '1':
+                break
+            await asyncio.sleep(0.1)
+        # Get results
+        response = job.results(output_mode='json')
+        results =  [result for result in splunk_results.JSONResultsReader(response) if isinstance(result, dict)]
+        return results
+    
+    async def run_saved_searches_no_measurement(
+        self, 
+        time_range: Tuple[str, str], 
+        running_plan: Dict[str, int]=None,
+        num_measurements: int = 1        
+    ) -> List[List[Dict[str, Any]]]:
+        """
+        Run multiple saved searches without measurement.
+        """
+        all_tasks = []
+        if running_plan is None:
+            running_plan = {search: num_measurements for search in self.active_saved_searches}
+        
+        for search_name, num_measurements in running_plan.items():
+            for i in range(num_measurements):
+                query = self.active_saved_searches[search_name]['search']
+                # Parse time range
+                earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
+                latest_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').timestamp()
+                # Create a task for each measurement
+                task = asyncio.create_task(self.execute_query_no_measurement(
+                    query, earliest_time, latest_time))
+                all_tasks.append(task)
+        
+        # Run all tasks concurrently
+        results = await asyncio.gather(*all_tasks)
+        results = {search_name: res for search_name, res in zip(running_plan.keys(), results)}
+        return results
+
+    # async def execute_query(self, search_name: str, query: str, earliest_time: float, latest_time: float) -> QueryMetrics:
+    #     """FIXED: Made truly async by running blocking calls in executor"""
+
+    #     query = f" search {query}"
+        
+    #     # Get the event loop
+    #     loop = asyncio.get_event_loop()
+        
+    #     # FIX 1: Run the blocking job creation in executor
+    #     job = await loop.run_in_executor(
+    #         None,
+    #         lambda: self.service.jobs.create(
+    #             query, 
+    #             earliest_time=earliest_time, 
+    #             latest_time=latest_time
+    #         )
+    #     )
+        
+    #     io_counters_dict = {"read_count": 0, "write_count": 0, "read_bytes": 0, "write_bytes": 0}
+        
+    #     # Wait for job to get PID
+    #     while True:
+    #         # FIX 2: Run blocking refresh in executor
+    #         await loop.run_in_executor(None, job.refresh)
+    #         stats = job.content
+    #         pid = stats.get('pid', None)
+    #         if pid is not None:
+    #             break
+    #         if stats['isDone'] == '1':
+    #             # FIX 3: Run blocking job creation in executor
+    #             job = await loop.run_in_executor(
+    #                 None,
+    #                 self.service.jobs.create,
+    #                 query,
+    #                 {'earliest_time': earliest_time, 'latest_time': latest_time}
+    #             )
+    #         await asyncio.sleep(0.01)
+
+    #     process_end_cpu_time = 0
+    #     process_start_cpu_time = 0
+    #     logger.info(f"Monitoring process {pid}")
+        
+    #     if pid is not None:
+                    
+    #         if self.mode == Mode.PROFILE:
+    #             es_logger.info(f"PID SID MAPPING", extra={
+    #                 'timestamp': datetime.now(timezone.utc).isoformat(),
+    #                 'pid': pid,
+    #                 # 'sid': sid,
+    #                 'rule_name': search_name,
+    #             }
+    #             )
+    #         try:
+    #             self.pids.append(pid)
+    #             sid = job.content.get('sid', None)
+    #             # if self.mode == Mode.PROFILE:
+    #             #     es_logger.info(f"PID SID MAPPING", extra={
+    #             #         'pid': pid,
+    #             #         'sid': sid,
+    #             #         'rule_name': search_name
+    #             #     }
+    #             #     )
+    #             process = psutil.Process(int(pid))
+    #             process_start_time = time.time()
+    #             # FIX 4: Get CPU times in executor
+    #             process_start_cpu_time = await loop.run_in_executor(
+    #                 None, 
+    #                 lambda: process.cpu_times().user
+    #             )
+                
+    #             while True:
+    #                 try:
+    #                     # FIX 5: Run blocking operations in executor
+    #                     process_end_cpu_time = await loop.run_in_executor(
+    #                         None,
+    #                         lambda: process.cpu_times().user
+    #                     )
+                        
+    #                     # FIX 6: is_running should be called with parentheses
+    #                     is_running = await loop.run_in_executor(
+    #                         None,
+    #                         process.is_running  # This is the method reference
+    #                     )
+                        
+    #                     if not is_running:
+    #                         logger.debug(f"Process {pid} has finished running")
+    #                         break
+                            
+    #                     # FIX 7: Refresh job status in executor
+    #                     await loop.run_in_executor(None, job.refresh)
+    #                     if job.content['isDone'] == '1':
+    #                         logger.debug(f"Job is marked as done")
+    #                         break
+
+    #                     # FIX 8: Get IO counters in executor
+    #                     try:
+    #                         io_counters = await loop.run_in_executor(
+    #                             None,
+    #                             process.io_counters
+    #                         )
+                            
+    #                         # Update IO metrics
+    #                         for key in io_counters_dict:
+    #                             io_counters_dict[key] += getattr(io_counters, key)
+                                
+    #                     except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+    #                         logger.debug(f"Error getting IO counters: {e}")
+                        
+    #                     await asyncio.sleep(0.1)
+                        
+    #                 except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+    #                     # If the process disappeared but the job isn't done
+    #                     await loop.run_in_executor(None, job.refresh)
+    #                     if job.content['isDone'] == '0':
+    #                         logger.error(e)
+    #                         logger.error(f"Process {pid} disappeared but job isn't done. Waiting for job completion.")
+    #                         await asyncio.sleep(0.1)
+    #                         continue
+    #                     else:
+    #                         logger.debug(f"Process {pid} no longer exists but job is done")
+    #                         break
+                        
+    #                 # Add timeout protection
+    #                 if time.time() - process_start_time > 600:  # 10 minute timeout
+    #                     logger.warning(f"Process monitoring timed out after 10 minutes for pid {pid}")
+    #                     await loop.run_in_executor(None, job.cancel)
+    #                     break
+                        
+    #         except psutil.NoSuchProcess:
+    #             logger.debug(f"Initial process {pid} not found")
+    #         except Exception as e:
+    #             logger.error(f"Unexpected error monitoring process {pid}: {e}")
+    #         finally:
+    #             # Ensure we get the final job status
+    #             try:
+    #                 await loop.run_in_executor(None, job.refresh)
+    #             except Exception as e:
+    #                 logger.error(f"Error refreshing job status: {e}")
+        
+    #     # Get final CPU time
+    #     process_cpu_time = process_end_cpu_time - process_start_cpu_time
+        
+    #     # Get final job status
+    #     await loop.run_in_executor(None, job.refresh)
+    #     stats = job.content
+    #     run_duration = float(stats.get('runDuration', 0))
+        
+    #     # # FIX 9: Get results in executor
+    #     # response = await loop.run_in_executor(
+    #     #     None,
+    #     #     lambda: job.results(output_mode='json', count=0)
+    #     # )
+        
+    #     # # Parse results
+    #     # results = await loop.run_in_executor(
+    #     #     None,
+    #     #     lambda: [result for result in splunk_results.JSONResultsReader(response) if isinstance(result, dict)]
+    #     # )
+        
+    #     # # Get results count
+    #     # results_count = len(results)
+    #     results_count = int(job["resultCount"]) if "resultCount" in job else 0
+    #     events_count = int(job["eventCount"]) if "eventCount" in job else 0
+    #     metric = QueryMetrics(
+    #         search_name=search_name,
+    #         results_count=results_count,
+    #         execution_time=run_duration,
+    #         cpu=process_cpu_time,
+    #         io_metrics=io_counters_dict
+    #     )
+    #     # if self.mode == Mode.PROFILE and events_count == 0 and results_count == 0:
+    #     # find how many events of the eventcode there are
+    #     eventcode_search = BASIC_QUERIES.get(search_name, None)
+    #     if eventcode_search:
+    #         eventcode_query = f" search {eventcode_search} earliest={earliest_time} latest={latest_time} | stats count"
+    #         eventcode_job = self.service.jobs.create(eventcode_query)
+    #         while True:
+    #             eventcode_job.refresh()
+    #             if eventcode_job.content['isDone'] == '1':
+    #                 break
+    #             await asyncio.sleep(0.1)
+    #         events_count = int(eventcode_job["eventCount"]) if "eventCount" in eventcode_job else 0
+    #         logger.info(f"Updated events_count for {search_name} to {events_count}")
+
+    #     if self.mode == Mode.PROFILE:
+    #         es_logger.info(f"CPU PID SID MAPPING", extra={
+    #             'timestamp': datetime.now(timezone.utc).isoformat(),
+    #             'pid': pid,
+    #             'sid': sid,
+    #             'rule_name': search_name,
+    #             'results_count': results_count,
+    #             'events_count': events_count,
+    #             'cpu': process_cpu_time,
+    #         }
+    #         )
+    #     return metric, results_count
 
 
-   
+
+
+    async def execute_query(self, search_name: str, query: str, earliest_time: float, latest_time: float) -> QueryMetrics:
+        """Same function, now tracks CPU, memory, and corrected IO metrics during the query."""
+
+        query = f" search {query}"
+        loop = asyncio.get_event_loop()
+
+        job = await loop.run_in_executor(
+            None,
+            lambda: self.service.jobs.create(
+                query,
+                earliest_time=earliest_time,
+                latest_time=latest_time
+            )
+        )
+
+        io_counters_dict = {"read_count": 0, "write_count": 0, "read_bytes": 0, "write_bytes": 0}
+        max_rss = 0  # track peak memory usage (bytes)
+        io_start = None  # will store initial IO counters
+
+        # Wait for job data including PID
+        while True:
+            await loop.run_in_executor(None, job.refresh)
+            stats = job.content
+            pid = stats.get('pid', None)
+            if pid is not None:
+                break
+            if stats['isDone'] == '1':
+                job = await loop.run_in_executor(
+                    None,
+                    self.service.jobs.create,
+                    query,
+                    {'earliest_time': earliest_time, 'latest_time': latest_time}
+                )
+            await asyncio.sleep(0.01)
+
+        process_end_cpu_time = 0
+        process_start_cpu_time = 0
+        logger.info(f"Monitoring process {pid}")
+
+        if pid is not None:
+            if self.mode == Mode.PROFILE:
+                es_logger.info(f"PID SID MAPPING", extra={
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'pid': pid,
+                    'rule_name': search_name,
+                })
+
+            try:
+                self.pids.append(pid)
+                sid = job.content.get('sid', None)
+                process = psutil.Process(int(pid))
+                process_start_time = time.time()
+
+                process_start_cpu_time = await loop.run_in_executor(
+                    None,
+                    lambda: process.cpu_times().user
+                )
+
+                while True:
+                    try:
+                        process_end_cpu_time = await loop.run_in_executor(None, lambda: process.cpu_times().user)
+
+                        is_running = await loop.run_in_executor(None, process.is_running)
+                        if not is_running:
+                            break
+
+                        await loop.run_in_executor(None, job.refresh)
+                        if job.content['isDone'] == '1':
+                            break
+
+                        # ---- IO metrics (corrected) ----
+                        try:
+                            io_counters_current = await loop.run_in_executor(None, process.io_counters)
+                            if io_start is None:
+                                io_start = io_counters_current  # save initial counters
+                        except (psutil.NoSuchProcess, psutil.AccessDenied):
+                            pass
+
+                        # ---- MEMORY metrics ----
+                        try:
+                            mem_info = await loop.run_in_executor(None, process.memory_info)
+                            max_rss = max(max_rss, mem_info.rss)  # peak RSS
+                        except (psutil.NoSuchProcess, psutil.AccessDenied):
+                            pass
+
+                        await asyncio.sleep(0.1)
+
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        await loop.run_in_executor(None, job.refresh)
+                        if job.content['isDone'] == '0':
+                            await asyncio.sleep(0.1)
+                            continue
+                        break
+
+                    if time.time() - process_start_time > 600:
+                        await loop.run_in_executor(None, job.cancel)
+                        break
+
+            finally:
+                try:
+                    await loop.run_in_executor(None, job.refresh)
+                except:
+                    pass
+
+        process_cpu_time = process_end_cpu_time - process_start_cpu_time
+        io_counters_dict['read_count'] = io_counters_current.read_count - io_start.read_count
+        io_counters_dict['write_count'] = io_counters_current.write_count - io_start.write_count
+        io_counters_dict['read_bytes'] = io_counters_current.read_bytes - io_start.read_bytes
+        io_counters_dict['write_bytes'] = io_counters_current.write_bytes - io_start.write_bytes
+        await loop.run_in_executor(None, job.refresh)
+        stats = job.content
+        run_duration = float(stats.get('runDuration', 0))
+
+        results_count = int(job["resultCount"]) if "resultCount" in job else 0
+        events_count = int(job["eventCount"]) if "eventCount" in job else 0
+
+        metric = QueryMetrics(
+            search_name=search_name,
+            results_count=results_count,
+            execution_time=run_duration,
+            cpu=process_cpu_time,
+            io_metrics=io_counters_dict,
+            memory_mb=max_rss / (1024 * 1024)  # bytes -> MB
+        )
+
+        # Check events count via BASIC_QUERIES
+        eventcode_search = BASIC_QUERIES.get(search_name, None)
+        if eventcode_search:
+            eventcode_query = f" search {eventcode_search} earliest={earliest_time} latest={latest_time} | stats count"
+            eventcode_job = self.service.jobs.create(eventcode_query)
+            while True:
+                eventcode_job.refresh()
+                if eventcode_job.content['isDone'] == '1':
+                    break
+                await asyncio.sleep(0.1)
+            events_count = int(eventcode_job["eventCount"]) if "eventCount" in eventcode_job else 0
+
+        if self.mode == Mode.PROFILE:
+            es_logger.info(f"CPU PID SID MAPPING", extra={
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'pid': pid,
+                'sid': sid,
+                'rule_name': search_name,
+                'results_count': results_count,
+                'events_count': events_count,
+                'cpu': process_cpu_time,
+                'memory_mb': max_rss / (1024 * 1024),
+                'read_count': io_counters_dict['read_count'],
+                'write_count': io_counters_dict['write_count'],
+                'read_bytes': io_counters_dict['read_bytes'],
+                'write_bytes': io_counters_dict['write_bytes']
+            })
+
+
+        return metric, results_count
+
+
+
+    def enrich_elastic_index_with_pids(self):
+        while len(self.pids)!= len(self.active_saved_searches):
+            # time.sleep(0.1)
+            continue
+        es_logger.info(f"Enriching Elastic index with PIDs: {self.pids}")
+        # Enrich the Elastic index with the PIDs
+        # # Execute the enrich policy using 'target' and provide authentication explicitly
+        response = es_logger.handlers[0].es.transport.perform_request(
+            method="POST",
+            target="/_enrich/policy/pid_to_rule_name/_execute",  # 'target' is the correct parameter here
+            headers={
+                "Authorization": "Basic ZWxhc3RpYzpTd21RTlU3eQ=="  # base64 encoded "elastic:SVR4mUZl"
+            }
+        )
+        # es_logger.info("Enrich response:", str(response))
+        
+    def monitor_total_cpu(self):
+        """Monitor total CPU usage across all Splunk processes"""
+        start_time = time.time()
+        start_cpu = psutil.cpu_times().user
+        
+        while not self.stop_cpu_monitor.is_set():
+            time.sleep(0.1)
+
+        self.total_cpu_time = psutil.cpu_times().user - start_cpu
+        
+    
+    async def run_saved_search(self, saved_search: str, time_range: Tuple[str, str]) -> QueryMetrics:
+        """Run a saved search and collect metrics"""
+        search_name = saved_search
+        query = self.active_saved_searches[saved_search]['search']
+        
+        # Parse time range
+        earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
+        latest_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').timestamp()
+        
+        logger.info(f'Running saved search {search_name}')
+        return await self.execute_query(search_name, query, earliest_time, latest_time)
+    
+    async def run_saved_searches(
+            self, 
+            time_range: Tuple[str, str], 
+            running_plan: Dict[str, int]=None,
+            num_measurements: int = 1        
+        ) -> Tuple[List[QueryMetrics], float]:
+            """
+            FIXED: Already properly parallelized with asyncio.gather
+            Just needed the execute_query to be truly async
+            """
+            # Start CPU monitoring
+            # self.start_cpu_monitoring()
+            # if self.mode == Mode.PROFILE:
+            #      response = es_logger.handlers[0].es.delete_by_query(
+            #     index="sid",
+            #     body={
+            #         "query": {"match_all": {}}
+            #     },
+            #     refresh=True  # ensure immediate refresh
+            # )
+
+            # print(f"Deleted {response['deleted']} documents from index sid")
+            all_tasks = []
+            if running_plan is None:
+                running_plan = {search: num_measurements for search in self.active_saved_searches}
+            
+            for search_name, num_measurements in running_plan.items():
+                for i in range(num_measurements):
+                    # Create a task for each measurement
+                    task = asyncio.create_task(self.run_saved_search(
+                        search_name, time_range))
+                    all_tasks.append(task)
+            # run a thread that check if all pids founded and then enrich elasic index
+            if self.mode == Mode.PROFILE:
+                # print("Starting PID enrichment thread")
+                pids_thread = threading.Thread(
+                    target=self.enrich_elastic_index_with_pids,
+                )
+                pids_thread.start()
+            # Run all tasks concurrently
+            results = await asyncio.gather(*all_tasks)
+            if self.mode == Mode.PROFILE:        
+                # Wait for the pids thread to finish
+                pids_thread.join()
+                self.pids = []
+            
+            # Filter out any failed measurements
+            valid_results = [m for m, r in results if isinstance(m, QueryMetrics)]
+            for result in valid_results:
+                result.start_time = time_range[0]
+                result.end_time = time_range[1]
+            
+            if len(valid_results) < len(results):
+                logger.warning(f"Some measurements failed: {len(results) - len(valid_results)} failures")
+            # log each res in line
+            for result in valid_results:
+                logger.info(
+                    f"Search: {result.search_name}, Results: {result.results_count}, "
+                    f"Execution Time: {result.execution_time:.2f}s, CPU: {result.cpu:.2f}s, "
+                    f"Memory: {result.memory_mb:.2f} MB, "
+                    f"read_count: {result.io_metrics['read_count']}, write_count: {result.io_metrics['write_count']}, "
+                    f"read_bytes: {result.io_metrics['read_bytes']}, write_bytes: {result.io_metrics['write_bytes']}"
+                )
+
+            return valid_results, self.total_cpu_time
+
+
+
+            
+    async def run_saved_searches(
+        self, 
+        time_range: Tuple[str, str], 
+        running_plan: Dict[str, int]=None,
+        num_measurements: int = 1        
+    ) -> Tuple[List[QueryMetrics], float]:
+        """
+        FIXED: Already properly parallelized with asyncio.gather
+        Just needed the execute_query to be truly async
+        """
+        # Start CPU monitoring
+        self.start_cpu_monitoring()
+        
+        try:
+            all_tasks = []
+            if running_plan is None:
+                running_plan = {search: num_measurements for search in self.active_saved_searches}
+            
+            for search_name, num_measurements in running_plan.items():
+                for i in range(num_measurements):
+                    # Create a task for each measurement
+                    task = asyncio.create_task(self.run_saved_search(
+                        search_name, time_range))
+                    all_tasks.append(task)
+
+            results = await asyncio.gather(*all_tasks)
+            
+            # Filter out any failed measurements
+            valid_results = [m for m, r in results if isinstance(m, QueryMetrics)]
+            for result in valid_results:
+                result.start_time = time_range[0]
+                result.end_time = time_range[1]
+            
+            if len(valid_results) < len(results):
+                logger.warning(f"Some measurements failed: {len(results) - len(valid_results)} failures")
+            # log each res in line
+            for result in valid_results:
+                logger.info(f"Search: {result.search_name}, "
+                          f"Results: {result.results_count}, "
+                          f"Execution Time: {result.execution_time:.2f}s, "
+                          f"CPU: {result.cpu:.2f}s, ")
+                        #   f"IO Metrics: {result.io_metrics}")
+            return valid_results, self.total_cpu_time
+            
+        finally:
+            # Stop CPU monitoring
+            self.stop_cpu_monitoring()
+
+    def monitor_total_cpu(self):
+        """Monitor total CPU usage across all Splunk processes"""
+        start_time = time.time()
+        start_cpu = psutil.cpu_times().user
+
+        while not self.stop_cpu_monitor.is_set():
+            time.sleep(0.1)
+
+        self.total_cpu_time = psutil.cpu_times().user - start_cpu
         
     
     def mock_run_saved_searches(self, time_range: Tuple[str, str]) -> List[QueryMetrics]:
