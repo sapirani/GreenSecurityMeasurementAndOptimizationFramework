@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 import pandas as pd
 
-from energy_model.configs.defaults_configs import DEFAULT_CV_SPLITS_N, DEFAULT_BEST_MODEL_METRIC
+from energy_model.configs.defaults_configs import DEFAULT_CV_SPLITS_N, DEFAULT_BEST_MODEL_METRIC, DEFAULT_FILTERS
+from energy_model.dataset_processing.filters.filter_manager import FilterManager
 from energy_model.dataset_processing.scalers.data_scaler import DataScaler
 from energy_model.models.model import Model
 from energy_model.pipelines.model_pipeline_executor import ModelPipelineExecutor
@@ -14,6 +15,7 @@ class AbstractEnergyModel(ABC):
     def __init__(self):
         self._model = None
         self._scaler = None
+        self._full_df_filter_manager = FilterManager(filters=DEFAULT_FILTERS)
 
     @abstractmethod
     def build_energy_model(self, full_df: pd.DataFrame):

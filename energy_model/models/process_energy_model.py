@@ -2,8 +2,8 @@ import pandas as pd
 
 from energy_model.configs.columns import SystemColumns, ProcessColumns, COLUMNS_MAPPING
 from energy_model.configs.defaults_configs import DEFAULT_FILTERS
+from energy_model.dataset_processing.filters.filter_manager import FilterManager
 from energy_model.energy_model_parameters import PROCESS_SYSTEM_DF_PATH
-from energy_model.dataset_processing.data_processor import DataProcessor
 from energy_model.dataset_processing.feature_selection.process_and_system_feature_selector import \
     ProcessAndSystemFeatureSelector
 from energy_model.dataset_processing.feature_selection.process_only_feature_selector import ProcessOnlyFeatureSelector
@@ -17,6 +17,8 @@ class ProcessEnergyModel(AbstractEnergyModel):
     def __init__(self, system_model: SystemEnergyModel):
         super().__init__()
         self.__system_model = system_model
+        self.__process_energy_filter_manager = FilterManager(
+            filters=[EnergyFilter(ProcessColumns.ENERGY_USAGE_PROCESS_COL)])
 
     def build_energy_model(self, full_df: pd.DataFrame):
         """
@@ -35,13 +37,8 @@ class ProcessEnergyModel(AbstractEnergyModel):
         if self._model is not None:
             raise Exception('This method should be called once!')
 
-        system_data_processor = DataProcessor(
-            feature_selector=SystemOnlyFeatureSelector(),
-            filters=DEFAULT_FILTERS
-        )
-
         # filter irrelevant rows
-        full_df_processed = system_data_processor.filter_dataset(full_df)
+        full_df_processed = self._full_df_filter_manager.filter_dataset(full_df)
 
         process_energy_predictions = self.__get_process_energy(full_df_processed)
         process_system_df = self.__build_df_with_target(full_df_processed, process_energy_predictions)
@@ -87,12 +84,9 @@ class ProcessEnergyModel(AbstractEnergyModel):
         full_df_processed_with_energy = full_df[
             full_df[ProcessColumns.ENERGY_USAGE_PROCESS_COL].notna()]
 
-        process_data_processor = DataProcessor(
-            feature_selector=ProcessAndSystemFeatureSelector(),
-            filters=[EnergyFilter(ProcessColumns.ENERGY_USAGE_PROCESS_COL)],
-        )
-        full_df_processed_with_energy_filtered = process_data_processor.filter_dataset(full_df_processed_with_energy)
-        process_system_df = process_data_processor.select_features(full_df_processed_with_energy_filtered)
+        full_df_processed_with_energy_filtered = self.__process_energy_filter_manager.filter_dataset(
+            full_df_processed_with_energy)
+        process_system_df = ProcessAndSystemFeatureSelector().select_features(full_df_processed_with_energy_filtered)
         process_system_df = process_system_df.drop(SystemColumns.ENERGY_USAGE_SYSTEM_COL, axis=1)
         process_system_df.to_csv(PROCESS_SYSTEM_DF_PATH)
         return process_system_df
