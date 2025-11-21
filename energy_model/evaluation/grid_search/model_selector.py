@@ -17,7 +17,6 @@ PARAMS_FIELD_IN_GRID = "params"
 
 
 class ModelSelector:
-
     def __init__(self, models_to_experiment: list[dict], num_of_splits: int = 5, num_of_top_models: int = 5):
         self.__initial_model = (CLASSIFIER_KEYWORD, LogisticRegression())
         self.__num_of_splits = num_of_splits
@@ -32,14 +31,6 @@ class ModelSelector:
             print(f"model {score_method} on train:", -1 * score)
             print("model params:", model)
             print()
-
-    def __cv_splitter(self, prepared_labeled_df):
-        for i in range(1, self.__num_of_splits):
-            train_indices = [index for index in range(len(prepared_labeled_df)) if
-                             index % (self.__num_of_splits - 1) != i]
-            validation_indices = [index for index in range(len(prepared_labeled_df)) if
-                                  index % (self.__num_of_splits - 1) == i]
-            yield train_indices, validation_indices
 
     def __save_grid_search_results(self, final_results: pd.DataFrame, score_method: str):
         res_list = []
@@ -63,7 +54,7 @@ class ModelSelector:
         pipe = Pipeline([self.__initial_model])
         kf_cv = KFold(n_splits=self.__num_of_splits, shuffle=True, random_state=42)
         grid = GridSearchCV(pipe, self.__models_to_experiment, verbose=3, refit=True, cv=kf_cv, scoring=score_method,
-                            n_jobs=1)
+                            n_jobs=3)
 
         grid.fit(x_train, y_train)
         final_results = pd.DataFrame(grid.cv_results_)
@@ -77,7 +68,7 @@ class ModelSelector:
         print(best_estimator)
         y_pred_test = best_estimator.predict(x_test)
         y_pred_test = pd.Series(y_pred_test).reset_index(drop=True)
-        
+
         results = self.__model_evaluator.evaluate(y_test, y_pred_test)
         self.__model_evaluator.print_results(results)
         return y_pred_test
