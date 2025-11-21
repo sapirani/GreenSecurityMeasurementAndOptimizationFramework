@@ -1,31 +1,18 @@
-from abc import ABC
-from sklearn.model_selection import train_test_split
 import pandas as pd
 
 from energy_model.dataset_processing.scalers.data_scaler import DataScaler
 from energy_model.evaluation.model_evaluator import ModelEvaluator
 from energy_model.models.model import Model
+from energy_model.pipelines.pipeline_utils import split_train_test
 
 
-class PipelineExecutor(ABC):
+class ModelPipelineExecutor:
     def __init__(self, target_column: str):
         self.__target_column = target_column
         self.__model_evaluator = ModelEvaluator()
 
     def build_train_test(self, df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
-        X = df.drop(columns=[self.__target_column])
-        y = df[self.__target_column]
-
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-        X_train = X_train.copy()
-        X_test = X_test.copy()
-        y_train = y_train.copy()
-        y_test = y_test.copy()
-
-        y_train = pd.Series(y_train.squeeze()).reset_index(drop=True)
-        y_test = pd.Series(y_test.squeeze()).reset_index(drop=True)
-
-        return X_train, X_test, y_train, y_test
+        return split_train_test(df, self.__target_column)
 
     def build_scaler(self, X: pd.DataFrame) -> DataScaler:
         scaler = DataScaler()
