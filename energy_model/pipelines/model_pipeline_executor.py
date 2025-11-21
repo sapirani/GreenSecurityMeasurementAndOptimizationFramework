@@ -41,9 +41,13 @@ class PipelineExecutor(ABC):
     def evaluate_model(self, model: Model, X_test: pd.DataFrame, y_test: pd.Series, scaler: DataScaler):
         X_test_scaled = scaler.transform(X_test)
         y_pred = pd.Series(model.predict(X_test_scaled)).reset_index(drop=True)
-        y_negative_pred = [y for y in y_pred if y < 0]
-        if y_negative_pred:
-            print(f"there are negative predictions: {y_negative_pred}")
+
+        negative_predictions_mask = y_pred.lt(0)
+        if negative_predictions_mask.any():
+            negative_predictions = y_pred[negative_predictions_mask]
+            print("Negative predictions found:")
+            print(f"  Values : {negative_predictions.tolist()}")
+            print(f"  Indices: {negative_predictions.index.tolist()}")
 
         results = self.__model_evaluator.evaluate(y_test, y_pred)
         self.__model_evaluator.print_results(results)
