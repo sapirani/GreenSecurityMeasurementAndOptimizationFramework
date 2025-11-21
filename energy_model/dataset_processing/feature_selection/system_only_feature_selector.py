@@ -8,21 +8,21 @@ from energy_model.dataset_processing.feature_selection.process_and_system_featur
 class SystemOnlyFeatureSelector(ProcessAndSystemFeatureSelector):
     def select_features(self, df: pd.DataFrame) -> pd.DataFrame:
         df_with_system_and_process = super().select_features(df)
-        if ProcessColumns.ENERGY_USAGE_PROCESS_COL in df_with_system_and_process.columns:
-            df_with_system_and_process = df_with_system_and_process.drop(ProcessColumns.ENERGY_USAGE_PROCESS_COL,
-                                                                         axis=1)
+        df_with_system_and_process_without_process_energy = df_with_system_and_process.drop(
+            ProcessColumns.ENERGY_USAGE_PROCESS_COL, axis=1, errors='ignore')
 
-        return df_with_system_and_process.drop([
-            ProcessColumns.CPU_PROCESS_COL,
-            ProcessColumns.MEMORY_PROCESS_COL,
-            ProcessColumns.MEMORY_PROCESS_COL,
-            ProcessColumns.DISK_READ_BYTES_PROCESS_COL,
-            ProcessColumns.DISK_READ_COUNT_PROCESS_COL,
-            ProcessColumns.DISK_WRITE_BYTES_PROCESS_COL,
-            ProcessColumns.DISK_WRITE_COUNT_PROCESS_COL,
-            ProcessColumns.NETWORK_BYTES_RECEIVED_PROCESS_COL,
-            ProcessColumns.NETWORK_PACKETS_RECEIVED_PROCESS_COL,
-            ProcessColumns.NETWORK_BYTES_SENT_PROCESS_COL,
-            ProcessColumns.NETWORK_PACKETS_SENT_PROCESS_COL,
-            ProcessColumns.PAGE_FAULT_PROCESS_COL
-        ], axis=1)
+        return df_with_system_and_process_without_process_energy.drop(
+            [
+                ProcessColumns.CPU_PROCESS_COL,
+                ProcessColumns.MEMORY_PROCESS_COL,
+                ProcessColumns.MEMORY_PROCESS_COL,
+                ProcessColumns.DISK_READ_BYTES_PROCESS_COL,
+                ProcessColumns.DISK_READ_COUNT_PROCESS_COL,
+                ProcessColumns.DISK_WRITE_BYTES_PROCESS_COL,
+                ProcessColumns.DISK_WRITE_COUNT_PROCESS_COL,
+                ProcessColumns.NETWORK_BYTES_RECEIVED_PROCESS_COL,
+                ProcessColumns.NETWORK_PACKETS_RECEIVED_PROCESS_COL,
+                ProcessColumns.NETWORK_BYTES_SENT_PROCESS_COL,
+                ProcessColumns.NETWORK_PACKETS_SENT_PROCESS_COL,
+                ProcessColumns.PAGE_FAULT_PROCESS_COL
+            ], axis=1)

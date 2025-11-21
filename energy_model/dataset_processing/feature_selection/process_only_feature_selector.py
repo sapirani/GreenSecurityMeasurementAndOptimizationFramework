@@ -10,7 +10,7 @@ from energy_model.dataset_processing.feature_selection.process_and_system_featur
 class ProcessOnlyFeatureSelector(ProcessAndSystemFeatureSelector, ProcessAndHardwareFeatureSelector):
     def select_features(self, df: pd.DataFrame) -> pd.DataFrame:
         df_with_only_process = super().select_features(df)
-        if SystemColumns.ENERGY_USAGE_SYSTEM_COL in df_with_only_process.columns:
-            df_with_only_process = df_with_only_process.drop(SystemColumns.ENERGY_USAGE_SYSTEM_COL, axis=1)
+        df_with_only_process_without_system_energy = df_with_only_process.drop(SystemColumns.ENERGY_USAGE_SYSTEM_COL,
+                                                                               axis=1, errors='ignore')
 
-        return df_with_only_process
+        return df_with_only_process_without_system_energy
