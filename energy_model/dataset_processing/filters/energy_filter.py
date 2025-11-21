@@ -8,11 +8,19 @@ from energy_model.dataset_processing.filters.negative_value_filter import Negati
 class EnergyFilter(NegativeValueFilter):
     def __init__(self, energy_column: str):
         super().__init__([energy_column])
+        self.__energy_column = energy_column
 
     def filter(self, df: pd.DataFrame) -> pd.DataFrame:
-        filtered_df = super().filter(df)
+        negative_mask = df[self.__energy_column] < 0
+        negative_indices = df.index[negative_mask]
 
-        if filtered_df.shape[0] != df.shape[0]:
-            logging.warning(f"Some values for energy in column {self._columns_to_filter_by} turned out negative.")
+        if len(negative_indices) > 0:
+            logging.warning(
+                f"Negative values found in energy column '{self.__energy_column}' "
+                f"at indices: {list(negative_indices)}"
+            )
+
+        # Apply the parent's filtering logic
+        filtered_df = super().filter(df)
 
         return filtered_df
