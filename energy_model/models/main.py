@@ -9,7 +9,7 @@ from energy_model.models.system_energy_model import SystemEnergyModel
 if __name__ == "__main__":
     full_df = pd.read_csv(FULL_DATASET_BEFORE_PROCESSING_PATH, index_col=0)
 
-    print("Starting building System Energy Model")
+    print("~~~~~~~~~~~~ Starting building System Energy Model ~~~~~~~~~~~~")
     if PersistenceManager.model_exists(SYSTEM_ENERGY_MODEL_FILE_NAME):
         system_model = PersistenceManager.load_model(SYSTEM_ENERGY_MODEL_FILE_NAME)
     else:
@@ -17,8 +17,8 @@ if __name__ == "__main__":
         system_model.build_energy_model(full_df)
         PersistenceManager.save_model(system_model, SYSTEM_ENERGY_MODEL_FILE_NAME)
 
-    print("Finished building System Energy Model")
-    print("Starting building Process Energy Model")
+    print("~~~~~~~~~~~~ Finished building System Energy Model ~~~~~~~~~~~~")
+    print("\n\n~~~~~~~~~~~~ Starting building Process Energy Model ~~~~~~~~~~~~")
     if PersistenceManager.model_exists(PROCESS_ENERGY_MODEL_FILE_NAME):
         process_energy_model = PersistenceManager.load_model(PROCESS_ENERGY_MODEL_FILE_NAME)
     else:

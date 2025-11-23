@@ -18,7 +18,7 @@ DEFAULT_EVALUATION_METRICS = [SymmetricMeanAbsolutePercentageError(), RelativeRo
                               RootMeanSquaredErrorMetric(), MeanAbsoluteErrorMetric(),
                               RootMeanSquaredPercentErrorMetric()]
 
-DEFAULT_BEST_MODEL_METRIC = "Mean Absolute Error (MAE)"
+DEFAULT_BEST_MODEL_METRIC = "Symmetric Mean Absolute Percentage Error (Symmetric MAPE)"
 
 NON_NEGATIVE_COLUMNS = [SystemColumns.DURATION_COL, SystemColumns.DISK_READ_BYTES_SYSTEM_COL,
                         SystemColumns.DISK_WRITE_BYTES_SYSTEM_COL, SystemColumns.CPU_SYSTEM_COL]
