@@ -10,9 +10,11 @@ from energy_model.evaluation.evaluation_metrics.root_mean_squared_error_metric i
 from energy_model.evaluation.evaluation_metrics.root_mean_squared_percent_error_metric import \
     RootMeanSquaredPercentErrorMetric
 from energy_model.evaluation.evaluation_metrics.standard_deviation_metric import StandardDeviationMetric
+from energy_model.evaluation.evaluation_metrics.symmetric_mean_absolute_percentage_error import \
+    SymmetricMeanAbsolutePercentageError
 
-DEFAULT_EVALUATION_METRICS = [RelativeRootMeanSquaredErrorMetric(), StandardDeviationMetric(),
-                              AveragePERMetric(), MeanSquaredErrorMetric(),
+DEFAULT_EVALUATION_METRICS = [SymmetricMeanAbsolutePercentageError(), RelativeRootMeanSquaredErrorMetric(),
+                              StandardDeviationMetric(), AveragePERMetric(), MeanSquaredErrorMetric(),
                               RootMeanSquaredErrorMetric(), MeanAbsoluteErrorMetric(),
                               RootMeanSquaredPercentErrorMetric()]
 
