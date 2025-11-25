@@ -1,4 +1,5 @@
 import math
+import os.path
 from pathlib import Path
 
 import pandas as pd
@@ -7,7 +8,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, KFold
 from sklearn.pipeline import Pipeline
 
-from energy_model.energy_model_parameters import GRID_SEARCH_TEST_RESULTS_PATH, RESULTS_TOP_MODELS_PATH
+from energy_model.energy_model_parameters import RESULTS_TOP_MODELS_PATH, GRID_SEARCH_TEST_RESULTS_PATH_SUFFIX, \
+    GRID_SEARCH_TEST_RESULTS_PATH_PREFIX
 from energy_model.evaluation.model_evaluator import ModelEvaluator
 
 TEST_REAL_LABEL_COLUMN = "Actual"
@@ -90,5 +92,7 @@ class ModelSelector:
             df_prediction_results[f"Prediction_{not_negative_scoring_method}"] = y_prediction_for_test
             best_estimator_per_metric[f"Prediction_{not_negative_scoring_method}"] = best_estimator_by_scorer
 
-        df_prediction_results.to_csv(GRID_SEARCH_TEST_RESULTS_PATH)
+        file_name = f"{datetime.now().strftime('%d_%m_%Y %H_%M')}_{GRID_SEARCH_TEST_RESULTS_PATH_SUFFIX}"
+        path_for_results = os.path.join(GRID_SEARCH_TEST_RESULTS_PATH_PREFIX, file_name)
+        df_prediction_results.to_csv(path_for_results)
         return best_estimator_per_metric
