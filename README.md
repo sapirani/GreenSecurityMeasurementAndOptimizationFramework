@@ -258,6 +258,39 @@ The energy model class consists of a scalar and the actual sklearn model instanc
 The model's scaler and the sklearn model after training are saved to `DEFAULT_ENERGY_MODEL_PATH` directory and the energy model is saved to `MODEL_FILE_NAME`.
 All paths (including paths for datasets) can be configured in `energy_model_parameters.py`.
 
+## Training the Models
+
+### About the Datasets
+It is important to mention that the dataset that was used to train the system energy model contains only system features (no hardware or idle features).
+
+The process' energy model was trained with both process and system features (no hardware or idle).
+
+Both system and process features are the values of their usage across different resources. 
+
+However, the feature of cpu usage in seconds (both for process and system) is computed as the integral between the current measurement (timestamp) to the previous one.
+The feature of memory usage (both for process and system) is computed as the difference between the current memory usage and the memory usage of the last measurement (timestamp).
+
+### Training the Process Energy Model
+The steps in the implementation of the model are as follows:
+1. Train a system-based energy model:
+   * Create a dataset using only system features.
+   * Compute the target by splitting the dataset into batches, and the energy usage of the system in each batch equals to the battery drain during this batch.
+   * Process the dataset (using filters and StandardScaler)
+   * Train a regression model using the processed dataset.
+2. Build a dataset of the system telemetry minus the process' telemetry.
+   * The columns of the dataset are system features only.
+   * The value in each column is the value of the original system feature minus the value of the matching process feature.
+   * This dataset has no target column.
+3. Create process energy usage column
+   * Use the dataset created in step 2 and the system energy model trained in step 1, and predict the energy usage of the system without the process.
+   * Subtract the predictions from the actual energy usage of the system (from the dataset in step 1).
+   * The result is the energy usage of the process in each timestamp.
+4. Train a process energy model
+   * Create a dataset using both process and system features (without energy related columns).
+   * The target of this dataset is the "energy usage of the process" that was calculated in step 3.
+   * Process the dataset (using filters and StandardScaler)
+   * Train a regression model using the processed dataset.
+
 # GNS3 
 The research continues with measuring and optimizing distributed task. 
 The network is simulated by a network that is generated using GNS3. 
