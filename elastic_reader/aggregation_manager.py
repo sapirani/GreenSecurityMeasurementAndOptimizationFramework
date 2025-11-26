@@ -10,7 +10,7 @@ from elastic_reader.aggregators.abstract_aggregator import AbstractAggregator
 from DTOs.process_info import ProcessIdentity, ProcessMetadata
 from DTOs.aggregated_results_dtos.aggregated_process_results import AggregatedProcessResults
 from elastic_reader.aggregators.cpu_integral_aggregator import CPUIntegralAggregator
-from elastic_reader.aggregators.energy_model_aggregator import EnergyModelAggregator
+from aggregators.energy_model_aggregators.process_energy_model_aggregator import ProcessEnergyModelAggregator
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata, IterationRawResults
 from DTOs.raw_results_dtos.abstract_raw_results import AbstractRawResults
 from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
@@ -31,7 +31,7 @@ class AggregationManager:
     """
     SYSTEM_AGGREGATOR_TYPES = [CPUIntegralAggregator]
     PROCESS_ONLY_AGGREGATOR_TYPES = [CPUIntegralAggregator]
-    PROCESS_SYSTEM_AGGREGATORS_TYPES = [EnergyModelAggregator]
+    PROCESS_SYSTEM_AGGREGATORS_TYPES = [ProcessEnergyModelAggregator]
     FULL_SCOPE_AGGREGATORS_TYPES = []
 
     def __init__(self):
