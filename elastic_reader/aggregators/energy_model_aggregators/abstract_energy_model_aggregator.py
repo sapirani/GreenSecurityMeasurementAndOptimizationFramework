@@ -23,15 +23,15 @@ class EnergyModelAggregator(AbstractAggregator):
         self.__model = AggregationsEnergyModel.get_instance()
         self.__model.initialize_model(model_type)
         self.__model_type = model_type
+        self.__energy_model_feature_extractor = EnergyModelFeatureExtractor()
         self._resource_energy_calculator = ResourceEnergyCalculator()
-        self._energy_model_feature_extractor = EnergyModelFeatureExtractor()
         # todo: maybe support here the "DatasetProcessor" in order to change categorical columns, etc. Use when hardware columns are part of the train of the model
 
     def extract_features(self, raw_results: ProcessSystemRawResults,
                          iteration_metadata: IterationMetadata) -> Union[EnergyModelFeatures, EmptyFeatures]:
 
-        return self._energy_model_feature_extractor.extract_energy_model_features(raw_results,
-                                                                                  iteration_metadata.timestamp)
+        return self.__energy_model_feature_extractor.extract_energy_model_features(raw_results,
+                                                                                   iteration_metadata.timestamp)
 
     def process_sample(self, sample: Union[EnergyModelFeatures, EmptyFeatures]) -> Union[
         EnergyModelResult, EmptyAggregationResults]:
