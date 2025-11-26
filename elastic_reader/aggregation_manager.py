@@ -6,6 +6,7 @@ from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationA
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from DTOs.session_host_info import SessionHostIdentity
+from aggregators.energy_model_aggregators.system_energy_model_aggregator import SystemEnergyModelAggregator
 from elastic_reader.aggregators.abstract_aggregator import AbstractAggregator
 from DTOs.process_info import ProcessIdentity, ProcessMetadata
 from DTOs.aggregated_results_dtos.aggregated_process_results import AggregatedProcessResults
@@ -31,7 +32,7 @@ class AggregationManager:
     """
     SYSTEM_AGGREGATOR_TYPES = [CPUIntegralAggregator]
     PROCESS_ONLY_AGGREGATOR_TYPES = [CPUIntegralAggregator]
-    PROCESS_SYSTEM_AGGREGATORS_TYPES = [ProcessEnergyModelAggregator]
+    PROCESS_SYSTEM_AGGREGATORS_TYPES = [ProcessEnergyModelAggregator, SystemEnergyModelAggregator]
     FULL_SCOPE_AGGREGATORS_TYPES = []
 
     def __init__(self):
