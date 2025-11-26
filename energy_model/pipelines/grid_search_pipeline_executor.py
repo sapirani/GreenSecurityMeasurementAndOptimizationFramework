@@ -4,11 +4,10 @@ import pandas as pd
 
 from energy_model.configs.defaults_configs import DEFAULT_SCORING_METHODS_GRID_SEARCH
 from energy_model.evaluation.grid_search.model_selector import ModelSelector
-from energy_model.evaluation.grid_search.models_config import REGRESSION_MODELS_WITH_PARAMETERS
 
 
 class GridSearchPipelineExecutor:
-    def __init__(self, possible_models: list[dict] = REGRESSION_MODELS_WITH_PARAMETERS):
+    def __init__(self, possible_models: list[dict]):
         self.__possible_models = possible_models
         self.__evaluation_methods = DEFAULT_SCORING_METHODS_GRID_SEARCH
 
