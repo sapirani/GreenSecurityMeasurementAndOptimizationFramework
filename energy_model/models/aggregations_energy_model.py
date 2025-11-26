@@ -1,10 +1,11 @@
 import threading
-import pandas as pd
 from enum import Enum
 
+import pandas as pd
+
 from energy_model.energy_model_parameters import PROCESS_ENERGY_MODEL_FILE_NAME, SYSTEM_ENERGY_MODEL_FILE_NAME
+from energy_model.models.abstract_energy_model import AbstractEnergyModel
 from energy_model.models.persistence_manager import PersistenceManager
-from energy_model.models.process_energy_model import ProcessEnergyModel
 
 
 class ModelType(Enum, str):
@@ -19,23 +20,25 @@ class AggregationsEnergyModel:
     """
     __instance = None
     __lock = threading.Lock()  # for thread safe - maybe unnecessary
-    __models: dict[ModelType, ProcessEnergyModel] = {}
+    __models: dict[ModelType, AbstractEnergyModel] = {}
 
     def __init__(self):
         raise RuntimeError("This is a Singleton. Invoke get_instance() instead.")
 
     @classmethod
-    def get_instance(cls):
+    def get_energy_model_instance(cls, model_type: ModelType) -> AbstractEnergyModel:
         if cls.__instance is None:
             with cls.__lock:
                 if cls.__instance is None:
                     cls.__instance = super().__new__(cls)
 
-        return cls.__instance
+        model = cls.__initialize_model(model_type)
+        return model
 
-    def initialize_model(self, model_type: ModelType):
-        with self.__lock:
-            if model_type not in self.__models.keys():
+    @classmethod
+    def __initialize_model(cls, model_type: ModelType) -> AbstractEnergyModel:
+        with cls.__lock:
+            if model_type not in cls.__models.keys():
                 model = None
                 if model_type == ModelType.ProcessBased and PersistenceManager.model_exists(
                         PROCESS_ENERGY_MODEL_FILE_NAME):
@@ -45,10 +48,11 @@ class AggregationsEnergyModel:
                     model = PersistenceManager.load_model(SYSTEM_ENERGY_MODEL_FILE_NAME)
 
                 if model:
-                    self.__models[model_type] = model
+                    cls.__models[model_type] = model
                 else:
                     raise RuntimeError(
                         f"Model file for model of type {model_type.value} does not exist, build the model first.")
+        return model
 
     def predict(self, samples: pd.DataFrame, model_type: ModelType) -> list[float]:
         """
