@@ -11,7 +11,7 @@ from DTOs.aggregators_features.energy_model_features.system_energy_model_feature
 class EnergyModelFeatures:
     duration: float
     system_features: SystemEnergyModelFeatures
-    process_features: ProcessEnergyModelFeatures
+    process_features: Optional[ProcessEnergyModelFeatures]
 
 
 @dataclass

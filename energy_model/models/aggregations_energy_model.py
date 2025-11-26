@@ -2,7 +2,7 @@ import threading
 import pandas as pd
 from enum import Enum
 
-from energy_model.energy_model_parameters import PROCESS_ENERGY_MODEL_FILE_NAME
+from energy_model.energy_model_parameters import PROCESS_ENERGY_MODEL_FILE_NAME, SYSTEM_ENERGY_MODEL_FILE_NAME
 from energy_model.models.persistence_manager import PersistenceManager
 from energy_model.models.process_energy_model import ProcessEnergyModel
 
