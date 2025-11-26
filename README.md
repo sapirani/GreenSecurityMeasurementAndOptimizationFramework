@@ -250,7 +250,7 @@ The package contains:
    * dataset creators - objects that read the logs from the elastic, transforms them into a dataframe and calculate the target column (the GT).
    * dataset processing - objects that perform filtering, scaling and feature selection on the collected dataframe.
    * evaluation - simple evaluation pipeline with predefined metrics that inherit `AbstractEvaluationMetric`. This package also allows to perform grid-search easily.
-   * energy model utils - objects that are used by the dataset creators to process the data read from the elastic. Also used by the `ProcessEnergyModelAggregator`.
+   * energy model utils - objects that are used by the dataset creators to process the data read from the elastic. Also used by the `EnergyModelAggregator`.
    * models - the energy model and its wrapper for the energy model aggregator.
    * pipelines - a pipeline that builds and evaluate the various model.
 
