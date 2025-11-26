@@ -25,5 +25,5 @@ class SymmetricMeanAbsolutePercentageError(AbstractEvaluationMetric):
         return "Symmetric Mean Absolute Percentage Error (Symmetric MAPE)"
 
     def evaluate(self, y: pd.Series, y_pred: pd.Series) -> float:
-        smape = 1 / len(y) * np.sum(2 * np.abs(y_pred - y) / (np.abs(y) + np.abs(y_pred)) * 100)
+        smape = 2 / len(y) * np.sum(np.abs(y_pred - y) / (np.abs(y) + np.abs(y_pred)) * 100)
         return smape

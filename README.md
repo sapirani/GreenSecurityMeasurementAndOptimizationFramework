@@ -265,16 +265,17 @@ It is important to mention that the dataset that was used to train the system en
 
 The process' energy model was trained with both process and system features (no hardware or idle).
 
-Both system and process features are the values of their usage across different resources. 
 
-However, the feature of cpu usage in seconds (both for process and system) is computed as the integral between the current measurement (timestamp) to the previous one.
+However, the feature of cpu usage in seconds (both for process and system) is computed as the integral between the current measurement to the previous one divided by 100.
 The feature of memory usage (both for process and system) is computed as the difference between the current memory usage and the memory usage of the last measurement (timestamp).
 
 ### Training the Process Energy Model
 The steps in the implementation of the model are as follows:
 1. Train a system-based energy model:
    * Create a dataset using only system features.
-   * Compute the target by splitting the dataset into batches, and the energy usage of the system in each batch equals to the battery drain during this batch.
+   * Split the dataset into batches, each of predefined duration.
+   * Compute the ratio of energy per second for each batch, by dividing the battery drain of that batch with the batch's duration.
+   * Compute the target by multiplying the energy usage of the system in each batch by the duration of the measurement.
    * Process the dataset (using filters and StandardScaler)
    * Train a regression model using the processed dataset.
 2. Build a dataset of the system telemetry minus the process' telemetry.
@@ -283,6 +284,7 @@ The steps in the implementation of the model are as follows:
    * This dataset has no target column.
 3. Create process energy usage column
    * Use the dataset created in step 2 and the system energy model trained in step 1, and predict the energy usage of the system without the process.
+   * The energy prediction of the system minus process aims to estimate the background's energy consumption, enabling the isolation of the energy consumption of the process itself.
    * Subtract the predictions from the actual energy usage of the system (from the dataset in step 1).
    * The result is the energy usage of the process in each timestamp.
 4. Train a process energy model
