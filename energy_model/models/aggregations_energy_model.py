@@ -1,10 +1,15 @@
 import threading
-
 import pandas as pd
+from enum import Enum
 
 from energy_model.energy_model_parameters import PROCESS_ENERGY_MODEL_FILE_NAME
 from energy_model.models.persistence_manager import PersistenceManager
 from energy_model.models.process_energy_model import ProcessEnergyModel
+
+
+class ModelType(Enum, str):
+    SystemBased = "System-Model"
+    ProcessBased = "Process-Model"
 
 
 class AggregationsEnergyModel:
@@ -14,7 +19,7 @@ class AggregationsEnergyModel:
     """
     __instance = None
     __lock = threading.Lock()  # for thread safe - maybe unnecessary
-    __model: ProcessEnergyModel = None
+    __models: dict[ModelType, ProcessEnergyModel] = {}
 
     def __init__(self):
         raise RuntimeError("This is a Singleton. Invoke get_instance() instead.")
@@ -28,22 +33,37 @@ class AggregationsEnergyModel:
 
         return cls.__instance
 
-    def initialize_model(self):
-        if self.__model is None:
-            with self.__lock:
-                if self.__model is None:
-                    if PersistenceManager.model_exists(PROCESS_ENERGY_MODEL_FILE_NAME):
-                        self.__model = PersistenceManager.load_model(PROCESS_ENERGY_MODEL_FILE_NAME)
-                    else:
-                        raise RuntimeError(f"Model file {PROCESS_ENERGY_MODEL_FILE_NAME} does not exist, build the model first.")
+    def initialize_model(self, model_type: ModelType):
+        with self.__lock:
+            if model_type not in self.__models.keys():
+                model = None
+                if model_type == ModelType.ProcessBased and PersistenceManager.model_exists(
+                        PROCESS_ENERGY_MODEL_FILE_NAME):
+                    model = PersistenceManager.load_model(PROCESS_ENERGY_MODEL_FILE_NAME)
+                elif model_type == ModelType.SystemBased and PersistenceManager.model_exists(
+                        SYSTEM_ENERGY_MODEL_FILE_NAME):
+                    model = PersistenceManager.load_model(SYSTEM_ENERGY_MODEL_FILE_NAME)
 
-    def predict(self, samples: pd.DataFrame) -> list[float]:
+                if model:
+                    self.__models[model_type] = model
+                else:
+                    raise RuntimeError(
+                        f"Model file for model of type {model_type.value} does not exist, build the model first.")
+
+    def predict(self, samples: pd.DataFrame, model_type: ModelType) -> list[float]:
         """
         This method predicts the energy of the given samples using the energy prediction model.
         :param samples: DataFrame with samples to predict their energy.
+        :param model_type: Type of model to use (Process or System).
         :return: Predicted energy for each sample.
         """
-        predictions = self.__model.predict(samples)
+        with self.__lock:
+            if model_type not in self.__models.keys():
+                raise RuntimeError("The model has not been initialized. Call initialize_model() first.")
+
+            model = self.__models[model_type]
+
+        predictions = model.predict(samples)
         if len(predictions) > 0:
             return predictions.tolist()
         else:
