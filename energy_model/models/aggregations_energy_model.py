@@ -1,8 +1,6 @@
 import threading
 from enum import Enum
 
-import pandas as pd
-
 from energy_model.energy_model_parameters import PROCESS_ENERGY_MODEL_FILE_NAME, SYSTEM_ENERGY_MODEL_FILE_NAME
 from energy_model.models.abstract_energy_model import AbstractEnergyModel
 from energy_model.models.persistence_manager import PersistenceManager
@@ -53,22 +51,3 @@ class AggregationsEnergyModel:
                     raise RuntimeError(
                         f"Model file for model of type {model_type.value} does not exist, build the model first.")
         return model
-
-    def predict(self, samples: pd.DataFrame, model_type: ModelType) -> list[float]:
-        """
-        This method predicts the energy of the given samples using the energy prediction model.
-        :param samples: DataFrame with samples to predict their energy.
-        :param model_type: Type of model to use (Process or System).
-        :return: Predicted energy for each sample.
-        """
-        with self.__lock:
-            if model_type not in self.__models.keys():
-                raise RuntimeError("The model has not been initialized. Call initialize_model() first.")
-
-            model = self.__models[model_type]
-
-        predictions = model.predict(samples)
-        if len(predictions) > 0:
-            return predictions.tolist()
-        else:
-            raise RuntimeError(f"No predictions found for samples {samples}.")
