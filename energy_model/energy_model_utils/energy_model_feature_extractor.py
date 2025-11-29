@@ -45,7 +45,6 @@ class EnergyModelFeatureExtractor:
             return EmptyFeatures()
 
         return CompleteEnergyModelFeatures(
-            duration=duration,
             process_features=process_features,
             system_features=system_features
         )

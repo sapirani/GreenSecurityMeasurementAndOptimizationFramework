@@ -9,7 +9,6 @@ from DTOs.aggregators_features.energy_model_features.system_energy_model_feature
 
 @dataclass
 class CompleteEnergyModelFeatures:
-    duration: float
     system_features: SystemEnergyModelFeatures
     process_features: ProcessEnergyModelFeatures
     duration: timedelta = field(init=False)
