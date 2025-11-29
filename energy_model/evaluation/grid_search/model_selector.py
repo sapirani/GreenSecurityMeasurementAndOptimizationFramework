@@ -56,7 +56,7 @@ class ModelSelector:
         pipe = Pipeline([self.__initial_model])
         kf_cv = KFold(n_splits=self.__num_of_splits, shuffle=True, random_state=42)
         grid = GridSearchCV(pipe, self.__models_to_experiment, verbose=3, refit=True, cv=kf_cv, scoring=score_method,
-                            n_jobs=3)
+                            n_jobs=-1)
 
         grid.fit(x_train, y_train)
         final_results = pd.DataFrame(grid.cv_results_)
