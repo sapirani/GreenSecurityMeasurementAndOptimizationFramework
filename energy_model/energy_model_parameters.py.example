@@ -21,4 +21,4 @@ SYSTEM_ENERGY_MODEL_FILE_NAME = os.path.join(BASE_MODEL_DIR, r"system_energy_pre
 # For grid search
 GRID_SEARCH_TEST_RESULTS_PATH_PREFIX = os.path.join(BASE_MODEL_DIR, DEFAULT_ENERGY_MODEL_PATH)
 GRID_SEARCH_TEST_RESULTS_PATH_SUFFIX = r"grid_search_test_results.csv"
-RESULTS_TOP_MODELS_PATH = r"C:\Users\Administrator\Desktop\GreenSecurityAll\framework_code\energy_model\energy_model_elements\top_estimators_results.csv"  # fr"C:\Users\sapir\Desktop\University\Second Degree\Green Security\measurements_results\top_estimators_results"
+RESULTS_TOP_MODELS_PATH = r"C:\Users\Administrator\Desktop\GreenSecurityAll\framework_code\energy_model\energy_model_elements\top_estimators_results.csv"
