@@ -99,7 +99,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         self.energy_models = {}
         self.beta = beta
         self.gamma = gamma
-
+        self.injection_id = 0
         # if is_mock:
         #     for rule in self.unwrapped.splunk_tools.active_saved_searches:
         #         self.energy_models[rule] = pickle.load(open(f"/home/shouei/GreenSecurity-FirstExperiment/baseline_splunk_train-v32_2880_cpu_regressor_results/RandomForestRegressor_{rule}_with alert = 0.pkl", "rb"))
@@ -169,7 +169,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 # if self.is_mock:
                 #     rules_metrics = self.mock_rules_metrics(time_range)
                 # else:
-                rules_metrics, total_cpu = asyncio.run(self.unwrapped.splunk_tools.run_saved_searches(time_range, running_dict))
+                rules_metrics = asyncio.run(self.unwrapped.splunk_tools.run_saved_searches(time_range))
                 new_lines = self.convert_metrics(time_range, rules_metrics)
                 if len(new_lines) != 0:
                     if rerun:
@@ -212,7 +212,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         should_execute = True
         if self.enable_prediction and self.skip_on_low_alert:
             # should_execute =  ((predicted_reward <= (sum(self.expected_alerts.values()) + (self.alert_threshold*std))) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval
-            should_execute = ((predicted_reward >= self.alert_threshold) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval or True # TRY!!!!!!!
+            should_execute = ((predicted_reward >= self.alert_threshold) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval #or True # TRY!!!!!!!
             
             # self.unwrapped.should_delete = should_execute and not self.is_mock and not self.measuring 
             
@@ -238,8 +238,10 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         if (self.is_mock and not self.measuring) or not should_execute or not self.use_energy or not self.use_alert:
             rules_metrics = self.mock_rules_metrics(time_range)
         else:
-            rules_metrics, total_cpu = asyncio.run(self.unwrapped.splunk_tools.run_saved_searches(
-                time_range, None, self.unwrapped.config.num_of_measurements))
+            # rules_metrics, total_cpu = self.unwrapped.splunk_tools.run_saved_searches(
+            #     time_range, None, self.unwrapped.config.num_of_measurements)
+            rules_metrics = asyncio.run(self.unwrapped.splunk_tools.run_saved_searches(
+                time_range))
         relevant_rows = self.convert_metrics(time_range, rules_metrics)
         relevant_rows = pd.DataFrame(relevant_rows)
         grouped = relevant_rows.groupby('search_name')
@@ -264,6 +266,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             'write_count': metric.io_metrics['write_count'],
             'read_bytes': metric.io_metrics['read_bytes'],
             'write_bytes': metric.io_metrics['write_bytes'],
+            'memory_mb': metric.memory_mb
         } for metric in rules_metrics]
 
     def process_metrics(self, grouped):
@@ -276,6 +279,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 'write_count': group['write_count'].mean(),
                 'read_bytes': group['read_bytes'].mean(),
                 'write_bytes': group['write_bytes'].mean(),
+                'memory_mb': group['memory_mb'].mean(),
                 'alert': group['alert'].mean()}
                 
             if raw_metrics[search_name]['alert'] != round(raw_metrics[search_name]['alert']):
@@ -298,6 +302,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             'write_count': sum([metric['write_count'] for metric in raw_metrics.values()]),
             'read_bytes': sum([metric['read_bytes'] for metric in raw_metrics.values()]),
             'write_bytes': sum([metric['write_bytes'] for metric in raw_metrics.values()]),
+            'memory_mb': sum([metric['memory_mb'] for metric in raw_metrics.values()]),
             'alert': sum([metric['alert'] for metric in raw_metrics.values()])
         }
 
@@ -314,6 +319,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             reward = 0
 
         if info.get('done', True):
+            
             inserted_logs = info.get('inserted_logs', 0)
             diversity_logs = info.get('diversity_episode_logs', {})
             
@@ -339,7 +345,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # Store prediction info
             info['predicted_alert_reward'] = predicted_alert_reward
             info['execution_skipped'] = not should_execute and False # TRY!!!!!!!
-            if  ((random.randint(0, 100000) < 10   or self.is_eval) and should_execute):
+            if  ((random.randint(0, 100000) < 10   or self.is_eval) and should_execute and not self.is_mock):
                 logger.info(f"Measuring")
                 self.measuring = True
             else:
@@ -350,60 +356,63 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # self.unwrapped.is_mock = (not should_execute or not self.use_energy or not self.use_alert) 
             # inject logs if not is_mock
             if (not self.is_mock  or self.measuring) and should_execute and self.use_energy and self.use_alert:
-                self.env.env.inject_episodic_logs() # access to action wrapper0
+                
+                self.env.env.inject_episodic_logs(self.injection_id) # access to action wrapper0
+                self.injection_id += 1
                 # wait for the logs to be injected
                 # sleep(4)
-                should_run = True
-                attempt = 0
-                stop_loop = False
-                while should_run and not stop_loop:
-                    rerun = False
-                    if attempt > 4:
-                        logger.info(f"Re-running due to mismatch in alerts difference")
-                        rerun = True
-                        
-                    attempt += 1
-                    # Normal execution flow
-                    raw_metrics, combined_metrics = self.get_current_reward_values(info['current_window'], should_execute)
-                    should_run = False
-                    baseline_raw_metrics, combined_baseline_metrics = self.process_metrics(
-                        self.get_baseline_data(info['current_window'], rerun).groupby('search_name')
-                    )
-                    if rerun:
-                        stop_loop = True
-
-                    # find the difference of alerts between raw_metrics and baseline_raw_metrics
-                    alerts_diff = {rule: raw_metrics[rule]['alert'] - baseline_raw_metrics.get(rule, {}).get('alert', 0) for rule in self.expected_alerts}
+            should_run = True
+            attempt = 0
+            stop_loop = False
+            while should_run and not stop_loop:
+                rerun = False
+                if attempt > 4:
+                    logger.info(f"Re-running due to mismatch in alerts difference")
+                    rerun = True
                     
-                    # check compatibility of alerts_diff with diversity info
-                    for rule in self.expected_alerts:
-                        if rule == 'ESCU Windows Rapid Authentication On Multiple Hosts Rule':
-                            continue
-                        relevant_log = self.unwrapped.section_logtypes.get(rule, None)
-                        if relevant_log:
-                            relevant_log = "_".join(relevant_log[0]) + "_1"
-                            diversity_value = diversity_logs.get(relevant_log, 0)
-                            if alerts_diff[rule] != diversity_value:
-                                logger.warning(f"Alert difference mismatch for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
-                                should_run = True
-                            else:
-                                logger.info(f"Alert difference match for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
-                                
-                    if self.is_mock and self.measuring and should_execute:  
-                        combined_metrics['real_cpu'] = combined_metrics['cpu'] 
+                attempt += 1
+                # Normal execution flow
+                
+                raw_metrics, combined_metrics = self.get_current_reward_values(info['current_window'], should_execute)
+                should_run = False
+                baseline_raw_metrics, combined_baseline_metrics = self.process_metrics(
+                    self.get_baseline_data(info['current_window'], rerun).groupby('search_name')
+                )
+                if rerun or self.is_mock:
+                    stop_loop = True
 
-                    info['combined_metrics'] = combined_metrics
-                    info['combined_baseline_metrics'] = combined_baseline_metrics
-                    if self.is_mock and (self.use_alert or self.use_energy):
-                        current_alerts = self.alert_predictor.current_alerts
-                        # baseline_alerts = {rule: raw_baseline_metrics[rule]['alert'] for rule in self.expected_alerts}
-                        for rule in self.expected_alerts:
-                            raw_metrics[rule]['alert'] = current_alerts[rule]
+                # find the difference of alerts between raw_metrics and baseline_raw_metrics
+                alerts_diff = {rule: raw_metrics[rule]['alert'] - baseline_raw_metrics.get(rule, {}).get('alert', 0) for rule in self.expected_alerts}
+                
+                # check compatibility of alerts_diff with diversity info
+                for rule in self.expected_alerts:
+                    if rule == 'ESCU Windows Rapid Authentication On Multiple Hosts Rule':
+                        continue
+                    relevant_log = self.unwrapped.section_logtypes.get(rule, None)
+                    if relevant_log:
+                        relevant_log = "_".join(relevant_log[0]) + "_1"
+                        diversity_value = diversity_logs.get(relevant_log, 0)
+                        if alerts_diff[rule] != diversity_value:
+                            logger.warning(f"Alert difference mismatch for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
+                            should_run = True
+                        else:
+                            logger.info(f"Alert difference match for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
                             
-                            # raw_baseline_metrics[rule]['cpu'] = 0
-                            # raw_baseline_metrics[rule]['duration'] = 0
-                        info['combined_metrics']['alert'] = sum(current_alerts.values())# + sum(baseline_alerts.values())
-                    sleep(2)
+                if self.is_mock and self.measuring and should_execute:  
+                    combined_metrics['real_cpu'] = combined_metrics['cpu'] 
+
+                info['combined_metrics'] = combined_metrics
+                info['combined_baseline_metrics'] = combined_baseline_metrics
+                if self.is_mock and (self.use_alert or self.use_energy):
+                    current_alerts = self.alert_predictor.current_alerts
+                    # baseline_alerts = {rule: raw_baseline_metrics[rule]['alert'] for rule in self.expected_alerts}
+                    for rule in self.expected_alerts:
+                        raw_metrics[rule]['alert'] = current_alerts[rule]
+                        
+                        # raw_baseline_metrics[rule]['cpu'] = 0
+                        # raw_baseline_metrics[rule]['duration'] = 0
+                    info['combined_metrics']['alert'] = sum(current_alerts.values())# + sum(baseline_alerts.values())
+                sleep(2)
 
                 
             if should_execute:

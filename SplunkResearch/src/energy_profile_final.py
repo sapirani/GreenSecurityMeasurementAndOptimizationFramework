@@ -3,7 +3,6 @@ from time import sleep
 import time
 from SplunkResearch.src.log_generator import LogGenerator
 import pandas as pd
-from datetime import datetime, timedelta
 import random
 import sys
 import threading
@@ -15,7 +14,9 @@ from application_logging.handlers.elastic_handler import get_elastic_logging_han
 from program_parameters import *
 from resources.section_logtypes import section_logtypes
 from SplunkResearch.src.splunk_tools import *
-from SplunkResearch.src.env_utils import clean_env
+from SplunkResearch.src.env_utils import *
+from datetime import datetime, timedelta
+
 sys.stdout.reconfigure(line_buffering=True)
 
 # sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/application_logging/handlers')
@@ -131,7 +132,7 @@ def check_logs_flushed(earliest_time, latest_time, expected_count, timeout=100):
 
 
 # Main execution
-async def overload_profile(savedsearches, splunk_tools):
+def overload_profile(savedsearches,experimented_savedsearches=None, splunk_tools=None):
     top_logtypes = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
     top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
     top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
@@ -141,14 +142,15 @@ async def overload_profile(savedsearches, splunk_tools):
     top_logtypes = sorted(list(dict.fromkeys(relevant_logtypes + top_logtypes)))       
     log_generator = LogGenerator(top_logtypes)
     # quantities = [100, 200]
-    quantities = [1000, 25000, 50000, 75000, 100000, 250000, 500000, 750000, 1000000]
+    quantities = [1000, 10000, 50000, 100000, 250000, 500000, 1000000]
     # diversities = [0, 1]
-    diversities = [0, 0.01, 0.1, 0.5, 1, 5]
+    # diversities = [0.5, 1, 5]
+    diversities = [0, 0.01, 0.5, 1 ,2, 5]
     # diversities = [0, 0.5, 1, 5, 10]
-    time_range = ("08/11/2024:09:00:00", "08/13/2024:09:00:00")
+    time_range = ("10/01/2024:09:00:00", "10/03/2024:09:00:00")
     logging.info(clean_env(splunk_tools, time_range))
-
-    for rule in savedsearches:
+    injection_id = 0
+    for rule in experimented_savedsearches:
         for diversity in diversities:
             for i, quantity in enumerate(quantities):
                 logging.info(f"Start time: {datetime.now()}")
@@ -157,21 +159,28 @@ async def overload_profile(savedsearches, splunk_tools):
                 log_type = section_logtypes[rule][0]
                 log_source = log_type[0].lower()
                 eventcode = log_type[1]
-                
                 logging.info(f'Generating logs for rule: {rule}, quantity: {quantity_to_add}, diversity: {diversity}')
                 logs = log_generator.generate_logs(logsource=log_source,
                                                    eventcode=eventcode,
                                                    istrigger=int(diversity > 0),
                                                    num_logs=quantity_to_add,
                                                    diversity=max(1, int(diversity*100)),
+                                                   injection_id=injection_id,
                                                    time_range=time_range)
 
                 write_logs_to_monitor(logs, log_source) # send to splunk    
                 inject_episodic_logs()
-                waiting_time = len(logs)/ 30000  # 30000 logs per second 
-                logging.info(f'Waiting for {waiting_time} seconds before executing rules for {rule}')
-
-                await asyncio.sleep(waiting_time)
+                # check if all logs with injection id in splunk
+                results = 0
+                start_date = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').strftime("%Y-%m-%dT%H:%M:%S")
+                end_date = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').strftime("%Y-%m-%dT%H:%M:%S")
+                while quantity_to_add > results + 50:
+                    sleep(2)
+                    query = f'index=main host="dt-splunk" | stats count'
+                    # query = f'index=main host="dt-splunk" Injection_id={injection_id} | stats count'
+                    results = splunk_tools.run_search(query, start_date, end_date)            
+                    results = int(results[0]['count'])
+                    
                 scanner_id = f"{rule}_{log_source}_{eventcode}_{int(diversity*100)}_{quantity}_{datetime.now()}"
                 # # config logger handler
                 # elastic_handler = ElasticSearchLogHandler(session_id=scanner_id)
@@ -202,23 +211,28 @@ async def overload_profile(savedsearches, splunk_tools):
                 thred_2.start()
                 logging.info(f'Process started with PID: {process.pid} {scanner_id}')
                 
-                await asyncio.sleep(3)
+                sleep(3)
 
                 logging.info('Running saved searches')
-                results, _ = await splunk_tools.run_saved_searches(time_range, num_measurements=1)
+                results = asyncio.run(splunk_tools.run_saved_searches(time_range))
                 logging.info(f'Terminating scanner {scanner_id}')
                 # subprocess.run(['pkill', 'scanner.py'],
                 #                 # input=' \n',
                 #                 text=True,
                 #                 check=False)
+                sleep(2)
                 process.send_signal(9)
                 logging.warning('Killed all scanner.py processes as last resort')
                 thred_1.join()
                 thred_2.join()
-
+                empty_monitored_files(SYSTEM_MONITOR_FILE_PATH)
+                empty_monitored_files(SECURITY_MONITOR_FILE_PATH)
+                injection_id += 1
             # clean env
             logging.info('Cleaning environment')
             logging.info(clean_env(splunk_tools, time_range))
+            # empty sid index from elastic
+            
 
 def routine_profile():
     # This function is measuring the routine. altering the following profiles parameters:
@@ -239,7 +253,8 @@ def routine_profile():
 
 if __name__ == "__main__":
     # Your existing setup
-    savedsearches = ["Windows Event For Service Disabled",
+    savedsearches = [
+        "Windows Event For Service Disabled",
                  "Detect New Local Admin account",
                  "ESCU Network Share Discovery Via Dir Command Rule",
                  "Known Services Killed by Ransomware",
@@ -248,6 +263,15 @@ if __name__ == "__main__":
                  "Clop Ransomware Known Service Name",
                  'Windows AD Replication Request Initiated from Unsanctioned Location',
                  'ESCU Windows Rapid Authentication On Multiple Hosts Rule']
-    
+    experimented_savedsearches = [
+                "Windows Event For Service Disabled",
+                 "Detect New Local Admin account",
+                 "ESCU Network Share Discovery Via Dir Command Rule",
+                 "Known Services Killed by Ransomware",
+                 "Non Chrome Process Accessing Chrome Default Dir",
+                 "Kerberoasting spn request with RC4 encryption",
+                 "Clop Ransomware Known Service Name",
+                 'Windows AD Replication Request Initiated from Unsanctioned Location',
+                 'ESCU Windows Rapid Authentication On Multiple Hosts Rule']
     splunk_tools = SplunkTools(active_saved_searches=savedsearches, mode=Mode.PROFILE)
-    asyncio.run(overload_profile(savedsearches, splunk_tools))
+    overload_profile(savedsearches, experimented_savedsearches, splunk_tools)

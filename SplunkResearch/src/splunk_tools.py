@@ -7,6 +7,7 @@ import logging
 from multiprocessing import Pool
 import re
 import time
+from xxlimited import Str
 import splunklib.client as client
 import splunklib.results as splunk_results
 import splunklib.binding
@@ -25,7 +26,7 @@ import requests
 from datetime import datetime
 from datetime import timezone
 from random import randint
-from dataclasses import dataclass, field
+from dataclasses import dataclass, asdict
 from typing import List, Dict, Tuple, Any, Optional
 from utils.general_consts import LoggerName
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
@@ -67,6 +68,9 @@ BASIC_QUERIES = {"Windows Event For Service Disabled":"`wineventlog_system` Even
 'ESCU Windows Rapid Authentication On Multiple Hosts Rule':"`wineventlog_security` EventCode=4624",}
 @dataclass
 class QueryMetrics:
+    timestamp: str
+    pid: str
+    events_count: int
     search_name: str
     results_count: int
     execution_time: float
@@ -214,6 +218,12 @@ class SplunkTools(object):
                 latest_time=end_time
             )
         pid = int(job["content"]["pid"])
+        if self.mode == Mode.PROFILE:
+            es_logger.info(f"PID SID MAPPING", extra={
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'pid': pid,
+                'rule_name': search_name,
+            })
         logger.info(f'Saved search "{search_name}" started with PID: {pid}')
         metrics_snapshots: List[Dict] = []
 
@@ -236,12 +246,29 @@ class SplunkTools(object):
             delta_metrics = {k: last[k] - first.get(k, 0) for k in last}
         else:
             delta_metrics = {}
+        results_count = int(job["content"].get("resultCount", 0)),
+        execution_time = float(job["content"].get("runDuration", 0.0)),
+        
+        # Check events count via BASIC_QUERIES
+        eventcode_search = BASIC_QUERIES.get(search_name, None)
+        if eventcode_search:
+            eventcode_query = f" search {eventcode_search} earliest={start_time} latest={end_time} | stats count" # FEATURE maybe add host="dt-splunk"
+            eventcode_job = self.service.jobs.create(eventcode_query)
+            while True:
+                eventcode_job.refresh()
+                if eventcode_job.content['isDone'] == '1':
+                    break
+                await asyncio.sleep(0.1)
+            events_count = int(eventcode_job["eventCount"]) if "eventCount" in eventcode_job else 0
 
         # build QueryMetrics instance
         qmetric = QueryMetrics(
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            pid=pid,
+            events_count=events_count,                
             search_name=search_name,
-            results_count=int(job["content"].get("resultCount", 0)),
-            execution_time=float(job["content"].get("runDuration", 0.0)),
+            results_count=results_count,
+            execution_time=execution_time,
             cpu=delta_metrics.get("cpu_seconds", 0.0),
             io_metrics={
                 "read_bytes": delta_metrics.get("read_bytes", 0),
@@ -251,9 +278,25 @@ class SplunkTools(object):
             },
             memory_mb=delta_metrics.get("mem_used_mb", 0.0)
         )
+        if self.mode == Mode.PROFILE:
+            es_logger.info(f"CPU PID SID MAPPING", extra=
+                           asdict(qmetric)
+                           )
         return qmetric
-
+    
+    def clear_os_cache(self):
+        try:
+            # Run the command exactly as requested
+            subprocess.run(
+                ["sudo", "sh", "-c", "sync; echo 3 > /proc/sys/vm/drop_caches"], 
+                check=True
+            )
+            print("[+] OS Cache Cleared Successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"[!] Failed to clear cache: {e}")
+        
     async def run_saved_searches(self,time_range = None, max_parallel: int = 10) -> List[QueryMetrics]:
+        # self.clear_os_cache()
         sem = asyncio.Semaphore(max_parallel)
         earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
         latest_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').timestamp()
@@ -281,8 +324,8 @@ class SplunkTools(object):
             current_ts = ts_start_time
 
             logger.info('Loading sampled real logs distribution from splunk_results.csv')
-            # df  = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/splunk_results_non_freq.csv")
-            df  = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/splunk_results.csv")
+            df  = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/splunk_results_non_freq.csv")
+            # df  = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/splunk_results.csv")
             # df['_time'] = pd.to_datetime(df['_time'], format="%Y-%m-%dT%H:%M:%S.000%z",  errors='coerce')
             # # convert _time format from 2023-09-01T00:00:00 to 2023-09-01 00:00:00
             # df['_time'] = df['_time'].dt.strftime('%Y-%m-%d %H:%M:%S')
@@ -727,7 +770,9 @@ class SplunkTools(object):
         results = json.loads(response.text)
         results = int(results['results'][0]['count'])
         return results
+    
     def run_search(self, query, earliest_time, latest_time):
+        print(f'Running search: {query} from {earliest_time} to {latest_time}')
         job = self.service.jobs.create(
             f" search {query}", 
             earliest_time=earliest_time, 
@@ -749,6 +794,7 @@ class SplunkTools(object):
                 results.append(result)
         
         return results
+    
     
     def delete_fake_logs(self, time_range=None, condition=None, logs_qnt=None, max_attempts=5):
         """

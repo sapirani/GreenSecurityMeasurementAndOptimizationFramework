@@ -283,7 +283,7 @@ class LogGenerator:
             
         return result
     
-    def generate_logs(self, logsource, eventcode, istrigger, time_range, num_logs, diversity=1, max_workers=12):
+    def generate_logs(self, logsource, eventcode, istrigger, time_range, num_logs, diversity=1, injection_id=0, max_workers=12):
         """Generate logs with optimized performance using pre-cached templates"""
         # logger.info(f"Generating {num_logs} logs with diversity={diversity}, max_workers={max_workers}")
         
@@ -368,7 +368,11 @@ class LogGenerator:
         def apply_timestamp(task):
             template, timestamp = task
             return self.time_pattern.sub(timestamp, template)
-        
+        # seed injection id into logs
+        def apply_injection_id(log):
+            # push it before the message field
+            return self.field_pattern.sub(rf'\g<0>\nInjection_id={injection_id}', log)
+
         # # Generate logs in batches using a single thread pool
         # all_logs = []
         # batch_count = 0
@@ -377,59 +381,14 @@ class LogGenerator:
         # for i in range(0, len(generation_tasks), batch_size):
         #     batch_start = time.time()
         #     batch = generation_tasks[i:i+batch_size]
-        return list(map(apply_timestamp, generation_tasks))
-    
+        # apply injection id to logs and timestamp
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            all_logs = list(executor.map(apply_timestamp, generation_tasks))
+        all_logs = [apply_injection_id(log) for log in all_logs]
+        
+        return all_logs
 
 
-    
-    # def _apply_variations(self, log, logsource, eventcode, variation_id):
-    #     """Apply variations to a log template using more efficient string operations"""
-    #     start_time = time.time()
-        
-    #     if (logsource, eventcode) not in self.variations:
-    #         return log
-        
-    #     log_variations = self.variations[(logsource, eventcode)]
-    #     field_count = 0
-    #     regex_time = 0
-        
-    #     for field, template in log_variations.items():
-    #         field_start = time.time()
-    #         field_count += 1
-            
-    #         # Format the value with the variation ID
-    #         value = template.format(variation_id)
-    #         # Escape backslashes
-    #         escaped_value = value.replace('\\', '\\\\')
-            
-    #         # Determine pattern and replacement based on field type
-    #         if field == 'Message':
-    #             pattern = self.field_patterns['Message'][0]
-    #             replacement = self.field_patterns['Message'][1].format(escaped_value)
-    #             log = pattern.sub(replacement, log)
-    #         elif field in ['Security ID', 'SecurityID']:
-    #             pattern = self.field_patterns.get(field, (None, None))[0]
-    #             if pattern:
-    #                 replacement = self.field_patterns.get(field, (None, None))[1].format(escaped_value)
-    #                 log = pattern.sub(replacement, log)
-    #         else:
-    #             regex_start = time.time()
-    #             # First try with equals sign format
-    #             field_pattern = r'{}=[^\n]+'.format(re.escape(field))
-    #             if re.search(field_pattern, log):
-    #                 log = re.sub(field_pattern, f'{field}={escaped_value}', log)
-    #             else:
-    #                 # Then try with colon format
-    #                 field_pattern = r'{}:\s*[^\n]+'.format(re.escape(field))
-    #                 if re.search(field_pattern, log):
-    #                     log = re.sub(field_pattern, f'{field}:\t{escaped_value}', log)
-    #             regex_time += time.time() - regex_start
-        
-    #     total_time = time.time() - start_time
-    #     if total_time > 0.01:  # Only log if it took more than 10ms
-    #         logger.info(f"Applied {field_count} variations in {total_time:.3f}s (regex: {regex_time:.3f}s) for {logsource}:{eventcode}:{variation_id}")
-        
-    #     return log
     
     @lru_cache(maxsize=32)
     def _prepare_base_template(self, logsource, eventcode, istrigger):
@@ -440,8 +399,8 @@ class LogGenerator:
         
         # Add fake flag
         template_start = time.time()
-        result = self.field_pattern.sub(r'\g<0>\nis_fake=1', template)
-        
+        # result = self.field_pattern.sub(r'\g<0>\nis_fake=1', template)
+        result = template
         # logger.info(f"Base template modification completed in {time.time() - template_start:.3f} seconds")
         # logger.info(f"Total base template preparation completed in {time.time() - start_time:.3f} seconds")
         
@@ -455,117 +414,3 @@ class LogGenerator:
             return self._apply_variations(base_template, logsource, eventcode, variation_id)
         return base_template
     
-    # def generate_logs(self, logsource, eventcode, istrigger, time_range, num_logs, diversity=0, max_workers=12):
-    #     """Generate logs with optimized performance, creating variations on-demand"""
-    #     # logger.info(f"Generating {num_logs} logs with diversity={diversity}, max_workers={max_workers}")
-    #     total_start_time = time.time()
-        
-    #     # Ensure diversity is at least 1 and no more than num_logs
-    #     diversity = max(1, min(diversity + 1, num_logs))
-        
-    #     # Parse time range once
-    #     time_parsing_start = time.time()
-    #     if isinstance(time_range[0], str):
-    #         start_date = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S')
-    #         end_date = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S')
-    #     else:
-    #         start_date, end_date = time_range
-    #     # logger.info(f"Time parsing completed in {time.time() - time_parsing_start:.3f} seconds")
-        
-    #     # Pre-generate timestamp pool for better performance
-    #     pool_start = time.time()
-    #     timestamp_pool_size = min(1000, num_logs * 2)  # Create some extra timestamps for randomness
-    #     timestamp_pool = self._generate_timestamp_pool(start_date, end_date, timestamp_pool_size)
-    #     # logger.info(f"Timestamp pool generation ({timestamp_pool_size} timestamps) completed in {time.time() - pool_start:.3f} seconds")
-        
-    #     # Get the base template once
-    #     template_start = time.time()
-    #     base_template = self._prepare_base_template(logsource, eventcode, istrigger)
-    #     # logger.info(f"Base template preparation completed in {time.time() - template_start:.3f} seconds")
-        
-    #     # Calculate logs per variation
-    #     distribution_start = time.time()
-    #     logs_per_variation = num_logs // diversity
-    #     remaining_logs = num_logs % diversity
-        
-    #     # Create a list of variation IDs based on distribution
-    #     variation_assignments = []
-    #     for var_id in range(diversity):
-    #         count = logs_per_variation + (1 if var_id < remaining_logs else 0)
-    #         variation_assignments.extend([var_id] * count)
-        
-    #     # Shuffle to distribute variations evenly
-    #     random.shuffle(variation_assignments)
-    #     # logger.info(f"Task distribution calculation completed in {time.time() - distribution_start:.3f} seconds")
-        
-    #     # Determine optimal batch size based on num_logs
-    #     batch_size = max(100, min(1000, num_logs // (max_workers * 2)))
-        
-    #     # Create tasks with variation IDs instead of pre-generated templates
-    #     tasks_start = time.time()
-    #     generation_tasks = [
-    #         (var_id, random.choice(timestamp_pool)) 
-    #         for var_id in variation_assignments
-    #     ]
-    #     logger.info(f"Task generation completed in {time.time() - tasks_start:.3f} seconds")
-        
-    #     # Function to generate a single log with variation
-    #     def generate_log_with_variation(task):
-    #         var_id, timestamp = task
-            
-    #         # Apply variation on-demand
-    #         if var_id > 0:
-    #             template = self._apply_variations(base_template, logsource, eventcode, var_id)
-    #         else:
-    #             template = base_template
-                
-    #         # Apply timestamp
-    #         return self.time_pattern.sub(timestamp, template)
-        
-    #     # Generate logs in batches using a single thread pool
-    #     all_logs = []
-    #     batch_count = 0
-        
-    #     generation_start = time.time()
-    #     for i in range(0, len(generation_tasks), batch_size):
-    #         batch_start = time.time()
-    #         batch = generation_tasks[i:i+batch_size]
-    #         batch_count += 1
-            
-    #         # logger.info(f"Processing batch {batch_count} ({len(batch)} tasks)")
-            
-    #         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-    #             batch_results = list(executor.map(generate_log_with_variation, batch))
-    #             all_logs.extend(batch_results)
-            
-    #         logger.info(f"Batch {batch_count} completed in {time.time() - batch_start:.3f} seconds")
-        
-    #     # logger.info(f"Log generation completed in {time.time() - generation_start:.3f} seconds")
-    #     # logger.info(f"Total generation time for {num_logs} logs: {time.time() - total_start_time:.3f} seconds")
-        
-    #     return all_logs
-    
-    # def generate_log(self, logsource, eventcode, istrigger, time_range, variation_id=None):
-    #     """Generate a single log (optimized version)"""
-    #     # Get the template
-    #     template = self._prepare_base_template(logsource, eventcode, istrigger)
-        
-    #     # Apply variation if needed
-    #     if variation_id is not None:
-    #         template = self._apply_variations(template, logsource, eventcode, variation_id)
-        
-    #     # Generate time
-    #     if isinstance(time_range[0], str):
-    #         start_date = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S')
-    #         end_date = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S')
-    #     else:
-    #         start_date, end_date = time_range
-        
-    #     time_delta = end_date - start_date
-    #     total_seconds = time_delta.days * 86400 + time_delta.seconds
-    #     random_seconds = random.randint(0, total_seconds)
-    #     time = start_date + timedelta(seconds=random_seconds)
-    #     time_str = time.strftime("%m/%d/%Y %I:%M:%S %p")
-        
-    #     # Apply timestamp
-    #     return self.time_pattern.sub(time_str, template)

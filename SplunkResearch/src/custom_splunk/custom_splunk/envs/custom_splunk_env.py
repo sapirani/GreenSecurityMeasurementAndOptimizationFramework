@@ -19,7 +19,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/.env')
 urllib3.disable_warnings()
-from splunk_tools import SplunkTools
+from splunk_tools import *
 from log_generator import LogGenerator
 from resources.section_logtypes import section_logtypes
 
@@ -77,7 +77,7 @@ class SplunkEnv(gym.Env):
                  baseline_dir: str = "./baselines"):
         """Initialize environment."""
         super().__init__()
-        self.splunk_tools  = SplunkTools(savedsearches, config.rule_frequency)
+        self.splunk_tools  = SplunkTools(savedsearches, config.rule_frequency)#, mode=Mode.PROFILE)
         self.episodic_inserted_logs = 0
         self.all_data = []
         self.all_data_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/all_data.csv"
@@ -257,7 +257,7 @@ class SplunkEnv(gym.Env):
         for _ in range(1):
             logger.info("Running saved searches for warmup")
             time_range = self.time_manager.current_window.to_tuple()
-            asyncio.run(self.splunk_tools.run_saved_searches(time_range, None, self.config.num_of_measurements))
+            asyncio.run(self.splunk_tools.run_saved_searches(time_range))
 
 # Example usage:
 if __name__ == "__main__":

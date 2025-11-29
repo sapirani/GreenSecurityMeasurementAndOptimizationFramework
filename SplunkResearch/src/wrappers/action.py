@@ -1,7 +1,9 @@
+import datetime
 import logging
 import subprocess
 import sys
 from time import sleep
+from unittest import result
 from gymnasium.core import ActionWrapper
 from gymnasium import make, spaces
 import numpy as np
@@ -127,7 +129,7 @@ class Action(ActionWrapper):
         self._disable_injection = True
         logger.info("Log injection disabled")
         
-    def inject_logs(self, logs_to_inject, time_range):
+    def inject_logs(self, logs_to_inject, time_range, injection_id):
         """Inject logs into environment"""
         logger.info(f"Action time range: {time_range}")
         if self._disable_injection:
@@ -138,7 +140,7 @@ class Action(ActionWrapper):
             count, diversity = log_info['count'], log_info['diversity']
             fake_logs = self.unwrapped.log_generator.generate_logs(
                 logsource, eventcode, is_trigger,
-                time_range, count, diversity
+                time_range, count, diversity, injection_id
                 )
 
             self.unwrapped.splunk_tools.write_logs_to_monitor(fake_logs, logsource)
@@ -147,6 +149,7 @@ class Action(ActionWrapper):
                 f"inserted {len(fake_logs)} logs of type {logsource} "
                 f"{eventcode} {is_trigger} with diversity {diversity}"
             )
+            
     def delete_episodic_logs(self):
         """Delete episodic logs from environment according to logs_to_delete"""
         if self._disable_injection:
@@ -161,21 +164,37 @@ class Action(ActionWrapper):
         #         if count > 0:
         #             self.unwrapped.splunk_tools.delete_fake_logs(
 
-    def inject_episodic_logs(self):
+    def inject_episodic_logs(self, injection_id):
         """Inject episodic logs into environment"""
         if self._disable_injection:
             logger.info("Log injection disabled, not injecting episodic logs")
             return
+        logs_len = sum([sum([logs[x]['count'] for x in logs]) for logs, _ in self.episodic_logs_to_inject])
+        logger.info(f"Total episodic logs to inject: {logs_len}")
         for logs_to_inject, time_range in self.episodic_logs_to_inject:
             logger.info(f"Injecting episodic logs: {logs_to_inject} at time range {time_range}")
-            self.inject_logs(logs_to_inject, time_range)
+            self.inject_logs(logs_to_inject, time_range, injection_id=injection_id)
         # logger.info(f"Waiting for {sum(self.episode_logs.values())} logs to be written")
         # sleep(sum(self.episode_logs.values())/4500)  # wait for logs to be written
         security_log_file_path = self.unwrapped.splunk_tools.log_file_prefix + "wineventlog:security.txt"
         system_log_file_path = self.unwrapped.splunk_tools.log_file_prefix + "wineventlog:system.txt"
         self.flush_logs(security_log_file_path, log_type="Security")
         self.flush_logs(system_log_file_path, log_type="System")
-        sleep(5)  # wait for logs to be indexed
+        # check if all logs with injection id in splunk
+        results = 0
+        start_date = datetime.datetime.strptime(self.episodic_logs_to_inject[0][1][0], '%m/%d/%Y:%H:%M:%S').strftime("%Y-%m-%dT%H:%M:%S")
+        end_date = datetime.datetime.strptime(self.episodic_logs_to_inject[-1][1][1], '%m/%d/%Y:%H:%M:%S').strftime("%Y-%m-%dT%H:%M:%S")
+        while logs_len > results + 50:
+            sleep(2)
+            query = f'index=main host="dt-splunk" | stats count'
+            # query = f'index=main host="dt-splunk" Injection_id={injection_id} | stats count'
+            results = self.unwrapped.splunk_tools.run_search(query, start_date, end_date)            
+            results = int(results[0]['count'])
+            print(f"Waiting for logs to be indexed: {results}/{logs_len}")
+            
+        # waiting_time = logs_len/ 5000  # 30000 logs per second 
+        # sleep(waiting_time)  # wait for logs to be indexed
+
 
     def flush_logs(self, log_file_path, log_type="Security"):
         cmd_list = [
