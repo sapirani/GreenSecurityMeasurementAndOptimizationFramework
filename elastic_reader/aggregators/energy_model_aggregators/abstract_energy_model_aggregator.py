@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 class EnergyModelAggregator(AbstractAggregator):
     def __init__(self, model_type: ModelType):
         self.__model = AggregationsEnergyModel.get_energy_model_instance(model_type)
+        if self.__model is None:
+            raise RuntimeError(f"Energy Model for type {model_type.name} not found.")
         self._energy_model_feature_extractor = EnergyModelFeatureExtractor()
         self._resource_energy_calculator = ResourceEnergyCalculator()
         # todo: maybe support here the "DatasetProcessor" in order to change categorical columns, etc. Use when hardware columns are part of the train of the model

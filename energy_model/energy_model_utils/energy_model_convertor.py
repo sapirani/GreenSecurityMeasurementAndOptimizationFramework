@@ -18,7 +18,7 @@ class EnergyModelConvertor:
     @staticmethod
     def convert_system_features_to_pandas(sample: SystemEnergyModelFeatures, **kwargs) -> pd.DataFrame:
         sample_dict = {
-            **asdict(sample.system_features),
+            **asdict(sample),
             **kwargs
         }
         return EnergyModelConvertor.convert_dict_to_df(sample_dict)

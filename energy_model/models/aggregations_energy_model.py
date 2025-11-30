@@ -1,12 +1,12 @@
 import threading
-from enum import Enum
+from enum import StrEnum
 
 from energy_model.energy_model_parameters import PROCESS_ENERGY_MODEL_FILE_NAME, SYSTEM_ENERGY_MODEL_FILE_NAME
 from energy_model.models.abstract_energy_model import AbstractEnergyModel
 from energy_model.models.persistence_manager import PersistenceManager
 
 
-class ModelType(Enum, str):
+class ModelType(StrEnum):
     SystemBased = "System-Model"
     ProcessBased = "Process-Model"
 
@@ -35,6 +35,7 @@ class AggregationsEnergyModel:
 
     @classmethod
     def __initialize_model(cls, model_type: ModelType) -> AbstractEnergyModel:
+        model = None
         with cls.__lock:
             if model_type not in cls.__models.keys():
                 model = None
@@ -50,4 +51,7 @@ class AggregationsEnergyModel:
                 else:
                     raise RuntimeError(
                         f"Model file for model of type {model_type.value} does not exist, build the model first.")
+            else:
+                model = cls.__models[model_type]
+
         return model
