@@ -35,7 +35,6 @@ class AggregationsEnergyModel:
 
     @classmethod
     def __initialize_model(cls, model_type: ModelType) -> AbstractEnergyModel:
-        model = None
         with cls.__lock:
             if model_type not in cls.__models.keys():
                 model = None
