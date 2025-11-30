@@ -1,9 +1,0 @@
-FULL_DATASET_PATH = <path to save the full df>
-FULL_PREPROCESSED_DATASET_PATH = <path to save processed df>
-DATASET_AFTER_FEATURE_SELECTION_PATH = <path to save processed df after feature selection>
-
-TRAIN_SET_PATH = <path to save train set>
-TEST_SET_PATH = <path to save test set>
-
-GRID_SEARCH_TEST_RESULTS_PATH = <path to save grid-search full results>
-RESULTS_TOP_MODELS_PATH = <path to save grid search results for top 5 models>

@@ -5,6 +5,7 @@ import pandas as pd
 
 @dataclass
 class ProcessEnergyModelFeatures:
+    duration: float
     cpu_usage_seconds_process: float
     memory_mb_relative_process: float
     disk_read_kb_process: float

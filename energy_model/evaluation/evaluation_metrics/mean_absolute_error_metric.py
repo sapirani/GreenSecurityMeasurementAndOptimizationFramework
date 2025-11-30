@@ -1,0 +1,13 @@
+import pandas as pd
+from sklearn.metrics import mean_absolute_error
+
+from energy_model.evaluation.evaluation_metrics.abstract_evaluation_metric import \
+    AbstractEvaluationMetric
+
+
+class MeanAbsoluteErrorMetric(AbstractEvaluationMetric):
+    def get_metric_name(self) -> str:
+        return "Mean Absolute Error (MAE)"
+
+    def evaluate(self, y: pd.Series, y_pred: pd.Series) -> float:
+        return mean_absolute_error(y, y_pred)
