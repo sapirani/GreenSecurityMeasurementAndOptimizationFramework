@@ -80,13 +80,12 @@ class DatasetCreator(ABC):
         return iteration_samples
 
     def __convert_objects_to_dataframe(self, all_samples_features: list[ExtendedEnergyModelFeatures]):
-        samples_as_df = [EnergyModelConvertor.convert_features_to_pandas(sample,
-                                                                         timestamp=sample.timestamp,
-                                                                         session_id=sample.session_id,
-                                                                         hostname=sample.hostname,
-                                                                         pid=sample.pid,
-                                                                         battery_capacity_mwh_system=sample.battery_remaining_capacity_mWh,
-                                                                         **asdict(sample.hardware_features))
+        samples_as_df = [EnergyModelConvertor.convert_complete_features_to_pandas(sample, timestamp=sample.timestamp,
+                                                                                  session_id=sample.session_id,
+                                                                                  hostname=sample.hostname,
+                                                                                  pid=sample.pid,
+                                                                                  battery_capacity_mwh_system=sample.battery_remaining_capacity_mWh,
+                                                                                  **asdict(sample.hardware_features))
                          for sample in all_samples_features]
         full_df = pd.concat(samples_as_df, ignore_index=True)
         return full_df
