@@ -129,32 +129,78 @@ class Action(ActionWrapper):
         self._disable_injection = True
         logger.info("Log injection disabled")
         
-    def inject_logs(self, logs_to_inject, time_range, injection_id):
+    def collect_configs(self, logs_to_inject, time_range, injection_id):
         """Inject logs into environment"""
         logger.info(f"Action time range: {time_range}")
         if self._disable_injection:
                 logger.info("Log injection disabled, not injecting logs")
                 return
+        configs = []
         for logtype, log_info in logs_to_inject.items():
             logsource, eventcode, is_trigger = logtype.split('_')
             count, diversity = log_info['count'], log_info['diversity']
-            fake_logs = self.unwrapped.log_generator.generate_logs(
-                logsource, eventcode, is_trigger,
-                time_range, count, diversity, injection_id
-                )
+            # fake_logs = self.unwrapped.log_generator.prepare_taskes(
+            #     logsource, eventcode, is_trigger,
+            #     time_range, count, diversity, injection_id
+            #     )
+            configs.append({
+                'logsource': logsource,
+                'eventcode': eventcode,
+                'istrigger': is_trigger,
+                'time_range': time_range,
+                'num_logs': count,
+                'diversity': diversity,
+                'injection_id': injection_id
+            })
+        return configs
 
-            self.unwrapped.splunk_tools.write_logs_to_monitor(fake_logs, logsource)
-            # wait for logs to be written
-            logger.info(
-                f"inserted {len(fake_logs)} logs of type {logsource} "
-                f"{eventcode} {is_trigger} with diversity {diversity}"
-            )
+          
             
-    def delete_episodic_logs(self):
+    def delete_episodic_logs(self, deletion_plan):
         """Delete episodic logs from environment according to logs_to_delete"""
         if self._disable_injection:
             logger.info("Log deletion disabled, not deleting episodic logs")
             return
+        for time_range, logs in deletion_plan.items():
+            by_log_type_deletion_list = []
+            for logtype, variations in logs.items():
+                if "RemoveAll" in variations:
+                    by_log_type_deletion_list.append((logtype, variations.split('_')[1]))
+                    deletion_plan[time_range][logtype] = {}
+                    continue
+            
+            if by_log_type_deletion_list:   
+                condition = " OR ".join([f"(source={logtype.split('_')[0]} EventCode={logtype.split('_')[1]} var_id>={var_id})" for logtype, var_id in by_log_type_deletion_list])
+                condition = condition.replace("var_id>=0", "")
+                self.unwrapped.splunk_tools.delete_fake_logs(
+                    time_range, f'{condition} ', None)
+                logger.info(f"Deleting all episodic logs at time range {time_range} for logtypes {by_log_type_deletion_list}")
+            
+            
+            
+            
+            # for logtype, variations in logs.items():
+            #     if variations == "RemoveAll_0": # maybe for all the time range together?????????????
+            #         by_log_type_deletion_list.append(logtype)
+            #         deletion_plan[time_range][logtype] = {}
+            #         continue
+                    
+            #     logsource, eventcode, is_trigger = logtype.split('_')
+            #     # max_var_id = max(variations.keys())
+            #     for variation_id, count in variations.items():
+            #         if count > 0:
+            #             condition = f"source={logsource} EventCode={eventcode} var_id >= {variation_id}"                        
+            #             self.unwrapped.splunk_tools.delete_fake_logs(
+            #                 time_range, f'{condition}') 
+            #                 # time_range, f'{condition} [search index=main host="dt-splunk" {condition}| head {count}| eval t=_time | return {count} _time=t ]', count) 
+            #             logger.info(f"Deleting episodic logs at time range {time_range} for logtype {logtype} variation>={variation_id}")
+            #             break
+            # if by_log_type_deletion_list:   
+            #     condition = " OR ".join([f"(source={logtype.split('_')[0]} EventCode={logtype.split('_')[1]})" for logtype in by_log_type_deletion_list])
+            #     self.unwrapped.splunk_tools.delete_fake_logs(
+            #         time_range, f'{condition} ', None)
+            #     logger.info(f"Deleting all episodic logs at time range {time_range} for logtypes {by_log_type_deletion_list}")
+                        
         # TBD
         # for time_index in self.logs_to_delete:
         #     time_range = list(self.action_time_indexer.keys())[list(self.action_time_indexer.values()).index(time_index)]
@@ -164,33 +210,65 @@ class Action(ActionWrapper):
         #         if count > 0:
         #             self.unwrapped.splunk_tools.delete_fake_logs(
 
+    def save_mixed_batch(self, batch_of_tuples):
+            """
+            Takes a batch of (log, source) tuples, groups them, 
+            and writes to separate files efficiently.
+            """
+            buckets = {}
+            
+            # 1. Sort the logs into buckets (in memory)
+            for log_entry, source in batch_of_tuples:
+                if source not in buckets:
+                    buckets[source] = []
+                buckets[source].append(log_entry)
+                
+            # 2. Write each bucket to its own file
+            for source, logs in buckets.items():
+                # We reuse your existing function!
+                self.unwrapped.splunk_tools.write_logs_to_monitor(logs, source)
+                
     def inject_episodic_logs(self, injection_id):
         """Inject episodic logs into environment"""
         if self._disable_injection:
             logger.info("Log injection disabled, not injecting episodic logs")
             return
-        logs_len = sum([sum([logs[x]['count'] for x in logs]) for logs, _ in self.episodic_logs_to_inject])
-        logger.info(f"Total episodic logs to inject: {logs_len}")
+        configs = []
         for logs_to_inject, time_range in self.episodic_logs_to_inject:
             logger.info(f"Injecting episodic logs: {logs_to_inject} at time range {time_range}")
-            self.inject_logs(logs_to_inject, time_range, injection_id=injection_id)
+            configs.extend(self.collect_configs(logs_to_inject, time_range, injection_id=injection_id))
+        
         # logger.info(f"Waiting for {sum(self.episode_logs.values())} logs to be written")
         # sleep(sum(self.episode_logs.values())/4500)  # wait for logs to be written
         security_log_file_path = self.unwrapped.splunk_tools.log_file_prefix + "wineventlog:security.txt"
         system_log_file_path = self.unwrapped.splunk_tools.log_file_prefix + "wineventlog:system.txt"
+        
+        for batch in self.unwrapped.log_generator.generate_massive_stream(configs, batch_size=50000):
+            self.save_mixed_batch(batch)
+            
+        self.delete_episodic_logs(self.unwrapped.log_generator.logs_to_delete)
+        
         self.flush_logs(security_log_file_path, log_type="Security")
         self.flush_logs(system_log_file_path, log_type="System")
         # check if all logs with injection id in splunk
         results = 0
         start_date = datetime.datetime.strptime(self.episodic_logs_to_inject[0][1][0], '%m/%d/%Y:%H:%M:%S').strftime("%Y-%m-%dT%H:%M:%S")
         end_date = datetime.datetime.strptime(self.episodic_logs_to_inject[-1][1][1], '%m/%d/%Y:%H:%M:%S').strftime("%Y-%m-%dT%H:%M:%S")
+        
+        logs_len = sum([sum([logs[x]['count'] for x in logs]) for logs, _ in self.episodic_logs_to_inject]) - sum([sum([info[log_type][var_id] for log_type in info for var_id in info[log_type]]) for time_range, info in self.unwrapped.log_generator.logs_to_delete.items()])
+        logger.info(f"Total episodic logs to inject: {logs_len}")
+        
         while logs_len > results + 50:
             sleep(2)
             query = f'index=main host="dt-splunk" | stats count'
             # query = f'index=main host="dt-splunk" Injection_id={injection_id} | stats count'
             results = self.unwrapped.splunk_tools.run_search(query, start_date, end_date)            
             results = int(results[0]['count'])
-            print(f"Waiting for logs to be indexed: {results}/{logs_len}")
+            logger.info(f"Waiting for logs to be indexed: {results}/{logs_len}")
+        
+        # delete the logs according to self.unwrapped.log_generator.logs_to_delete
+        # reset logs to delete
+        self.unwrapped.log_generator.logs_to_delete = {}
             
         # waiting_time = logs_len/ 5000  # 30000 logs per second 
         # sleep(waiting_time)  # wait for logs to be indexed
@@ -720,9 +798,11 @@ class Action8(Action):
             # check zero action 
             logger.info(f"Raw action: {action}")
             distribution = action[:len(self.unwrapped.top_logtypes)]
+            scaled_logits = 20 * distribution
             # softmax normalization
-            # distribution = np.exp(distribution) / np.sum(np.exp(distribution))
-            distribution /= (np.sum(distribution) + 1e-8) 
+            exp_vals = np.exp(scaled_logits - np.max(scaled_logits))
+            distribution = exp_vals / exp_vals.sum()
+            # distribution /= (np.sum(distribution) + 1e-8) 
             
             diversity_list = action[len(self.unwrapped.top_logtypes):]
             # current_quota = action[-1]
@@ -745,41 +825,43 @@ class Action8(Action):
                 self.inserted_logs += log_count
                 self.unwrapped.episodic_inserted_logs += log_count
                 diversity = 0
-                if log_count > 0:
-                    is_trigger = 0
+                # if log_count > 0:
+                is_trigger = 0
+                
+                if logtype in self.unwrapped.relevant_logtypes:
+                    diversity = float(diversity_list[self.unwrapped.relevant_logtypes.index(logtype)])
+                    if log_count == 0:
+                        diversity = 0
+                    # is_trigger = int(np.ceil(diversity/self.diversity_factor ))
+                    is_trigger = int(np.ceil(diversity ))
                     
-                    if logtype in self.unwrapped.relevant_logtypes:
-                        diversity = float(diversity_list[self.unwrapped.relevant_logtypes.index(logtype)])
-                        # is_trigger = int(np.ceil(diversity/self.diversity_factor ))
-                        is_trigger = int(np.ceil(diversity ))
-                        
-                        # diversity = int(diversity)
-                        diversity = int(diversity * self.diversity_factor)
-                    diversity = max(1, min(diversity, log_count))
-                        
-                        
-                    key = f"{logtype[0]}_{logtype[1]}_{is_trigger}"
-                    # if self.unwrapped.time_manager.action_window.to_tuple() not in self.action_time_indexer:
-                    #      self.action_time_indexer[self.unwrapped.time_manager.action_window.to_tuple()] = self.unwrapped.step_counter
-                    # if (key,self.unwrapped.time_manager.action_window.to_tuple()) in self.fake_storage_state:
-                    #      diff = log_count - self.fake_storage_state[self.action_time_indexer[self.unwrapped.time_manager.action_window.to_tuple()]][self.log_type_indexer[key]]
-                    logs_to_inject[key] = {
-                        # 'count': max(0, -diff),
-                        'count': log_count,
-                        'diversity': diversity
-                    }
-                        #  self.logs_to_delete[self.action_time_indexer[self.unwrapped.time_manager.action_window.to_tuple()]][self.log_type_indexer[key]] = max(0, diff)
-                        #  self.fake_storage_state[(key,self.unwrapped.time_manager.action_window.to_tuple())] -= diff
+                    # diversity = int(diversity)
+                    diversity = int(diversity * self.diversity_factor)
+                diversity = max(1, min(diversity, log_count))
                     
-                    # Track logs
-                    self.current_logs[key] = log_count
-    
-                    self.episode_logs[key] += log_count
-                    self.diversity_episode_logs[key] = max(logs_to_inject[key]['diversity'], self.diversity_episode_logs[key])
-                    # if logtype in self.unwrapped.relevant_logtypes and is_trigger == 1:
-                    #     self.unwrapped.rules_rel_diff_alerts[logtype] =  self.diversity_episode_logs[key]/ (self.diversity_factor)
-                    self.unwrapped.episodic_fake_logs_qnt += log_count
                     
+                key = f"{logtype[0]}_{logtype[1]}_{is_trigger}"
+                # if self.unwrapped.time_manager.action_window.to_tuple() not in self.action_time_indexer:
+                #      self.action_time_indexer[self.unwrapped.time_manager.action_window.to_tuple()] = self.unwrapped.step_counter
+                # if (key,self.unwrapped.time_manager.action_window.to_tuple()) in self.fake_storage_state:
+                #      diff = log_count - self.fake_storage_state[self.action_time_indexer[self.unwrapped.time_manager.action_window.to_tuple()]][self.log_type_indexer[key]]
+                logs_to_inject[key] = {
+                    # 'count': max(0, -diff),
+                    'count': log_count,
+                    'diversity': diversity
+                }
+                    #  self.logs_to_delete[self.action_time_indexer[self.unwrapped.time_manager.action_window.to_tuple()]][self.log_type_indexer[key]] = max(0, diff)
+                    #  self.fake_storage_state[(key,self.unwrapped.time_manager.action_window.to_tuple())] -= diff
+                
+                # Track logs
+                self.current_logs[key] = log_count
+
+                self.episode_logs[key] += log_count
+                self.diversity_episode_logs[key] = max(logs_to_inject[key]['diversity'], self.diversity_episode_logs[key])
+                # if logtype in self.unwrapped.relevant_logtypes and is_trigger == 1:
+                #     self.unwrapped.rules_rel_diff_alerts[logtype] =  self.diversity_episode_logs[key]/ (self.diversity_factor)
+                self.unwrapped.episodic_fake_logs_qnt += log_count
+                
             return logs_to_inject
 
     

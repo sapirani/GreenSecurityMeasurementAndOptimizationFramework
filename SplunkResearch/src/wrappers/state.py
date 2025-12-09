@@ -510,7 +510,8 @@ class StateWrapper6(StateWrapper):
         super().__init__(env, is_sampled)
         self.observation_space = spaces.Box(
             low=0,
-            high=3,
+            high=1,
+            # high=3,
             shape=(len(self.unwrapped.top_logtypes)*2+2,),  # +1 for 'other' category
             # shape=(len(self.top_logtypes),),  # +1 for 'other' category
             dtype=np.float64
@@ -530,13 +531,16 @@ class StateWrapper6(StateWrapper):
         self.unwrapped.real_state = self._normalize(real_state)
         ac_real_state = self._get_state_vector(self.unwrapped.ac_real_distribution)
         self.unwrapped.ac_real_state = self._normalize(ac_real_state)
+        real_sum = sum(ac_real_state)
+        
         self.unwrapped.real_relevant_distribution = {"_".join(logtype): self.unwrapped.ac_real_state[self.unwrapped.relevant_logtypes_indices[logtype]] for logtype in self.unwrapped.top_logtypes}
         if not self.unwrapped.done:
             self.update_fake_distribution_from_real()
-        self.unwrapped.fake_state = self._get_state_vector(self.unwrapped.fake_distribution)
-        self.unwrapped.fake_state = self._normalize(self.unwrapped.fake_state)
+        fake_state = self._get_state_vector(self.unwrapped.fake_distribution)
+        self.unwrapped.fake_state = self._normalize(fake_state)
         ac_fake_state = self._get_state_vector(self.unwrapped.ac_fake_distribution)
         self.unwrapped.ac_fake_state = self._normalize(ac_fake_state)
+        fake_sum = sum(ac_fake_state)
         self.unwrapped.fake_relevant_distribution = {"_".join(logtype): self.unwrapped.ac_fake_state[self.unwrapped.relevant_logtypes_indices[logtype]] for logtype in self.unwrapped.top_logtypes}
 
         # Create the final state vector

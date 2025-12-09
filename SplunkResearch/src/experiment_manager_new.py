@@ -255,7 +255,7 @@ class ExperimentManager:
         model_kwargs = {
             'env': env,
             'policy': config.policy_type,
-            'max_grad_norm': 0.5,
+            # 'max_grad_norm': 0.5,
             'learning_rate': config.learning_rate,
             'gamma': config.gamma,
             'tensorboard_log': f"{str(self.dirs['tensorboard'])}/{config.experiment_name}",
@@ -271,17 +271,33 @@ class ExperimentManager:
                 'ent_coef': config.ent_coef,
                 'sde_sample_freq': 12,
                 'use_sde': True,
-                "policy_kwargs": {
-                    "net_arch": [512, 128, 128, 64],
-                    "features_extractor_class": CustomExtractor,
-                },
+                # "policy_kwargs": {
+                #     "net_arch": [512, 128, 128, 64],
+                #     "features_extractor_class": CustomExtractor,
+                # },
             })
             
         elif config.model_type in ['sac', 'td3', 'ddpg']:
-            model_kwargs.update({                
+            model_kwargs.update({          
+                        'learning_starts': 120,  # (24 steps * 5 episodes)
+                        'gradient_steps': 24,
+                        'train_freq': (1, "episode"),          
                 #     "policy_kwargs": {
                 #     "net_arch": [512,128,128,64],
-
+                        # 4. BUFFER
+                        # No need 1 Million. 100k is plenty for short episodes.
+                        'buffer_size': 100_000, 
+                        
+                        'batch_size': 256,
+                        'ent_coef': 'auto',
+                        'use_sde': True, # Keep this for better exploration
+                        
+                        "policy_kwargs": {
+                            "net_arch": dict(pi=[256, 256], qf=[256, 256]),
+                            # Initialize weights to output small actions (~0) initially
+                            # so you don't hit the "clipping" bounds immediately.
+                            "log_std_init": -2, 
+                        },
 
                 # },
                 # "tau": 0.01,
@@ -337,25 +353,27 @@ class ExperimentManager:
                 eval_config = config
             eval_config.env_config.env_id = "splunk_eval-v32"
             eval_config.env_config.rule_frequency = 2880
-            eval_config.env_config.end_time = "10/01/2025:23:59:59"
+            eval_config.env_config.end_time = "09/01/2025:00:00:00"
             eval_config = replace(eval_config, is_mock=False)
             self.eval_env = self.create_environment(eval_config)
             self.eval_env.unwrapped.splunk_tools.load_real_logs_distribution_bucket(datetime.datetime.strptime(env.unwrapped.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(self.eval_env.unwrapped.time_manager.end_time, '%m/%d/%Y:%H:%M:%S'))
-            # if "test_experiment" not  in config.experiment_name:
-            #     # clean and warm up the env
-            #     logger.info("Cleaning and warming up the environment")
-            #     clean_env(env.unwrapped.splunk_tools, (env.unwrapped.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
-            #     env.unwrapped.warmup()
-            # else:
-            #     action_env = env
-            #     action_eval_env = self.eval_env
-            #     while not isinstance(action_env, Action8):
-            #         action_env = action_env.env
-            #     while not isinstance(action_eval_env, Action8):
-            #         action_eval_env = action_eval_env.env
+            empty_monitored_files(SYSTEM_MONITOR_FILE_PATH)
+            empty_monitored_files(SECURITY_MONITOR_FILE_PATH)
+            if "test_experiment" not  in config.experiment_name:
+                # clean and warm up the env
+                logger.info("Cleaning and warming up the environment")
+                clean_env(env.unwrapped.splunk_tools, (env.unwrapped.time_manager.first_start_datetime, datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")))
+                env.unwrapped.warmup()
+            else:
+                action_env = env
+                action_eval_env = self.eval_env
+                while not isinstance(action_env, Action8):
+                    action_env = action_env.env
+                while not isinstance(action_eval_env, Action8):
+                    action_eval_env = action_eval_env.env
 
-            #     action_env.disable_injection()
-            #     action_eval_env.disable_injection()
+                action_env.disable_injection()
+                action_eval_env.disable_injection()
             # Setup callbacks
             config.experiment_name = experiment_name
             callbacks = self._setup_callbacks(config)
@@ -622,7 +640,7 @@ class ExperimentManager:
  
 if __name__ == "__main__":
     # Create experiment config
-    retrain_fake_start_datetime = "08/01/2024:00:00:00"
+    # retrain_fake_start_datetime = "08/01/2024:00:00:00"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250611165220_102000_steps.zip"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250620175311_35000_steps"
     # model_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/test_experiment_20250623144601_43000_steps.zip"
@@ -651,34 +669,34 @@ if __name__ == "__main__":
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250927214506_70000_steps.zip"
         model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/{model_name}.zip"
         print(f"Model path: {model_path}")
-        for learning_rate in [5e-5]: #0.0001
+        for learning_rate in [3e-4]: #0.0001
             for n_steps in [64]:
                 for ent_coef in [0.05]:
                     for is_random in [False]:
-                        lr = 1e-2
                         env_config = SplunkConfig(
                             # fake_start_datetime=retrain_fake_start_datetime,
-                            rule_frequency=60, #600,
+                            rule_frequency=120, #600,
                             search_window=2880,
                             # savedsearches=["rule1", "rule2"],
                             logs_per_minute=150,
                             additional_percentage=additional_percentage,
-                            action_duration=7200, 
+                            action_duration=14400,#7200, 
                             num_of_measurements=1,
                             baseline_num_of_measurements=1,
                             env_id="splunk_train-v32",
-                            end_time="12/31/2024:23:59:59"       
+                            # end_time="12/01/2024:00:00:00"       
+                            end_time="04/30/2025:00:00:00"       
                         )
                         # sched_LR = lr_schedule(initial_value = 0.01, rate = 5)
                         experiment_config = ExperimentConfig(
                             env_config=env_config,
-                            model_type="ppo",# "ppo", # "a2c", "dqn", "sac", "td3", "recurrent_ppo"
-                            policy_type="mlp",# "td3_mlp", # "mlp", "MlpLstmPolicy"
+                            model_type="sac",# "ppo", # "a2c", "dqn", "sac", "td3", "recurrent_ppo"
+                            policy_type="MlpPolicy",# "td3_mlp", # "mlp", "MlpLstmPolicy" "MlpPolicy"
                             learning_rate=learning_rate,#sched_LR,
                             num_episodes=num_episodes,
                             n_steps=n_steps,
                             ent_coef=ent_coef,
-                            gamma=1,
+                            gamma=0.99,
                             gamma_dist= float(gamma_dist) if gamma_dist else 0.2,
                             alpha_energy= float(alpha_energy) if alpha_energy else 0.5,
                             beta_alert= float(beta_alert) if beta_alert else 0.3,
@@ -695,8 +713,8 @@ if __name__ == "__main__":
                             
                         )
 
-                        experiment_config.mode = "eval_post_training"#"eval_post_training"  # eval after training
-                        experiment_config.num_episodes = 5
+                        experiment_config.mode = "train"#"eval_post_training"  # eval after training
+                        experiment_config.num_episodes = 500000
                         manager = ExperimentManager(base_dir="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments")
                         results = manager.run_experiment(experiment_config)
 

@@ -5,6 +5,7 @@ from enum import Enum
 import json
 import logging
 from multiprocessing import Pool
+from pyexpat import model
 import re
 import time
 from xxlimited import Str
@@ -185,15 +186,15 @@ class SplunkTools(object):
         self._initialized = True
         self.log_file_prefix = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/'
 
-        if self.mode == Mode.PROFILE:
-                response = es_logger.handlers[0].es.delete_by_query(
-                    index="sid",
-                    body={
-                        "query": {"match_all": {}}
-                    },
-                    refresh=True  # ensure immediate refresh
-                )
-                logger.info(f"Deleted {response['deleted']} documents from index sid")
+        # if self.mode == Mode.PROFILE:
+        #         response = es_logger.handlers[0].es.delete_by_query(
+        #             index="sid",
+        #             body={
+        #                 "query": {"match_all": {}}
+        #             },
+        #             refresh=True  # ensure immediate refresh
+        #         )
+        #         logger.info(f"Deleted {response['deleted']} documents from index sid")
 
     async def run_saved_search(self, search_name: str, start_time: Optional[float] = None, end_time: Optional[float] = None, interval: float = 0.2) -> QueryMetrics:
         saved_search = self.service.saved_searches[search_name]
@@ -247,19 +248,24 @@ class SplunkTools(object):
         else:
             delta_metrics = {}
         results_count = int(job["content"].get("resultCount", 0)),
+        if isinstance(results_count, (tuple, list)):
+            results_count = results_count[0]
         execution_time = float(job["content"].get("runDuration", 0.0)),
-        
-        # Check events count via BASIC_QUERIES
-        eventcode_search = BASIC_QUERIES.get(search_name, None)
-        if eventcode_search:
-            eventcode_query = f" search {eventcode_search} earliest={start_time} latest={end_time} | stats count" # FEATURE maybe add host="dt-splunk"
-            eventcode_job = self.service.jobs.create(eventcode_query)
-            while True:
-                eventcode_job.refresh()
-                if eventcode_job.content['isDone'] == '1':
-                    break
-                await asyncio.sleep(0.1)
-            events_count = int(eventcode_job["eventCount"]) if "eventCount" in eventcode_job else 0
+        if isinstance(execution_time, (tuple, list)):
+            execution_time = execution_time[0]
+        events_count = 0
+        if self.mode == Mode.PROFILE:
+            # Check events count via BASIC_QUERIES
+            eventcode_search = BASIC_QUERIES.get(search_name, None)
+            if eventcode_search:
+                eventcode_query = f'search {eventcode_search} host="dt-splunk" earliest={start_time} latest={end_time} | stats count'
+                eventcode_job = self.service.jobs.create(eventcode_query)
+                while True:
+                    eventcode_job.refresh()
+                    if eventcode_job.content['isDone'] == '1':
+                        break
+                    await asyncio.sleep(0.1)
+                events_count = int(eventcode_job["eventCount"]) if "eventCount" in eventcode_job else 0
 
         # build QueryMetrics instance
         qmetric = QueryMetrics(
@@ -465,6 +471,9 @@ class SplunkTools(object):
         }
         
         return QueryMetrics(
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            pid="0",
+            events_count=0,
             search_name=search_name,
             results_count=0,
             execution_time=0,
@@ -557,61 +566,93 @@ class SplunkTools(object):
             
         
 
-        
-    def create_new_distribution_bucket(self, start_time, end_time):
-        """
-        Create new distribution bucket for given time range.
-        start_time and end_time are UTC timestamps
-        """
-        # Convert timestamps to timezone-aware datetime objects
-        # start_time = datetime.fromtimestamp(start_time)
-        # end_time = datetime.fromtimestamp(end_time)
-        
-        # Round to nearest day while preserving timezone
-        start_time = datetime(
-            start_time.year, start_time.month, start_time.day, 
-        )
-        end_time = start_time + pd.DateOffset(days=1)
-        
-        timestamp_start_time = start_time.timestamp()
-        timestamp_end_time = end_time.timestamp()
-        
-        logger.info(f'start_time: {start_time}, end_time: {end_time}')
-        logger.info(f'timestamp_start_time: {timestamp_start_time}, timestamp_end_time: {timestamp_end_time}')
-        logger.info(f'Creating new distribution bucket for time range: {start_time} - {end_time}')
-        
-        # Use RFC3339 format for Splunk query
-        job = self.service.jobs.create(
-            f'search index=main | '
-            'eval _time=strftime(_time,"%Y-%m-%d %H:%M:00") | '
-            'stats count by source EventCode _time', 
-            earliest_time=start_time.strftime('%Y-%m-%d %H:%M:%S'), 
-            latest_time=end_time.strftime('%Y-%m-%d %H:%M:%S'),
-            time_format='%Y-%m-%d %H:%M:%S',
-            count=0
-        ) 
-        
-        while True:
-            job.refresh()
-            if job.content['isDone'] == '1':
-                break
-            time.sleep(2)
             
-        response = job.results(output_mode='json', count=0)
-        reader = splunk_results.JSONResultsReader(response)
-        results = []
-        
-        # Format timestamps for filename while preserving UTC
-        start_time_str = start_time.strftime('%Y-%m-%d_%H-%M-%S')
-        end_time_str = end_time.strftime('%Y-%m-%d_%H-%M-%S')
-        file = f"bucket_{start_time_str}_{end_time_str}.csv"
-        
-        for result in reader:
-            if isinstance(result, dict):
-                results.append(result)
+    def create_new_distribution_bucket(self, start_time, end_time):
+            """
+            Create new distribution bucket for given time range.
+            Writes to CSV incrementally to handle millions of records.
+            """
+            # Round to nearest day while preserving timezone
+            start_time = datetime(
+                start_time.year, start_time.month, start_time.day, 
+            )
+            end_time = start_time + pd.DateOffset(days=10)
+            
+            # Logging setup
+            logger.info(f'Creating new distribution bucket for: {start_time} - {end_time}')
+            
+            # 1. Create the Search Job
+            job = self.service.jobs.create(
+                f'search index=main | '
+                'eval _time=strftime(_time,"%Y-%m-%d %H:%M:00") | '
+                'stats count by source EventCode _time', 
+                earliest_time=start_time.strftime('%Y-%m-%d %H:%M:%S'), 
+                latest_time=end_time.strftime('%Y-%m-%d %H:%M:%S'),
+                time_format='%Y-%m-%d %H:%M:%S',
+            ) 
+            
+            # 2. Wait for Job Completion
+            while True:
+                job.refresh()
+                if job.content['isDone'] == '1':
+                    break
+                time.sleep(2)
                 
-        self.real_logs_distribution = pd.DataFrame(results, index=None)
-        self.real_logs_distribution.to_csv(f'{PREFIX_PATH}resources/output_buckets/{file}')
+            # 3. Setup File Path
+            start_time_str = start_time.strftime('%Y-%m-%d_%H-%M-%S')
+            end_time_str = end_time.strftime('%Y-%m-%d_%H-%M-%S')
+            file_name = f"bucket_{start_time_str}_{end_time_str}.csv"
+            full_path = f'{PREFIX_PATH}resources/output_buckets/{file_name}'
+            
+            # 4. Pagination & Incremental Write
+            offset = 0
+            page_size = 50000
+            header_written = False
+            total_records = 0
+            
+            logger.info(f"Starting fetch for job {job.sid}...")
+
+            while True:
+                # Fetch a page (chunk) of results
+                response = job.results(
+                    output_mode='json', 
+                    count=page_size, 
+                    offset=offset
+                )
+                
+                reader = splunk_results.JSONResultsReader(response)
+                batch_data = []
+                
+                # Extract valid rows from this chunk
+                for result in reader:
+                    if isinstance(result, dict):
+                        batch_data.append(result)
+                
+                # If batch is empty, we are done
+                if not batch_data:
+                    break
+                    
+                # Convert batch to DataFrame
+                df_batch = pd.DataFrame(batch_data)
+                
+                # Append to CSV
+                # mode='a' appends to the file
+                # header=not header_written ensures header is only written in the first pass
+                df_batch.to_csv(full_path, mode='a', header=not header_written, index=False)
+                
+                # Update state
+                records_in_batch = len(batch_data)
+                offset += records_in_batch
+                total_records += records_in_batch
+                header_written = True
+                
+                logger.info(f"Written {records_in_batch} records. Total so far: {total_records}")
+
+                # Safety break: if we got fewer records than requested, we are at the end
+                if records_in_batch < page_size:
+                    break
+
+            logger.info(f"Completed. Total records exported: {total_records}")
             
     def get_releveant_distribution(self, start_time, end_time, is_sampled):
         """

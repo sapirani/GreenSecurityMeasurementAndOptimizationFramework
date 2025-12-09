@@ -13,9 +13,9 @@ class MetricsLoggerCallback:
     def __init__(self, phase="train", log_dir=None, rules=None, event_types=None, writers=None):
         self.phase = phase
         self.episodic_metrics = [
-            "alert", "duration", "cpu"]
+            "alert", "duration", "cpu",
         #     , "std_cpu", "std_duration", 
-        #     "read_bytes", "read_count", "write_bytes", "write_count",
+            "read_bytes", "read_count", "write_bytes", "write_count", 'memory_mb']
         #     "total_cpu_usage"
         # ]
         self.log_dir = log_dir
@@ -74,6 +74,7 @@ class MetricsLoggerCallback:
         baseline_metrics = info.get('combined_baseline_metrics', {})
         self._log_metrics('final_distribution_value', info.get('distribution_value'))
         self._log_metrics('ac_distribution_value', info.get('ac_distribution_value'))
+        self._log_metrics('full_ac_distribution_value', info.get('full_ac_distribution_value'))
         self._log_metrics('ac_distribution_reward', info.get('ac_distribution_reward'))
         self._log_metrics('energy_reward', info.get('energy_reward'))
         self._log_metrics('norm_energy_reward', info.get('norm_energy_reward'))
@@ -138,7 +139,7 @@ class MetricsLoggerCallback:
             self._log_metrics('episodic_inserted_logs', info['episodic_inserted_logs'], exclude_from_csv=True)
             
         if 'episodic_inserted_logs' in info and 'episode_logs' in info:
-            self._log_metrics('actual_quota', info['episodic_inserted_logs']/info['total_episode_logs'])
+            self._log_metrics('actual_quota', info['episodic_inserted_logs']/(info['total_episode_logs']+1e-8), exclude_from_csv=True)
         
         # if 'diversity_episode_logs' in info:
         #     self._log_metrics('diversity_episode_logs', info['diversity_episode_logs'], exclude_from_csv=True)
@@ -182,6 +183,7 @@ class CustomTensorboardCallback(MetricsLoggerCallback, BaseCallback):
         return True
 
 
+all_actions_list = []
 
 
 class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
@@ -195,7 +197,8 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
                  deterministic: bool = True,
                  render: bool = False,
                  verbose: int = 1,
-                 writers=None):
+                 writers=None,
+                 full_eval_env=None):
         
         EvalCallback.__init__(
             self,
@@ -209,18 +212,33 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
             verbose=verbose
         )
         MetricsLoggerCallback.__init__(self, "eval", log_dir, rules, event_types, writers=writers)
+        self.full_eval_env = full_eval_env
         
     def evaluate_policy(self, *args, **kwargs):
         """Override evaluate_policy to collect info during evaluation"""
         self.eval_infos = []
-        
+
+        def _store_actions_callback(locals_, globals_):
+            """
+            Callback function to store the action at each step.
+            
+            :param locals_: A dictionary containing local variables.
+            :param globals_: A dictionary containing global variables.
+            """
+            # 'actions' is the variable name used inside evaluate_policy
+            # It will be a numpy array, e.g., array([1])
+            all_actions_list.append(locals_['actions'][0])
+
         def _log_info_callback(locals_, globals_):
             info = locals_['info']
             info['n_calls'] = self.n_calls  # Add current step count to info
             self.eval_infos.append(info)
-            return True
-            
-        kwargs['callback'] = _log_info_callback
+        
+        def _log_info_store_actions_callback(locals_, globals_):
+            _log_info_callback(locals_, globals_)
+            _store_actions_callback(locals_, globals_)
+        
+        kwargs['callback'] = _log_info_store_actions_callback
         return evaluate_policy(*args, **kwargs)
         
     def _aggregate_eval_metrics(self, infos):
@@ -264,6 +282,18 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
                 return_episode_rewards=True,
                 warn=self.warn
             )
+            # use stored actions to evaluate full eval env if provided
+            if self.full_eval_env is not None:
+                global all_actions_list
+                obs = self.full_eval_env.reset()
+                for action in all_actions_list:
+                    obs, reward, terminated, truncated, info = self.full_eval_env.step(action)
+                    done = terminated or truncated
+                    if done:
+                        if 'ac_distribution_value' in info:
+                            self.eval_infos[-1]["full_ac_distribution_value"] = info['ac_distribution_value']
+                        obs = self.full_eval_env.reset()
+                all_actions_list = []
 
             # Log aggregated evaluation metrics
             self._aggregate_eval_metrics(self.eval_infos)

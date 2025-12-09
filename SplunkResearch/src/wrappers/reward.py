@@ -100,6 +100,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         self.beta = beta
         self.gamma = gamma
         self.injection_id = 0
+        self.baseline_measured = False
         # if is_mock:
         #     for rule in self.unwrapped.splunk_tools.active_saved_searches:
         #         self.energy_models[rule] = pickle.load(open(f"/home/shouei/GreenSecurity-FirstExperiment/baseline_splunk_train-v32_2880_cpu_regressor_results/RandomForestRegressor_{rule}_with alert = 0.pkl", "rb"))
@@ -176,7 +177,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                         # remove existing rows for the time range
                         self.unwrapped.baseline_df = self.unwrapped.baseline_df[~((self.unwrapped.baseline_df['start_time'] == time_range[0]) & (self.unwrapped.baseline_df['end_time'] == time_range[1]))]
                     self.unwrapped.baseline_df = pd.concat([self.unwrapped.baseline_df, pd.DataFrame(new_lines)])
-            
+                self.baseline_measured = True            
 
                 
         random_val = np.random.randint(0, 10)
@@ -212,7 +213,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         should_execute = True
         if self.enable_prediction and self.skip_on_low_alert:
             # should_execute =  ((predicted_reward <= (sum(self.expected_alerts.values()) + (self.alert_threshold*std))) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval
-            should_execute = ((predicted_reward >= self.alert_threshold) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval #or True # TRY!!!!!!!
+            should_execute = ((predicted_reward >= self.alert_threshold) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval or True # TRY!!!!!!!
             
             # self.unwrapped.should_delete = should_execute and not self.is_mock and not self.measuring 
             
@@ -270,6 +271,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         } for metric in rules_metrics]
 
     def process_metrics(self, grouped):
+        # print(grouped)
         raw_metrics = {}
         for search_name, group in grouped:
             raw_metrics[search_name] = {
@@ -319,7 +321,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             reward = 0
 
         if info.get('done', True):
-            
+            self.baseline_measured = False
             inserted_logs = info.get('inserted_logs', 0)
             diversity_logs = info.get('diversity_episode_logs', {})
             
@@ -354,9 +356,17 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             self.unwrapped.should_delete = should_execute and (not self.is_mock or self.measuring)
                 
             # self.unwrapped.is_mock = (not should_execute or not self.use_energy or not self.use_alert) 
+            time_range = info['current_window']
+            time_range_date = (datetime.datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S'))
             # inject logs if not is_mock
             if (not self.is_mock  or self.measuring) and should_execute and self.use_energy and self.use_alert:
-                
+                if self.baseline_measured:
+                    logger.info(f"Empty deletion dict of log generator and relvant fake_splunk_state")
+                    self.unwrapped.log_generator.logs_to_delete = {}
+                    for t_r in self.unwrapped.log_generator.fake_splunk_state:
+                        t_r_datetime = (datetime.datetime.strptime(t_r[0], '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(t_r[1], '%m/%d/%Y:%H:%M:%S'))
+                        if t_r_datetime[0] >= time_range_date[0] and t_r_datetime[1] <= time_range_date[1]:
+                            self.unwrapped.log_generator.fake_splunk_state[t_r] = {}
                 self.env.env.inject_episodic_logs(self.injection_id) # access to action wrapper0
                 self.injection_id += 1
                 # wait for the logs to be injected
