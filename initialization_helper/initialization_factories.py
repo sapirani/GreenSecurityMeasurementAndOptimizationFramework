@@ -15,7 +15,7 @@ from operating_systems.os_windows import WindowsOS
 from program_parameters import antivirus_type, scan_type, custom_scan_path, recursive, should_optimize, \
     should_mitigate_timestomping, ids_type, interface_name, pcap_list_dirs, log_path, configuration_file_path, \
     model_name, model_action, script_relative_path, installation_dir, cpu_percent_to_consume, RUNNING_TIME, \
-    dummy_task_rate, dummy_task_unit_size
+    dummy_task_rate, dummy_task_unit_size, tasks_to_run_in_parallel
 from resource_usage_recorder.processes_recorder.process_network_usage_recorder import ProcessNetworkUsageRecorder
 from resource_usage_recorder.processes_recorder.strategies.abstract_processes_recorder import \
     AbstractProcessResourceUsageRecorder
@@ -185,6 +185,6 @@ def program_to_scan_factory(program_type: ProgramToScan) -> ProgramInterface:
     if program_type == ProgramToScan.NetworkSender:
         return NetworkSender(rate=dummy_task_rate, packet_size=dummy_task_unit_size)
     if program_type == ProgramToScan.MultipleResourceConsumer:
-        return MultipleResourceConsumer(consumption_speed=dummy_task_rate, chunk_size=dummy_task_unit_size)
+        return MultipleResourceConsumer(tasks_to_run=tasks_to_run_in_parallel, consumption_speed=dummy_task_rate, chunk_size=dummy_task_unit_size)
 
     raise Exception("choose program to scan from ProgramToScan enum")

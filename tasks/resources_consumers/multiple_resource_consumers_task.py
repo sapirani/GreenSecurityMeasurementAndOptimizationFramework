@@ -2,10 +2,12 @@ import argparse
 import re
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Union
+from typing import Union, Callable
 
 from tasks.resources_consumers.memory_consumer_task import consume_ram
+from tasks.resources_consumers.memory_releaser_task import release_ram
 from tasks.resources_consumers.disk_io_writer_task import write_files
+from tasks.resources_consumers.disk_io_reader_task import read_files
 
 CONSUMERS_METHODS = [consume_ram, write_files]
 DEFAULT_UNIT_SIZE = 1024
@@ -29,25 +31,26 @@ def parse_number_or_list(value: str):
     return parse_int_or_float(value)
 
 
-def run_tasks_in_parallel(rate: Union[float, list[float]], size: Union[int, list[int]]):
+def run_tasks_in_parallel(tasks_to_run: list[Callable], rate: Union[float, list[float]], size: Union[int, list[int]]):
+    number_of_tasks = len(tasks_to_run)
     all_tasks_rates = []
     if isinstance(rate, float):
-        all_tasks_rates = [rate] * NUMBER_OF_TASKS
+        all_tasks_rates = [rate] * number_of_tasks
     elif isinstance(rate, list):
-        if len(rate) != NUMBER_OF_TASKS:
-            raise ValueError(f"Number of rate options should be equal to {NUMBER_OF_TASKS} (number of tasks)")
+        if len(rate) != number_of_tasks:
+            raise ValueError(f"Number of rate options should be equal to {number_of_tasks} (number of tasks)")
         all_tasks_rates = rate
 
     all_tasks_sizes = []
     if isinstance(size, int):
-        all_tasks_sizes = [size] * NUMBER_OF_TASKS
+        all_tasks_sizes = [size] * number_of_tasks
     elif isinstance(size, list):
-        if len(size) != NUMBER_OF_TASKS:
-            raise ValueError(f"Number of size options should be equal to {NUMBER_OF_TASKS} (number of tasks)")
+        if len(size) != number_of_tasks:
+            raise ValueError(f"Number of size options should be equal to {number_of_tasks} (number of tasks)")
         all_tasks_sizes = size
 
-    with ThreadPoolExecutor(max_workers=NUMBER_OF_TASKS) as executor:
-        for task, r, s in zip(CONSUMERS_METHODS, all_tasks_rates, all_tasks_sizes):
+    with ThreadPoolExecutor(max_workers=number_of_tasks) as executor:
+        for task, r, s in zip(tasks_to_run, all_tasks_rates, all_tasks_sizes):
             executor.submit(task, r, s)
 
 
@@ -65,6 +68,40 @@ if __name__ == "__main__":
                         required=True,
                         help="The number of units per second to perform the task on.")
 
-    args = parser.parse_args()
+    parser.add_argument("--run_memory_consumer",
+                        type=bool,
+                        default=False,
+                        help="Whether to run the memory consumer task.")
 
-    run_tasks_in_parallel(args.rate, args.unit_size)
+    parser.add_argument("--run_memory_releaser",
+                        type=bool,
+                        default=False,
+                        help="Whether to run the memory releaser task.")
+
+    parser.add_argument("--run_disk_writer",
+                        type=bool,
+                        default=False,
+                        help="Whether to run the disk writer task.")
+
+    parser.add_argument("--run_disk_reader",
+                        type=bool,
+                        default=False,
+                        help="Whether to run the disk reader task.")
+
+
+    args = parser.parse_args()
+    tasks_to_run = []
+
+    if args.run_memory_consumer:
+        tasks_to_run.append(consume_ram)
+
+    if args.run_memory_releaser:
+        tasks_to_run.append(release_ram)
+
+    if args.run_disk_writer:
+        tasks_to_run.append(write_files)
+
+    if args.run_disk_reader:
+        tasks_to_run.append(read_files)
+
+    run_tasks_in_parallel(tasks_to_run, args.rate, args.unit_size)
