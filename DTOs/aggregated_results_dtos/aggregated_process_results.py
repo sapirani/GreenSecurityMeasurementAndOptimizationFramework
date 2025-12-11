@@ -9,7 +9,7 @@ from elastic_reader.aggregators.aggregation_types import AggregationType
 @dataclass
 class AggregatedProcessResults:
     process_metadata: ProcessMetadata
-    aggregation_results: Dict[AggregationType, AbstractAggregationResult]    # TODO: ADD AGGREGATIONS HERE
+    aggregation_results: Dict[AggregationType, AbstractAggregationResult]
 
     def merge(self, other: 'AggregatedProcessResults') -> None:
         if self.process_metadata != other.process_metadata:
