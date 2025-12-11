@@ -9,6 +9,6 @@ from DTOs.raw_results_dtos.iteration_info import IterationMetadata
 
 @dataclass
 class IterationAggregatedResults:
-    processes_results: Dict[ProcessIdentity, AggregatedProcessResults]
-    system_aggregated_results: List[AbstractAggregationResult]
     iteration_metadata: IterationMetadata
+    system_aggregated_results: List[AbstractAggregationResult]
+    processes_results: Dict[ProcessIdentity, AggregatedProcessResults]

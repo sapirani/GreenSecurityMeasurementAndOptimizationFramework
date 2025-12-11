@@ -6,7 +6,6 @@ from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationA
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
 from application_logging.formatters.pretty_extra_formatter import PrettyExtrasFormatter
 from application_logging.handlers.elastic_bulk_handler import get_elastic_bulk_handler
-from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 from application_logging.logging_utils import get_measurement_logger
 from elastic_reader.consts import Verbosity
 from elastic_reader.elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
@@ -62,7 +61,6 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
         if not iteration_aggregation_results:
             return
 
-        # TODO: IMPROVE LOGGING SPEED BY USING from elasticsearch.helpers import bulk
         for process_identity, process_results in iteration_aggregation_results.processes_results.items():
             self.logger.info(
                 "Process Aggregation Results",

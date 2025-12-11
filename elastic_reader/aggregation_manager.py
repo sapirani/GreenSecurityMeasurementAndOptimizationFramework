@@ -111,7 +111,7 @@ class AggregationManager:
 
     def __aggregate_process_metrics_generic(
             self,
-            processes_iteration_results: List[ProcessRawResults],
+            processes_iteration_results: Dict[ProcessIdentity, ProcessRawResults],
             iteration_metadata: IterationMetadata,
             aggregators_dict: Dict[SessionHostIdentity, Dict[ProcessIdentity, List[AbstractAggregator]]],
             raw_results_combiner: Callable[
@@ -130,10 +130,9 @@ class AggregationManager:
         """
 
         processes_aggregation_results = {}
-        for raw_process_results in processes_iteration_results:
-            process_identity = ProcessIdentity.from_raw_results(raw_process_results)
+        for process_identity, raw_process_results in processes_iteration_results.items():
             process_aggregation_results = []
-            for aggregator in aggregators_dict[iteration_metadata.session_host_identity][process_identity]:
+            for aggregator in aggregators_dict[iteration_metadata.session_host_identity][process_identity]: # TODO: ADD A NAME FOR THE PROCESS AGGREGATOR
                 process_aggregation_results.append(
                     self.__process(
                         aggregator,
