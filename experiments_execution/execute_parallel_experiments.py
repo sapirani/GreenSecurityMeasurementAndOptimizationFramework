@@ -9,7 +9,7 @@ from human_id import generate_id
 from utils.general_consts import ProgramToScan
 from config import DEFAULT_NUMBER_OF_EXPERIMENTS, SLEEPING_TIME_BETWEEN_MEASUREMENTS, SLEEPING_TIME_BETWEEN_TASKS, \
     SCANNER_PATH, PROGRAM_PARAMETERS_PATH, DEFAULT_MAIN_PROGRAM, DEFAULT_TASKS
-from experiments_automations.run_exeperiment_utils import update_main_program, \
+from experiments_execution.run_exeperiment_utils import update_main_program, \
     update_dummy_task_values, run_identical_experiments, update_background_programs
 
 

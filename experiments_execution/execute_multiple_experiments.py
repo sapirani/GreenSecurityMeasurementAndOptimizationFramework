@@ -7,7 +7,7 @@ from human_id import generate_id
 
 from config import PROGRAM_PARAMETERS_PATH, DEFAULT_TASKS, SCANNER_PATH, SLEEPING_TIME_BETWEEN_MEASUREMENTS, \
     SLEEPING_TIME_BETWEEN_TASKS, DEFAULT_NUMBER_OF_EXPERIMENTS
-from experiments_automations.run_exeperiment_utils import update_main_program, \
+from experiments_execution.run_exeperiment_utils import update_main_program, \
     update_dummy_task_values, run_identical_experiments
 
 
