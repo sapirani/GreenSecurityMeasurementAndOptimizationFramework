@@ -26,12 +26,16 @@ def run_various_experiments(tasks_to_run: list[ProgramToScan], num_of_experiment
 
     for task_id, task_combination in enumerate(possible_tasks_combinations):
         main_program = task_combination[0]
-        background_program = list(task_combination[1:])
-        update_main_program(PROGRAM_PARAMETERS_PATH, main_program_value=main_program)
-        update_background_programs(PROGRAM_PARAMETERS_PATH, background_programs_value=background_program)
-
-        background_tasks_names = "_".join([t.name for t in background_program])
+        background_programs = list(task_combination[1:])
+        if len(background_programs) > 0:
+            background_tasks_names = "_".join([t.name for t in background_programs])
+        else:
+            background_tasks_names = ""
         task_session = f"{main_session_id}_m_{main_program.name}_b_{background_tasks_names}{session_id_addition}"
+
+        update_main_program(PROGRAM_PARAMETERS_PATH, main_program_value=main_program)
+        update_background_programs(PROGRAM_PARAMETERS_PATH, background_programs_value=background_programs)
+
         run_identical_experiments(SCANNER_PATH, SLEEPING_TIME_BETWEEN_MEASUREMENTS,
                                   num_of_experiments, task_session)
         sleep(SLEEPING_TIME_BETWEEN_TASKS)
@@ -68,43 +72,36 @@ if __name__ == '__main__':
                         help="The number of units per second to perform the default task on.")
 
     parser.add_argument("--run_memory_consumer",
-                        type=bool,
                         action="store_true",
                         default=False,
                         help="Whether to run the memory consumer task.")
 
     parser.add_argument("--run_memory_releaser",
-                        type=bool,
                         action="store_true",
                         default=False,
                         help="Whether to run the memory releaser task.")
 
     parser.add_argument("--run_disk_writer",
-                        type=bool,
                         action="store_true",
                         default=False,
                         help="Whether to run the disk writer task.")
 
     parser.add_argument("--run_disk_reader",
-                        type=bool,
                         action="store_true",
                         default=False,
                         help="Whether to run the disk reader task.")
 
     parser.add_argument("--run_cpu_consumer",
-                        type=bool,
                         action="store_true",
                         default=False,
                         help="Whether to run the cpu consumer task.")
 
     parser.add_argument("--run_network_receiver",
-                        type=bool,
                         action="store_true",
                         default=False,
                         help="Whether to run the network receiver task.")
 
     parser.add_argument("--run_network_sender",
-                        type=bool,
                         action="store_true",
                         default=False,
                         help="Whether to run the network sender task.")
