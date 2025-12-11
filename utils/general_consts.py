@@ -61,6 +61,7 @@ class ProgramToScan(Enum):
     NetworkReceiver = 14
     NetworkSender = 15
     MemoryReleaser = 16
+    MultipleResourceConsumer = 17
 
 
 class ScanMode(Enum):

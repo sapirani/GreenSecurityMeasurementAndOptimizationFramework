@@ -31,6 +31,8 @@ from summary_builder import SystemResourceIsolationSummaryBuilder, NativeSummary
 from tasks.program_classes.resources_consumers_programs.disk_io_read_program import DiskIOReadConsumer
 from tasks.program_classes.resources_consumers_programs.disk_io_write_program import DiskIOWriteConsumer
 from tasks.program_classes.resources_consumers_programs.memory_releaser_program import MemoryReleaser
+from tasks.program_classes.resources_consumers_programs.multiple_resource_consumers_program import \
+    MultipleResourceConsumer
 from utils.general_consts import SummaryType, ProgramToScan, AntivirusType, IDSType, ProcessMonitorType, \
     BatteryMonitorType, CustomFilterType
 from tasks.program_classes.abstract_program import ProgramInterface
@@ -182,5 +184,7 @@ def program_to_scan_factory(program_type: ProgramToScan) -> ProgramInterface:
         return NetworkReceiver(rate=dummy_task_rate, buffer_size=dummy_task_unit_size)
     if program_type == ProgramToScan.NetworkSender:
         return NetworkSender(rate=dummy_task_rate, packet_size=dummy_task_unit_size)
+    if program_type == ProgramToScan.MultipleResourceConsumer:
+        return MultipleResourceConsumer(consumption_speed=dummy_task_rate, chunk_size=dummy_task_unit_size)
 
     raise Exception("choose program to scan from ProgramToScan enum")
