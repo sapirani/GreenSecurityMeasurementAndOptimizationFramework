@@ -73,3 +73,5 @@ cpu_percent_to_consume = 50
 # For Network, Memory and Disk tasks
 dummy_task_rate = 1 / 5
 dummy_task_unit_size = 1024  # can be None
+
+tasks_to_run_in_parallel = ["run_memory_consumer", "run_disk_writer"] # list of tasks to run using the `multiple_resource_consumers_task`, must include at least one item.
