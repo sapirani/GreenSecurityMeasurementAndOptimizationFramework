@@ -23,6 +23,6 @@ class MultipleResourceConsumer(ProgramInterface):
         size_str = ",".join([f"{s}" for s in self.__chunk_size]) if isinstance(self.__chunk_size, list) else f"{self.__chunk_size}"
         command = f"python {os.path.join('tasks/resources_consumers', 'multiple_resource_consumers_task.py')} -r {rate_str} -s {size_str}"
         for task in self.__tasks_to_run:
-            command += f"--{task} True "
+            command += f" --{task}"
 
         return command
