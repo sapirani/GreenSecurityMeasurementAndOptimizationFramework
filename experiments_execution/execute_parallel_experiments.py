@@ -14,8 +14,7 @@ from experiments_execution.run_exeperiment_utils import update_main_program, \
 
 
 def run_various_experiments(tasks_to_run: list[ProgramToScan], num_of_experiments: int, num_of_parallel_tasks: int,
-                            main_session_id: str,
-                            rate: Optional[float], size: Optional[int]):
+                            main_session_id: str, rate: Optional[float], size: Optional[int]):
     update_dummy_task_values(PROGRAM_PARAMETERS_PATH, rate=rate, size=size)
     session_id_addition = ""
     if size is not None:

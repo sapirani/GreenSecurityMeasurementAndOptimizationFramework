@@ -56,6 +56,7 @@ def run_tasks_in_parallel(tasks_to_run: list[Callable], rate: Union[float, list[
 
 
 if __name__ == "__main__":
+    # todo: think about supporting CPU consumer (since it creates new process)
     task_description = "This program is a dummy task that consumes RAM, Disk and Network"
     parser = argparse.ArgumentParser(description=task_description)
 
