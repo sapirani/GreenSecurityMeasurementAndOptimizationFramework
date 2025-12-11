@@ -135,7 +135,7 @@ class AggregationManager:
         processes_aggregation_results = {}
         for process_identity, raw_process_results in processes_iteration_results.items():
             process_aggregation_results = {}
-            for aggregator in aggregators_dict[iteration_metadata.session_host_identity][process_identity]: # TODO: ADD A NAME FOR THE PROCESS AGGREGATOR
+            for aggregator in aggregators_dict[iteration_metadata.session_host_identity][process_identity]:
                 process_aggregation_results[aggregator.name] = (
                     self.__process(
                         aggregator,
