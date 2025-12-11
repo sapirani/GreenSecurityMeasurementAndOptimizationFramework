@@ -244,6 +244,55 @@ In order for it to succeed, we should configure containers of elastic that will 
 8. Go to the burger sign in the top left of the site and clicke on Discover.
 9. In the DataView tab click on `scanner` to view the logs collected by running the scanner.
 
+# Energy Model
+This package contains the actual energy prediction model implementation.
+The package contains:
+   * dataset creators - objects that read the logs from the elastic, transforms them into a dataframe and calculate the target column (the GT).
+   * dataset processing - objects that perform filtering, scaling and feature selection on the collected dataframe.
+   * evaluation - simple evaluation pipeline with predefined metrics that inherit `AbstractEvaluationMetric`. This package also allows to perform grid-search easily.
+   * energy model utils - objects that are used by the dataset creators to process the data read from the elastic. Also used by the `EnergyModelAggregator`.
+   * models - the energy model and its wrapper for the energy model aggregator.
+   * pipelines - a pipeline that builds and evaluate the various model.
+
+The energy model class consists of a scalar and the actual sklearn model instance.
+The model's scaler and the sklearn model after training are saved to `DEFAULT_ENERGY_MODEL_PATH` directory and the energy model is saved to `MODEL_FILE_NAME`.
+All paths (including paths for datasets) can be configured in `energy_model_parameters.py`.
+
+## Training the Models
+
+### About the Datasets
+It is important to mention that the dataset that was used to train the system energy model contains only system features (no hardware or idle features).
+
+The process' energy model was trained with both process and system features (no hardware or idle).
+
+
+However, the feature of cpu usage in seconds (both for process and system) is computed as the integral between the current measurement to the previous one divided by 100.
+The feature of memory usage (both for process and system) is computed as the difference between the current memory usage and the memory usage of the last measurement (timestamp).
+
+### Training the Process Energy Model
+The steps in the implementation of the model are as follows:
+1. Train a system-based energy model:
+   * Create a dataset using only system features.
+   * Split the dataset into batches, each of predefined duration.
+   * Compute the ratio of energy per second for each batch, by dividing the battery drain of that batch with the batch's duration.
+   * Compute the target by multiplying the energy usage of the system in each batch by the duration of the measurement.
+   * Process the dataset (using filters and StandardScaler)
+   * Train a regression model using the processed dataset.
+2. Build a dataset of the system telemetry minus the process' telemetry.
+   * The columns of the dataset are system features only.
+   * The value in each column is the value of the original system feature minus the value of the matching process feature.
+   * This dataset has no target column.
+3. Create process energy usage column
+   * Use the dataset created in step 2 and the system energy model trained in step 1, and predict the energy usage of the system without the process.
+   * The energy prediction of the system minus process aims to estimate the background's energy consumption, enabling the isolation of the energy consumption of the process itself.
+   * Subtract the predictions from the actual energy usage of the system (from the dataset in step 1).
+   * The result is the energy usage of the process in each timestamp.
+4. Train a process energy model
+   * Create a dataset using both process and system features (without energy related columns).
+   * The target of this dataset is the "energy usage of the process" that was calculated in step 3.
+   * Process the dataset (using filters and StandardScaler)
+   * Train a regression model using the processed dataset.
+
 # GNS3 
 The research continues with measuring and optimizing distributed task. 
 The network is simulated by a network that is generated using GNS3. 
