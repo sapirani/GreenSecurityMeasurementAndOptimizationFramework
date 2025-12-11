@@ -8,6 +8,8 @@ from tasks.resources_consumers.memory_consumer_task import consume_ram
 from tasks.resources_consumers.memory_releaser_task import release_ram
 from tasks.resources_consumers.disk_io_writer_task import write_files
 from tasks.resources_consumers.disk_io_reader_task import read_files
+from tasks.resources_consumers.network_sender_task import send_udp_packets
+from tasks.resources_consumers.network_receiver_task import receive_udp_packets
 
 CONSUMERS_METHODS = [consume_ram, write_files]
 DEFAULT_UNIT_SIZE = 1024
@@ -55,7 +57,7 @@ def run_tasks_in_parallel(tasks_to_run: list[Callable], rate: Union[float, list[
 
 
 if __name__ == "__main__":
-    task_description = "This program is a dummy task that consumes RAM and Disk"
+    task_description = "This program is a dummy task that consumes RAM, Disk and Network"
     parser = argparse.ArgumentParser(description=task_description)
 
     parser.add_argument("-s", "--unit_size",
@@ -88,6 +90,16 @@ if __name__ == "__main__":
                         default=False,
                         help="Whether to run the disk reader task.")
 
+    parser.add_argument("--run_network_receiver",
+                        type=bool,
+                        default=False,
+                        help="Whether to run the network receiver task.")
+
+    parser.add_argument("--run_network_sender",
+                        type=bool,
+                        default=False,
+                        help="Whether to run the network sender task.")
+
 
     args = parser.parse_args()
     tasks_to_run = []
@@ -103,5 +115,11 @@ if __name__ == "__main__":
 
     if args.run_disk_reader:
         tasks_to_run.append(read_files)
+
+    if args.run_network_receiver:
+        tasks_to_run.append(receive_udp_packets)
+
+    if args.run_network_sender:
+        tasks_to_run.append(send_udp_packets)
 
     run_tasks_in_parallel(tasks_to_run, args.rate, args.unit_size)
