@@ -1,37 +1,14 @@
 import argparse
-import os
 
 from time import sleep
 from typing import Optional
 
 from human_id import generate_id
 
-from experiments_automations.run_exeperiment_utils import run_scanner, update_main_program, \
-    update_dummy_task_values
-from utils.general_consts import ProgramToScan
-
-DEFAULT_NUMBER_OF_EXPERIMENTS = 3
-SLEEPING_TIME_BETWEEN_MEASUREMENTS = 15
-SLEEPING_TIME_BETWEEN_TASKS = 15
-DEFAULT_TASK_UNIT_SIZE = 1024
-
-SCANNER_PROGRAM_FILE = "scanner.py"
-SCANNER_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), SCANNER_PROGRAM_FILE)
-
-PROGRAM_PARAMETERS_FILE = "program_parameters.py"
-PROGRAM_PARAMETERS_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), PROGRAM_PARAMETERS_FILE)
-
-DEFAULT_MAIN_PROGRAM = ProgramToScan.BASELINE_MEASUREMENT
-DEFAULT_TASKS = [ProgramToScan.MemoryConsumer, ProgramToScan.MemoryReleaser,
-                 ProgramToScan.DiskIOReadConsumer, ProgramToScan.DiskIOWriteConsumer,
-                 ProgramToScan.CPUConsumer]
-
-
-def run_identical_experiments(num_of_experiments: int, main_session_id: str):
-    for experiment_id in range(num_of_experiments):
-        current_session = f"{main_session_id}_{experiment_id}"
-        run_scanner(SCANNER_PATH, current_session)
-        sleep(SLEEPING_TIME_BETWEEN_MEASUREMENTS)
+from config import PROGRAM_PARAMETERS_PATH, DEFAULT_TASKS, SCANNER_PATH, SLEEPING_TIME_BETWEEN_MEASUREMENTS, \
+    SLEEPING_TIME_BETWEEN_TASKS, DEFAULT_NUMBER_OF_EXPERIMENTS
+from experiments_automations.run_exeperiment_utils import update_main_program, \
+    update_dummy_task_values, run_identical_experiments
 
 
 def run_various_experiments(num_of_experiments: int, main_session_id: str, rate: Optional[float], size: Optional[int]):
@@ -45,7 +22,8 @@ def run_various_experiments(num_of_experiments: int, main_session_id: str, rate:
     for task_id, task in enumerate(DEFAULT_TASKS):
         task_session = f"{main_session_id}_task_{task.name}{session_id_addition}"
         update_main_program(PROGRAM_PARAMETERS_PATH, main_program_value=task)
-        run_identical_experiments(num_of_experiments, task_session)
+        run_identical_experiments(SCANNER_PATH, SLEEPING_TIME_BETWEEN_MEASUREMENTS,
+                                  num_of_experiments, task_session)
         sleep(SLEEPING_TIME_BETWEEN_TASKS)
 
 
@@ -84,7 +62,9 @@ if __name__ == '__main__':
     measurement_session_id = arguments.measurement_session_id
 
     if arguments.run_default_tasks:
-        run_various_experiments(number_of_experiments, measurement_session_id, arguments.task_rate, arguments.task_unit_size)
+        run_various_experiments(number_of_experiments, measurement_session_id, arguments.task_rate,
+                                arguments.task_unit_size)
 
     else:
-        run_identical_experiments(number_of_experiments, measurement_session_id)
+        run_identical_experiments(SCANNER_PATH, SLEEPING_TIME_BETWEEN_MEASUREMENTS,
+                                  number_of_experiments, measurement_session_id)

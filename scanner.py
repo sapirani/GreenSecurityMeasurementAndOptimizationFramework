@@ -490,10 +490,10 @@ def start_background_processes() -> List[Tuple[psutil.Popen, int]]:
     time.sleep(5)
 
     for (background_process, child_process_id), background_program in zip(background_processes, background_programs):
-        if background_process.poll() is not None:  # if process has not terminated
-            err = background_process.stderr.read().decode()
-            if err:
-                terminate_due_to_exception(background_processes, background_program.get_program_name(), err)
+        result = background_process.poll()
+        if result:  # if process has not terminated
+            terminate_due_to_exception(background_processes, background_program.get_program_name(),
+                                       "errors encountered while scanning, see stderr directory")
 
     return background_processes
 

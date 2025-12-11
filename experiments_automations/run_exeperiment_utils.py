@@ -4,6 +4,8 @@ import re
 from pathlib import Path
 from typing import Optional
 
+from time import sleep
+
 from utils.general_consts import ProgramToScan
 
 SESSION_ID_SCANNER_FLAG = "--measurement_session_id"
@@ -54,6 +56,13 @@ def update_main_program(program_parameters_file_path: str,
                                [("main_program_to_scan", f"ProgramToScan.{main_program_value.name}")])
 
 
+def update_background_programs(program_parameters_file_path: str, background_programs_value: list[ProgramToScan]):
+    programs_str = [f"ProgramToScan.{p.name}" for p in background_programs_value]
+    background_programs_str = "[" + ",".join(programs_str) + "]"
+    update_multiple_parameters(program_parameters_file_path,
+                               [("background_programs_types", background_programs_str)])
+
+
 def update_dummy_task_values(program_parameters_file_path: str,
                              rate: Optional[float] = None, size: Optional[int] = None):
     rate_value = f"{rate}" if rate is not None else None
@@ -62,3 +71,9 @@ def update_dummy_task_values(program_parameters_file_path: str,
         ("dummy_task_rate", rate_value),
         ("dummy_task_unit_size", size_value)
     ])
+
+def run_identical_experiments(scanner_path: str, sleeping_time: float, num_of_experiments: int, main_session_id: str):
+    for experiment_id in range(num_of_experiments):
+        current_session = f"{main_session_id}_{experiment_id}"
+        run_scanner(scanner_path, current_session)
+        sleep(sleeping_time)
