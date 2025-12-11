@@ -1,7 +1,5 @@
 from dataclasses import dataclass
 from typing import Optional, List
-
-from DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 
 
@@ -24,4 +22,4 @@ class ProcessIdentity:
 @dataclass
 class ProcessMetadata:
     process_of_interest: bool = False
-    arguments: Optional[List[AbstractAggregationResult]] = None
+    arguments: Optional[List[str]] = None

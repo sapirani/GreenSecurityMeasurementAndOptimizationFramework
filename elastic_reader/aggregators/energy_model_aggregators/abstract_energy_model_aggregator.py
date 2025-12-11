@@ -1,9 +1,7 @@
 import logging
 from abc import abstractmethod
 from typing import Union
-
 import pandas as pd
-
 from DTOs.aggregated_results_dtos.empty_aggregation_results import EmptyAggregationResults
 from DTOs.aggregated_results_dtos.energy_model_result import EnergyModelResult
 from DTOs.aggregators_features.empty_features import EmptyFeatures
