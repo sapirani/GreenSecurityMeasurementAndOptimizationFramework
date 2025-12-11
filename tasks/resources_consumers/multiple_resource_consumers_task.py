@@ -71,37 +71,31 @@ if __name__ == "__main__":
                         help="The number of units per second to perform the task on.")
 
     parser.add_argument("--run_memory_consumer",
-                        type=bool,
                         action="store_true",
                         default=False,
                         help="Whether to run the memory consumer task.")
 
     parser.add_argument("--run_memory_releaser",
-                        type=bool,
                         action="store_true",
                         default=False,
                         help="Whether to run the memory releaser task.")
 
     parser.add_argument("--run_disk_writer",
-                        type=bool,
                         action="store_true",
                         default=False,
                         help="Whether to run the disk writer task.")
 
     parser.add_argument("--run_disk_reader",
-                        type=bool,
                         action="store_true",
                         default=False,
                         help="Whether to run the disk reader task.")
 
     parser.add_argument("--run_network_receiver",
-                        type=bool,
                         action="store_true",
                         default=False,
                         help="Whether to run the network receiver task.")
 
     parser.add_argument("--run_network_sender",
-                        type=bool,
                         action="store_true",
                         default=False,
                         help="Whether to run the network sender task.")
