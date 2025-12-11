@@ -71,8 +71,8 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
                     **asdict(process_results.process_metadata),
                     **{
                         result_name: result_val
-                        for aggregation_result in process_results.aggregation_results for result_name, result_val in
-                        asdict(aggregation_result).items()
+                        for aggregation_result in process_results.aggregation_results.values()
+                        for result_name, result_val in asdict(aggregation_result).items()
                     }
                 }
             )
@@ -81,7 +81,7 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
             extra=
             {
                 **self._flatten_dict(asdict(iteration_aggregation_results.iteration_metadata)),
-                **{key: value for aggregation_result in iteration_aggregation_results.system_aggregated_results
+                **{key: value for aggregation_result in iteration_aggregation_results.system_aggregated_results.values()
                    for key, value in asdict(aggregation_result).items()}
             }
         )

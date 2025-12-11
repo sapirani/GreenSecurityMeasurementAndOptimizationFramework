@@ -1,14 +1,13 @@
 import logging
 from typing import Union
-
 import pandas as pd
-
 from DTOs.aggregated_results_dtos.empty_aggregation_results import EmptyAggregationResults
 from DTOs.aggregated_results_dtos.energy_model_result import EnergyModelResult
 from DTOs.aggregators_features.empty_features import EmptyFeatures
 from DTOs.aggregators_features.energy_model_features.full_energy_model_features import CompleteEnergyModelFeatures
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata
 from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
+from elastic_reader.aggregators.aggregation_types import AggregationType
 from elastic_reader.aggregators.energy_model_aggregators.abstract_energy_model_aggregator import EnergyModelAggregator
 from energy_model.energy_model_utils.energy_model_convertor import EnergyModelConvertor
 from energy_model.energy_model_utils.sample_resources_energy import SampleResourcesEnergy
@@ -20,6 +19,10 @@ logger = logging.getLogger(__name__)
 class ProcessEnergyModelAggregator(EnergyModelAggregator):
     def __init__(self):
         super().__init__(ModelType.ProcessBased)
+
+    @property
+    def name(self) -> AggregationType:
+        return AggregationType.ProcessEnergyModelAggregator
 
     def _calculate_energy_per_resource(self, sample: CompleteEnergyModelFeatures,
                                        energy_prediction: float) -> SampleResourcesEnergy:

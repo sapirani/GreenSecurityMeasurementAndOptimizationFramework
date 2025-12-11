@@ -12,6 +12,7 @@ from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawRes
 from DTOs.raw_results_dtos.system_processes_raw_results import FullScopeRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from DTOs.session_host_info import SessionHostIdentity
+from elastic_reader.aggregators.aggregation_types import AggregationType
 from elastic_reader.aggregators.abstract_aggregator import AbstractAggregator
 from elastic_reader.aggregators.cpu_integral_aggregator import CPUIntegralAggregator
 from elastic_reader.aggregators.energy_model_aggregators.process_energy_model_aggregator import \
@@ -92,7 +93,7 @@ class AggregationManager:
             self,
             system_iteration_results: Optional[SystemRawResults],
             iteration_metadata: IterationMetadata
-    ) -> List[AbstractAggregationResult]:
+    ) -> Dict[AggregationType, AbstractAggregationResult]:
         """
         This function receives iteration's system raw metrics and metadata, apply all system metrics aggregations,
         and returns all aggregations results.
@@ -101,11 +102,13 @@ class AggregationManager:
         if not system_iteration_results:
             # TODO: REMOVE THIS PRINT WHEN OPTIONAL RESULTS WILL BE FULLY SUPPORTED
             print("Warning! system iteration results are missing")
-            return []
+            return {}
 
-        system_aggregation_results = []
+        system_aggregation_results = {}
         for aggregator in self.system_aggregators[iteration_metadata.session_host_identity]:
-            system_aggregation_results.append(self.__process(aggregator, system_iteration_results, iteration_metadata))
+            system_aggregation_results[aggregator.name] = (
+                self.__process(aggregator, system_iteration_results, iteration_metadata)
+            )
 
         return system_aggregation_results
 
@@ -131,9 +134,9 @@ class AggregationManager:
 
         processes_aggregation_results = {}
         for process_identity, raw_process_results in processes_iteration_results.items():
-            process_aggregation_results = []
+            process_aggregation_results = {}
             for aggregator in aggregators_dict[iteration_metadata.session_host_identity][process_identity]: # TODO: ADD A NAME FOR THE PROCESS AGGREGATOR
-                process_aggregation_results.append(
+                process_aggregation_results[aggregator.name] = (
                     self.__process(
                         aggregator,
                         raw_results_combiner(raw_process_results),
