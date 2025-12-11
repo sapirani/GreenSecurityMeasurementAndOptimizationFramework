@@ -13,7 +13,6 @@ from tasks.resources_consumers.network_receiver_task import receive_udp_packets
 
 CONSUMERS_METHODS = [consume_ram, write_files]
 DEFAULT_UNIT_SIZE = 1024
-NUMBER_OF_TASKS = 2
 
 FLOAT_PATTERN = re.compile(r"\d*\.\d+|\d+\.\d*")
 
