@@ -1,29 +1,35 @@
 from typing import List
-
 from DTOs.aggregated_results_dtos.process_share_usage_from_total import ProcessShareUsageFromTotal
 from DTOs.aggregators_features.process_system_usage_fraction_features import \
     ProcessSystemUsageFractionFeatures
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata
 from DTOs.raw_results_dtos.system_processes_raw_results import FullScopeRawResults
+from elastic_reader.aggregators.aggregation_types import AggregationType
 from elastic_reader.aggregators.abstract_aggregator import AbstractAggregator
 
 
 class ProcessSystemUsageFractionAggregator(AbstractAggregator):
+    @property
+    def name(self) -> AggregationType:
+        return AggregationType.ProcessSystemUsageFraction
+
     def extract_features(
             self,
             raw_results: FullScopeRawResults,
             iteration_metadata: IterationMetadata
     ) -> ProcessSystemUsageFractionFeatures:
-        processes_cpu = [p.cpu_percent_sum_across_cores for p in raw_results.processes_raw_results]
-        processes_memory_mb = [p.used_memory_mb for p in raw_results.processes_raw_results]
-        processes_disk_read_count = [p.disk_read_count for p in raw_results.processes_raw_results]
-        processes_disk_write_count = [p.disk_write_count for p in raw_results.processes_raw_results]
-        processes_disk_read_kb = [p.disk_read_kb for p in raw_results.processes_raw_results]
-        processes_disk_write_kb = [p.disk_write_kb for p in raw_results.processes_raw_results]
-        processes_network_kb_sent = [p.network_kb_sent for p in raw_results.processes_raw_results]
-        processes_packets_sent = [p.packets_sent for p in raw_results.processes_raw_results]
-        processes_network_kb_received = [p.network_kb_received for p in raw_results.processes_raw_results]
-        processes_packets_received = [p.packets_received for p in raw_results.processes_raw_results]
+        processes_metrics = raw_results.processes_raw_results.values()
+
+        processes_cpu = [p.cpu_percent_sum_across_cores for p in processes_metrics]
+        processes_memory_mb = [p.used_memory_mb for p in processes_metrics]
+        processes_disk_read_count = [p.disk_read_count for p in processes_metrics]
+        processes_disk_write_count = [p.disk_write_count for p in processes_metrics]
+        processes_disk_read_kb = [p.disk_read_kb for p in processes_metrics]
+        processes_disk_write_kb = [p.disk_write_kb for p in processes_metrics]
+        processes_network_kb_sent = [p.network_kb_sent for p in processes_metrics]
+        processes_packets_sent = [p.packets_sent for p in processes_metrics]
+        processes_network_kb_received = [p.network_kb_received for p in processes_metrics]
+        processes_packets_received = [p.packets_received for p in processes_metrics]
 
         return ProcessSystemUsageFractionFeatures(
             desired_process_cpu=raw_results.desired_process_raw_results.cpu_percent_sum_across_cores,

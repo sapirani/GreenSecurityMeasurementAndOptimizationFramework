@@ -49,7 +49,7 @@ class DatasetCreator(ABC):
 
             # todo: fix duration handling in case of multiple sessions and hostnames running at the same time (single iteration raw results may contain samples from different measurements)
             iteration_samples = self.__extract_iteration_samples(sample.system_raw_results,
-                                                                 sample.processes_raw_results,
+                                                                 list(sample.processes_raw_results.values()),
                                                                  metadata.timestamp, metadata.session_host_identity)
 
             all_samples.extend(iteration_samples)

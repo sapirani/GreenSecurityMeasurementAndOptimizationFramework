@@ -1,9 +1,8 @@
 from dataclasses import dataclass, field, fields
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
-
+from typing import Dict, Any, Optional
 import pandas as pd
-
+from DTOs.process_info import ProcessIdentity
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from DTOs.session_host_info import SessionHostIdentity
@@ -59,4 +58,4 @@ class IterationMetadata:
 class IterationRawResults:
     metadata: IterationMetadata
     system_raw_results: Optional[SystemRawResults]
-    processes_raw_results: List[ProcessRawResults]
+    processes_raw_results: Dict[ProcessIdentity, ProcessRawResults]

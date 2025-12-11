@@ -1,12 +1,11 @@
 import threading
-from enum import StrEnum
-
+from enum import Enum
 from energy_model.energy_model_parameters import PROCESS_ENERGY_MODEL_FILE_NAME, SYSTEM_ENERGY_MODEL_FILE_NAME
 from energy_model.models.abstract_energy_model import AbstractEnergyModel
 from energy_model.models.persistence_manager import PersistenceManager
 
 
-class ModelType(StrEnum):
+class ModelType(str, Enum):
     SystemBased = "System-Model"
     ProcessBased = "Process-Model"
 

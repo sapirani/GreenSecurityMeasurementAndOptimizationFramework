@@ -4,6 +4,7 @@ from typing import TypeVar, Generic
 from DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata
 from DTOs.raw_results_dtos.abstract_raw_results import AbstractRawResults
+from elastic_reader.aggregators.aggregation_types import AggregationType
 
 T = TypeVar('T')
 
@@ -37,4 +38,9 @@ class AbstractAggregator(ABC, Generic[T]):
         :param sample: the relevant features to the specific aggregator.
         :return: aggregation results
         """
+        pass
+
+    @property
+    @abstractmethod
+    def name(self) -> AggregationType:
         pass
