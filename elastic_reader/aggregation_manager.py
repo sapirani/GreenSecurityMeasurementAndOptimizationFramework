@@ -106,6 +106,9 @@ class AggregationManager:
 
         system_aggregation_results = {}
         for aggregator in self.system_aggregators[iteration_metadata.session_host_identity]:
+            if aggregator.name in system_aggregation_results:
+                raise ValueError(f"Found duplicate use of the same system aggregator: {aggregator.name}")
+
             system_aggregation_results[aggregator.name] = (
                 self.__process(aggregator, system_iteration_results, iteration_metadata)
             )
@@ -136,6 +139,9 @@ class AggregationManager:
         for process_identity, raw_process_results in processes_iteration_results.items():
             process_aggregation_results = {}
             for aggregator in aggregators_dict[iteration_metadata.session_host_identity][process_identity]:
+                if aggregator.name in process_aggregation_results:
+                    raise ValueError(f"Found duplicate use of the same process aggregator: {aggregator.name}")
+
                 process_aggregation_results[aggregator.name] = (
                     self.__process(
                         aggregator,
