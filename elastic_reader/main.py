@@ -40,7 +40,7 @@ def trigger_post_processing(consumers: List[AbstractElasticConsumer]):
             traceback.print_exc()
 
 
-def main(
+def run_elastic_reader(
     time_picker_input: TimePickerChosenInput,
     consumers: List[AbstractElasticConsumer],
     indices_to_read_from: List[ElasticIndex]
@@ -61,7 +61,7 @@ def main(
 
 if __name__ == '__main__':
     time_picker_input = get_time_picker_input(time_picker_input_strategy, preconfigured_time_picker_input)
-    main(
+    run_elastic_reader(
         time_picker_input=time_picker_input,
         consumers=get_consumers(consumer_types, time_picker_input.mode, verbosity),
         # TODO: SUPPORT COMBINATIONS OF INDICES TO READ FROM (as a user input in the elastic_reader_parameters.py)

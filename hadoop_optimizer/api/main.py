@@ -12,7 +12,7 @@ from hadoop_optimizer.container.container import Container
 from hadoop_optimizer.drl_model.drl_model import DRLModel
 from hadoop_optimizer.drl_model.drl_state import StateNotReadyException
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput
-from elastic_reader.main import main
+from elastic_reader.main import run_elastic_reader
 
 
 @asynccontextmanager
@@ -21,7 +21,11 @@ async def lifespan(app: FastAPI):
     drl_model = app.container.drl_model()
     time_picker_input = app.container.drl_time_picker_input()
     indices_to_read_from = app.container.config.indices_to_read_from()
-    t = threading.Thread(target=run_reader, args=(drl_model, time_picker_input, indices_to_read_from), daemon=True)
+    t = threading.Thread(
+        target=run_telemetry_reader,
+        args=(drl_model, time_picker_input, indices_to_read_from),
+        daemon=True
+    )
     t.start()
     yield
     # shutdown code
@@ -31,12 +35,12 @@ async def lifespan(app: FastAPI):
     t.join()
 
 
-def run_reader(
+def run_telemetry_reader(
         drl_model: DRLModel,
         time_picker_input: TimePickerChosenInput,
         indices_to_read_from: List[ElasticIndex]
 ):
-    main(
+    run_elastic_reader(
         time_picker_input=time_picker_input,
         consumers=[drl_model],
         indices_to_read_from=indices_to_read_from

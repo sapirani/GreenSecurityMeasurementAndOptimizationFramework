@@ -1,90 +1,27 @@
 from dataclasses import asdict
-from datetime import timedelta, datetime, timezone
+from datetime import timedelta
 from threading import Lock
 from typing import Optional, List, Union, cast, Dict, Any
-
 import pandas as pd
-from dateutil.tz import UTC
-from river.compose import TransformerUnion
-from river import utils, stats
-from river.feature_extraction import Agg
-from river.utils.rolling import Rollable
-
+from river import stats, utils
 from DTOs.aggregated_results_dtos.cpu_integral_result import CPUIntegralResult
 from DTOs.aggregated_results_dtos.energy_model_result import EnergyModelResult
 from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationAggregatedResults
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
 from DTOs.aggregation_types import AggregationType
 from hadoop_optimizer.DTOs.job_properties import JobProperties
+from hadoop_optimizer.drl_model.config.telemetry_fields import field_names_to_average, field_names_to_sum
+from hadoop_optimizer.drl_model.consts.general import HOSTNAME_FIELD, SYSTEM_PREFIX
 from hadoop_optimizer.drl_model.consts.state_telemetry import DRLTelemetryType
-
-HOSTNAME_FIELD = "hostname"
-ALL_HOSTS = "all_hosts"
+from hadoop_optimizer.river_extensions.custom_agg import CustomAgg
+from hadoop_optimizer.river_extensions.time_aware_transformer_union import TimeAwareTransformerUnion
+from hadoop_optimizer.river_extensions.timezone_aware_time_rolling import TimezoneAwareTimeRolling
 
 
 class StateNotReadyException(Exception):
     """Raised when the minimal required telemetry has not yet been retrieved by the DRL"""
     def __init__(self):
         super().__init__("minimal required telemetry is not yet available")
-
-
-class TimezoneAwareTimeRolling(utils.TimeRolling):
-    def __init__(self, obj: Rollable, period: timedelta):
-        super().__init__(obj, period)
-        self._latest = datetime(1, 1, 1, tzinfo=UTC)
-
-    def flush_expired(self):
-        """
-        This function is mostly copied from TimeRolling update function.
-        The original implementation is updated only when a new element is inserted.
-        This function enables the removal of old events, even though no new elements are inserted.
-        """
-        # Update latest time marker
-        self._latest = datetime.now(timezone.utc)
-
-        # Find all expired points (older than now - period)
-        i = 0
-        for ti, (argsi, kwargsi) in zip(self._timestamps, self._datum):
-            if ti > self._latest - self.period:
-                break
-            self.obj.revert(*argsi, **kwargsi)
-            i += 1
-
-        # Remove expired events
-        if i > 0:
-            self._timestamps = self._timestamps[i:]
-            self._datum = self._datum[i:]
-
-
-# TODO: CONSIDER ADDING THE WINDOW SIZE AS A PART OF THE INDEX / NAME
-class CustomAgg(Agg):
-    def __init__(self, on: str, by: str | list[str] | None,
-                 how: stats.base.Univariate | utils.Rolling | utils.TimeRolling):
-
-        super().__init__(on, by, how)
-        if not isinstance(how, TimezoneAwareTimeRolling):
-            raise ValueError("CustomAgg supports only TimezoneAwareTimeRolling as the 'how' argument")
-
-        self._feature_name += f"_window_{int(how.period.total_seconds())}_seconds"
-
-    @property
-    def state(self) -> pd.Series:
-        for time_rolling in self._groups.values():
-            time_rolling.flush_expired()
-
-        if not self.by:
-            return pd.Series(
-                (stat.get() for stat in self._groups.values()),
-                index=pd.Index([ALL_HOSTS]),
-                name=self._feature_name,
-            )
-        return super().state
-
-
-class TimeAwareTransformerUnion(TransformerUnion):
-    def learn_one(self, x, t=None):
-        for transformer in self.transformers.values():
-            transformer.learn_one(x, t)
 
 
 class DRLState:
@@ -95,7 +32,6 @@ class DRLState:
     hence, will be limited for taking cluster-level decisions only.
     """
 
-    # TODO: CONSIDER USING WEIGHTS INSIDE TIME WINDOWS (SO NEWER RESULTS WILL BE MORE SIGNIFICANT)
     def __init__(
             self,
             time_windows_seconds: List[int],
@@ -107,52 +43,51 @@ class DRLState:
         self.known_session_host_identities = []
 
         # TODO: use enum + add "system" to all of the metrics
-        # TODO: SCALE THE TELEMETRY VALUES SOMEHOW
-        field_names_to_average = ["total_memory_percent"]
-        field_names_to_sum = [
-            "disk_read_count", "disk_write_count",
-            "disk_read_kb", "disk_write_kb",
-            "disk_read_time", "disk_write_time",
-            "packets_sent", "packets_received",
-            "network_kb_sent", "network_kb_received",
-
-            # Aggregations
-            DRLTelemetryType.SYSTEM_CPU_INTEGRAL,
-            DRLTelemetryType.SYSTEM_TOTAL_ENERGY_MWH,
-            DRLTelemetryType.SYSTEM_CPU_ENERGY_MWH,
-            DRLTelemetryType.SYSTEM_RAM_ENERGY_MWH,
-            DRLTelemetryType.SYSTEM_DISK_READ_ENERGY_MWH,
-            DRLTelemetryType.SYSTEM_DISK_WRITE_ENERGY_MWH,
-            DRLTelemetryType.SYSTEM_NETWORK_RECEIVED_ENERGY_MWH,
-            DRLTelemetryType.SYSTEM_NETWORK_SENT_ENERGY_MWH
-        ]
 
         self.time_aware_transformer = TimeAwareTransformerUnion()
-        self.build_state_transformer(field_names_to_average, field_names_to_sum)
+        self.build_state_transformer()
 
-    def build_state_transformer(self, field_names_to_average: List[str], field_names_to_sum: List[str]):
+    @staticmethod
+    def __time_aware_aggregator_factory(
+            field_to_aggregate: str,
+            split_by: Union[str, List[str], None],
+            statistic: Union[stats.base.Univariate, utils.Rolling, utils.TimeRolling],
+            period: timedelta
+    ):
+        return CustomAgg(
+            on=field_to_aggregate, by=split_by,
+            how=TimezoneAwareTimeRolling(statistic, period=period)
+        )
+
+    def build_state_transformer(self):
         all_aggregators = []
         for time_window in self.time_windows:
             for field_name_to_average in field_names_to_average:
                 all_aggregators.append(
-                    CustomAgg(
-                        on=field_name_to_average, by=self.split_by,
-                        how=TimezoneAwareTimeRolling(stats.Mean(), period=time_window)
+                    self.__time_aware_aggregator_factory(
+                        field_to_aggregate=field_name_to_average,
+                        split_by=self.split_by,
+                        statistic=stats.Mean(),
+                        period=time_window
                     )
                 )
 
                 all_aggregators.append(
-                    CustomAgg(
-                        on=field_name_to_average, by=self.split_by,
-                        how=TimezoneAwareTimeRolling(stats.Var(), period=time_window)
+                    self.__time_aware_aggregator_factory(
+                        field_to_aggregate=field_name_to_average,
+                        split_by=self.split_by,
+                        statistic=stats.Var(),
+                        period=time_window
                     )
                 )
 
             for field_name_to_sum in field_names_to_sum:
                 all_aggregators.append(
-                    CustomAgg(
-                        on=field_name_to_sum, by=self.split_by,
-                        how=TimezoneAwareTimeRolling(stats.Sum(), period=time_window)
+                    self.__time_aware_aggregator_factory(
+                        field_to_aggregate=field_name_to_sum,
+                        split_by=self.split_by,
+                        statistic=stats.Sum(),
+                        period=time_window
                     )
                 )
 
@@ -216,7 +151,10 @@ class DRLState:
         hostname = iteration_raw_results.metadata.session_host_identity.hostname
 
         # TODO: leverage process telemetry somehow
-        system_raw = asdict(iteration_raw_results.system_raw_results)
+        system_raw = {
+            f"{SYSTEM_PREFIX}{telemetry_name}": telemetry_val for telemetry_name, telemetry_val in
+            asdict(iteration_raw_results.system_raw_results).items()
+        }
         aggregations_results = self.__extract_aggregations(iteration_aggregation_results)
 
         complete_sample = {
@@ -232,6 +170,8 @@ class DRLState:
     def __extract_state_telemetry_entries(self) -> pd.DataFrame:
         # TODO: AVOID NUMERIC ERRORS THAT RESULT IN VERY SMALL NEGATIVE NUMBERS.
         #  MAYBE IT CAN BE COMBINED WITH THE VALUES SCALING ALTOGETHER
+
+        # TODO: SCALE THE TELEMETRY VALUES SOMEHOW (to avoid huge values, such as number of disk reads)
         with self.lock:
             telemetry_entries = pd.concat(
                 [transformer.state for transformer in self.time_aware_transformer.transformers.values()],
