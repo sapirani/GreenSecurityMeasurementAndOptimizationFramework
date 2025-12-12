@@ -81,7 +81,7 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
             extra=
             {
                 **self._flatten_dict(asdict(iteration_aggregation_results.iteration_metadata)),
-                **{key: value for aggregation_result in iteration_aggregation_results.system_aggregated_results.values()
+                **{key: value for aggregation_result in iteration_aggregation_results.system_results.values()
                    for key, value in asdict(aggregation_result).items()}
             }
         )

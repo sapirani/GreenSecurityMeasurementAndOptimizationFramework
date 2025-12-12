@@ -3,7 +3,7 @@ from typing import Dict
 
 from DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
 from DTOs.process_info import ProcessMetadata
-from elastic_reader.aggregators.aggregation_types import AggregationType
+from DTOs.aggregation_types import AggregationType
 
 
 @dataclass

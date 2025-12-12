@@ -1,3 +1,4 @@
+import traceback
 from typing import List, Iterator
 
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
@@ -26,7 +27,7 @@ def iterate_results(
                 consumer.consume(iteration_results, aggregation_results)
             except Exception as e:
                 print(f"Warning! consumer {consumer.__class__.__name__} raised an exception:")
-                print(e)
+                traceback.print_exc()
 
 
 def trigger_post_processing(consumers: List[AbstractElasticConsumer]):
@@ -36,7 +37,7 @@ def trigger_post_processing(consumers: List[AbstractElasticConsumer]):
             consumer.post_processing()
         except Exception as e:
             print(f"Warning! consumer {consumer.__class__.__name__} raised an exception:")
-            print(e)
+            traceback.print_exc()
 
 
 def main(

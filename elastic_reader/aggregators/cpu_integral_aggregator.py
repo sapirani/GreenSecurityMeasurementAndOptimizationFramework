@@ -6,7 +6,7 @@ from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from DTOs.aggregated_results_dtos.empty_aggregation_results import EmptyAggregationResults
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata
-from elastic_reader.aggregators.aggregation_types import AggregationType
+from DTOs.aggregation_types import AggregationType
 from elastic_reader.aggregators.abstract_aggregator import AbstractAggregator
 
 

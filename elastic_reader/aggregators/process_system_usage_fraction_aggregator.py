@@ -4,7 +4,7 @@ from DTOs.aggregators_features.process_system_usage_fraction_features import \
     ProcessSystemUsageFractionFeatures
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata
 from DTOs.raw_results_dtos.system_processes_raw_results import FullScopeRawResults
-from elastic_reader.aggregators.aggregation_types import AggregationType
+from DTOs.aggregation_types import AggregationType
 from elastic_reader.aggregators.abstract_aggregator import AbstractAggregator
 
 
