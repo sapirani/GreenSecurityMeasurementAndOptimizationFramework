@@ -1,3 +1,4 @@
+import threading
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import DefaultDict, Iterator, Optional, List, Any
@@ -16,9 +17,16 @@ from user_input.elastic_reader_input.abstract_date_picker import ReadingMode, Ti
 
 
 class ElasticReader:
-    def __init__(self, time_picker_input: TimePickerChosenInput, indices: list[ElasticIndex]):
+    def __init__(
+            self,
+            time_picker_input: TimePickerChosenInput,
+            indices: list[ElasticIndex],
+            *,
+            should_terminate_event: Optional[threading.Event] = None
+    ):
         self.time_picker_input = time_picker_input
         self.indices = indices
+        self.should_terminate_event = should_terminate_event
         self.es = Elasticsearch(ES_URL, basic_auth=(ES_USER, ES_PASS), verify_certs=False)
 
         self.__ongoing_iteration_metadata: Optional[IterationMetadata] = None
@@ -85,6 +93,9 @@ class ElasticReader:
         last_sort = None
 
         while True:
+            if self.should_terminate_event is not None and self.should_terminate_event.is_set():
+                return
+
             hits = self.__get_next_hits(last_sort)
 
             if not hits:

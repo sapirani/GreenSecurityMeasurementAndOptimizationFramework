@@ -1,6 +1,6 @@
 import threading
 from contextlib import asynccontextmanager
-from typing import Annotated, List
+from typing import Annotated, List, Optional
 import uvicorn
 from dependency_injector.wiring import inject, Provide
 from fastapi import FastAPI, Depends, Request
@@ -21,29 +21,31 @@ async def lifespan(app: FastAPI):
     drl_model = app.container.drl_model()
     time_picker_input = app.container.drl_time_picker_input()
     indices_to_read_from = app.container.config.indices_to_read_from()
+    should_terminate_event = threading.Event()
     t = threading.Thread(
         target=run_telemetry_reader,
-        args=(drl_model, time_picker_input, indices_to_read_from),
+        args=(drl_model, time_picker_input, indices_to_read_from, should_terminate_event),
         daemon=True
     )
     t.start()
     yield
     # shutdown code
     print("Cleaning up tasks")
-
-    # TODO: SUPPORT A threading.Event() TO SIGNAL STOP ITERATION
+    should_terminate_event.set()
     t.join()
 
 
 def run_telemetry_reader(
         drl_model: DRLModel,
         time_picker_input: TimePickerChosenInput,
-        indices_to_read_from: List[ElasticIndex]
+        indices_to_read_from: List[ElasticIndex],
+        should_terminate_event: Optional[threading.Event] = None
 ):
     run_elastic_reader(
         time_picker_input=time_picker_input,
         consumers=[drl_model],
-        indices_to_read_from=indices_to_read_from
+        indices_to_read_from=indices_to_read_from,
+        should_terminate_event=should_terminate_event
     )
 
 

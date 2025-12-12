@@ -41,10 +41,8 @@ class DRLState:
         self.time_windows = [timedelta(seconds=window_seconds) for window_seconds in time_windows_seconds]
         self.lock = Lock()
         self.known_session_host_identities = []
-
-        # TODO: use enum + add "system" to all of the metrics
-
         self.time_aware_transformer = TimeAwareTransformerUnion()
+
         self.build_state_transformer()
 
     @staticmethod
@@ -166,7 +164,6 @@ class DRLState:
         with self.lock:
             self.time_aware_transformer.learn_one(complete_sample, t=timestamp)
 
-    # TODO: ENSURE THAT WHEN WE SPLIT BY HOSTNAME AND RECEIVE DATA FROM 2 HOSTS, EVERYTHING WORKS AS EXPECTED
     def __extract_state_telemetry_entries(self) -> pd.DataFrame:
         # TODO: AVOID NUMERIC ERRORS THAT RESULT IN VERY SMALL NEGATIVE NUMBERS.
         #  MAYBE IT CAN BE COMBINED WITH THE VALUES SCALING ALTOGETHER
