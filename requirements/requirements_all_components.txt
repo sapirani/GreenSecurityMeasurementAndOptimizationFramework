@@ -46,3 +46,6 @@ kivymd==1.2.0
 # ===== Energy Model =====
 joblib==1.5.1
 scikit-learn==1.7.1
+
+# ==== DRL optimizer ====
+fastapi==0.120.4

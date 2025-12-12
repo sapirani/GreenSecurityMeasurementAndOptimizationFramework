@@ -12,7 +12,7 @@ from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawRes
 from DTOs.raw_results_dtos.system_processes_raw_results import FullScopeRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
 from DTOs.session_host_info import SessionHostIdentity
-from elastic_reader.aggregators.aggregation_types import AggregationType
+from DTOs.aggregation_types import AggregationType
 from elastic_reader.aggregators.abstract_aggregator import AbstractAggregator
 from elastic_reader.aggregators.cpu_integral_aggregator import CPUIntegralAggregator
 from elastic_reader.aggregators.energy_model_aggregators.process_energy_model_aggregator import \
@@ -84,9 +84,9 @@ class AggregationManager:
         )
 
         return IterationAggregatedResults(
+            iteration_metadata=iteration_raw_results.metadata,
             processes_results=combined_process_results,
-            system_aggregated_results=system_aggregated_results,
-            iteration_metadata=iteration_raw_results.metadata
+            system_results=system_aggregated_results,
         )
 
     def __aggregate_system_metrics(

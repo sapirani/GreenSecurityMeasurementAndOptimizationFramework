@@ -15,16 +15,6 @@ from utils.general_consts import LoggerName, IndexName
 
 
 class ElasticAggregationsLogger(AbstractElasticConsumer):
-    logger = get_measurement_logger(
-        logger_name=LoggerName.METRICS_AGGREGATIONS,
-        logger_handler=get_elastic_bulk_handler(
-            ES_USER,
-            ES_PASS, ES_URL,
-            IndexName.METRICS_AGGREGATIONS,
-            pipeline_name=custom_pipeline_name
-        ),
-    )
-
     def __init__(
             self,
             *,
@@ -32,6 +22,16 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
             verbosity_level: Verbosity = Verbosity.NONE,
             queued_iterations_num_max: int = 15     # used as an optimization for in offline mode
     ):
+        self.logger = get_measurement_logger(
+            logger_name=LoggerName.METRICS_AGGREGATIONS,
+            logger_handler=get_elastic_bulk_handler(
+                ES_USER,
+                ES_PASS, ES_URL,
+                IndexName.METRICS_AGGREGATIONS,
+                pipeline_name=custom_pipeline_name
+            ),
+        )
+
         self.reading_mode = reading_mode
 
         if verbosity_level == Verbosity.VERBOSE:
@@ -81,7 +81,7 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
             extra=
             {
                 **self._flatten_dict(asdict(iteration_aggregation_results.iteration_metadata)),
-                **{key: value for aggregation_result in iteration_aggregation_results.system_aggregated_results.values()
+                **{key: value for aggregation_result in iteration_aggregation_results.system_results.values()
                    for key, value in asdict(aggregation_result).items()}
             }
         )

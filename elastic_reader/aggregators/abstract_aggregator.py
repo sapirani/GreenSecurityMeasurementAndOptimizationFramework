@@ -4,7 +4,7 @@ from typing import TypeVar, Generic
 from DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata
 from DTOs.raw_results_dtos.abstract_raw_results import AbstractRawResults
-from elastic_reader.aggregators.aggregation_types import AggregationType
+from DTOs.aggregation_types import AggregationType
 
 T = TypeVar('T')
 
