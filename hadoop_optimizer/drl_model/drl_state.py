@@ -52,12 +52,18 @@ class DRLState:
             statistic: Union[stats.base.Univariate, utils.Rolling, utils.TimeRolling],
             period: timedelta
     ):
+        """ A wrapper function that uses our custom-build time-aware aggregations """
         return CustomAgg(
             on=field_to_aggregate, by=split_by,
             how=TimezoneAwareTimeRolling(statistic, period=period)
         )
 
     def build_state_transformer(self):
+        """
+        This function builds all aggregators over all selected time windows
+        (based on the configured fields to aggregate, statistics to apply, and selected time windows).
+        :return: time-aware transformer that holds all aggregations
+        """
         all_aggregators = []
         for time_window in self.time_windows:
             for field_name_to_average in field_names_to_average:
@@ -95,6 +101,9 @@ class DRLState:
     def __extract_aggregations(
             iteration_aggregation_results: Optional[IterationAggregatedResults]
     ) -> Dict[str, Any]:
+        """
+        :return: a dictionary the maps the aggregation name to its value based on the dataclass input
+        """
         system_cpu_integral = cast(
             CPUIntegralResult,
             iteration_aggregation_results.system_results[AggregationType.CPUIntegral]
@@ -165,6 +174,11 @@ class DRLState:
             self.time_aware_transformer.learn_one(complete_sample, t=timestamp)
 
     def __extract_state_telemetry_entries(self) -> pd.DataFrame:
+        """
+        This turns the raw and aggregated data regarding the load on the system to an embedding space
+        that summaries this data.
+        This embedding is used as a part of the state space of the DRL.
+        """
         # TODO: AVOID NUMERIC ERRORS THAT RESULT IN VERY SMALL NEGATIVE NUMBERS.
         #  MAYBE IT CAN BE COMBINED WITH THE VALUES SCALING ALTOGETHER
 
@@ -182,10 +196,17 @@ class DRLState:
 
     @staticmethod
     def __extract_state_job_entries(job_properties: JobProperties) -> pd.Series:
+        """
+        This turns the selected job properties to an embedding space that summaries this data.
+        This embedding is used as a part of the state space of the DRL.
+        """
         return pd.Series(job_properties.dict())
 
     def retrieve_state_entries(self, task_properties: JobProperties) -> pd.Series:
         """
+        This function returns the entire state, which is consisted of:
+        1. a vector representing the load on the system
+        2. a vector representing the selected job that should be running in the system soon
         Note: some metrics may result in negative value that is very close to 0, due to numeric errors
         """
         telemetry_entries = self.__extract_state_telemetry_entries().stack()
