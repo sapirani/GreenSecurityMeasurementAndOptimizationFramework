@@ -10,7 +10,7 @@ from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationA
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
 from DTOs.aggregation_types import AggregationType
 from hadoop_optimizer.DTOs.job_properties import JobProperties
-from hadoop_optimizer.drl_model.config.telemetry_fields import field_names_to_average, field_names_to_sum
+from hadoop_optimizer.drl_model.config.telemetry_fields import FIELD_NAMES_TO_AVERAGE, FIELD_NAMES_TO_SUM
 from hadoop_optimizer.drl_model.consts.general import HOSTNAME_FIELD, SYSTEM_PREFIX
 from hadoop_optimizer.drl_model.consts.state_telemetry import DRLTelemetryType
 from hadoop_optimizer.river_extensions.custom_agg import CustomAgg
@@ -66,7 +66,7 @@ class DRLState:
         """
         all_aggregators = []
         for time_window in self.time_windows:
-            for field_name_to_average in field_names_to_average:
+            for field_name_to_average in FIELD_NAMES_TO_AVERAGE:
                 all_aggregators.append(
                     self.__time_aware_aggregator_factory(
                         field_to_aggregate=field_name_to_average,
@@ -85,7 +85,7 @@ class DRLState:
                     )
                 )
 
-            for field_name_to_sum in field_names_to_sum:
+            for field_name_to_sum in FIELD_NAMES_TO_SUM:
                 all_aggregators.append(
                     self.__time_aware_aggregator_factory(
                         field_to_aggregate=field_name_to_sum,

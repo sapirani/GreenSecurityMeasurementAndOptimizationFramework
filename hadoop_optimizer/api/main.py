@@ -6,7 +6,7 @@ from dependency_injector.wiring import inject, Provide
 from fastapi import FastAPI, Depends, Request
 from starlette import status
 from starlette.responses import JSONResponse
-from consts import ElasticIndex
+from elastic_reader.consts import ElasticIndex
 from hadoop_optimizer.DTOs.job_properties import JobProperties, get_job_properties
 from hadoop_optimizer.container.container import Container
 from hadoop_optimizer.drl_model.drl_model import DRLModel

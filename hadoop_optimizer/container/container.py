@@ -1,7 +1,7 @@
 from datetime import datetime
 from dependency_injector import containers, providers
 from dependency_injector.providers import Provider
-from consts import TimePickerInputStrategy
+from elastic_reader.consts import TimePickerInputStrategy
 from hadoop_optimizer.drl_model.drl_model import DRLModel
 from hadoop_optimizer.drl_model.drl_state import DRLState
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode

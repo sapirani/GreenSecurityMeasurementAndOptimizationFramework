@@ -1,8 +1,8 @@
 from hadoop_optimizer.drl_model.consts.state_telemetry import DRLTelemetryType
 
 # TODO: CONSIDER USING MEMORY DIFFS AS ANOTHER FEATURE
-field_names_to_average = [DRLTelemetryType.SYSTEM_MEMORY_PERCENT]
-field_names_to_sum = [
+FIELD_NAMES_TO_AVERAGE = [DRLTelemetryType.SYSTEM_MEMORY_PERCENT]
+FIELD_NAMES_TO_SUM = [
     # raw fields
     DRLTelemetryType.SYSTEM_DISK_READ_COUNT,
     DRLTelemetryType.SYSTEM_DISK_WRITE_COUNT,
