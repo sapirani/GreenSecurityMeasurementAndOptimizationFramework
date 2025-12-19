@@ -1,5 +1,6 @@
-from typing import List, Iterator
-
+import threading
+import traceback
+from typing import List, Iterator, Optional
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
 from elastic_reader.aggregation_manager import AggregationManager
 from elastic_reader.elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
@@ -24,9 +25,9 @@ def iterate_results(
         for consumer in consumers:
             try:
                 consumer.consume(iteration_results, aggregation_results)
-            except Exception as e:
+            except Exception:
                 print(f"Warning! consumer {consumer.__class__.__name__} raised an exception:")
-                print(e)
+                traceback.print_exc()
 
 
 def trigger_post_processing(consumers: List[AbstractElasticConsumer]):
@@ -34,18 +35,20 @@ def trigger_post_processing(consumers: List[AbstractElasticConsumer]):
     for consumer in consumers:
         try:
             consumer.post_processing()
-        except Exception as e:
+        except Exception:
             print(f"Warning! consumer {consumer.__class__.__name__} raised an exception:")
-            print(e)
+            traceback.print_exc()
 
 
-def main(
+def run_elastic_reader(
     time_picker_input: TimePickerChosenInput,
     consumers: List[AbstractElasticConsumer],
-    indices_to_read_from: List[ElasticIndex]
+    indices_to_read_from: List[ElasticIndex],
+    *,
+    should_terminate_event: Optional[threading.Event] = None
 ):
     print(time_picker_input)
-    reader = ElasticReader(time_picker_input, indices_to_read_from)
+    reader = ElasticReader(time_picker_input, indices_to_read_from, should_terminate_event=should_terminate_event)
     aggregation_manager = AggregationManager()
 
     try:
@@ -60,7 +63,7 @@ def main(
 
 if __name__ == '__main__':
     time_picker_input = get_time_picker_input(time_picker_input_strategy, preconfigured_time_picker_input)
-    main(
+    run_elastic_reader(
         time_picker_input=time_picker_input,
         consumers=get_consumers(consumer_types, time_picker_input.mode, verbosity),
         # TODO: SUPPORT COMBINATIONS OF INDICES TO READ FROM (as a user input in the elastic_reader_parameters.py)
