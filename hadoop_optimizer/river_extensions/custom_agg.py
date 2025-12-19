@@ -29,9 +29,11 @@ class CustomAgg(Agg):
         This function ensures that aggregations time window are computed compared to the current time.
         Also, it ensures no crashes in the case where 'by' is not provided.
         """
+        # Added functionality which ensures that time windows are computed compared to the current time
         for time_rolling in self._groups.values():
             time_rolling.flush_expired()
 
+        # handle a bug in the original implementation, which is not handling cases where self.by is None
         if not self.by:
             return pd.Series(
                 (stat.get() for stat in self._groups.values()),

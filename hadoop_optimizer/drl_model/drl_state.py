@@ -102,7 +102,7 @@ class DRLState:
             iteration_aggregation_results: Optional[IterationAggregatedResults]
     ) -> Dict[str, Any]:
         """
-        :return: a dictionary the maps the aggregation name to its value based on the dataclass input
+        :return: a dictionary that maps the aggregation name to its value based on the dataclass input
         """
         system_cpu_integral = cast(
             CPUIntegralResult,
@@ -177,6 +177,8 @@ class DRLState:
         """
         This turns the raw and aggregated data regarding the load on the system to an embedding space
         that summaries this data.
+        The embedding represents the load on the system in several distinct time windows, for example:
+         last minute, last 5 minutes, last 10 minutes and last 20 minutes.
         This embedding is used as a part of the state space of the DRL.
         """
         # TODO: AVOID NUMERIC ERRORS THAT RESULT IN VERY SMALL NEGATIVE NUMBERS.
