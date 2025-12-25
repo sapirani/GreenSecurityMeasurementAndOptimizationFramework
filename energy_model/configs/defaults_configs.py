@@ -4,6 +4,7 @@ from energy_model.dataset_processing.filters.outliers_filter import OutlierFilte
 from energy_model.evaluation.evaluation_metrics.average_per_metric import AveragePERMetric
 from energy_model.evaluation.evaluation_metrics.mean_absolute_error_metric import MeanAbsoluteErrorMetric
 from energy_model.evaluation.evaluation_metrics.mean_squared_error_metric import MeanSquaredErrorMetric
+from energy_model.evaluation.evaluation_metrics.percentile_squared_error_metric import PercentileSquaredErrorMetric
 from energy_model.evaluation.evaluation_metrics.relative_root_mean_squared_error_metric import \
     RelativeRootMeanSquaredErrorMetric
 from energy_model.evaluation.evaluation_metrics.root_mean_squared_error_metric import RootMeanSquaredErrorMetric
@@ -16,7 +17,8 @@ from energy_model.evaluation.evaluation_metrics.symmetric_mean_absolute_percenta
 DEFAULT_EVALUATION_METRICS = [SymmetricMeanAbsolutePercentageError(), RelativeRootMeanSquaredErrorMetric(),
                               StandardDeviationMetric(), AveragePERMetric(), MeanSquaredErrorMetric(),
                               RootMeanSquaredErrorMetric(), MeanAbsoluteErrorMetric(),
-                              RootMeanSquaredPercentErrorMetric()]
+                              RootMeanSquaredPercentErrorMetric(), PercentileSquaredErrorMetric(90),
+                              PercentileSquaredErrorMetric(95)]
 
 DEFAULT_BEST_MODEL_METRIC = "Symmetric Mean Absolute Percentage Error (Symmetric MAPE)"
 
