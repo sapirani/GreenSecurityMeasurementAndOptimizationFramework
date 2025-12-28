@@ -1,4 +1,4 @@
-from hadoop_optimizer.drl_model.consts.state_telemetry import DRLTelemetryType
+from hadoop_optimizer.deployment_server.drl_model.consts.state_telemetry import DRLTelemetryType
 
 # TODO: CONSIDER USING MEMORY DIFFS AS ANOTHER FEATURE
 FIELD_NAMES_TO_AVERAGE = [DRLTelemetryType.SYSTEM_MEMORY_PERCENT]

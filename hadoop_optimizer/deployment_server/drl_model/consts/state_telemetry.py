@@ -1,5 +1,5 @@
 from enum import Enum
-from hadoop_optimizer.drl_model.consts.general import SYSTEM_PREFIX
+from hadoop_optimizer.deployment_server.drl_model.consts.general import SYSTEM_PREFIX
 
 
 class DRLTelemetryType(str, Enum):

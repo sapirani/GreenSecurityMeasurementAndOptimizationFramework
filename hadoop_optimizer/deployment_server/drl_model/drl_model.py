@@ -3,7 +3,7 @@ from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationA
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
 from elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
 from hadoop_optimizer.DTOs.job_properties import JobProperties
-from hadoop_optimizer.drl_model.drl_state import DRLState
+from hadoop_optimizer.deployment_server.drl_model.drl_state import DRLState
 
 
 class DRLModel(AbstractElasticConsumer):
