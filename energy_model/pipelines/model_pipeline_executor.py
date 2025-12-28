@@ -1,3 +1,5 @@
+from typing import Any
+
 import pandas as pd
 from sklearn.model_selection import KFold
 
@@ -37,9 +39,9 @@ class ModelPipelineExecutor:
         scaler.fit(X)
         return scaler
 
-    def build_model(self, X_train: pd.DataFrame, y_train: pd.Series, scaler: DataScaler) -> Model:
+    def build_model(self, X_train: pd.DataFrame, y_train: pd.Series, scaler: DataScaler, hyper_parameters: dict[str, Any] =  None) -> Model:
         X_train_scaled = scaler.transform(X_train)
-        model = Model()
+        model = Model(hyper_parameters)
         model.fit(X_train_scaled, y_train)
         return model
 
