@@ -1,15 +1,17 @@
 import math
 import os.path
 from pathlib import Path
+from typing import Callable
 
 import pandas as pd
 from datetime import datetime
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, KFold
 from sklearn.pipeline import Pipeline
+from typing_extensions import Union
 
-from energy_model.energy_model_parameters import RESULTS_TOP_MODELS_PATH, GRID_SEARCH_TEST_RESULTS_PATH_SUFFIX, \
-    GRID_SEARCH_TEST_RESULTS_PATH_PREFIX
+from energy_model.energy_model_parameters import RESULTS_TOP_MODELS_PATH_PREFIX, RESULTS_TOP_MODELS_PATH_SUFFIX, \
+    GRID_SEARCH_TEST_RESULTS_PATH_SUFFIX, GRID_SEARCH_TEST_RESULTS_PATH_PREFIX
 from energy_model.evaluation.model_evaluator import ModelEvaluator
 
 TEST_REAL_LABEL_COLUMN = "Actual"
@@ -47,12 +49,13 @@ class ModelSelector:
         best_five_by_score = list(sorted(res_list, key=lambda x: x[0], reverse=True))[:self.__num_of_top_models]
 
         results_for_metric_path = Path(
-            f"{RESULTS_TOP_MODELS_PATH}\\final_results_{score_method}_metric_{datetime.now().strftime('%d_%m_%Y %H_%M')}.csv")
+            f"{RESULTS_TOP_MODELS_PATH_PREFIX}\\final_results_{score_method}_metric_{datetime.now().strftime('%d_%m_%Y %H_%M')}_{RESULTS_TOP_MODELS_PATH_SUFFIX}")
         results_for_metric_path.parent.mkdir(parents=True, exist_ok=True)
         final_results.to_csv(results_for_metric_path, index=False)
         return best_five_by_score
 
-    def __select_top_models(self, x_train: pd.DataFrame, y_train: pd.Series, score_method: str):
+    def __select_top_models(self, x_train: pd.DataFrame, y_train: pd.Series, score_method: Union[str, Callable],
+                            score_method_name: str):
         pipe = Pipeline([self.__initial_model])
         kf_cv = KFold(n_splits=self.__num_of_splits, shuffle=True, random_state=42)
         grid = GridSearchCV(pipe, self.__models_to_experiment, verbose=3, refit=True, cv=kf_cv, scoring=score_method,
@@ -60,7 +63,7 @@ class ModelSelector:
 
         grid.fit(x_train, y_train)
         final_results = pd.DataFrame(grid.cv_results_)
-        best_five_models = self.__save_grid_search_results(final_results, score_method)
+        best_five_models = self.__save_grid_search_results(final_results, score_method_name)
 
         return best_five_models, grid.best_estimator_
 
@@ -75,22 +78,23 @@ class ModelSelector:
         self.__model_evaluator.print_results(results)
         return y_pred_test
 
-    def choose_best_model(self, scoring_methods: list[str], x_train: pd.DataFrame, x_test: pd.DataFrame,
-                          y_train: pd.Series, y_test: pd.Series) -> dict[str, any]:
+    def choose_best_model(self, scoring_methods: dict[str, Union[str, Callable]], x_train: pd.DataFrame,
+                          x_test: pd.DataFrame, y_train: pd.Series, y_test: pd.Series) -> dict[str, any]:
         best_estimator_per_metric = {}
         df_prediction_results = pd.DataFrame()
         df_prediction_results[TEST_REAL_LABEL_COLUMN] = y_test
-        for scoring_method in scoring_methods:
-            print(f"*** Select best {self.__num_of_top_models} regressors + their params: ")
+        for scoring_method_name, scoring_method in scoring_methods.items():
+            print(
+                f"*** Select best {self.__num_of_top_models} regressors + their params for scoring method = {scoring_method_name}: ")
             best_five_by_scorer, best_estimator_by_scorer = self.__select_top_models(x_train=x_train, y_train=y_train,
-                                                                                     score_method=scoring_method)
+                                                                                     score_method=scoring_method,
+                                                                                     score_method_name=scoring_method_name)
             self.__print_grid_search_top_models(best_five_by_scorer, scoring_method)
             y_prediction_for_test = self.__predict_and_print_best_estimator(best_estimator=best_estimator_by_scorer,
                                                                             x_test=x_test, y_test=y_test,
                                                                             score_method=scoring_method)
-            not_negative_scoring_method = scoring_method.replace("neg", "")
-            df_prediction_results[f"Prediction_{not_negative_scoring_method}"] = y_prediction_for_test
-            best_estimator_per_metric[f"Prediction_{not_negative_scoring_method}"] = best_estimator_by_scorer
+            df_prediction_results[f"Prediction_{scoring_method_name}"] = y_prediction_for_test
+            best_estimator_per_metric[f"Prediction_{scoring_method_name}"] = best_estimator_by_scorer
 
         file_name = f"{datetime.now().strftime('%d_%m_%Y %H_%M')}_{GRID_SEARCH_TEST_RESULTS_PATH_SUFFIX}"
         path_for_results = os.path.join(GRID_SEARCH_TEST_RESULTS_PATH_PREFIX, file_name)
