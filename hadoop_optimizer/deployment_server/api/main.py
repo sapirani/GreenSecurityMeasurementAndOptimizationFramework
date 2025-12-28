@@ -1,7 +1,7 @@
 import threading
 from contextlib import asynccontextmanager
-from http.client import HTTPException
-from typing import Annotated, List, Optional, Union
+from fastapi import HTTPException
+from typing import Annotated, List, Optional
 import uvicorn
 from dependency_injector.wiring import inject, Provide
 from fastapi import FastAPI, Depends, Request
@@ -63,7 +63,7 @@ async def state_not_ready_exception_handler(request: Request, exc: StateNotReady
         content={"detail": str(exc)}
     )
 
-
+# TODO: INCORPORATE PREVIOUS DRL STATE CODE FOR CLUSTER LOAD
 # @app.get("/choose_configuration")
 # @inject
 # def choose_the_best_configuration_for_a_new_task_under_the_current_load(
@@ -71,6 +71,7 @@ async def state_not_ready_exception_handler(request: Request, exc: StateNotReady
 #     drl_model: Annotated[DRLModel, Depends(Provide[Container.drl_model])],
 # ):
 #     return drl_model.determine_best_job_configuration(job_properties)
+
 
 class EnvironmentTruncatedException(Exception):
     def __init__(self, last_job_configuration: HadoopJobConfig):
@@ -101,16 +102,16 @@ def determine_best_job_configuration(
 def choose_the_best_configuration_for_a_new_task_under_the_current_load(
     job_properties: Annotated[JobProperties, Depends(get_job_properties)],
     deployment_agent: Annotated[BaseAlgorithm, Depends(Provide[Container.deployment_agent])],
-    deployment_env: Annotated[OptimizerDeploymentEnv, Depends(Container.deployment_env)],
-) -> Union[HadoopJobConfig, JSONResponse]:
+    deployment_env: Annotated[OptimizerDeploymentEnv, Depends(Provide[Container.deployment_env])],
+) -> HadoopJobConfig:
 
     try:
         return determine_best_job_configuration(deployment_agent, deployment_env, job_properties)
     except EnvironmentTruncatedException as e:
         # Return HTTP 400 (Bad Request) or 500 depending on semantics
-        return JSONResponse(
+        raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={
+            detail={
                 "message": str(e),
                 "last_job_configuration": e.last_job_configuration.model_dump(),
             }

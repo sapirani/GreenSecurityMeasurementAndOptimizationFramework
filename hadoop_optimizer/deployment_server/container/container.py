@@ -22,10 +22,11 @@ class Container(containers.DeclarativeContainer):
         split_by=config.drl_state.split_by,
     )
 
-    # drl_model: Provider[DRLModel] = providers.Singleton(
-    #     DRLModel,
-    #     drl_state=drl_state
-    # )
+    # TODO: TURN INTO A CLASS THAT MONITORS THE CLUSTER LOAD
+    drl_model: Provider[DRLModel] = providers.Singleton(
+        DRLModel,
+        drl_state=drl_state
+    )
 
     deployment_env: Provider[OptimizerDeploymentEnv] = providers.Factory(
         OptimizerDeploymentEnv,

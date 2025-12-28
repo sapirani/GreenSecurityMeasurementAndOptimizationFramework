@@ -29,6 +29,7 @@ class OptimizerDeploymentEnv(gym.Env):
         )
 
         # TODO: consider actions as delta increments (not absolute configuration)
+        # TODO: DICT IS NOT SUPPORTED, should be other spaces
         self.action_space = add_termination_action(hadoop_config_as_gymnasium_dict_space())
 
         self._current_hadoop_config = HadoopJobConfig()
