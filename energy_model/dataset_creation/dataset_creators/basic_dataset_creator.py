@@ -7,7 +7,7 @@ from energy_model.dataset_creation.dataset_creators.abstract_dataset_creator imp
 
 
 class BasicDatasetCreator(AbstractDatasetCreator):
-    def __extend_df_with_target(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
+    def _extend_df_with_target(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
         """
         This method calculates the target column and adds it to the dataframe.
         First, split every session in the dataframe into batches.
