@@ -2,6 +2,7 @@ import gymnasium as gym
 from datetime import datetime
 from dependency_injector import containers, providers
 from dependency_injector.providers import Provider
+from gymnasium.wrappers import OrderEnforcing
 from stable_baselines3 import PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.policies import ActorCriticPolicy
@@ -36,9 +37,14 @@ class Container(containers.DeclarativeContainer):
     )
 
     # TODO: ALLOW MORE CONFIGURABLE DECORATORS BOOTSTRAPPING
+    order_enforcer: Provider[gym.Env] = providers.Factory(
+        OrderEnforcing,
+        base_env,
+    )
+
     time_limit_env: Provider[gym.Env] = providers.Factory(
         TimeLimitWrapper,
-        base_env,
+        order_enforcer,
         max_episode_steps=config.max_episode_steps,
     )
 

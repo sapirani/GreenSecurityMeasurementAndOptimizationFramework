@@ -1,11 +1,9 @@
 from typing import SupportsFloat, Any, Optional, Dict
-
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 from gymnasium.core import RenderFrame, ActType, ObsType
 from pydantic import ValidationError
-
 from hadoop_optimizer.DTOs.hadoop_job_config import HadoopJobConfig
 from hadoop_optimizer.DTOs.job_properties import JobProperties
 from hadoop_optimizer.drl_envs.consts import TERMINATE_ACTION_NAME
@@ -70,7 +68,6 @@ class OptimizerDeploymentEnv(gym.Env):
         super().reset(seed=seed)
         # TODO: CONSIDER ADDING A DEPLOYMENT PARAMETER (BOOLEAN) INSIDE THE CONSTRUCTOR AND
         #   ACT DIFFERENTLY IN THIS FUNCTION ACCORDINGLY
-
         if not options:
             raise ValueError("Expected to retrieve the job properties on reset")
 
@@ -92,13 +89,13 @@ class OptimizerDeploymentEnv(gym.Env):
 
         truncated = False
         info = {}
+        reward = 0  # there is no meaning for the reward in the deployment environment
         self.step_count += 1
 
         action_dict = decode_action(action)
         self._last_action = action_dict.copy()
-        reward = 0  # there is no meaning for the reward in the deployment environment
-        terminated = action_dict[TERMINATE_ACTION_NAME] == 1
 
+        terminated = action_dict[TERMINATE_ACTION_NAME] == 1
         if not terminated and not truncated:
             # apply action to modify selected hadoop configuration
             # TODO: if actions are becoming deltas: start from self._current_hadoop_config,
