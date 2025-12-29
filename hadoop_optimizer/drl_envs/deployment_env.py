@@ -20,7 +20,7 @@ class OptimizerDeploymentEnv(gym.Env):
         2. cluster's load
         3. current hadoop job configuration
     """
-    def __init__(self, max_steps: int = 100):
+    def __init__(self):
         super().__init__()
         job_properties_state_dict_space = job_properties_as_gymnasium_dict_space()
         hadoop_config_state_dict_space = hadoop_config_as_gymnasium_dict_space()
@@ -53,8 +53,6 @@ class OptimizerDeploymentEnv(gym.Env):
         self._supported_job_config_values = hadoop_config_state_dict_space.keys()
         self._last_action: Optional[Dict[str, Any]] = None
         self.step_count = 0
-        self.max_steps = max_steps
-        self.done = False
 
     def _construct_observation(
             self,
@@ -77,7 +75,6 @@ class OptimizerDeploymentEnv(gym.Env):
             raise ValueError("Expected to retrieve the job properties on reset")
 
         self.step_count = 0
-        self.done = False
 
         try:
             self._episodic_job_properties = JobProperties.model_validate(options)
@@ -92,17 +89,10 @@ class OptimizerDeploymentEnv(gym.Env):
     def step(self, action: ActType) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
         if self._current_hadoop_config is None:
             raise RuntimeError("Environment must be reset before calling the step function")
-        if self.done:
-            raise RuntimeError("'step' called after episode has terminated. Call 'reset' first")
 
         truncated = False
         info = {}
         self.step_count += 1
-
-        # end the episode prematurely before a terminal state is reached
-        if self.step_count > self.max_steps:
-            truncated = True
-            info.update({"steps_done": self.max_steps, "max_steps": self.max_steps})
 
         action_dict = decode_action(action)
         self._last_action = action_dict.copy()
@@ -117,7 +107,6 @@ class OptimizerDeploymentEnv(gym.Env):
             default_config = HadoopJobConfig()
             self._current_hadoop_config = default_config.model_copy(update=action_dict, deep=True)
 
-        self.done = terminated or truncated
         # TODO: CONSIDER RETURNING MORE DEBUGGING INFO, such as the current cluster load
         info.update({"current_hadoop_config": self._current_hadoop_config})
 

@@ -74,9 +74,9 @@ async def state_not_ready_exception_handler(request: Request, exc: StateNotReady
 
 
 class EnvironmentTruncatedException(Exception):
-    def __init__(self, last_job_configuration: HadoopJobConfig, steps_done: int, max_steps: int):
+    def __init__(self, last_job_configuration: HadoopJobConfig, elapsed_steps: int, max_steps: int):
         self.last_job_configuration = last_job_configuration
-        self.steps_done = steps_done
+        self.elapsed_steps = elapsed_steps
         self.max_steps = max_steps
         super().__init__("Environment truncated or step called incorrectly")
 
@@ -99,7 +99,7 @@ def determine_best_job_configuration(
             if truncated:
                 raise EnvironmentTruncatedException(
                     HadoopJobConfig.model_validate(info["current_hadoop_config"]),
-                    info["steps_done"],
+                    info["elapsed_steps"],
                     info["max_steps"],
                 )
 
@@ -120,7 +120,7 @@ def choose_the_best_configuration_for_a_new_task_under_the_current_load(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
                 "message": str(e),
-                "steps_done": e.steps_done,
+                "elapsed_steps": e.elapsed_steps,
                 "max_steps": e.max_steps,
                 "last_job_configuration": e.last_job_configuration.model_dump(),
             }
@@ -129,7 +129,7 @@ def choose_the_best_configuration_for_a_new_task_under_the_current_load(
 
 if __name__ == '__main__':
     container = Container()
-    container.config.episode_max_steps.from_value(100)
+    container.config.max_episode_steps.from_value(100)
     container.config.indices_to_read_from.from_value([ElasticIndex.PROCESS, ElasticIndex.SYSTEM])
     container.config.drl_state.split_by.from_value("hostname")
     container.config.drl_state.time_windows_seconds.from_value([1 * 60, 5 * 60, 10 * 60, 20 * 60])
