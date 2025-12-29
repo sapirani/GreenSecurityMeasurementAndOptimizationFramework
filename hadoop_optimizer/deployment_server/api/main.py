@@ -86,21 +86,22 @@ def determine_best_job_configuration(
         deployment_env: OptimizerDeploymentEnv,
         job_properties: JobProperties
 ) -> HadoopJobConfig:
-    obs, _ = deployment_env.reset(options=job_properties.model_dump())
-    while True:
-        action, _states = deployment_agent.predict(obs)
-        obs, rewards, terminated, truncated, info = deployment_env.step(action)
-        deployment_env.render()
+    with deployment_env:
+        obs, _ = deployment_env.reset(options=job_properties.model_dump())
+        while True:
+            action, _states = deployment_agent.predict(obs)
+            obs, rewards, terminated, truncated, info = deployment_env.step(action)
+            deployment_env.render()
 
-        if terminated:
-            return HadoopJobConfig.model_validate(info["current_hadoop_config"])   # TODO: USE A CONST FOR KEY NAME?
+            if terminated:
+                return HadoopJobConfig.model_validate(info["current_hadoop_config"])   # TODO: USE A CONST FOR KEY NAME?
 
-        if truncated:
-            raise EnvironmentTruncatedException(
-                HadoopJobConfig.model_validate(info["current_hadoop_config"]),
-                info["steps_done"],
-                info["max_steps"],
-            )
+            if truncated:
+                raise EnvironmentTruncatedException(
+                    HadoopJobConfig.model_validate(info["current_hadoop_config"]),
+                    info["steps_done"],
+                    info["max_steps"],
+                )
 
 
 @app.get("/choose_configuration")
