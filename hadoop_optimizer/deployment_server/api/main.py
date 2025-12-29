@@ -87,10 +87,17 @@ def determine_best_job_configuration(
         job_properties: JobProperties
 ) -> HadoopJobConfig:
     with deployment_env:
+        print("understanding shape:")
+        print(deployment_env.observation_space)
+        print(deployment_env.observation_space.shape)
         obs, _ = deployment_env.reset(options=job_properties.model_dump())
         while True:
             action, _states = deployment_agent.predict(obs)
             obs, rewards, terminated, truncated, info = deployment_env.step(action)
+
+            print("how observation looks like:")
+            print(obs)
+
             deployment_env.render()
 
             if terminated:
