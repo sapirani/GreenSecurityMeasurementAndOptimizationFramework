@@ -14,6 +14,7 @@ from user_input.elastic_reader_input.time_picker_input_factory import get_time_p
 
 
 class Container(containers.DeclarativeContainer):
+    # TODO: ENSURE THAT CONFIG HIERARCHY MAKES SENSE
     config = providers.Configuration()
 
     drl_state: Provider[DRLState] = providers.Factory(
@@ -30,6 +31,7 @@ class Container(containers.DeclarativeContainer):
 
     deployment_env: Provider[OptimizerDeploymentEnv] = providers.Factory(
         OptimizerDeploymentEnv,
+        max_steps=config.episode_max_steps,
     )
 
     # TODO: LOAD THE BEST AGENT INSTEAD OF INITIALIZING A NEW MODEL HERE, FOR EXAMPLE: PPO.load(<path>)
