@@ -5,16 +5,14 @@ from typing import Annotated, List, Optional
 import uvicorn
 from dependency_injector.wiring import inject, Provide
 from fastapi import FastAPI, Depends, Request
-from stable_baselines3.common.base_class import BaseAlgorithm
 from starlette import status
 from starlette.responses import JSONResponse
 from elastic_reader.consts import ElasticIndex
 from hadoop_optimizer.DTOs.hadoop_job_execution_config import HadoopJobExecutionConfig
 from hadoop_optimizer.DTOs.job_properties import JobProperties, get_job_properties
 from hadoop_optimizer.deployment_server.container.container import Container
+from hadoop_optimizer.deployment_server.drl_manager import DRLManager
 from hadoop_optimizer.drl_telemetry.telemetry_manager import DRLTelemetryManager
-from hadoop_optimizer.drl_envs.consts import CURRENT_JOB_CONFIG_KEY, ELAPSED_STEPS_KEY, MAX_STEPS_KEY
-from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
 from hadoop_optimizer.erros import EnvironmentTruncatedException, StateNotReadyException
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput
 from elastic_reader.main import run_elastic_reader
@@ -65,39 +63,15 @@ async def state_not_ready_exception_handler(request: Request, exc: StateNotReady
     )
 
 
-def determine_best_job_configuration(
-        deployment_agent: BaseAlgorithm,
-        deployment_env: OptimizerDeploymentEnv,
-        job_properties: JobProperties,
-) -> HadoopJobExecutionConfig:
-    with deployment_env:
-        obs, _ = deployment_env.reset(options=job_properties.model_dump())
-        while True:
-            action, _states = deployment_agent.predict(obs)
-            obs, rewards, terminated, truncated, info = deployment_env.step(action)
-            deployment_env.render()
-
-            if terminated:
-                return HadoopJobExecutionConfig.model_validate(info[CURRENT_JOB_CONFIG_KEY])
-
-            if truncated:
-                raise EnvironmentTruncatedException(
-                    HadoopJobExecutionConfig.model_validate(info[CURRENT_JOB_CONFIG_KEY]),
-                    info[ELAPSED_STEPS_KEY],
-                    info[MAX_STEPS_KEY],
-                )
-
-
 @app.get("/choose_configuration")
 @inject
 def choose_the_best_configuration_for_a_new_task_under_the_current_load(
     job_properties: Annotated[JobProperties, Depends(get_job_properties)],
-    deployment_agent: Annotated[BaseAlgorithm, Depends(Provide[Container.deployment_agent])],
-    deployment_env: Annotated[OptimizerDeploymentEnv, Depends(Provide[Container.deployment_env])],
+    drl_manager: Annotated[DRLManager, Depends(Provide[Container.drl_manager])],
 ) -> HadoopJobExecutionConfig:
 
     try:
-        return determine_best_job_configuration(deployment_agent, deployment_env, job_properties)
+        return drl_manager.determine_best_job_configuration(job_properties)
     except EnvironmentTruncatedException as e:
         # Return HTTP 400 (Bad Request) or 500 depending on semantics
         raise HTTPException(

@@ -7,6 +7,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.policies import ActorCriticPolicy
 from elastic_reader.consts import TimePickerInputStrategy
+from hadoop_optimizer.deployment_server.drl_manager import DRLManager
 from hadoop_optimizer.drl_telemetry.telemetry_manager import DRLTelemetryManager
 from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
 from hadoop_optimizer.gymnasium_wrappers.action.action_types_decoder import ActionTypesDecoder
@@ -22,6 +23,16 @@ from user_input.elastic_reader_input.time_picker_input_factory import get_time_p
 class Container(containers.DeclarativeContainer):
     # TODO: ENSURE THAT CONFIG HIERARCHY MAKES SENSE
     config = providers.Configuration()
+
+    drl_time_picker_input: Provider[TimePickerChosenInput] = providers.Factory(
+        get_time_picker_input,
+        time_picker_input_strategy=TimePickerInputStrategy.FROM_CONFIGURATION,
+        preconfigured_time_input=providers.Callable(lambda: TimePickerChosenInput(
+            start=datetime.now(tz=datetime.now().astimezone().tzinfo),
+            end=None,
+            mode=ReadingMode.REALTIME
+        ))
+    )
 
     drl_telemetry_manager: Provider[DRLTelemetryManager] = providers.Singleton(
         DRLTelemetryManager,
@@ -99,12 +110,8 @@ class Container(containers.DeclarativeContainer):
         policy_kwargs=dict(log_std_init=0.8)
     )
 
-    drl_time_picker_input: Provider[TimePickerChosenInput] = providers.Factory(
-        get_time_picker_input,
-        time_picker_input_strategy=TimePickerInputStrategy.FROM_CONFIGURATION,
-        preconfigured_time_input=providers.Callable(lambda: TimePickerChosenInput(
-            start=datetime.now(tz=datetime.now().astimezone().tzinfo),
-            end=None,
-            mode=ReadingMode.REALTIME
-        ))
+    drl_manager: Provider[DRLManager] = providers.Factory(
+        DRLManager,
+        deployment_agent=deployment_agent,
+        deployment_env=deployment_env,
     )
