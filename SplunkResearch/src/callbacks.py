@@ -191,7 +191,7 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
                  eval_env,
                  log_dir, rules, event_types,
                  n_eval_episodes: int = 5,
-                 eval_freq: int = 10000,
+                 eval_freq: int = 3000,
                  log_path: str = None,
                  best_model_save_path: str = None,
                  deterministic: bool = True,

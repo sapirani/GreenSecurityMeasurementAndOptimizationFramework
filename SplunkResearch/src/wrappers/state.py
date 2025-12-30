@@ -579,3 +579,80 @@ class StateWrapper6(StateWrapper):
         # return state / (500000)  # Avoid division by zero
         return state / (sum(state) + 0.0000000001)
      
+class StateWrapper7(StateWrapper):
+    """Manages log type distributions and state normalization"""
+
+    def __init__(self, env, is_sampled=False):
+        super().__init__(env, is_sampled)
+        self.observation_space = spaces.Box(
+            low=0,
+            high=1,
+            # high=3,
+            shape=(len(self.unwrapped.top_logtypes)*2+3,),  # +1 for 'other' category
+            # shape=(len(self.top_logtypes),),  # +1 for 'other' category
+            dtype=np.float64
+        )
+        
+        
+    def observation(self, obs):
+        """Convert current distributions to normalized state"""
+        # Calculate fake distribution using the latest episode_logs
+        # This happens AFTER action wrapper has updated episode_logs
+        # Update real distribution AFTER action is executed
+        if not self.unwrapped.done:
+            self.update_real_distribution(self.unwrapped.time_manager.action_window.to_tuple())
+
+        # Create state vectors
+        real_state = self._get_state_vector(self.unwrapped.real_distribution)
+        self.unwrapped.real_state = self._normalize(real_state)
+        ac_real_state = self._get_state_vector(self.unwrapped.ac_real_distribution)
+        self.unwrapped.ac_real_state = self._normalize(ac_real_state)
+        real_sum = sum(ac_real_state)
+        
+        self.unwrapped.real_relevant_distribution = {"_".join(logtype): self.unwrapped.ac_real_state[self.unwrapped.relevant_logtypes_indices[logtype]] for logtype in self.unwrapped.top_logtypes}
+        if not self.unwrapped.done:
+            self.update_fake_distribution_from_real()
+        fake_state = self._get_state_vector(self.unwrapped.fake_distribution)
+        self.unwrapped.fake_state = self._normalize(fake_state)
+        ac_fake_state = self._get_state_vector(self.unwrapped.ac_fake_distribution)
+        self.unwrapped.ac_fake_state = self._normalize(ac_fake_state)
+        fake_sum = sum(ac_fake_state)
+        self.unwrapped.fake_relevant_distribution = {"_".join(logtype): self.unwrapped.ac_fake_state[self.unwrapped.relevant_logtypes_indices[logtype]] for logtype in self.unwrapped.top_logtypes}
+
+        # Create the final state vector
+        # state = self.unwrapped.real_state
+        # state = np.append(self.unwrapped.real_state, self.unwrapped.fake_state)
+        state = np.append(self.unwrapped.ac_real_state, self.unwrapped.ac_fake_state)
+        
+        # rules_rel_diff_alerts = [value for key, value in self.unwrapped.rules_rel_diff_alerts.items()]
+        # state = np.append(state, rules_rel_diff_alerts)
+        # sparse_vector = np.zeros(self.env.total_steps)
+        # sparse_vector[self.unwrapped.step_counter-1] = 1
+        # state = np.append(state, sparse_vector)
+        # state = np.append(state, self.current_real_quantity/100000) 
+        # real_total_logs = self.total_current_logs
+        real_total_logs = self.total_episode_logs
+        state = np.append(state, real_total_logs/500000)
+        state = np.append(state, (self.unwrapped.episodic_inserted_logs+real_total_logs)/500000)
+        # # append to state the step index
+        # # state = np.append(state, self.env.step_counter/self.env.total_steps)
+        # # add sparse vector for step index
+        # append step index component
+        state = np.append(state, self.unwrapped.step_counter/self.unwrapped.total_steps)
+        
+        # current_datetime = datetime.datetime.strptime(self.env.time_manager.action_window.end, '%m/%d/%Y:%H:%M:%S')
+        # weekday_vector = np.zeros(7)
+        # weekday_vector[current_datetime.weekday()] = 1
+        # hour_vector = np.zeros(24)
+        # hour_vector[current_datetime.hour] = 1
+        # state = np.append(state, weekday_vector)
+        # state = np.append(state, hour_vector)
+        logger.info(f"State: {state}")
+        self.unwrapped.obs = state
+        return state
+    
+    def _normalize(self, state):
+        """Normalize state vector"""
+        # return state / (500000)  # Avoid division by zero
+        return state / (sum(state) + 0.0000000001)
+     

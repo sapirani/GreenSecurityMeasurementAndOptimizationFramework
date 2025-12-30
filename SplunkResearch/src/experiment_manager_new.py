@@ -208,7 +208,8 @@ class ExperimentManager:
         #                         high=1)
         env = TimeWrapper(env)
         print(config.is_sample)
-        env = StateWrapper6(env, is_sampled=config.is_sample)
+        env = StateWrapper7(env, is_sampled=config.is_sample)
+        # env = StateWrapper6(env, is_sampled=config.is_sample)
         # env = StateWrapper5(env)
 
         return env
@@ -279,8 +280,8 @@ class ExperimentManager:
             
         elif config.model_type in ['sac', 'td3', 'ddpg']:
             model_kwargs.update({          
-                        'learning_starts': 120,  # (24 steps * 5 episodes)
-                        'gradient_steps': 24,
+                        'learning_starts': 60,  # (12 steps * 5 episodes)
+                        'gradient_steps': 12,
                         'train_freq': (1, "episode"),          
                 #     "policy_kwargs": {
                 #     "net_arch": [512,128,128,64],
@@ -288,7 +289,7 @@ class ExperimentManager:
                         # No need 1 Million. 100k is plenty for short episodes.
                         'buffer_size': 100_000, 
                         
-                        'batch_size': 256,
+                        'batch_size': 512,
                         'ent_coef': 'auto',
                         'use_sde': True, # Keep this for better exploration
                         
@@ -296,7 +297,7 @@ class ExperimentManager:
                             "net_arch": dict(pi=[256, 256], qf=[256, 256]),
                             # Initialize weights to output small actions (~0) initially
                             # so you don't hit the "clipping" bounds immediately.
-                            "log_std_init": -2, 
+                            "log_std_init": -3, 
                         },
 
                 # },
@@ -374,7 +375,7 @@ class ExperimentManager:
 
                 action_env.disable_injection()
                 action_eval_env.disable_injection()
-            # Setup callbacks
+            # # Setup callbacks
             config.experiment_name = experiment_name
             callbacks = self._setup_callbacks(config)
             
@@ -577,7 +578,7 @@ class ExperimentManager:
             #     experiment_kwargs=config,
             #     phase=config.get('phase', 'train')
             # ),
-            CheckpointCallback(save_freq=10000, save_path=self.dirs['models'], name_prefix=config.experiment_name),
+            CheckpointCallback(save_freq=3000, save_path=self.dirs['models'], name_prefix=config.experiment_name),
             
             CustomEvalCallback3(
                 eval_env=self.eval_env,
@@ -684,8 +685,8 @@ if __name__ == "__main__":
                             num_of_measurements=1,
                             baseline_num_of_measurements=1,
                             env_id="splunk_train-v32",
-                            # end_time="12/01/2024:00:00:00"       
-                            end_time="04/30/2025:00:00:00"       
+                            # end_time="12/10/2024:00:00:00"       
+                            end_time="08/01/2025:00:00:00"       
                         )
                         # sched_LR = lr_schedule(initial_value = 0.01, rate = 5)
                         experiment_config = ExperimentConfig(
@@ -696,7 +697,7 @@ if __name__ == "__main__":
                             num_episodes=num_episodes,
                             n_steps=n_steps,
                             ent_coef=ent_coef,
-                            gamma=0.99,
+                            gamma=0.95,
                             gamma_dist= float(gamma_dist) if gamma_dist else 0.2,
                             alpha_energy= float(alpha_energy) if alpha_energy else 0.5,
                             beta_alert= float(beta_alert) if beta_alert else 0.3,
@@ -714,7 +715,7 @@ if __name__ == "__main__":
                         )
 
                         experiment_config.mode = "train"#"eval_post_training"  # eval after training
-                        experiment_config.num_episodes = 500000
+                        experiment_config.num_episodes = 1000000000
                         manager = ExperimentManager(base_dir="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments")
                         results = manager.run_experiment(experiment_config)
 

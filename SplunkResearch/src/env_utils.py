@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 import subprocess
 import json
 import numpy as np
@@ -42,6 +43,10 @@ def update_rules_frequency_and_time_range(splunk_tools_instance, time_range):
     
 def empty_monitored_files(monitored_file_path):
     logger.info(f'empty the monitored file {monitored_file_path}')
+    #check if file exists
+    if not os.path.exists(monitored_file_path):
+        logger.warning(f'file {monitored_file_path} does not exist')
+        return
     with open(monitored_file_path, 'w') as fp:
         fp.write('')
         

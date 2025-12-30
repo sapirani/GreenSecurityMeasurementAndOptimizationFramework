@@ -297,129 +297,269 @@ class LogGenerator:
             
         return result
     
+    # def prepare_tasks(self, logsource, eventcode, istrigger, time_range, num_logs, diversity=1, injection_id=0, max_workers=12):
+    #     if time_range not in self.fake_splunk_state:
+    #         self.fake_splunk_state[time_range] = {}
+    #     if time_range not in self.logs_to_delete:
+    #         self.logs_to_delete[time_range] = {}
+    #     log_type_key = f"{logsource.lower()}_{eventcode}_{istrigger}"
+    #     if log_type_key not in self.fake_splunk_state[time_range]:
+    #         self.fake_splunk_state[time_range][log_type_key] = {}
+    #     if log_type_key not in self.logs_to_delete[time_range]:
+    #         self.logs_to_delete[time_range][log_type_key] = {}
+    #     """Generate logs with optimized performance using pre-cached templates"""
+    #     # logger.info(f"Generating {num_logs} logs with diversity={diversity}, max_workers={max_workers}")
+        
+    #     # Ensure diversity is at least 1 and no more than num_logs
+    #     # diversity = max(1, min(diversity, num_logs))
+        
+    #     # Parse time range once
+    #     if isinstance(time_range[0], str):
+    #         start_date = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S')
+    #         end_date = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S')
+    #     else:
+    #         start_date, end_date = time_range
+    #     # logger.info(f"Time parsing completed in {time.time() - time_parsing_start:.3f} seconds")
+        
+    #     # Pre-generate timestamp pool for better performance
+    #     timestamp_pool_size = min(1000, num_logs * 2)  # Create some extra timestamps for randomness
+    #     timestamp_pool = self._generate_timestamp_pool(start_date, end_date, timestamp_pool_size)
+    #     # logger.info(f"Timestamp pool generation ({timestamp_pool_size} timestamps) completed in {time.time() - pool_start:.3f} seconds")
+        
+    #     # Prepare templates if they don't exist
+    #     # Prepare base template
+    #     base_template = self._prepare_base_template(logsource, eventcode, istrigger)
+        
+    #     # Check if we need to prepare variations
+    #     missing_templates = []
+    #     is_trigger = int(log_type_key.split('_')[-1])
+        
+    #     for var_id in range(is_trigger, diversity+is_trigger):
+    #         cache_key = f"{logsource.lower()}_{eventcode}_{istrigger}_{var_id}"
+    #         cache_path = os.path.join(self.cache_dir, f"{cache_key}.template")
+    #         if not os.path.exists(cache_path):
+    #             missing_templates.append(var_id)
+        
+    #     # Prepare missing templates if needed
+    #     if missing_templates:
+    #         logger.debug(f"Preparing {len(missing_templates)} missing variation templates")
+    #         for var_id in missing_templates:
+    #             self._get_variation_template(logsource, eventcode, istrigger, var_id, base_template)
+        
+    #     # logger.info(f"Template preparation completed in {time.time() - templates_start:.3f} seconds")
+        
+    #     # Calculate logs per variation
+    #     logs_per_variation = num_logs // diversity
+    #     remaining_logs = num_logs % diversity
+        
+    #     # Create a list of variation IDs based on distribution
+    #     variation_assignments = []
+    #     max_old_diversity = max([*self.fake_splunk_state[time_range][log_type_key].keys(), 0])
+        
+    #     for var_id in range(is_trigger, diversity+is_trigger):
+    #         new_count = logs_per_variation + (1 if (var_id-is_trigger) < remaining_logs else 0)
+    #         if var_id not in self.fake_splunk_state[time_range][log_type_key]:
+    #             self.fake_splunk_state[time_range][log_type_key][var_id] = 0
+    #         # if var_id not in self.logs_to_delete[time_range][log_type_key]:
+    #         #     self.logs_to_delete[time_range][log_type_key][var_id] = 0
+    #         old_count = self.fake_splunk_state[time_range][log_type_key][var_id]
+    #         count_to_update = new_count - old_count
+    #         if count_to_update < 0: # need to delete logs
+    #             self.logs_to_delete[time_range][log_type_key][var_id] = - count_to_update
+    #         self.fake_splunk_state[time_range][log_type_key][var_id] = new_count
+    #         if count_to_update > 0: # only add if we need logs of this variation
+    #             variation_assignments.extend([var_id] * count_to_update)
+        
+    #     if diversity  <  max_old_diversity:
+    #         for var_id in range(diversity + is_trigger, max_old_diversity + is_trigger,):
+    #             old_count = self.fake_splunk_state[time_range][log_type_key].get(var_id, 0)
+    #             if old_count > 0:
+    #                 self.logs_to_delete[time_range][log_type_key][var_id] = old_count
+    #                 self.fake_splunk_state[time_range][log_type_key][var_id] = 0
+    #         # logging.info(f"old_count: {old_count}, new_count: {new_count}, count_to_update: {count_to_update}")
+        
+    #     # if need to delete logs, check if entire var_ids can be delete or it's need to be cherugial
+    #     # if need to be cherugial, we will delete all logs of this log type and time range, and regenerate them
+    #     # else we will just delete the entire var_id logs
+    #     for var_id, delete_count in self.logs_to_delete[time_range][log_type_key].items():
+    #         if delete_count > 0:
+    #             self.logs_to_delete[time_range][log_type_key] = f"RemoveAll_{var_id}"
+    #             # update variation assignments to regenerate all logs of this type
+    #             for var_id2 in range(var_id, diversity+is_trigger):
+    #                 new_count = self.fake_splunk_state[time_range][log_type_key][var_id2]
+    #                 variation_assignments.extend([var_id2] * new_count)
+    #             break
+
+            
+    #     # Shuffle to distribute variations evenly
+    #     random.shuffle(variation_assignments)
+    #     # logger.info(f"Task distribution calculation completed in {time.time() - distribution_start:.3f} seconds")
+        
+    #     # Load all templates we need
+    #     template_loading_start = time.time()
+    #     templates = {}
+    #     for var_id in range(is_trigger, diversity+is_trigger):
+    #         if var_id == is_trigger:
+    #             templates[var_id] = base_template
+    #         else:
+    #             cache_key = f"{logsource.lower()}_{eventcode}_{istrigger}_{var_id}"
+    #             cache_path = os.path.join(self.cache_dir, f"{cache_key}.template")
+    #             with open(cache_path, 'r') as f:
+    #                 templates[var_id] = f.read()
+    #     logger.debug(f"Template loading completed in {time.time() - template_loading_start:.3f} seconds")
+        
+    #     # # Determine optimal batch size based on num_logs
+    #     # batch_size = max(100, min(1000, num_logs // (max_workers * 2)))
+        
+    #     # # Create tasks with templates and timestamps
+    #     # tasks_start = time.time()
+    #     real_ts = datetime.now().strftime("%m_%d_%Y_%I_%M")
+    #     generation_tasks = [
+    #         (templates[var_id], random.choice(timestamp_pool), var_id, self.field_pattern, self.time_pattern, logsource, real_ts) 
+    #         for var_id in variation_assignments
+    #     ]
+
+        
+    #     return generation_tasks
+
     def prepare_tasks(self, logsource, eventcode, istrigger, time_range, num_logs, diversity=1, injection_id=0, max_workers=12):
+
+        # --- Initialization ---
         if time_range not in self.fake_splunk_state:
             self.fake_splunk_state[time_range] = {}
         if time_range not in self.logs_to_delete:
             self.logs_to_delete[time_range] = {}
-        log_type_key = f"{logsource.lower()}_{eventcode}_{istrigger}"
+            
+
+            
+            
+        is_trigger_int = int(istrigger)
+        log_type_key = f"{logsource.lower()}_{eventcode}_{is_trigger_int}"
+        
         if log_type_key not in self.fake_splunk_state[time_range]:
             self.fake_splunk_state[time_range][log_type_key] = {}
+        # We don't init logs_to_delete[log_type_key] as {} yet, because we might overwrite it with a string string later
         if log_type_key not in self.logs_to_delete[time_range]:
             self.logs_to_delete[time_range][log_type_key] = {}
-        """Generate logs with optimized performance using pre-cached templates"""
-        # logger.info(f"Generating {num_logs} logs with diversity={diversity}, max_workers={max_workers}")
-        
-        # Ensure diversity is at least 1 and no more than num_logs
-        # diversity = max(1, min(diversity, num_logs))
-        
-        # Parse time range once
+
+        # --- Time Parsing (Existing Logic) ---
         if isinstance(time_range[0], str):
             start_date = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S')
             end_date = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S')
         else:
             start_date, end_date = time_range
-        # logger.info(f"Time parsing completed in {time.time() - time_parsing_start:.3f} seconds")
-        
-        # Pre-generate timestamp pool for better performance
-        timestamp_pool_size = min(1000, num_logs * 2)  # Create some extra timestamps for randomness
+
+        # --- Template & Timestamp Prep ---
+        timestamp_pool_size = min(1000, num_logs * 2)
         timestamp_pool = self._generate_timestamp_pool(start_date, end_date, timestamp_pool_size)
-        # logger.info(f"Timestamp pool generation ({timestamp_pool_size} timestamps) completed in {time.time() - pool_start:.3f} seconds")
-        
-        # Prepare templates if they don't exist
-        # Prepare base template
         base_template = self._prepare_base_template(logsource, eventcode, istrigger)
         
-        # Check if we need to prepare variations
+        # Prepare Missing Templates
+        start_var = is_trigger_int
+        end_var = diversity + is_trigger_int
         missing_templates = []
-        is_trigger = int(log_type_key.split('_')[-1])
-        
-        for var_id in range(is_trigger, diversity+is_trigger):
-            cache_key = f"{logsource.lower()}_{eventcode}_{istrigger}_{var_id}"
-            cache_path = os.path.join(self.cache_dir, f"{cache_key}.template")
-            if not os.path.exists(cache_path):
+        for var_id in range(start_var, end_var):
+            cache_key = f"{logsource.lower()}_{eventcode}_{is_trigger_int}_{var_id}"
+            if not os.path.exists(os.path.join(self.cache_dir, f"{cache_key}.template")):
                 missing_templates.append(var_id)
-        
-        # Prepare missing templates if needed
         if missing_templates:
-            logger.debug(f"Preparing {len(missing_templates)} missing variation templates")
             for var_id in missing_templates:
                 self._get_variation_template(logsource, eventcode, istrigger, var_id, base_template)
+
+        # --- CORE LOGIC START ---
         
-        # logger.info(f"Template preparation completed in {time.time() - templates_start:.3f} seconds")
-        
-        # Calculate logs per variation
         logs_per_variation = num_logs // diversity
         remaining_logs = num_logs % diversity
         
-        # Create a list of variation IDs based on distribution
         variation_assignments = []
-        max_old_diversity = max([*self.fake_splunk_state[time_range][log_type_key].keys(), 0])
         
-        for var_id in range(is_trigger, diversity+is_trigger):
-            new_count = logs_per_variation + (1 if (var_id-is_trigger) < remaining_logs else 0)
+        # We need to find the lowest var_id that causes a "Cutoff" (deletion).
+        # Once found, ALL subsequent vars must be fully regenerated.
+        cutoff_var_id = None 
+
+        # 1. Loop through required diversity
+        for var_id in range(start_var, end_var):
+            # Calculate Target
+            new_count = logs_per_variation + (1 if (var_id - start_var) < remaining_logs else 0)
+            
+            # Get Current State
             if var_id not in self.fake_splunk_state[time_range][log_type_key]:
                 self.fake_splunk_state[time_range][log_type_key][var_id] = 0
-            # if var_id not in self.logs_to_delete[time_range][log_type_key]:
-            #     self.logs_to_delete[time_range][log_type_key][var_id] = 0
             old_count = self.fake_splunk_state[time_range][log_type_key][var_id]
-            count_to_update = new_count - old_count
-            if count_to_update < 0: # need to delete logs
-                self.logs_to_delete[time_range][log_type_key][var_id] = - count_to_update
-            self.fake_splunk_state[time_range][log_type_key][var_id] = new_count
-            if count_to_update > 0: # only add if we need logs of this variation
-                variation_assignments.extend([var_id] * count_to_update)
-        
-        if diversity + is_trigger <  max_old_diversity:
-            for var_id in range(diversity + is_trigger, max_old_diversity):
-                old_count = self.fake_splunk_state[time_range][log_type_key].get(var_id, 0)
-                if old_count > 0:
-                    self.logs_to_delete[time_range][log_type_key][var_id] = old_count
-                    self.fake_splunk_state[time_range][log_type_key][var_id] = 0
-            # logging.info(f"old_count: {old_count}, new_count: {new_count}, count_to_update: {count_to_update}")
-        
-        # if need to delete logs, check if entire var_ids can be delete or it's need to be cherugial
-        # if need to be cherugial, we will delete all logs of this log type and time range, and regenerate them
-        # else we will just delete the entire var_id logs
-        for var_id, delete_count in self.logs_to_delete[time_range][log_type_key].items():
-            if delete_count > 0:
-                self.logs_to_delete[time_range][log_type_key] = f"RemoveAll_{var_id}"
-                # update variation assignments to regenerate all logs of this type
-                for var_id2 in range(is_trigger, diversity+is_trigger):
-                    new_count = self.fake_splunk_state[time_range][log_type_key][var_id2]
-                    variation_assignments.extend([var_id2] * new_count)
-                break
 
+            # Logic Switch: Are we safely adding, or have we triggered a wipe?
             
-        # Shuffle to distribute variations evenly
-        random.shuffle(variation_assignments)
-        # logger.info(f"Task distribution calculation completed in {time.time() - distribution_start:.3f} seconds")
+            if cutoff_var_id is not None:
+                # CASE A: Cutoff already triggered by a lower var_id.
+                # This var_id is implicitly wiped by "RemoveAll_X".
+                # We must regenerate the FULL count.
+                variation_assignments.extend([var_id] * new_count)
+                self.fake_splunk_state[time_range][log_type_key][var_id] = new_count
+                
+            elif new_count < old_count:
+                # CASE B: This var_id requires reduction.
+                # This triggers the Cutoff.
+                cutoff_var_id = var_id
+                
+                # Since we are wiping this var (and all above), we regenerate FULL count.
+                variation_assignments.extend([var_id] * new_count)
+                self.fake_splunk_state[time_range][log_type_key][var_id] = new_count
+                
+            else:
+                # CASE C: No cutoff yet, and new_count >= old_count.
+                # Safe to just add the delta.
+                count_to_add = new_count - old_count
+                variation_assignments.extend([var_id] * count_to_add)
+                self.fake_splunk_state[time_range][log_type_key][var_id] = new_count
+
+        # 2. Check for "Zombie" vars (Reduction in Diversity)
+        # If we lowered diversity (e.g. 5 -> 3), we must ensure vars 3 and 4 are removed.
+        # This might trigger a cutoff if one wasn't triggered yet.
         
-        # Load all templates we need
+        # Check if any old vars exist beyond our new 'end_var'
+        existing_vars = [k for k in self.fake_splunk_state[time_range][log_type_key].keys() if isinstance(k, int)]
+        if existing_vars:
+            max_old_var = max(existing_vars)
+            
+            if max_old_var >= end_var:
+                # We have leftover vars to delete.
+                # If we haven't already wiped from a lower point, wipe from end_var onwards.
+                if cutoff_var_id is None:
+                    cutoff_var_id = end_var
+                
+                # Update state to remove zombies
+                for old_id in range(end_var, max_old_var + 1):
+                    if old_id in self.fake_splunk_state[time_range][log_type_key]:
+                        self.fake_splunk_state[time_range][log_type_key][old_id] = 0
+
+        # 3. Apply the Deletion Command
+        if cutoff_var_id is not None:
+            # Overwrite the dictionary with the flag string as requested
+            self.logs_to_delete[time_range][log_type_key] = f"RemoveAll_{cutoff_var_id}"
+
+        logger.debug(f"Prepared variation assignments with cutoff at var_id={cutoff_var_id}")
+        logger.debug(f"New Counts: {self.fake_splunk_state[time_range][log_type_key]}")
+
+        
+        # --- (Shuffle, Template Loading, Task Generation - Same as original) ---
+        random.shuffle(variation_assignments)
+        
         template_loading_start = time.time()
         templates = {}
-        for var_id in range(is_trigger, diversity+is_trigger):
-            if var_id == is_trigger:
+        for var_id in range(start_var, end_var):
+            if var_id == is_trigger_int:
                 templates[var_id] = base_template
             else:
-                cache_key = f"{logsource.lower()}_{eventcode}_{istrigger}_{var_id}"
-                cache_path = os.path.join(self.cache_dir, f"{cache_key}.template")
-                with open(cache_path, 'r') as f:
+                cache_key = f"{logsource.lower()}_{eventcode}_{is_trigger_int}_{var_id}"
+                with open(os.path.join(self.cache_dir, f"{cache_key}.template"), 'r') as f:
                     templates[var_id] = f.read()
-        logger.debug(f"Template loading completed in {time.time() - template_loading_start:.3f} seconds")
         
-        # # Determine optimal batch size based on num_logs
-        # batch_size = max(100, min(1000, num_logs // (max_workers * 2)))
-        
-        # # Create tasks with templates and timestamps
-        # tasks_start = time.time()
         real_ts = datetime.now().strftime("%m_%d_%Y_%I_%M")
         generation_tasks = [
             (templates[var_id], random.choice(timestamp_pool), var_id, self.field_pattern, self.time_pattern, logsource, real_ts) 
             for var_id in variation_assignments
         ]
 
-        
         return generation_tasks
     
     

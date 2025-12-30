@@ -50,6 +50,7 @@ from tasks.program_classes.perfmon_monitoring_program import PerfmonProgram
 from tasks.program_classes.server_program import PythonServer
 from tasks.program_classes.splunk_program import SplunkProgram
 from tasks.program_classes.user_activity_program import UserActivityProgram
+from custom_process_filter.filter_for_splunk import FilterForSplunkProcesses
 
 
 def running_os_factory(is_inside_container: bool) -> AbstractOSFuncs:
@@ -77,6 +78,8 @@ def _get_filter(filter_type: CustomFilterType) -> AbstractProcessFilter:
         return FilterForPythonProcesses()
     elif filter_type == CustomFilterType.FILTER_OUT_CMD:
         return FilterOutCMDProcesses()
+    elif filter_type == CustomFilterType.FILTER_FOR_SPLUNK:
+        return FilterForSplunkProcesses()
 
     raise ValueError("Invalid process filter type")
 

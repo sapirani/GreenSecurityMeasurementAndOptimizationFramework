@@ -59,7 +59,7 @@ es_logger = get_measurement_logger(
 )
 
 BASIC_QUERIES = {"Windows Event For Service Disabled":"`wineventlog_system` EventCode=7040",
-"Detect New Local Admin account":"`wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)",
+"Detect New Local Admin account":"`wineventlog_security` EventCode=4732",
 "ESCU Network Share Discovery Via Dir Command Rule":"index=main `wineventlog_security` EventCode=5140",
 "Known Services Killed by Ransomware":"`wineventlog_system` EventCode=7036",
 "Non Chrome Process Accessing Chrome Default Dir":"`wineventlog_security` EventCode=4663",
@@ -258,8 +258,8 @@ class SplunkTools(object):
             # Check events count via BASIC_QUERIES
             eventcode_search = BASIC_QUERIES.get(search_name, None)
             if eventcode_search:
-                eventcode_query = f'search {eventcode_search} host="dt-splunk" earliest={start_time} latest={end_time} | stats count'
-                eventcode_job = self.service.jobs.create(eventcode_query)
+                eventcode_query = f'search {eventcode_search} host="dt-splunk"  | stats count'
+                eventcode_job = self.service.jobs.create(eventcode_query, earliest_time=start_time, latest_time=end_time)
                 while True:
                     eventcode_job.refresh()
                     if eventcode_job.content['isDone'] == '1':

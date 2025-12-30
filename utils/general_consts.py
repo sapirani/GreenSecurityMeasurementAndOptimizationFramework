@@ -100,6 +100,7 @@ class CustomFilterType(Enum):
     FILTER_OUT_PYTHON = 1
     FILTER_FOR_PYTHON = 2
     FILTER_OUT_CMD = 3
+    FILTER_FOR_SPLUNK = 4
     
     
 class IDSType:

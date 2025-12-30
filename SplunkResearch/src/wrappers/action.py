@@ -7,6 +7,7 @@ from unittest import result
 from gymnasium.core import ActionWrapper
 from gymnasium import make, spaces
 import numpy as np
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logger = logging.getLogger(__name__)
 SPLUNK_BINARY_PATH = "/opt/splunk/bin/splunk"
@@ -156,28 +157,134 @@ class Action(ActionWrapper):
 
           
             
+
     def delete_episodic_logs(self, deletion_plan):
-        """Delete episodic logs from environment according to logs_to_delete"""
+        """
+        Optimized deletion: Groups identical logic and merges time ranges 
+        to reduce Splunk load and prevent burst errors.
+        """
         if self._disable_injection:
-            logger.info("Log deletion disabled, not deleting episodic logs")
+            logger.info("Log deletion disabled.")
             return
+
+        # 1. Group Time Ranges by "Deletion Signature"
+        # Signature format: A tuple of conditions, e.g., (("source=... EventCode=... var_id>=1"), ...)
+        logic_to_ranges = {}
+
         for time_range, logs in deletion_plan.items():
-            by_log_type_deletion_list = []
+            current_batch_conditions = []
+            logtypes_in_batch = []
+
             for logtype, variations in logs.items():
                 if "RemoveAll" in variations:
-                    by_log_type_deletion_list.append((logtype, variations.split('_')[1]))
+                    var_id = variations.split('_')[1]
+                    base = f"source={logtype.split('_')[0]} EventCode={logtype.split('_')[1]}"
+                    
+                    # Your Safe Logic
+                    if str(var_id) == '0':
+                        condition = f"({base} var_id=0)"
+                    else:
+                        condition = f"({base} var_id>={var_id})"
+                    
+                    current_batch_conditions.append(condition)
+                    logtypes_in_batch.append(logtype)
+                    
+                    # Clear the plan entry as we process it
                     deletion_plan[time_range][logtype] = {}
-                    continue
+
+            if current_batch_conditions:
+                # Sort conditions to ensure 'signature' is unique regardless of order
+                signature = tuple(sorted(current_batch_conditions))
+                
+                if signature not in logic_to_ranges:
+                    logic_to_ranges[signature] = []
+                logic_to_ranges[signature].append(time_range)
+
+        # 2. Parallel Execution
+        # WARNING: Keep max_workers low (2-4). High numbers will crash Splunk or cause data loss.
+        MAX_WORKERS = 3
+        
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures = []
             
-            if by_log_type_deletion_list:   
-                condition = " OR ".join([f"(source={logtype.split('_')[0]} EventCode={logtype.split('_')[1]} var_id>={var_id})" for logtype, var_id in by_log_type_deletion_list])
-                condition = condition.replace("var_id>=0", "")
-                self.unwrapped.splunk_tools.delete_fake_logs(
-                    time_range, f'{condition} ', None)
-                logger.info(f"Deleting all episodic logs at time range {time_range} for logtypes {by_log_type_deletion_list}")
+            for signature, time_ranges in logic_to_ranges.items():
+                final_condition = " OR ".join(signature)
+                merged_ranges = self._merge_time_ranges(time_ranges)
+                logger.info(f"Prepared deletion task with signature {signature} over merged ranges: {merged_ranges}")
+                for merged_start, merged_end in merged_ranges:
+                    # Submit the task to the thread pool
+                    futures.append(
+                        executor.submit(
+                            self._execute_single_deletion, 
+                            merged_start, 
+                            merged_end, 
+                            final_condition,
+                            len(signature)
+                        )
+                    )
             
+            # Wait for all to complete and handle exceptions
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    logger.error(f"Parallel deletion failed: {e}")
+
+    def _execute_single_deletion(self, start, end, condition, rule_count):
+        """Helper function to run inside the thread"""
+        logger.info(f"Optimized Deletion: Deleting ({rule_count} rules) from {start} to {end}")
+        
+        self.unwrapped.splunk_tools.delete_fake_logs(
+            (start, end), 
+            f'{condition} ', 
+            None
+        )
+        
+    def _merge_time_ranges(self, time_ranges):
+        """
+        Helper to merge adjacent/overlapping time strings.
+        Input: [('04:00', '08:00'), ('08:00', '12:00')]
+        Output: [('04:00', '12:00')]
+        """
+        if not time_ranges:
+            return []
+
+        # Convert strings to datetime objects for comparison
+        parsed_ranges = []
+        fmt = '%m/%d/%Y:%H:%M:%S'  # Adjust if your format differs
+        
+        for start, end in time_ranges:
+            t_start = datetime.datetime.strptime(start, fmt)
+            t_end = datetime.datetime.strptime(end, fmt)
+            parsed_ranges.append((t_start, t_end))
+
+        # Sort by start time
+        parsed_ranges.sort(key=lambda x: x[0])
+
+        merged = []
+        if not parsed_ranges:
+            return []
             
+        current_start, current_end = parsed_ranges[0]
+
+        for i in range(1, len(parsed_ranges)):
+            next_start, next_end = parsed_ranges[i]
             
+            # Check if adjacent or overlapping
+            # We generally treat 'end == start' as adjacent
+            if next_start <= current_end:
+                # Extend the current range if the next one ends later
+                current_end = max(current_end, next_end)
+            else:
+                # No overlap, push current and start new
+                merged.append((current_start, current_end))
+                current_start, current_end = next_start, next_end
+        
+        # Push the final range
+        merged.append((current_start, current_end))
+
+        # Convert back to strings
+        return [(t_start.strftime(fmt), t_end.strftime(fmt)) for t_start, t_end in merged]
             
             # for logtype, variations in logs.items():
             #     if variations == "RemoveAll_0": # maybe for all the time range together?????????????
@@ -252,19 +359,31 @@ class Action(ActionWrapper):
         self.flush_logs(system_log_file_path, log_type="System")
         # check if all logs with injection id in splunk
         results = 0
-        start_date = datetime.datetime.strptime(self.episodic_logs_to_inject[0][1][0], '%m/%d/%Y:%H:%M:%S').strftime("%Y-%m-%dT%H:%M:%S")
-        end_date = datetime.datetime.strptime(self.episodic_logs_to_inject[-1][1][1], '%m/%d/%Y:%H:%M:%S').strftime("%Y-%m-%dT%H:%M:%S")
+        dt_all_start_date = datetime.datetime.strptime(self.episodic_logs_to_inject[0][1][0], '%m/%d/%Y:%H:%M:%S')
+        dt_all_end_date = datetime.datetime.strptime(self.episodic_logs_to_inject[-1][1][1], '%m/%d/%Y:%H:%M:%S')
+        all_start_date = dt_all_start_date.strftime("%Y-%m-%dT%H:%M:%S")
+        all_end_date = dt_all_end_date.strftime("%Y-%m-%dT%H:%M:%S")
         
-        logs_len = sum([sum([logs[x]['count'] for x in logs]) for logs, _ in self.episodic_logs_to_inject]) - sum([sum([info[log_type][var_id] for log_type in info for var_id in info[log_type]]) for time_range, info in self.unwrapped.log_generator.logs_to_delete.items()])
-        logger.info(f"Total episodic logs to inject: {logs_len}")
-        
-        while logs_len > results + 50:
+        # logs_len = sum([sum([logs[x]['count'] for x in logs]) for logs, _ in self.episodic_logs_to_inject]) - sum([sum([info[log_type][var_id] for log_type in info for var_id in info[log_type]]) for time_range, info in self.unwrapped.log_generator.logs_to_delete.items()])
+        logs_count = 0
+        for time_range, info in self.unwrapped.log_generator.fake_splunk_state.items():
+            dt_time_start = datetime.datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S')
+            dt_time_end = datetime.datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S')
+            if dt_time_start >= dt_all_start_date and dt_time_end <= dt_all_end_date:
+                logs_count += sum([info[log_type][var_id] for log_type in info for var_id in info[log_type]])    
+        logger.info(f"Total episodic logs to inject: {logs_count}")
+        attempts = 0
+        while (logs_count - results) /  logs_count > 0.01 :
             sleep(2)
             query = f'index=main host="dt-splunk" | stats count'
             # query = f'index=main host="dt-splunk" Injection_id={injection_id} | stats count'
-            results = self.unwrapped.splunk_tools.run_search(query, start_date, end_date)            
+            results = self.unwrapped.splunk_tools.run_search(query, all_start_date, all_end_date)            
             results = int(results[0]['count'])
-            logger.info(f"Waiting for logs to be indexed: {results}/{logs_len}")
+            logger.info(f"Waiting for logs to be indexed: {results}/{logs_count}, {(logs_count - results) /  logs_count * 100:.2f}% remaining")
+            attempts += 1
+            if attempts > 10:
+                logger.warning("T")
+                break
         
         # delete the logs according to self.unwrapped.log_generator.logs_to_delete
         # reset logs to delete
@@ -385,6 +504,9 @@ class Action(ActionWrapper):
         self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.unwrapped.top_logtypes for istrigger in [0, 1]}
         
         obs, info = self.env.reset(**kwargs)
+        self.unwrapped.log_generator.fake_splunk_state = {}
+
+        self.unwrapped.log_generator.logs_to_delete = {}
         return obs, info
 
 
@@ -787,7 +909,7 @@ class Action8(Action):
                 shape=(len(self.unwrapped.top_logtypes)+ len(self.unwrapped.relevant_logtypes),),
                 dtype=np.float32
             )
-            self.diversity_episode_logs = {f"{key[0]}_{key[1]}_1":0 for key in self.unwrapped.top_logtypes}
+            self.diversity_episode_logs = {f"{key[0]}_{key[1]}_1":1 for key in self.unwrapped.top_logtypes}
             self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.unwrapped.top_logtypes for istrigger in [0, 1]}
             self.diversity_factor = 30
             self.current_real_quantity = 0
@@ -852,12 +974,19 @@ class Action8(Action):
                 }
                     #  self.logs_to_delete[self.action_time_indexer[self.unwrapped.time_manager.action_window.to_tuple()]][self.log_type_indexer[key]] = max(0, diff)
                     #  self.fake_storage_state[(key,self.unwrapped.time_manager.action_window.to_tuple())] -= diff
-                
+                if logtype in self.unwrapped.relevant_logtypes:
+                    opposite_is_trigger = 1 - is_trigger
+                    opposite_key = f"{logtype[0]}_{logtype[1]}_{opposite_is_trigger}"
+                    logs_to_inject[opposite_key] = {
+                        'count': 0,
+                        'diversity': 1
+                    }
                 # Track logs
                 self.current_logs[key] = log_count
 
                 self.episode_logs[key] += log_count
                 self.diversity_episode_logs[key] = max(logs_to_inject[key]['diversity'], self.diversity_episode_logs[key])
+
                 # if logtype in self.unwrapped.relevant_logtypes and is_trigger == 1:
                 #     self.unwrapped.rules_rel_diff_alerts[logtype] =  self.diversity_episode_logs[key]/ (self.diversity_factor)
                 self.unwrapped.episodic_fake_logs_qnt += log_count

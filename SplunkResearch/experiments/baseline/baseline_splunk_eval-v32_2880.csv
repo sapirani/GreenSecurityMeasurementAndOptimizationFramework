@@ -1,397 +1,190 @@
-start_time,end_time,time_range,search_name,alert,duration_values,duration,cpu,read_count,write_count,read_bytes,write_bytes
-01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,55.146,9.41,0.0,0.0,0.0,0.0
-01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",Windows Event For Service Disabled,1,,47.725,10.21,0.0,0.0,0.0,0.0
-01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,51.456,12.11,0.0,0.0,0.0,0.0
-01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",Known Services Killed by Ransomware,3,,45.607,9.04,0.0,0.0,0.0,0.0
-01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",Clop Ransomware Known Service Name,0,,35.678,2.99,0.0,0.0,0.0,0.0
-01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,89.118,22.86,0.0,0.0,0.0,0.0
-01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,40.697,5.65,0.0,0.0,0.0,0.0
-01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,59.233,10.36,0.0,0.0,0.0,0.0
-01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",Detect New Local Admin account,0,,47.554,6.970000000000001,0.0,0.0,0.0,0.0
-01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,36.197,8.440000000000001,0.0,0.0,0.0,0.0
-01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",Windows Event For Service Disabled,1,,38.673,11.18,0.0,0.0,0.0,0.0
-01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,45.215,11.12,0.0,0.0,0.0,0.0
-01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",Known Services Killed by Ransomware,5,,32.811,8.51,0.0,0.0,0.0,0.0
-01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",Clop Ransomware Known Service Name,0,,28.541,3.12,0.0,0.0,0.0,0.0
-01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,55.037,18.08,0.0,0.0,0.0,0.0
-01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,29.888,5.84,0.0,0.0,0.0,0.0
-01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,37.06,9.38,0.0,0.0,0.0,0.0
-01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",Detect New Local Admin account,0,,30.143,3.98,0.0,0.0,0.0,0.0
-01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,37.104,7.03,0.0,0.0,0.0,0.0
-01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",Windows Event For Service Disabled,1,,35.021,7.36,0.0,0.0,0.0,0.0
-01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,35.517,8.940000000000001,0.0,0.0,0.0,0.0
-01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",Known Services Killed by Ransomware,3,,31.439,6.14,0.0,0.0,0.0,0.0
-01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",Clop Ransomware Known Service Name,0,,27.777,2.66,0.0,0.0,0.0,0.0
-01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,54.951,16.08,0.0,0.0,0.0,0.0
-01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,31.365,4.49,0.0,0.0,0.0,0.0
-01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,38.789,7.75,0.0,0.0,0.0,0.0
-01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",Detect New Local Admin account,0,,31.58,3.37,0.0,0.0,0.0,0.0
-01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,29.096,5.1,0.0,0.0,0.0,0.0
-01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",Windows Event For Service Disabled,1,,28.973,5.75,0.0,0.0,0.0,0.0
-01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,30.735,9.11,0.0,0.0,0.0,0.0
-01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",Known Services Killed by Ransomware,3,,26.927,5.32,0.0,0.0,0.0,0.0
-01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",Clop Ransomware Known Service Name,0,,25.509,2.2,0.0,0.0,0.0,0.0
-01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,47.59,14.46,0.0,0.0,0.0,0.0
-01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,25.707,3.67,0.0,0.0,0.0,0.0
-01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,32.049,6.28,0.0,0.0,0.0,0.0
-01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",Detect New Local Admin account,0,,26.23,3.04,0.0,0.0,0.0,0.0
-01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,30.214,4.470000000000001,0.0,0.0,0.0,0.0
-01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",Windows Event For Service Disabled,1,,30.29,5.32,0.0,0.0,0.0,0.0
-01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,31.303,6.81,0.0,0.0,0.0,0.0
-01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",Known Services Killed by Ransomware,3,,28.993,4.3,0.0,0.0,0.0,0.0
-01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",Clop Ransomware Known Service Name,0,,27.797,2.17,0.0,0.0,0.0,0.0
-01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,50.467,12.93,0.0,0.0,0.0,0.0
-01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,27.652,3.21,0.0,0.0,0.0,0.0
-01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,34.03,5.7,0.0,0.0,0.0,0.0
-01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",Detect New Local Admin account,0,,27.957,2.41,0.0,0.0,0.0,0.0
-01/21/2025:00:00:00,01/23/2025:00:00:00,"(Timestamp('2025-01-21 00:00:00'), Timestamp('2025-01-23 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,25.026,4.119999999999999,0.0,0.0,0.0,0.0
-01/21/2025:00:00:00,01/23/2025:00:00:00,"(Timestamp('2025-01-21 00:00:00'), Timestamp('2025-01-23 00:00:00'))",Windows Event For Service Disabled,7,,25.909,4.44,0.0,0.0,0.0,0.0
-01/21/2025:00:00:00,01/23/2025:00:00:00,"(Timestamp('2025-01-21 00:00:00'), Timestamp('2025-01-23 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,31.109,11.25,0.0,0.0,0.0,0.0
-01/21/2025:00:00:00,01/23/2025:00:00:00,"(Timestamp('2025-01-21 00:00:00'), Timestamp('2025-01-23 00:00:00'))",Known Services Killed by Ransomware,15,,25.918,4.48,0.0,0.0,0.0,0.0
-01/21/2025:00:00:00,01/23/2025:00:00:00,"(Timestamp('2025-01-21 00:00:00'), Timestamp('2025-01-23 00:00:00'))",Clop Ransomware Known Service Name,0,,22.317,2.16,0.0,0.0,0.0,0.0
-01/21/2025:00:00:00,01/23/2025:00:00:00,"(Timestamp('2025-01-21 00:00:00'), Timestamp('2025-01-23 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,45.221,13.75,0.0,0.0,0.0,0.0
-01/21/2025:00:00:00,01/23/2025:00:00:00,"(Timestamp('2025-01-21 00:00:00'), Timestamp('2025-01-23 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,23.801,3.26,0.0,0.0,0.0,0.0
-01/21/2025:00:00:00,01/23/2025:00:00:00,"(Timestamp('2025-01-21 00:00:00'), Timestamp('2025-01-23 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,28.326,5.69,0.0,0.0,0.0,0.0
-01/21/2025:00:00:00,01/23/2025:00:00:00,"(Timestamp('2025-01-21 00:00:00'), Timestamp('2025-01-23 00:00:00'))",Detect New Local Admin account,0,,24.867,2.99,0.0,0.0,0.0,0.0
-01/25/2025:00:00:00,01/27/2025:00:00:00,"(Timestamp('2025-01-25 00:00:00'), Timestamp('2025-01-27 00:00:00'))",Detect New Local Admin account,0,,26.83,2.85,0.0,0.0,0.0,0.0
-01/25/2025:00:00:00,01/27/2025:00:00:00,"(Timestamp('2025-01-25 00:00:00'), Timestamp('2025-01-27 00:00:00'))",Known Services Killed by Ransomware,3,,27.533,3.98,0.0,0.0,0.0,0.0
-01/25/2025:00:00:00,01/27/2025:00:00:00,"(Timestamp('2025-01-25 00:00:00'), Timestamp('2025-01-27 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,24.809,2.74,0.0,0.0,0.0,0.0
-01/25/2025:00:00:00,01/27/2025:00:00:00,"(Timestamp('2025-01-25 00:00:00'), Timestamp('2025-01-27 00:00:00'))",Clop Ransomware Known Service Name,0,,23.838,1.97,0.0,0.0,0.0,0.0
-01/25/2025:00:00:00,01/27/2025:00:00:00,"(Timestamp('2025-01-25 00:00:00'), Timestamp('2025-01-27 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,27.205,3.25,0.0,0.0,0.0,0.0
-01/25/2025:00:00:00,01/27/2025:00:00:00,"(Timestamp('2025-01-25 00:00:00'), Timestamp('2025-01-27 00:00:00'))",Windows Event For Service Disabled,1,,27.345,4.19,0.0,0.0,0.0,0.0
-01/25/2025:00:00:00,01/27/2025:00:00:00,"(Timestamp('2025-01-25 00:00:00'), Timestamp('2025-01-27 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,47.596,12.24,0.0,0.0,0.0,0.0
-01/25/2025:00:00:00,01/27/2025:00:00:00,"(Timestamp('2025-01-25 00:00:00'), Timestamp('2025-01-27 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,29.414,4.84,0.0,0.0,0.0,0.0
-01/25/2025:00:00:00,01/27/2025:00:00:00,"(Timestamp('2025-01-25 00:00:00'), Timestamp('2025-01-27 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,29.138,7.08,0.0,0.0,0.0,0.0
-01/29/2025:00:00:00,01/31/2025:00:00:00,"(Timestamp('2025-01-29 00:00:00'), Timestamp('2025-01-31 00:00:00'))",Detect New Local Admin account,0,,24.882,2.09,0.0,0.0,0.0,0.0
-01/29/2025:00:00:00,01/31/2025:00:00:00,"(Timestamp('2025-01-29 00:00:00'), Timestamp('2025-01-31 00:00:00'))",Known Services Killed by Ransomware,3,,26.156,3.52,0.0,0.0,0.0,0.0
-01/29/2025:00:00:00,01/31/2025:00:00:00,"(Timestamp('2025-01-29 00:00:00'), Timestamp('2025-01-31 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,22.969,2.48,0.0,0.0,0.0,0.0
-01/29/2025:00:00:00,01/31/2025:00:00:00,"(Timestamp('2025-01-29 00:00:00'), Timestamp('2025-01-31 00:00:00'))",Clop Ransomware Known Service Name,0,,23.884,1.51,0.0,0.0,0.0,0.0
-01/29/2025:00:00:00,01/31/2025:00:00:00,"(Timestamp('2025-01-29 00:00:00'), Timestamp('2025-01-31 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,25.855,2.87,0.0,0.0,0.0,0.0
-01/29/2025:00:00:00,01/31/2025:00:00:00,"(Timestamp('2025-01-29 00:00:00'), Timestamp('2025-01-31 00:00:00'))",Windows Event For Service Disabled,7,,25.925,3.24,0.0,0.0,0.0,0.0
-01/29/2025:00:00:00,01/31/2025:00:00:00,"(Timestamp('2025-01-29 00:00:00'), Timestamp('2025-01-31 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,46.885,11.84,0.0,0.0,0.0,0.0
-01/29/2025:00:00:00,01/31/2025:00:00:00,"(Timestamp('2025-01-29 00:00:00'), Timestamp('2025-01-31 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,28.858,4.5200000000000005,0.0,0.0,0.0,0.0
-01/29/2025:00:00:00,01/31/2025:00:00:00,"(Timestamp('2025-01-29 00:00:00'), Timestamp('2025-01-31 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,30.401,8.36,0.0,0.0,0.0,0.0
-02/02/2025:00:00:00,02/04/2025:00:00:00,"(Timestamp('2025-02-02 00:00:00'), Timestamp('2025-02-04 00:00:00'))",Detect New Local Admin account,0,,24.771,2.37,0.0,0.0,0.0,0.0
-02/02/2025:00:00:00,02/04/2025:00:00:00,"(Timestamp('2025-02-02 00:00:00'), Timestamp('2025-02-04 00:00:00'))",Known Services Killed by Ransomware,3,,26.406,4.61,0.0,0.0,0.0,0.0
-02/02/2025:00:00:00,02/04/2025:00:00:00,"(Timestamp('2025-02-02 00:00:00'), Timestamp('2025-02-04 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,23.153,2.43,0.0,0.0,0.0,0.0
-02/02/2025:00:00:00,02/04/2025:00:00:00,"(Timestamp('2025-02-02 00:00:00'), Timestamp('2025-02-04 00:00:00'))",Clop Ransomware Known Service Name,0,,22.138,2.22,0.0,0.0,0.0,0.0
-02/02/2025:00:00:00,02/04/2025:00:00:00,"(Timestamp('2025-02-02 00:00:00'), Timestamp('2025-02-04 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,24.066,3.08,0.0,0.0,0.0,0.0
-02/02/2025:00:00:00,02/04/2025:00:00:00,"(Timestamp('2025-02-02 00:00:00'), Timestamp('2025-02-04 00:00:00'))",Windows Event For Service Disabled,1,,25.181,4.91,0.0,0.0,0.0,0.0
-02/02/2025:00:00:00,02/04/2025:00:00:00,"(Timestamp('2025-02-02 00:00:00'), Timestamp('2025-02-04 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,43.459,11.68,0.0,0.0,0.0,0.0
-02/02/2025:00:00:00,02/04/2025:00:00:00,"(Timestamp('2025-02-02 00:00:00'), Timestamp('2025-02-04 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,26.352,4.69,0.0,0.0,0.0,0.0
-02/02/2025:00:00:00,02/04/2025:00:00:00,"(Timestamp('2025-02-02 00:00:00'), Timestamp('2025-02-04 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,33.029,8.99,0.0,0.0,0.0,0.0
-02/06/2025:00:00:00,02/08/2025:00:00:00,"(Timestamp('2025-02-06 00:00:00'), Timestamp('2025-02-08 00:00:00'))",Detect New Local Admin account,0,,21.386,2.34,0.0,0.0,0.0,0.0
-02/06/2025:00:00:00,02/08/2025:00:00:00,"(Timestamp('2025-02-06 00:00:00'), Timestamp('2025-02-08 00:00:00'))",Known Services Killed by Ransomware,3,,22.187,4.18,0.0,0.0,0.0,0.0
-02/06/2025:00:00:00,02/08/2025:00:00:00,"(Timestamp('2025-02-06 00:00:00'), Timestamp('2025-02-08 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,19.22,2.27,0.0,0.0,0.0,0.0
-02/06/2025:00:00:00,02/08/2025:00:00:00,"(Timestamp('2025-02-06 00:00:00'), Timestamp('2025-02-08 00:00:00'))",Clop Ransomware Known Service Name,0,,17.765,2.09,0.0,0.0,0.0,0.0
-02/06/2025:00:00:00,02/08/2025:00:00:00,"(Timestamp('2025-02-06 00:00:00'), Timestamp('2025-02-08 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,20.935,2.8000000000000003,0.0,0.0,0.0,0.0
-02/06/2025:00:00:00,02/08/2025:00:00:00,"(Timestamp('2025-02-06 00:00:00'), Timestamp('2025-02-08 00:00:00'))",Windows Event For Service Disabled,1,,21.176,4.41,0.0,0.0,0.0,0.0
-02/06/2025:00:00:00,02/08/2025:00:00:00,"(Timestamp('2025-02-06 00:00:00'), Timestamp('2025-02-08 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,37.031,9.4,0.0,0.0,0.0,0.0
-02/06/2025:00:00:00,02/08/2025:00:00:00,"(Timestamp('2025-02-06 00:00:00'), Timestamp('2025-02-08 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,21.653,3.97,0.0,0.0,0.0,0.0
-02/06/2025:00:00:00,02/08/2025:00:00:00,"(Timestamp('2025-02-06 00:00:00'), Timestamp('2025-02-08 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,26.911,7.26,0.0,0.0,0.0,0.0
-02/10/2025:00:00:00,02/12/2025:00:00:00,"(Timestamp('2025-02-10 00:00:00'), Timestamp('2025-02-12 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,11.378,7.949999999999999,0.0,0.0,0.0,0.0
-02/10/2025:00:00:00,02/12/2025:00:00:00,"(Timestamp('2025-02-10 00:00:00'), Timestamp('2025-02-12 00:00:00'))",Detect New Local Admin account,0,,4.979,1.99,0.0,0.0,0.0,0.0
-02/10/2025:00:00:00,02/12/2025:00:00:00,"(Timestamp('2025-02-10 00:00:00'), Timestamp('2025-02-12 00:00:00'))",Known Services Killed by Ransomware,3,,7.164000000000001,2.8200000000000003,0.0,0.0,0.0,0.0
-02/10/2025:00:00:00,02/12/2025:00:00:00,"(Timestamp('2025-02-10 00:00:00'), Timestamp('2025-02-12 00:00:00'))",Clop Ransomware Known Service Name,0,,3.416,1.99,0.0,0.0,0.0,0.0
-02/10/2025:00:00:00,02/12/2025:00:00:00,"(Timestamp('2025-02-10 00:00:00'), Timestamp('2025-02-12 00:00:00'))",Windows Event For Service Disabled,1,,6.354,3.63,0.0,0.0,0.0,0.0
-02/10/2025:00:00:00,02/12/2025:00:00:00,"(Timestamp('2025-02-10 00:00:00'), Timestamp('2025-02-12 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,5.814,3.39,0.0,0.0,0.0,0.0
-02/10/2025:00:00:00,02/12/2025:00:00:00,"(Timestamp('2025-02-10 00:00:00'), Timestamp('2025-02-12 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.5,2.15,0.0,0.0,0.0,0.0
-02/10/2025:00:00:00,02/12/2025:00:00:00,"(Timestamp('2025-02-10 00:00:00'), Timestamp('2025-02-12 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,8.950000000000001,7.229999999999999,0.0,0.0,0.0,0.0
-02/10/2025:00:00:00,02/12/2025:00:00:00,"(Timestamp('2025-02-10 00:00:00'), Timestamp('2025-02-12 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,3.766,2.62,0.0,0.0,0.0,0.0
-02/14/2025:00:00:00,02/16/2025:00:00:00,"(Timestamp('2025-02-14 00:00:00'), Timestamp('2025-02-16 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,9.368,5.8,0.0,0.0,0.0,0.0
-02/14/2025:00:00:00,02/16/2025:00:00:00,"(Timestamp('2025-02-14 00:00:00'), Timestamp('2025-02-16 00:00:00'))",Detect New Local Admin account,0,,6.0280000000000005,2.27,0.0,0.0,0.0,0.0
-02/14/2025:00:00:00,02/16/2025:00:00:00,"(Timestamp('2025-02-14 00:00:00'), Timestamp('2025-02-16 00:00:00'))",Known Services Killed by Ransomware,3,,7.804,3.59,0.0,0.0,0.0,0.0
-02/14/2025:00:00:00,02/16/2025:00:00:00,"(Timestamp('2025-02-14 00:00:00'), Timestamp('2025-02-16 00:00:00'))",Clop Ransomware Known Service Name,0,,3.327,1.86,0.0,0.0,0.0,0.0
-02/14/2025:00:00:00,02/16/2025:00:00:00,"(Timestamp('2025-02-14 00:00:00'), Timestamp('2025-02-16 00:00:00'))",Windows Event For Service Disabled,1,,8.084,4.6,0.0,0.0,0.0,0.0
-02/14/2025:00:00:00,02/16/2025:00:00:00,"(Timestamp('2025-02-14 00:00:00'), Timestamp('2025-02-16 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,7.47,3.8,0.0,0.0,0.0,0.0
-02/14/2025:00:00:00,02/16/2025:00:00:00,"(Timestamp('2025-02-14 00:00:00'), Timestamp('2025-02-16 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,5.605,2.31,0.0,0.0,0.0,0.0
-02/14/2025:00:00:00,02/16/2025:00:00:00,"(Timestamp('2025-02-14 00:00:00'), Timestamp('2025-02-16 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,12.98,7.58,0.0,0.0,0.0,0.0
-02/14/2025:00:00:00,02/16/2025:00:00:00,"(Timestamp('2025-02-14 00:00:00'), Timestamp('2025-02-16 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,6.373,2.9,0.0,0.0,0.0,0.0
-02/18/2025:00:00:00,02/20/2025:00:00:00,"(Timestamp('2025-02-18 00:00:00'), Timestamp('2025-02-20 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,14.969,9.96,0.0,0.0,0.0,0.0
-02/18/2025:00:00:00,02/20/2025:00:00:00,"(Timestamp('2025-02-18 00:00:00'), Timestamp('2025-02-20 00:00:00'))",Detect New Local Admin account,0,,6.885,2.05,0.0,0.0,0.0,0.0
-02/18/2025:00:00:00,02/20/2025:00:00:00,"(Timestamp('2025-02-18 00:00:00'), Timestamp('2025-02-20 00:00:00'))",Known Services Killed by Ransomware,11,,9.149,3.5,0.0,0.0,0.0,0.0
-02/18/2025:00:00:00,02/20/2025:00:00:00,"(Timestamp('2025-02-18 00:00:00'), Timestamp('2025-02-20 00:00:00'))",Clop Ransomware Known Service Name,0,,4.233,1.73,0.0,0.0,0.0,0.0
-02/18/2025:00:00:00,02/20/2025:00:00:00,"(Timestamp('2025-02-18 00:00:00'), Timestamp('2025-02-20 00:00:00'))",Windows Event For Service Disabled,2,,7.962,3.9,0.0,0.0,0.0,0.0
-02/18/2025:00:00:00,02/20/2025:00:00:00,"(Timestamp('2025-02-18 00:00:00'), Timestamp('2025-02-20 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,7.222,3.81,0.0,0.0,0.0,0.0
-02/18/2025:00:00:00,02/20/2025:00:00:00,"(Timestamp('2025-02-18 00:00:00'), Timestamp('2025-02-20 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,4.257,2.29,0.0,0.0,0.0,0.0
-02/18/2025:00:00:00,02/20/2025:00:00:00,"(Timestamp('2025-02-18 00:00:00'), Timestamp('2025-02-20 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,9.982,7.0,0.0,0.0,0.0,0.0
-02/18/2025:00:00:00,02/20/2025:00:00:00,"(Timestamp('2025-02-18 00:00:00'), Timestamp('2025-02-20 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,5.962,2.94,0.0,0.0,0.0,0.0
-02/22/2025:00:00:00,02/24/2025:00:00:00,"(Timestamp('2025-02-22 00:00:00'), Timestamp('2025-02-24 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,2,,11.502,6.45,0.0,0.0,0.0,0.0
-02/22/2025:00:00:00,02/24/2025:00:00:00,"(Timestamp('2025-02-22 00:00:00'), Timestamp('2025-02-24 00:00:00'))",Detect New Local Admin account,0,,4.565,2.15,0.0,0.0,0.0,0.0
-02/22/2025:00:00:00,02/24/2025:00:00:00,"(Timestamp('2025-02-22 00:00:00'), Timestamp('2025-02-24 00:00:00'))",Known Services Killed by Ransomware,3,,7.973,3.37,0.0,0.0,0.0,0.0
-02/22/2025:00:00:00,02/24/2025:00:00:00,"(Timestamp('2025-02-22 00:00:00'), Timestamp('2025-02-24 00:00:00'))",Clop Ransomware Known Service Name,0,,4.465,1.95,0.0,0.0,0.0,0.0
-02/22/2025:00:00:00,02/24/2025:00:00:00,"(Timestamp('2025-02-22 00:00:00'), Timestamp('2025-02-24 00:00:00'))",Windows Event For Service Disabled,1,,6.597,3.49,0.0,0.0,0.0,0.0
-02/22/2025:00:00:00,02/24/2025:00:00:00,"(Timestamp('2025-02-22 00:00:00'), Timestamp('2025-02-24 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,4.897,3.03,0.0,0.0,0.0,0.0
-02/22/2025:00:00:00,02/24/2025:00:00:00,"(Timestamp('2025-02-22 00:00:00'), Timestamp('2025-02-24 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,4.208,2.1300000000000003,0.0,0.0,0.0,0.0
-02/22/2025:00:00:00,02/24/2025:00:00:00,"(Timestamp('2025-02-22 00:00:00'), Timestamp('2025-02-24 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,6.84,5.12,0.0,0.0,0.0,0.0
-02/22/2025:00:00:00,02/24/2025:00:00:00,"(Timestamp('2025-02-22 00:00:00'), Timestamp('2025-02-24 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,4.7860000000000005,2.48,0.0,0.0,0.0,0.0
-02/26/2025:00:00:00,02/28/2025:00:00:00,"(Timestamp('2025-02-26 00:00:00'), Timestamp('2025-02-28 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,17.958000000000002,8.53,0.0,0.0,0.0,0.0
-02/26/2025:00:00:00,02/28/2025:00:00:00,"(Timestamp('2025-02-26 00:00:00'), Timestamp('2025-02-28 00:00:00'))",Detect New Local Admin account,0,,5.112,2.21,0.0,0.0,0.0,0.0
-02/26/2025:00:00:00,02/28/2025:00:00:00,"(Timestamp('2025-02-26 00:00:00'), Timestamp('2025-02-28 00:00:00'))",Known Services Killed by Ransomware,3,,8.549,2.86,0.0,0.0,0.0,0.0
-02/26/2025:00:00:00,02/28/2025:00:00:00,"(Timestamp('2025-02-26 00:00:00'), Timestamp('2025-02-28 00:00:00'))",Clop Ransomware Known Service Name,0,,3.698,1.83,0.0,0.0,0.0,0.0
-02/26/2025:00:00:00,02/28/2025:00:00:00,"(Timestamp('2025-02-26 00:00:00'), Timestamp('2025-02-28 00:00:00'))",Windows Event For Service Disabled,1,,7.882000000000001,4.34,0.0,0.0,0.0,0.0
-02/26/2025:00:00:00,02/28/2025:00:00:00,"(Timestamp('2025-02-26 00:00:00'), Timestamp('2025-02-28 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,5.423,3.23,0.0,0.0,0.0,0.0
-02/26/2025:00:00:00,02/28/2025:00:00:00,"(Timestamp('2025-02-26 00:00:00'), Timestamp('2025-02-28 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.923,2.24,0.0,0.0,0.0,0.0
-02/26/2025:00:00:00,02/28/2025:00:00:00,"(Timestamp('2025-02-26 00:00:00'), Timestamp('2025-02-28 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,9.115,6.54,0.0,0.0,0.0,0.0
-02/26/2025:00:00:00,02/28/2025:00:00:00,"(Timestamp('2025-02-26 00:00:00'), Timestamp('2025-02-28 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,5.191,2.5900000000000003,0.0,0.0,0.0,0.0
-03/02/2025:00:00:00,03/04/2025:00:00:00,"(Timestamp('2025-03-02 00:00:00'), Timestamp('2025-03-04 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,19.265,9.2,0.0,0.0,0.0,0.0
-03/02/2025:00:00:00,03/04/2025:00:00:00,"(Timestamp('2025-03-02 00:00:00'), Timestamp('2025-03-04 00:00:00'))",Detect New Local Admin account,0,,5.742,2.39,0.0,0.0,0.0,0.0
-03/02/2025:00:00:00,03/04/2025:00:00:00,"(Timestamp('2025-03-02 00:00:00'), Timestamp('2025-03-04 00:00:00'))",Known Services Killed by Ransomware,3,,9.182,3.1,0.0,0.0,0.0,0.0
-03/02/2025:00:00:00,03/04/2025:00:00:00,"(Timestamp('2025-03-02 00:00:00'), Timestamp('2025-03-04 00:00:00'))",Clop Ransomware Known Service Name,0,,3.551,1.89,0.0,0.0,0.0,0.0
-03/02/2025:00:00:00,03/04/2025:00:00:00,"(Timestamp('2025-03-02 00:00:00'), Timestamp('2025-03-04 00:00:00'))",Windows Event For Service Disabled,1,,7.88,4.52,0.0,0.0,0.0,0.0
-03/02/2025:00:00:00,03/04/2025:00:00:00,"(Timestamp('2025-03-02 00:00:00'), Timestamp('2025-03-04 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,6.905,3.71,0.0,0.0,0.0,0.0
-03/02/2025:00:00:00,03/04/2025:00:00:00,"(Timestamp('2025-03-02 00:00:00'), Timestamp('2025-03-04 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,5.171,2.37,0.0,0.0,0.0,0.0
-03/02/2025:00:00:00,03/04/2025:00:00:00,"(Timestamp('2025-03-02 00:00:00'), Timestamp('2025-03-04 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,11.681,7.75,0.0,0.0,0.0,0.0
-03/02/2025:00:00:00,03/04/2025:00:00:00,"(Timestamp('2025-03-02 00:00:00'), Timestamp('2025-03-04 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,5.363,3.09,0.0,0.0,0.0,0.0
-03/06/2025:00:00:00,03/08/2025:00:00:00,"(Timestamp('2025-03-06 00:00:00'), Timestamp('2025-03-08 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,15.644,7.17,0.0,0.0,0.0,0.0
-03/06/2025:00:00:00,03/08/2025:00:00:00,"(Timestamp('2025-03-06 00:00:00'), Timestamp('2025-03-08 00:00:00'))",Detect New Local Admin account,0,,5.3340000000000005,2.02,0.0,0.0,0.0,0.0
-03/06/2025:00:00:00,03/08/2025:00:00:00,"(Timestamp('2025-03-06 00:00:00'), Timestamp('2025-03-08 00:00:00'))",Known Services Killed by Ransomware,3,,8.556000000000001,2.48,0.0,0.0,0.0,0.0
-03/06/2025:00:00:00,03/08/2025:00:00:00,"(Timestamp('2025-03-06 00:00:00'), Timestamp('2025-03-08 00:00:00'))",Clop Ransomware Known Service Name,0,,4.237,1.92,0.0,0.0,0.0,0.0
-03/06/2025:00:00:00,03/08/2025:00:00:00,"(Timestamp('2025-03-06 00:00:00'), Timestamp('2025-03-08 00:00:00'))",Windows Event For Service Disabled,1,,8.120000000000001,3.37,0.0,0.0,0.0,0.0
-03/06/2025:00:00:00,03/08/2025:00:00:00,"(Timestamp('2025-03-06 00:00:00'), Timestamp('2025-03-08 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,5.32,2.54,0.0,0.0,0.0,0.0
-03/06/2025:00:00:00,03/08/2025:00:00:00,"(Timestamp('2025-03-06 00:00:00'), Timestamp('2025-03-08 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,4.41,2.35,0.0,0.0,0.0,0.0
-03/06/2025:00:00:00,03/08/2025:00:00:00,"(Timestamp('2025-03-06 00:00:00'), Timestamp('2025-03-08 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,8.959,6.29,0.0,0.0,0.0,0.0
-03/06/2025:00:00:00,03/08/2025:00:00:00,"(Timestamp('2025-03-06 00:00:00'), Timestamp('2025-03-08 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,4.769,2.33,0.0,0.0,0.0,0.0
-03/10/2025:00:00:00,03/12/2025:00:00:00,"(Timestamp('2025-03-10 00:00:00'), Timestamp('2025-03-12 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,10.504,7.6,0.0,0.0,0.0,0.0
-03/10/2025:00:00:00,03/12/2025:00:00:00,"(Timestamp('2025-03-10 00:00:00'), Timestamp('2025-03-12 00:00:00'))",Detect New Local Admin account,0,,4.282,2.2,0.0,0.0,0.0,0.0
-03/10/2025:00:00:00,03/12/2025:00:00:00,"(Timestamp('2025-03-10 00:00:00'), Timestamp('2025-03-12 00:00:00'))",Known Services Killed by Ransomware,3,,6.379,2.47,0.0,0.0,0.0,0.0
-03/10/2025:00:00:00,03/12/2025:00:00:00,"(Timestamp('2025-03-10 00:00:00'), Timestamp('2025-03-12 00:00:00'))",Clop Ransomware Known Service Name,0,,3.923,2.04,0.0,0.0,0.0,0.0
-03/10/2025:00:00:00,03/12/2025:00:00:00,"(Timestamp('2025-03-10 00:00:00'), Timestamp('2025-03-12 00:00:00'))",Windows Event For Service Disabled,1,,5.364,3.0,0.0,0.0,0.0,0.0
-03/10/2025:00:00:00,03/12/2025:00:00:00,"(Timestamp('2025-03-10 00:00:00'), Timestamp('2025-03-12 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,4.488,2.99,0.0,0.0,0.0,0.0
-03/10/2025:00:00:00,03/12/2025:00:00:00,"(Timestamp('2025-03-10 00:00:00'), Timestamp('2025-03-12 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.774,2.26,0.0,0.0,0.0,0.0
-03/10/2025:00:00:00,03/12/2025:00:00:00,"(Timestamp('2025-03-10 00:00:00'), Timestamp('2025-03-12 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,7.518,6.19,0.0,0.0,0.0,0.0
-03/10/2025:00:00:00,03/12/2025:00:00:00,"(Timestamp('2025-03-10 00:00:00'), Timestamp('2025-03-12 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,4.079,2.7,0.0,0.0,0.0,0.0
-03/14/2025:00:00:00,03/16/2025:00:00:00,"(Timestamp('2025-03-14 00:00:00'), Timestamp('2025-03-16 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,10.877,5.75,0.0,0.0,0.0,0.0
-03/14/2025:00:00:00,03/16/2025:00:00:00,"(Timestamp('2025-03-14 00:00:00'), Timestamp('2025-03-16 00:00:00'))",Detect New Local Admin account,0,,3.827,2.06,0.0,0.0,0.0,0.0
-03/14/2025:00:00:00,03/16/2025:00:00:00,"(Timestamp('2025-03-14 00:00:00'), Timestamp('2025-03-16 00:00:00'))",Known Services Killed by Ransomware,8,,7.225,2.76,0.0,0.0,0.0,0.0
-03/14/2025:00:00:00,03/16/2025:00:00:00,"(Timestamp('2025-03-14 00:00:00'), Timestamp('2025-03-16 00:00:00'))",Clop Ransomware Known Service Name,0,,3.416,1.81,0.0,0.0,0.0,0.0
-03/14/2025:00:00:00,03/16/2025:00:00:00,"(Timestamp('2025-03-14 00:00:00'), Timestamp('2025-03-16 00:00:00'))",Windows Event For Service Disabled,1,,4.924,2.91,0.0,0.0,0.0,0.0
-03/14/2025:00:00:00,03/16/2025:00:00:00,"(Timestamp('2025-03-14 00:00:00'), Timestamp('2025-03-16 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,3.663,2.62,0.0,0.0,0.0,0.0
-03/14/2025:00:00:00,03/16/2025:00:00:00,"(Timestamp('2025-03-14 00:00:00'), Timestamp('2025-03-16 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.389,2.27,0.0,0.0,0.0,0.0
-03/14/2025:00:00:00,03/16/2025:00:00:00,"(Timestamp('2025-03-14 00:00:00'), Timestamp('2025-03-16 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,5.037,4.09,0.0,0.0,0.0,0.0
-03/14/2025:00:00:00,03/16/2025:00:00:00,"(Timestamp('2025-03-14 00:00:00'), Timestamp('2025-03-16 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,3.965,2.3000000000000003,0.0,0.0,0.0,0.0
-03/18/2025:00:00:00,03/20/2025:00:00:00,"(Timestamp('2025-03-18 00:00:00'), Timestamp('2025-03-20 00:00:00'))",Known Services Killed by Ransomware,8,,10.303,2.88,0.0,0.0,0.0,0.0
-03/18/2025:00:00:00,03/20/2025:00:00:00,"(Timestamp('2025-03-18 00:00:00'), Timestamp('2025-03-20 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,7.477,2.53,0.0,0.0,0.0,0.0
-03/18/2025:00:00:00,03/20/2025:00:00:00,"(Timestamp('2025-03-18 00:00:00'), Timestamp('2025-03-20 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,4.98,2.5,0.0,0.0,0.0,0.0
-03/18/2025:00:00:00,03/20/2025:00:00:00,"(Timestamp('2025-03-18 00:00:00'), Timestamp('2025-03-20 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,2,,17.093,11.659999999999998,0.0,0.0,0.0,0.0
-03/18/2025:00:00:00,03/20/2025:00:00:00,"(Timestamp('2025-03-18 00:00:00'), Timestamp('2025-03-20 00:00:00'))",Windows Event For Service Disabled,2,,8.737,3.84,0.0,0.0,0.0,0.0
-03/18/2025:00:00:00,03/20/2025:00:00:00,"(Timestamp('2025-03-18 00:00:00'), Timestamp('2025-03-20 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,12.359,6.44,0.0,0.0,0.0,0.0
-03/18/2025:00:00:00,03/20/2025:00:00:00,"(Timestamp('2025-03-18 00:00:00'), Timestamp('2025-03-20 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,7.212,3.38,0.0,0.0,0.0,0.0
-03/18/2025:00:00:00,03/20/2025:00:00:00,"(Timestamp('2025-03-18 00:00:00'), Timestamp('2025-03-20 00:00:00'))",Detect New Local Admin account,0,,7.632000000000001,2.4,0.0,0.0,0.0,0.0
-03/18/2025:00:00:00,03/20/2025:00:00:00,"(Timestamp('2025-03-18 00:00:00'), Timestamp('2025-03-20 00:00:00'))",Clop Ransomware Known Service Name,0,,4.731,2.23,0.0,0.0,0.0,0.0
-03/22/2025:00:00:00,03/24/2025:00:00:00,"(Timestamp('2025-03-22 00:00:00'), Timestamp('2025-03-24 00:00:00'))",Known Services Killed by Ransomware,3,,7.391,2.27,0.0,0.0,0.0,0.0
-03/22/2025:00:00:00,03/24/2025:00:00:00,"(Timestamp('2025-03-22 00:00:00'), Timestamp('2025-03-24 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,3.783,1.95,0.0,0.0,0.0,0.0
-03/22/2025:00:00:00,03/24/2025:00:00:00,"(Timestamp('2025-03-22 00:00:00'), Timestamp('2025-03-24 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.567,1.99,0.0,0.0,0.0,0.0
-03/22/2025:00:00:00,03/24/2025:00:00:00,"(Timestamp('2025-03-22 00:00:00'), Timestamp('2025-03-24 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,11.129,7.26,0.0,0.0,0.0,0.0
-03/22/2025:00:00:00,03/24/2025:00:00:00,"(Timestamp('2025-03-22 00:00:00'), Timestamp('2025-03-24 00:00:00'))",Windows Event For Service Disabled,1,,4.797,2.4,0.0,0.0,0.0,0.0
-03/22/2025:00:00:00,03/24/2025:00:00:00,"(Timestamp('2025-03-22 00:00:00'), Timestamp('2025-03-24 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,6.928,3.9700000000000006,0.0,0.0,0.0,0.0
-03/22/2025:00:00:00,03/24/2025:00:00:00,"(Timestamp('2025-03-22 00:00:00'), Timestamp('2025-03-24 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,4.438,2.67,0.0,0.0,0.0,0.0
-03/22/2025:00:00:00,03/24/2025:00:00:00,"(Timestamp('2025-03-22 00:00:00'), Timestamp('2025-03-24 00:00:00'))",Detect New Local Admin account,0,,4.218,1.98,0.0,0.0,0.0,0.0
-03/22/2025:00:00:00,03/24/2025:00:00:00,"(Timestamp('2025-03-22 00:00:00'), Timestamp('2025-03-24 00:00:00'))",Clop Ransomware Known Service Name,0,,3.153,1.63,0.0,0.0,0.0,0.0
-03/26/2025:00:00:00,03/28/2025:00:00:00,"(Timestamp('2025-03-26 00:00:00'), Timestamp('2025-03-28 00:00:00'))",Known Services Killed by Ransomware,3,,10.834,2.1,0.0,0.0,0.0,0.0
-03/26/2025:00:00:00,03/28/2025:00:00:00,"(Timestamp('2025-03-26 00:00:00'), Timestamp('2025-03-28 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,9.881,2.87,0.0,0.0,0.0,0.0
-03/26/2025:00:00:00,03/28/2025:00:00:00,"(Timestamp('2025-03-26 00:00:00'), Timestamp('2025-03-28 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,6.503,2.7,0.0,0.0,0.0,0.0
-03/26/2025:00:00:00,03/28/2025:00:00:00,"(Timestamp('2025-03-26 00:00:00'), Timestamp('2025-03-28 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,2,,19.248,11.26,0.0,0.0,0.0,0.0
-03/26/2025:00:00:00,03/28/2025:00:00:00,"(Timestamp('2025-03-26 00:00:00'), Timestamp('2025-03-28 00:00:00'))",Windows Event For Service Disabled,4,,7.906000000000001,3.05,0.0,0.0,0.0,0.0
-03/26/2025:00:00:00,03/28/2025:00:00:00,"(Timestamp('2025-03-26 00:00:00'), Timestamp('2025-03-28 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,21.061,7.4,0.0,0.0,0.0,0.0
-03/26/2025:00:00:00,03/28/2025:00:00:00,"(Timestamp('2025-03-26 00:00:00'), Timestamp('2025-03-28 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,9.839,3.64,0.0,0.0,0.0,0.0
-03/26/2025:00:00:00,03/28/2025:00:00:00,"(Timestamp('2025-03-26 00:00:00'), Timestamp('2025-03-28 00:00:00'))",Detect New Local Admin account,0,,6.4270000000000005,2.47,0.0,0.0,0.0,0.0
-03/26/2025:00:00:00,03/28/2025:00:00:00,"(Timestamp('2025-03-26 00:00:00'), Timestamp('2025-03-28 00:00:00'))",Clop Ransomware Known Service Name,0,,3.147,1.93,0.0,0.0,0.0,0.0
-03/30/2025:00:00:00,04/01/2025:00:00:00,"(Timestamp('2025-03-30 00:00:00'), Timestamp('2025-04-01 00:00:00'))",Known Services Killed by Ransomware,3,,9.713,2.76,0.0,0.0,0.0,0.0
-03/30/2025:00:00:00,04/01/2025:00:00:00,"(Timestamp('2025-03-30 00:00:00'), Timestamp('2025-04-01 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,5.4270000000000005,2.63,0.0,0.0,0.0,0.0
-03/30/2025:00:00:00,04/01/2025:00:00:00,"(Timestamp('2025-03-30 00:00:00'), Timestamp('2025-04-01 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,4.705,2.51,0.0,0.0,0.0,0.0
-03/30/2025:00:00:00,04/01/2025:00:00:00,"(Timestamp('2025-03-30 00:00:00'), Timestamp('2025-04-01 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,2,,15.559,10.86,0.0,0.0,0.0,0.0
-03/30/2025:00:00:00,04/01/2025:00:00:00,"(Timestamp('2025-03-30 00:00:00'), Timestamp('2025-04-01 00:00:00'))",Windows Event For Service Disabled,1,,7.253,3.15,0.0,0.0,0.0,0.0
-03/30/2025:00:00:00,04/01/2025:00:00:00,"(Timestamp('2025-03-30 00:00:00'), Timestamp('2025-04-01 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,9.263,5.359999999999999,0.0,0.0,0.0,0.0
-03/30/2025:00:00:00,04/01/2025:00:00:00,"(Timestamp('2025-03-30 00:00:00'), Timestamp('2025-04-01 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,5.747,3.03,0.0,0.0,0.0,0.0
-03/30/2025:00:00:00,04/01/2025:00:00:00,"(Timestamp('2025-03-30 00:00:00'), Timestamp('2025-04-01 00:00:00'))",Detect New Local Admin account,0,,5.501,2.23,0.0,0.0,0.0,0.0
-03/30/2025:00:00:00,04/01/2025:00:00:00,"(Timestamp('2025-03-30 00:00:00'), Timestamp('2025-04-01 00:00:00'))",Clop Ransomware Known Service Name,0,,4.375,1.97,0.0,0.0,0.0,0.0
-04/03/2025:00:00:00,04/05/2025:00:00:00,"(Timestamp('2025-04-03 00:00:00'), Timestamp('2025-04-05 00:00:00'))",Known Services Killed by Ransomware,3,,9.403,2.02,0.0,0.0,0.0,0.0
-04/03/2025:00:00:00,04/05/2025:00:00:00,"(Timestamp('2025-04-03 00:00:00'), Timestamp('2025-04-05 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,6.58,2.72,0.0,0.0,0.0,0.0
-04/03/2025:00:00:00,04/05/2025:00:00:00,"(Timestamp('2025-04-03 00:00:00'), Timestamp('2025-04-05 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,4.607,2.02,0.0,0.0,0.0,0.0
-04/03/2025:00:00:00,04/05/2025:00:00:00,"(Timestamp('2025-04-03 00:00:00'), Timestamp('2025-04-05 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,16.206,7.35,0.0,0.0,0.0,0.0
-04/03/2025:00:00:00,04/05/2025:00:00:00,"(Timestamp('2025-04-03 00:00:00'), Timestamp('2025-04-05 00:00:00'))",Windows Event For Service Disabled,3,,7.385,2.63,0.0,0.0,0.0,0.0
-04/03/2025:00:00:00,04/05/2025:00:00:00,"(Timestamp('2025-04-03 00:00:00'), Timestamp('2025-04-05 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,16.796,5.48,0.0,0.0,0.0,0.0
-04/03/2025:00:00:00,04/05/2025:00:00:00,"(Timestamp('2025-04-03 00:00:00'), Timestamp('2025-04-05 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,6.51,2.29,0.0,0.0,0.0,0.0
-04/03/2025:00:00:00,04/05/2025:00:00:00,"(Timestamp('2025-04-03 00:00:00'), Timestamp('2025-04-05 00:00:00'))",Detect New Local Admin account,0,,6.502,2.09,0.0,0.0,0.0,0.0
-04/03/2025:00:00:00,04/05/2025:00:00:00,"(Timestamp('2025-04-03 00:00:00'), Timestamp('2025-04-05 00:00:00'))",Clop Ransomware Known Service Name,0,,4.132,1.61,0.0,0.0,0.0,0.0
-04/07/2025:00:00:00,04/09/2025:00:00:00,"(Timestamp('2025-04-07 00:00:00'), Timestamp('2025-04-09 00:00:00'))",Known Services Killed by Ransomware,3,,8.485,2.2,0.0,0.0,0.0,0.0
-04/07/2025:00:00:00,04/09/2025:00:00:00,"(Timestamp('2025-04-07 00:00:00'), Timestamp('2025-04-09 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,4.478,2.28,0.0,0.0,0.0,0.0
-04/07/2025:00:00:00,04/09/2025:00:00:00,"(Timestamp('2025-04-07 00:00:00'), Timestamp('2025-04-09 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.676,1.89,0.0,0.0,0.0,0.0
-04/07/2025:00:00:00,04/09/2025:00:00:00,"(Timestamp('2025-04-07 00:00:00'), Timestamp('2025-04-09 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,2,,13.13,9.41,0.0,0.0,0.0,0.0
-04/07/2025:00:00:00,04/09/2025:00:00:00,"(Timestamp('2025-04-07 00:00:00'), Timestamp('2025-04-09 00:00:00'))",Windows Event For Service Disabled,1,,5.648,2.3,0.0,0.0,0.0,0.0
-04/07/2025:00:00:00,04/09/2025:00:00:00,"(Timestamp('2025-04-07 00:00:00'), Timestamp('2025-04-09 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,7.455,4.99,0.0,0.0,0.0,0.0
-04/07/2025:00:00:00,04/09/2025:00:00:00,"(Timestamp('2025-04-07 00:00:00'), Timestamp('2025-04-09 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,4.259,2.3,0.0,0.0,0.0,0.0
-04/07/2025:00:00:00,04/09/2025:00:00:00,"(Timestamp('2025-04-07 00:00:00'), Timestamp('2025-04-09 00:00:00'))",Detect New Local Admin account,0,,4.48,2.27,0.0,0.0,0.0,0.0
-04/07/2025:00:00:00,04/09/2025:00:00:00,"(Timestamp('2025-04-07 00:00:00'), Timestamp('2025-04-09 00:00:00'))",Clop Ransomware Known Service Name,0,,3.047,1.63,0.0,0.0,0.0,0.0
-04/11/2025:00:00:00,04/13/2025:00:00:00,"(Timestamp('2025-04-11 00:00:00'), Timestamp('2025-04-13 00:00:00'))",Known Services Killed by Ransomware,8,,4.987,2.08,0.0,0.0,0.0,0.0
-04/11/2025:00:00:00,04/13/2025:00:00:00,"(Timestamp('2025-04-11 00:00:00'), Timestamp('2025-04-13 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,4.0200000000000005,2.18,0.0,0.0,0.0,0.0
-04/11/2025:00:00:00,04/13/2025:00:00:00,"(Timestamp('2025-04-11 00:00:00'), Timestamp('2025-04-13 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,2.721,1.86,0.0,0.0,0.0,0.0
-04/11/2025:00:00:00,04/13/2025:00:00:00,"(Timestamp('2025-04-11 00:00:00'), Timestamp('2025-04-13 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,8.461,6.67,0.0,0.0,0.0,0.0
-04/11/2025:00:00:00,04/13/2025:00:00:00,"(Timestamp('2025-04-11 00:00:00'), Timestamp('2025-04-13 00:00:00'))",Windows Event For Service Disabled,1,,3.821,2.06,0.0,0.0,0.0,0.0
-04/11/2025:00:00:00,04/13/2025:00:00:00,"(Timestamp('2025-04-11 00:00:00'), Timestamp('2025-04-13 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,5.791,4.22,0.0,0.0,0.0,0.0
-04/11/2025:00:00:00,04/13/2025:00:00:00,"(Timestamp('2025-04-11 00:00:00'), Timestamp('2025-04-13 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,3.653,1.98,0.0,0.0,0.0,0.0
-04/11/2025:00:00:00,04/13/2025:00:00:00,"(Timestamp('2025-04-11 00:00:00'), Timestamp('2025-04-13 00:00:00'))",Detect New Local Admin account,0,,3.801,1.94,0.0,0.0,0.0,0.0
-04/11/2025:00:00:00,04/13/2025:00:00:00,"(Timestamp('2025-04-11 00:00:00'), Timestamp('2025-04-13 00:00:00'))",Clop Ransomware Known Service Name,0,,2.276,1.64,0.0,0.0,0.0,0.0
-04/15/2025:00:00:00,04/17/2025:00:00:00,"(Timestamp('2025-04-15 00:00:00'), Timestamp('2025-04-17 00:00:00'))",Known Services Killed by Ransomware,3,,6.984,2.22,0.0,0.0,0.0,0.0
-04/15/2025:00:00:00,04/17/2025:00:00:00,"(Timestamp('2025-04-15 00:00:00'), Timestamp('2025-04-17 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,4.95,2.18,0.0,0.0,0.0,0.0
-04/15/2025:00:00:00,04/17/2025:00:00:00,"(Timestamp('2025-04-15 00:00:00'), Timestamp('2025-04-17 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.788,1.92,0.0,0.0,0.0,0.0
-04/15/2025:00:00:00,04/17/2025:00:00:00,"(Timestamp('2025-04-15 00:00:00'), Timestamp('2025-04-17 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,16.714,11.49,0.0,0.0,0.0,0.0
-04/15/2025:00:00:00,04/17/2025:00:00:00,"(Timestamp('2025-04-15 00:00:00'), Timestamp('2025-04-17 00:00:00'))",Windows Event For Service Disabled,1,,5.839,1.96,0.0,0.0,0.0,0.0
-04/15/2025:00:00:00,04/17/2025:00:00:00,"(Timestamp('2025-04-15 00:00:00'), Timestamp('2025-04-17 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,5.643,3.41,0.0,0.0,0.0,0.0
-04/15/2025:00:00:00,04/17/2025:00:00:00,"(Timestamp('2025-04-15 00:00:00'), Timestamp('2025-04-17 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,4.742,2.07,0.0,0.0,0.0,0.0
-04/15/2025:00:00:00,04/17/2025:00:00:00,"(Timestamp('2025-04-15 00:00:00'), Timestamp('2025-04-17 00:00:00'))",Detect New Local Admin account,0,,5.671,2.1,0.0,0.0,0.0,0.0
-04/15/2025:00:00:00,04/17/2025:00:00:00,"(Timestamp('2025-04-15 00:00:00'), Timestamp('2025-04-17 00:00:00'))",Clop Ransomware Known Service Name,0,,2.916,1.91,0.0,0.0,0.0,0.0
-04/19/2025:00:00:00,04/21/2025:00:00:00,"(Timestamp('2025-04-19 00:00:00'), Timestamp('2025-04-21 00:00:00'))",Known Services Killed by Ransomware,3,,5.407,2.0,0.0,0.0,0.0,0.0
-04/19/2025:00:00:00,04/21/2025:00:00:00,"(Timestamp('2025-04-19 00:00:00'), Timestamp('2025-04-21 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,3.896,2.0,0.0,0.0,0.0,0.0
-04/19/2025:00:00:00,04/21/2025:00:00:00,"(Timestamp('2025-04-19 00:00:00'), Timestamp('2025-04-21 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,2.769,1.83,0.0,0.0,0.0,0.0
-04/19/2025:00:00:00,04/21/2025:00:00:00,"(Timestamp('2025-04-19 00:00:00'), Timestamp('2025-04-21 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,10.986,8.25,0.0,0.0,0.0,0.0
-04/19/2025:00:00:00,04/21/2025:00:00:00,"(Timestamp('2025-04-19 00:00:00'), Timestamp('2025-04-21 00:00:00'))",Windows Event For Service Disabled,1,,4.312,2.19,0.0,0.0,0.0,0.0
-04/19/2025:00:00:00,04/21/2025:00:00:00,"(Timestamp('2025-04-19 00:00:00'), Timestamp('2025-04-21 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,4.869,3.38,0.0,0.0,0.0,0.0
-04/19/2025:00:00:00,04/21/2025:00:00:00,"(Timestamp('2025-04-19 00:00:00'), Timestamp('2025-04-21 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,3.915,2.21,0.0,0.0,0.0,0.0
-04/19/2025:00:00:00,04/21/2025:00:00:00,"(Timestamp('2025-04-19 00:00:00'), Timestamp('2025-04-21 00:00:00'))",Detect New Local Admin account,0,,3.693,2.08,0.0,0.0,0.0,0.0
-04/19/2025:00:00:00,04/21/2025:00:00:00,"(Timestamp('2025-04-19 00:00:00'), Timestamp('2025-04-21 00:00:00'))",Clop Ransomware Known Service Name,0,,2.268,1.77,0.0,0.0,0.0,0.0
-04/23/2025:00:00:00,04/25/2025:00:00:00,"(Timestamp('2025-04-23 00:00:00'), Timestamp('2025-04-25 00:00:00'))",Known Services Killed by Ransomware,3,,6.298,1.99,0.0,0.0,0.0,0.0
-04/23/2025:00:00:00,04/25/2025:00:00:00,"(Timestamp('2025-04-23 00:00:00'), Timestamp('2025-04-25 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,3.737,1.96,0.0,0.0,0.0,0.0
-04/23/2025:00:00:00,04/25/2025:00:00:00,"(Timestamp('2025-04-23 00:00:00'), Timestamp('2025-04-25 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.703,1.82,0.0,0.0,0.0,0.0
-04/23/2025:00:00:00,04/25/2025:00:00:00,"(Timestamp('2025-04-23 00:00:00'), Timestamp('2025-04-25 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,11.911,8.639999999999999,0.0,0.0,0.0,0.0
-04/23/2025:00:00:00,04/25/2025:00:00:00,"(Timestamp('2025-04-23 00:00:00'), Timestamp('2025-04-25 00:00:00'))",Windows Event For Service Disabled,1,,4.16,1.76,0.0,0.0,0.0,0.0
-04/23/2025:00:00:00,04/25/2025:00:00:00,"(Timestamp('2025-04-23 00:00:00'), Timestamp('2025-04-25 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,5.32,2.54,0.0,0.0,0.0,0.0
-04/23/2025:00:00:00,04/25/2025:00:00:00,"(Timestamp('2025-04-23 00:00:00'), Timestamp('2025-04-25 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,4.039,1.87,0.0,0.0,0.0,0.0
-04/23/2025:00:00:00,04/25/2025:00:00:00,"(Timestamp('2025-04-23 00:00:00'), Timestamp('2025-04-25 00:00:00'))",Detect New Local Admin account,0,,3.218,2.0,0.0,0.0,0.0,0.0
-04/23/2025:00:00:00,04/25/2025:00:00:00,"(Timestamp('2025-04-23 00:00:00'), Timestamp('2025-04-25 00:00:00'))",Clop Ransomware Known Service Name,0,,2.824,1.58,0.0,0.0,0.0,0.0
-01/03/2025:00:00:00,01/05/2025:00:00:00,"(Timestamp('2025-01-03 00:00:00'), Timestamp('2025-01-05 00:00:00'))",Clop Ransomware Known Service Name,0,,21.975,3.3,0.0,0.0,0.0,0.0
-01/03/2025:00:00:00,01/05/2025:00:00:00,"(Timestamp('2025-01-03 00:00:00'), Timestamp('2025-01-05 00:00:00'))",Detect New Local Admin account,0,,19.513,3.8,0.0,0.0,0.0,0.0
-01/03/2025:00:00:00,01/05/2025:00:00:00,"(Timestamp('2025-01-03 00:00:00'), Timestamp('2025-01-05 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,47.501,10.53,0.0,0.0,0.0,0.0
-01/03/2025:00:00:00,01/05/2025:00:00:00,"(Timestamp('2025-01-03 00:00:00'), Timestamp('2025-01-05 00:00:00'))",Windows Event For Service Disabled,1,,42.889,11.71,0.0,0.0,0.0,0.0
-01/03/2025:00:00:00,01/05/2025:00:00:00,"(Timestamp('2025-01-03 00:00:00'), Timestamp('2025-01-05 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,40.641,9.13,0.0,0.0,0.0,0.0
-01/03/2025:00:00:00,01/05/2025:00:00:00,"(Timestamp('2025-01-03 00:00:00'), Timestamp('2025-01-05 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,48.523,13.49,0.0,0.0,0.0,0.0
-01/03/2025:00:00:00,01/05/2025:00:00:00,"(Timestamp('2025-01-03 00:00:00'), Timestamp('2025-01-05 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,32.148,5.89,0.0,0.0,0.0,0.0
-01/03/2025:00:00:00,01/05/2025:00:00:00,"(Timestamp('2025-01-03 00:00:00'), Timestamp('2025-01-05 00:00:00'))",Known Services Killed by Ransomware,3,,36.946,9.86,0.0,0.0,0.0,0.0
-01/03/2025:00:00:00,01/05/2025:00:00:00,"(Timestamp('2025-01-03 00:00:00'), Timestamp('2025-01-05 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,41.524,8.950000000000001,0.0,0.0,0.0,0.0
-01/07/2025:00:00:00,01/09/2025:00:00:00,"(Timestamp('2025-01-07 00:00:00'), Timestamp('2025-01-09 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,16.439,11.27,0.0,0.0,0.0,0.0
-01/07/2025:00:00:00,01/09/2025:00:00:00,"(Timestamp('2025-01-07 00:00:00'), Timestamp('2025-01-09 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,7.846,4.65,0.0,0.0,0.0,0.0
-01/07/2025:00:00:00,01/09/2025:00:00:00,"(Timestamp('2025-01-07 00:00:00'), Timestamp('2025-01-09 00:00:00'))",Clop Ransomware Known Service Name,0,,5.22,2.8,0.0,0.0,0.0,0.0
-01/07/2025:00:00:00,01/09/2025:00:00:00,"(Timestamp('2025-01-07 00:00:00'), Timestamp('2025-01-09 00:00:00'))",Windows Event For Service Disabled,1,,10.521,6.0200000000000005,0.0,0.0,0.0,0.0
-01/07/2025:00:00:00,01/09/2025:00:00:00,"(Timestamp('2025-01-07 00:00:00'), Timestamp('2025-01-09 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,12.786,8.32,0.0,0.0,0.0,0.0
-01/07/2025:00:00:00,01/09/2025:00:00:00,"(Timestamp('2025-01-07 00:00:00'), Timestamp('2025-01-09 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,11.413,7.09,0.0,0.0,0.0,0.0
-01/07/2025:00:00:00,01/09/2025:00:00:00,"(Timestamp('2025-01-07 00:00:00'), Timestamp('2025-01-09 00:00:00'))",Known Services Killed by Ransomware,3,,9.149,4.43,0.0,0.0,0.0,0.0
-01/07/2025:00:00:00,01/09/2025:00:00:00,"(Timestamp('2025-01-07 00:00:00'), Timestamp('2025-01-09 00:00:00'))",Detect New Local Admin account,0,,9.206,4.17,0.0,0.0,0.0,0.0
-01/07/2025:00:00:00,01/09/2025:00:00:00,"(Timestamp('2025-01-07 00:00:00'), Timestamp('2025-01-09 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,10.594,6.04,0.0,0.0,0.0,0.0
-01/11/2025:00:00:00,01/13/2025:00:00:00,"(Timestamp('2025-01-11 00:00:00'), Timestamp('2025-01-13 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,8.649000000000001,6.6,0.0,0.0,0.0,0.0
-01/11/2025:00:00:00,01/13/2025:00:00:00,"(Timestamp('2025-01-11 00:00:00'), Timestamp('2025-01-13 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,4.775,2.91,0.0,0.0,0.0,0.0
-01/11/2025:00:00:00,01/13/2025:00:00:00,"(Timestamp('2025-01-11 00:00:00'), Timestamp('2025-01-13 00:00:00'))",Clop Ransomware Known Service Name,0,,3.861,2.28,0.0,0.0,0.0,0.0
-01/11/2025:00:00:00,01/13/2025:00:00:00,"(Timestamp('2025-01-11 00:00:00'), Timestamp('2025-01-13 00:00:00'))",Windows Event For Service Disabled,1,,5.845,4.06,0.0,0.0,0.0,0.0
-01/11/2025:00:00:00,01/13/2025:00:00:00,"(Timestamp('2025-01-11 00:00:00'), Timestamp('2025-01-13 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,7.742,5.62,0.0,0.0,0.0,0.0
-01/11/2025:00:00:00,01/13/2025:00:00:00,"(Timestamp('2025-01-11 00:00:00'), Timestamp('2025-01-13 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,6.756,4.91,0.0,0.0,0.0,0.0
-01/11/2025:00:00:00,01/13/2025:00:00:00,"(Timestamp('2025-01-11 00:00:00'), Timestamp('2025-01-13 00:00:00'))",Known Services Killed by Ransomware,3,,5.6240000000000006,3.55,0.0,0.0,0.0,0.0
-01/11/2025:00:00:00,01/13/2025:00:00:00,"(Timestamp('2025-01-11 00:00:00'), Timestamp('2025-01-13 00:00:00'))",Detect New Local Admin account,0,,3.679,2.39,0.0,0.0,0.0,0.0
-01/11/2025:00:00:00,01/13/2025:00:00:00,"(Timestamp('2025-01-11 00:00:00'), Timestamp('2025-01-13 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,5.57,3.83,0.0,0.0,0.0,0.0
-01/15/2025:00:00:00,01/17/2025:00:00:00,"(Timestamp('2025-01-15 00:00:00'), Timestamp('2025-01-17 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,7.816,5.430000000000001,0.0,0.0,0.0,0.0
-01/15/2025:00:00:00,01/17/2025:00:00:00,"(Timestamp('2025-01-15 00:00:00'), Timestamp('2025-01-17 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,4.057,2.54,0.0,0.0,0.0,0.0
-01/15/2025:00:00:00,01/17/2025:00:00:00,"(Timestamp('2025-01-15 00:00:00'), Timestamp('2025-01-17 00:00:00'))",Clop Ransomware Known Service Name,0,,2.927,2.04,0.0,0.0,0.0,0.0
-01/15/2025:00:00:00,01/17/2025:00:00:00,"(Timestamp('2025-01-15 00:00:00'), Timestamp('2025-01-17 00:00:00'))",Windows Event For Service Disabled,1,,7.554,4.41,0.0,0.0,0.0,0.0
-01/15/2025:00:00:00,01/17/2025:00:00:00,"(Timestamp('2025-01-15 00:00:00'), Timestamp('2025-01-17 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,10.287,8.03,0.0,0.0,0.0,0.0
-01/15/2025:00:00:00,01/17/2025:00:00:00,"(Timestamp('2025-01-15 00:00:00'), Timestamp('2025-01-17 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,5.809,4.17,0.0,0.0,0.0,0.0
-01/15/2025:00:00:00,01/17/2025:00:00:00,"(Timestamp('2025-01-15 00:00:00'), Timestamp('2025-01-17 00:00:00'))",Known Services Killed by Ransomware,9,,5.3950000000000005,3.18,0.0,0.0,0.0,0.0
-01/15/2025:00:00:00,01/17/2025:00:00:00,"(Timestamp('2025-01-15 00:00:00'), Timestamp('2025-01-17 00:00:00'))",Detect New Local Admin account,0,,4.011,2.25,0.0,0.0,0.0,0.0
-01/15/2025:00:00:00,01/17/2025:00:00:00,"(Timestamp('2025-01-15 00:00:00'), Timestamp('2025-01-17 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,5.181,3.35,0.0,0.0,0.0,0.0
-01/19/2025:00:00:00,01/21/2025:00:00:00,"(Timestamp('2025-01-19 00:00:00'), Timestamp('2025-01-21 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,7.3,5.68,0.0,0.0,0.0,0.0
-01/19/2025:00:00:00,01/21/2025:00:00:00,"(Timestamp('2025-01-19 00:00:00'), Timestamp('2025-01-21 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.498,2.16,0.0,0.0,0.0,0.0
-01/19/2025:00:00:00,01/21/2025:00:00:00,"(Timestamp('2025-01-19 00:00:00'), Timestamp('2025-01-21 00:00:00'))",Clop Ransomware Known Service Name,0,,2.747,1.52,0.0,0.0,0.0,0.0
-01/19/2025:00:00:00,01/21/2025:00:00:00,"(Timestamp('2025-01-19 00:00:00'), Timestamp('2025-01-21 00:00:00'))",Windows Event For Service Disabled,68,,7.44,3.37,0.0,0.0,0.0,0.0
-01/19/2025:00:00:00,01/21/2025:00:00:00,"(Timestamp('2025-01-19 00:00:00'), Timestamp('2025-01-21 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,9.71,7.569999999999999,0.0,0.0,0.0,0.0
-01/19/2025:00:00:00,01/21/2025:00:00:00,"(Timestamp('2025-01-19 00:00:00'), Timestamp('2025-01-21 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,5.1930000000000005,3.5500000000000003,0.0,0.0,0.0,0.0
-01/19/2025:00:00:00,01/21/2025:00:00:00,"(Timestamp('2025-01-19 00:00:00'), Timestamp('2025-01-21 00:00:00'))",Known Services Killed by Ransomware,3,,6.096,3.03,0.0,0.0,0.0,0.0
-01/19/2025:00:00:00,01/21/2025:00:00:00,"(Timestamp('2025-01-19 00:00:00'), Timestamp('2025-01-21 00:00:00'))",Detect New Local Admin account,0,,3.256,2.01,0.0,0.0,0.0,0.0
-01/19/2025:00:00:00,01/21/2025:00:00:00,"(Timestamp('2025-01-19 00:00:00'), Timestamp('2025-01-21 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,4.077,2.8200000000000003,0.0,0.0,0.0,0.0
-01/23/2025:00:00:00,01/25/2025:00:00:00,"(Timestamp('2025-01-23 00:00:00'), Timestamp('2025-01-25 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,6.567,5.48,0.0,0.0,0.0,0.0
-01/23/2025:00:00:00,01/25/2025:00:00:00,"(Timestamp('2025-01-23 00:00:00'), Timestamp('2025-01-25 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.5,2.1,0.0,0.0,0.0,0.0
-01/23/2025:00:00:00,01/25/2025:00:00:00,"(Timestamp('2025-01-23 00:00:00'), Timestamp('2025-01-25 00:00:00'))",Clop Ransomware Known Service Name,0,,3.075,1.75,0.0,0.0,0.0,0.0
-01/23/2025:00:00:00,01/25/2025:00:00:00,"(Timestamp('2025-01-23 00:00:00'), Timestamp('2025-01-25 00:00:00'))",Windows Event For Service Disabled,8,,4.587,2.34,0.0,0.0,0.0,0.0
-01/23/2025:00:00:00,01/25/2025:00:00:00,"(Timestamp('2025-01-23 00:00:00'), Timestamp('2025-01-25 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,7.082,5.23,0.0,0.0,0.0,0.0
-01/23/2025:00:00:00,01/25/2025:00:00:00,"(Timestamp('2025-01-23 00:00:00'), Timestamp('2025-01-25 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,4.488,3.22,0.0,0.0,0.0,0.0
-01/23/2025:00:00:00,01/25/2025:00:00:00,"(Timestamp('2025-01-23 00:00:00'), Timestamp('2025-01-25 00:00:00'))",Known Services Killed by Ransomware,3,,4.878,2.29,0.0,0.0,0.0,0.0
-01/23/2025:00:00:00,01/25/2025:00:00:00,"(Timestamp('2025-01-23 00:00:00'), Timestamp('2025-01-25 00:00:00'))",Detect New Local Admin account,0,,3.448,1.96,0.0,0.0,0.0,0.0
-01/23/2025:00:00:00,01/25/2025:00:00:00,"(Timestamp('2025-01-23 00:00:00'), Timestamp('2025-01-25 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,3.197,2.03,0.0,0.0,0.0,0.0
-01/27/2025:00:00:00,01/29/2025:00:00:00,"(Timestamp('2025-01-27 00:00:00'), Timestamp('2025-01-29 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,7.1770000000000005,4.78,0.0,0.0,0.0,0.0
-01/27/2025:00:00:00,01/29/2025:00:00:00,"(Timestamp('2025-01-27 00:00:00'), Timestamp('2025-01-29 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.402,2.03,0.0,0.0,0.0,0.0
-01/27/2025:00:00:00,01/29/2025:00:00:00,"(Timestamp('2025-01-27 00:00:00'), Timestamp('2025-01-29 00:00:00'))",Clop Ransomware Known Service Name,0,,2.914,1.49,0.0,0.0,0.0,0.0
-01/27/2025:00:00:00,01/29/2025:00:00:00,"(Timestamp('2025-01-27 00:00:00'), Timestamp('2025-01-29 00:00:00'))",Windows Event For Service Disabled,75,,5.527,2.72,0.0,0.0,0.0,0.0
-01/27/2025:00:00:00,01/29/2025:00:00:00,"(Timestamp('2025-01-27 00:00:00'), Timestamp('2025-01-29 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,9.262,7.0600000000000005,0.0,0.0,0.0,0.0
-01/27/2025:00:00:00,01/29/2025:00:00:00,"(Timestamp('2025-01-27 00:00:00'), Timestamp('2025-01-29 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,4.793,3.19,0.0,0.0,0.0,0.0
-01/27/2025:00:00:00,01/29/2025:00:00:00,"(Timestamp('2025-01-27 00:00:00'), Timestamp('2025-01-29 00:00:00'))",Known Services Killed by Ransomware,3,,5.0280000000000005,2.37,0.0,0.0,0.0,0.0
-01/27/2025:00:00:00,01/29/2025:00:00:00,"(Timestamp('2025-01-27 00:00:00'), Timestamp('2025-01-29 00:00:00'))",Detect New Local Admin account,0,,2.982,1.92,0.0,0.0,0.0,0.0
-01/27/2025:00:00:00,01/29/2025:00:00:00,"(Timestamp('2025-01-27 00:00:00'), Timestamp('2025-01-29 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,3.255,1.99,0.0,0.0,0.0,0.0
-01/31/2025:00:00:00,02/02/2025:00:00:00,"(Timestamp('2025-01-31 00:00:00'), Timestamp('2025-02-02 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,7.986,6.2,0.0,0.0,0.0,0.0
-01/31/2025:00:00:00,02/02/2025:00:00:00,"(Timestamp('2025-01-31 00:00:00'), Timestamp('2025-02-02 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,4.134,2.4,0.0,0.0,0.0,0.0
-01/31/2025:00:00:00,02/02/2025:00:00:00,"(Timestamp('2025-01-31 00:00:00'), Timestamp('2025-02-02 00:00:00'))",Clop Ransomware Known Service Name,0,,3.647,1.75,0.0,0.0,0.0,0.0
-01/31/2025:00:00:00,02/02/2025:00:00:00,"(Timestamp('2025-01-31 00:00:00'), Timestamp('2025-02-02 00:00:00'))",Windows Event For Service Disabled,12,,5.025,2.5,0.0,0.0,0.0,0.0
-01/31/2025:00:00:00,02/02/2025:00:00:00,"(Timestamp('2025-01-31 00:00:00'), Timestamp('2025-02-02 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,8.773,5.949999999999999,0.0,0.0,0.0,0.0
-01/31/2025:00:00:00,02/02/2025:00:00:00,"(Timestamp('2025-01-31 00:00:00'), Timestamp('2025-02-02 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,6.0200000000000005,4.16,0.0,0.0,0.0,0.0
-01/31/2025:00:00:00,02/02/2025:00:00:00,"(Timestamp('2025-01-31 00:00:00'), Timestamp('2025-02-02 00:00:00'))",Known Services Killed by Ransomware,3,,5.702,3.17,0.0,0.0,0.0,0.0
-01/31/2025:00:00:00,02/02/2025:00:00:00,"(Timestamp('2025-01-31 00:00:00'), Timestamp('2025-02-02 00:00:00'))",Detect New Local Admin account,0,,4.496,2.25,0.0,0.0,0.0,0.0
-01/31/2025:00:00:00,02/02/2025:00:00:00,"(Timestamp('2025-01-31 00:00:00'), Timestamp('2025-02-02 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,4.077,2.51,0.0,0.0,0.0,0.0
-02/04/2025:00:00:00,02/06/2025:00:00:00,"(Timestamp('2025-02-04 00:00:00'), Timestamp('2025-02-06 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,5.5120000000000005,4.3100000000000005,0.0,0.0,0.0,0.0
-02/04/2025:00:00:00,02/06/2025:00:00:00,"(Timestamp('2025-02-04 00:00:00'), Timestamp('2025-02-06 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,2.894,1.83,0.0,0.0,0.0,0.0
-02/04/2025:00:00:00,02/06/2025:00:00:00,"(Timestamp('2025-02-04 00:00:00'), Timestamp('2025-02-06 00:00:00'))",Clop Ransomware Known Service Name,0,,2.849,1.71,0.0,0.0,0.0,0.0
-02/04/2025:00:00:00,02/06/2025:00:00:00,"(Timestamp('2025-02-04 00:00:00'), Timestamp('2025-02-06 00:00:00'))",Windows Event For Service Disabled,7,,4.647,2.74,0.0,0.0,0.0,0.0
-02/04/2025:00:00:00,02/06/2025:00:00:00,"(Timestamp('2025-02-04 00:00:00'), Timestamp('2025-02-06 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,9.13,6.99,0.0,0.0,0.0,0.0
-02/04/2025:00:00:00,02/06/2025:00:00:00,"(Timestamp('2025-02-04 00:00:00'), Timestamp('2025-02-06 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,3.797,2.84,0.0,0.0,0.0,0.0
-02/04/2025:00:00:00,02/06/2025:00:00:00,"(Timestamp('2025-02-04 00:00:00'), Timestamp('2025-02-06 00:00:00'))",Known Services Killed by Ransomware,3,,4.843,2.66,0.0,0.0,0.0,0.0
-02/04/2025:00:00:00,02/06/2025:00:00:00,"(Timestamp('2025-02-04 00:00:00'), Timestamp('2025-02-06 00:00:00'))",Detect New Local Admin account,0,,2.778,1.75,0.0,0.0,0.0,0.0
-02/04/2025:00:00:00,02/06/2025:00:00:00,"(Timestamp('2025-02-04 00:00:00'), Timestamp('2025-02-06 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,2.936,1.83,0.0,0.0,0.0,0.0
-02/08/2025:00:00:00,02/10/2025:00:00:00,"(Timestamp('2025-02-08 00:00:00'), Timestamp('2025-02-10 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,6.821,4.54,0.0,0.0,0.0,0.0
-02/08/2025:00:00:00,02/10/2025:00:00:00,"(Timestamp('2025-02-08 00:00:00'), Timestamp('2025-02-10 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.361,1.98,0.0,0.0,0.0,0.0
-02/08/2025:00:00:00,02/10/2025:00:00:00,"(Timestamp('2025-02-08 00:00:00'), Timestamp('2025-02-10 00:00:00'))",Clop Ransomware Known Service Name,0,,3.051,1.84,0.0,0.0,0.0,0.0
-02/08/2025:00:00:00,02/10/2025:00:00:00,"(Timestamp('2025-02-08 00:00:00'), Timestamp('2025-02-10 00:00:00'))",Windows Event For Service Disabled,1,,5.426,3.0500000000000003,0.0,0.0,0.0,0.0
-02/08/2025:00:00:00,02/10/2025:00:00:00,"(Timestamp('2025-02-08 00:00:00'), Timestamp('2025-02-10 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,19.431,6.43,0.0,0.0,0.0,0.0
-02/08/2025:00:00:00,02/10/2025:00:00:00,"(Timestamp('2025-02-08 00:00:00'), Timestamp('2025-02-10 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,5.026,2.83,0.0,0.0,0.0,0.0
-02/08/2025:00:00:00,02/10/2025:00:00:00,"(Timestamp('2025-02-08 00:00:00'), Timestamp('2025-02-10 00:00:00'))",Known Services Killed by Ransomware,3,,6.174,2.72,0.0,0.0,0.0,0.0
-02/08/2025:00:00:00,02/10/2025:00:00:00,"(Timestamp('2025-02-08 00:00:00'), Timestamp('2025-02-10 00:00:00'))",Detect New Local Admin account,0,,3.087,2.1100000000000003,0.0,0.0,0.0,0.0
-02/08/2025:00:00:00,02/10/2025:00:00:00,"(Timestamp('2025-02-08 00:00:00'), Timestamp('2025-02-10 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,3.386,1.88,0.0,0.0,0.0,0.0
-02/12/2025:00:00:00,02/14/2025:00:00:00,"(Timestamp('2025-02-12 00:00:00'), Timestamp('2025-02-14 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,6.126,4.4,0.0,0.0,0.0,0.0
-02/12/2025:00:00:00,02/14/2025:00:00:00,"(Timestamp('2025-02-12 00:00:00'), Timestamp('2025-02-14 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.18,2.04,0.0,0.0,0.0,0.0
-02/12/2025:00:00:00,02/14/2025:00:00:00,"(Timestamp('2025-02-12 00:00:00'), Timestamp('2025-02-14 00:00:00'))",Clop Ransomware Known Service Name,0,,3.093,1.97,0.0,0.0,0.0,0.0
-02/12/2025:00:00:00,02/14/2025:00:00:00,"(Timestamp('2025-02-12 00:00:00'), Timestamp('2025-02-14 00:00:00'))",Windows Event For Service Disabled,2,,5.349,3.41,0.0,0.0,0.0,0.0
-02/12/2025:00:00:00,02/14/2025:00:00:00,"(Timestamp('2025-02-12 00:00:00'), Timestamp('2025-02-14 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,9.838,7.95,0.0,0.0,0.0,0.0
-02/12/2025:00:00:00,02/14/2025:00:00:00,"(Timestamp('2025-02-12 00:00:00'), Timestamp('2025-02-14 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,4.523,2.87,0.0,0.0,0.0,0.0
-02/12/2025:00:00:00,02/14/2025:00:00:00,"(Timestamp('2025-02-12 00:00:00'), Timestamp('2025-02-14 00:00:00'))",Known Services Killed by Ransomware,9,,5.522,2.68,0.0,0.0,0.0,0.0
-02/12/2025:00:00:00,02/14/2025:00:00:00,"(Timestamp('2025-02-12 00:00:00'), Timestamp('2025-02-14 00:00:00'))",Detect New Local Admin account,0,,3.4410000000000003,1.86,0.0,0.0,0.0,0.0
-02/12/2025:00:00:00,02/14/2025:00:00:00,"(Timestamp('2025-02-12 00:00:00'), Timestamp('2025-02-14 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,3.379,1.87,0.0,0.0,0.0,0.0
-02/16/2025:00:00:00,02/18/2025:00:00:00,"(Timestamp('2025-02-16 00:00:00'), Timestamp('2025-02-18 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,8.526,6.66,0.0,0.0,0.0,0.0
-02/16/2025:00:00:00,02/18/2025:00:00:00,"(Timestamp('2025-02-16 00:00:00'), Timestamp('2025-02-18 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.1630000000000003,2.12,0.0,0.0,0.0,0.0
-02/16/2025:00:00:00,02/18/2025:00:00:00,"(Timestamp('2025-02-16 00:00:00'), Timestamp('2025-02-18 00:00:00'))",Clop Ransomware Known Service Name,0,,3.157,1.91,0.0,0.0,0.0,0.0
-02/16/2025:00:00:00,02/18/2025:00:00:00,"(Timestamp('2025-02-16 00:00:00'), Timestamp('2025-02-18 00:00:00'))",Windows Event For Service Disabled,9,,5.977,2.78,0.0,0.0,0.0,0.0
-02/16/2025:00:00:00,02/18/2025:00:00:00,"(Timestamp('2025-02-16 00:00:00'), Timestamp('2025-02-18 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,14.02,10.55,0.0,0.0,0.0,0.0
-02/16/2025:00:00:00,02/18/2025:00:00:00,"(Timestamp('2025-02-16 00:00:00'), Timestamp('2025-02-18 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,6.01,3.76,0.0,0.0,0.0,0.0
-02/16/2025:00:00:00,02/18/2025:00:00:00,"(Timestamp('2025-02-16 00:00:00'), Timestamp('2025-02-18 00:00:00'))",Known Services Killed by Ransomware,6,,6.8180000000000005,2.9,0.0,0.0,0.0,0.0
-02/16/2025:00:00:00,02/18/2025:00:00:00,"(Timestamp('2025-02-16 00:00:00'), Timestamp('2025-02-18 00:00:00'))",Detect New Local Admin account,0,,5.449,1.99,0.0,0.0,0.0,0.0
-02/16/2025:00:00:00,02/18/2025:00:00:00,"(Timestamp('2025-02-16 00:00:00'), Timestamp('2025-02-18 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,4.956,2.67,0.0,0.0,0.0,0.0
-02/20/2025:00:00:00,02/22/2025:00:00:00,"(Timestamp('2025-02-20 00:00:00'), Timestamp('2025-02-22 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,5.989,4.72,0.0,0.0,0.0,0.0
-02/20/2025:00:00:00,02/22/2025:00:00:00,"(Timestamp('2025-02-20 00:00:00'), Timestamp('2025-02-22 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.145,1.82,0.0,0.0,0.0,0.0
-02/20/2025:00:00:00,02/22/2025:00:00:00,"(Timestamp('2025-02-20 00:00:00'), Timestamp('2025-02-22 00:00:00'))",Clop Ransomware Known Service Name,0,,3.133,1.7,0.0,0.0,0.0,0.0
-02/20/2025:00:00:00,02/22/2025:00:00:00,"(Timestamp('2025-02-20 00:00:00'), Timestamp('2025-02-22 00:00:00'))",Windows Event For Service Disabled,1,,4.747,2.61,0.0,0.0,0.0,0.0
-02/20/2025:00:00:00,02/22/2025:00:00:00,"(Timestamp('2025-02-20 00:00:00'), Timestamp('2025-02-22 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,8.143,5.699999999999999,0.0,0.0,0.0,0.0
-02/20/2025:00:00:00,02/22/2025:00:00:00,"(Timestamp('2025-02-20 00:00:00'), Timestamp('2025-02-22 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,3.76,2.56,0.0,0.0,0.0,0.0
-02/20/2025:00:00:00,02/22/2025:00:00:00,"(Timestamp('2025-02-20 00:00:00'), Timestamp('2025-02-22 00:00:00'))",Known Services Killed by Ransomware,3,,5.394,2.76,0.0,0.0,0.0,0.0
-02/20/2025:00:00:00,02/22/2025:00:00:00,"(Timestamp('2025-02-20 00:00:00'), Timestamp('2025-02-22 00:00:00'))",Detect New Local Admin account,0,,3.703,1.72,0.0,0.0,0.0,0.0
-02/20/2025:00:00:00,02/22/2025:00:00:00,"(Timestamp('2025-02-20 00:00:00'), Timestamp('2025-02-22 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,3.507,2.29,0.0,0.0,0.0,0.0
-02/24/2025:00:00:00,02/26/2025:00:00:00,"(Timestamp('2025-02-24 00:00:00'), Timestamp('2025-02-26 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,6.744,5.06,0.0,0.0,0.0,0.0
-02/24/2025:00:00:00,02/26/2025:00:00:00,"(Timestamp('2025-02-24 00:00:00'), Timestamp('2025-02-26 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.263,1.88,0.0,0.0,0.0,0.0
-02/24/2025:00:00:00,02/26/2025:00:00:00,"(Timestamp('2025-02-24 00:00:00'), Timestamp('2025-02-26 00:00:00'))",Clop Ransomware Known Service Name,0,,3.809,1.74,0.0,0.0,0.0,0.0
-02/24/2025:00:00:00,02/26/2025:00:00:00,"(Timestamp('2025-02-24 00:00:00'), Timestamp('2025-02-26 00:00:00'))",Windows Event For Service Disabled,3,,6.248,2.3200000000000003,0.0,0.0,0.0,0.0
-02/24/2025:00:00:00,02/26/2025:00:00:00,"(Timestamp('2025-02-24 00:00:00'), Timestamp('2025-02-26 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,22.915,8.44,0.0,0.0,0.0,0.0
-02/24/2025:00:00:00,02/26/2025:00:00:00,"(Timestamp('2025-02-24 00:00:00'), Timestamp('2025-02-26 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,5.122,2.57,0.0,0.0,0.0,0.0
-02/24/2025:00:00:00,02/26/2025:00:00:00,"(Timestamp('2025-02-24 00:00:00'), Timestamp('2025-02-26 00:00:00'))",Known Services Killed by Ransomware,3,,8.564,2.43,0.0,0.0,0.0,0.0
-02/24/2025:00:00:00,02/26/2025:00:00:00,"(Timestamp('2025-02-24 00:00:00'), Timestamp('2025-02-26 00:00:00'))",Detect New Local Admin account,0,,4.094,1.75,0.0,0.0,0.0,0.0
-02/24/2025:00:00:00,02/26/2025:00:00:00,"(Timestamp('2025-02-24 00:00:00'), Timestamp('2025-02-26 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,3.501,1.87,0.0,0.0,0.0,0.0
-02/28/2025:00:00:00,03/02/2025:00:00:00,"(Timestamp('2025-02-28 00:00:00'), Timestamp('2025-03-02 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,7.357,5.09,0.0,0.0,0.0,0.0
-02/28/2025:00:00:00,03/02/2025:00:00:00,"(Timestamp('2025-02-28 00:00:00'), Timestamp('2025-03-02 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.835,1.7399999999999998,0.0,0.0,0.0,0.0
-02/28/2025:00:00:00,03/02/2025:00:00:00,"(Timestamp('2025-02-28 00:00:00'), Timestamp('2025-03-02 00:00:00'))",Clop Ransomware Known Service Name,0,,3.013,1.74,0.0,0.0,0.0,0.0
-02/28/2025:00:00:00,03/02/2025:00:00:00,"(Timestamp('2025-02-28 00:00:00'), Timestamp('2025-03-02 00:00:00'))",Windows Event For Service Disabled,1,,6.365,2.32,0.0,0.0,0.0,0.0
-02/28/2025:00:00:00,03/02/2025:00:00:00,"(Timestamp('2025-02-28 00:00:00'), Timestamp('2025-03-02 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,16.862000000000002,5.49,0.0,0.0,0.0,0.0
-02/28/2025:00:00:00,03/02/2025:00:00:00,"(Timestamp('2025-02-28 00:00:00'), Timestamp('2025-03-02 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,4.204,2.31,0.0,0.0,0.0,0.0
-02/28/2025:00:00:00,03/02/2025:00:00:00,"(Timestamp('2025-02-28 00:00:00'), Timestamp('2025-03-02 00:00:00'))",Known Services Killed by Ransomware,3,,8.272,2.52,0.0,0.0,0.0,0.0
-02/28/2025:00:00:00,03/02/2025:00:00:00,"(Timestamp('2025-02-28 00:00:00'), Timestamp('2025-03-02 00:00:00'))",Detect New Local Admin account,0,,3.852,1.7,0.0,0.0,0.0,0.0
-02/28/2025:00:00:00,03/02/2025:00:00:00,"(Timestamp('2025-02-28 00:00:00'), Timestamp('2025-03-02 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,3.484,2.15,0.0,0.0,0.0,0.0
+start_time,end_time,time_range,search_name,alert,duration_values,duration,cpu,read_count,write_count,read_bytes,write_bytes,memory_mb
+01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",Clop Ransomware Known Service Name,0,,68.139,2.8,39881.0,696.0,971878400.0,1540096.0,41.0703125
+01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",Detect New Local Admin account,0,,77.741,6.21,234315.0,879.0,1021763584.0,1761280.0,52.35546875
+01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,73.124,8.23,144657.0,880.0,1018433536.0,1769472.0,37.43359375
+01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,73.029,10.18,105073.0,973.0,1210298368.0,1904640.0,62.14453125
+01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,70.834,4.84,98389.0,713.0,932679680.0,1597440.0,48.3359375
+01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",Known Services Killed by Ransomware,3,,70.992,6.55,91462.0,751.0,962101248.0,1929216.0,50.703125
+01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,71.755,7.01,126403.0,716.0,859766784.0,1622016.0,50.58203125
+01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,127.569,21.93,337226.0,818.0,2678464512.0,2801664.0,47.96484375
+01/01/2025:00:00:00,01/03/2025:00:00:00,"(Timestamp('2025-01-01 00:00:00'), Timestamp('2025-01-03 00:00:00'))",Windows Event For Service Disabled,1,,70.649,7.820000000000001,128731.0,740.0,1061834752.0,1622016.0,43.40234375
+01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",Clop Ransomware Known Service Name,0,,54.151,2.89,34128.0,828.0,1060724736.0,1372160.0,38.37890625
+01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",Detect New Local Admin account,0,,56.823,3.78,64223.0,739.0,684920832.0,1384448.0,36.921875
+01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,57.224,7.33,109223.0,837.0,884457472.0,1454080.0,37.71875
+01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,66.803,9.24,80505.0,954.0,1105555456.0,1601536.0,59.0546875
+01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,56.929,4.720000000000001,70685.0,665.0,808316928.0,1314816.0,46.2734375
+01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",Known Services Killed by Ransomware,5,,54.479,5.95,73192.0,699.0,813068288.0,1544192.0,50.91015625
+01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,57.211,6.32,97440.0,662.0,820056064.0,1343488.0,44.01171875
+01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,74.617,16.66,258636.0,682.0,1995493376.0,1720320.0,48.546875
+01/05/2025:00:00:00,01/07/2025:00:00:00,"(Timestamp('2025-01-05 00:00:00'), Timestamp('2025-01-07 00:00:00'))",Windows Event For Service Disabled,1,,56.697,8.129999999999999,118685.0,716.0,928149504.0,1339392.0,50.7109375
+01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",Clop Ransomware Known Service Name,0,,41.325,4.279999999999999,34692.0,792.0,811450368.0,1064960.0,-13.7578125
+01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",Detect New Local Admin account,0,,42.518,5.78,63537.0,544.0,677367808.0,962560.0,53.92578125
+01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,42.887,11.05,102419.0,645.0,695119872.0,1024000.0,49.9609375
+01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,45.604,12.9,75566.0,898.0,935538688.0,1257472.0,63.9921875
+01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,42.506,6.819999999999999,67922.0,680.0,726392832.0,1064960.0,45.671875
+01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",Known Services Killed by Ransomware,3,,41.316,8.16,65654.0,676.0,644476928.0,1171456.0,53.27734375
+01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,42.848,9.27,90810.0,640.0,597843968.0,1003520.0,53.90625
+01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,70.012,26.93,249189.0,672.0,1865383936.0,1585152.0,56.578125
+01/09/2025:00:00:00,01/11/2025:00:00:00,"(Timestamp('2025-01-09 00:00:00'), Timestamp('2025-01-11 00:00:00'))",Windows Event For Service Disabled,1,,42.267,10.52,101766.0,843.0,785588224.0,1122304.0,38.20703125
+01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",Clop Ransomware Known Service Name,0,,39.716,3.61,28840.0,617.0,706830336.0,909312.0,46.1953125
+01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",Detect New Local Admin account,0,,40.357,5.050000000000001,57096.0,524.0,600322048.0,909312.0,51.140625
+01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,40.247,9.24,91480.0,640.0,655306752.0,942080.0,47.125
+01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,44.053,13.46,69369.0,1047.0,860663808.0,1294336.0,40.12109375
+01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,40.246,6.13,63649.0,651.0,590553088.0,950272.0,49.86328125
+01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",Known Services Killed by Ransomware,3,,40.017,7.43,58754.0,722.0,566054912.0,1232896.0,51.09375
+01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,40.432,7.92,81764.0,790.0,500293632.0,1040384.0,36.796875
+01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,65.639,25.36,235255.0,659.0,1752387584.0,1474560.0,48.28515625
+01/13/2025:00:00:00,01/15/2025:00:00:00,"(Timestamp('2025-01-13 00:00:00'), Timestamp('2025-01-15 00:00:00'))",Windows Event For Service Disabled,1,,40.255,7.96,81807.0,659.0,568025088.0,933888.0,48.66015625
+01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",Clop Ransomware Known Service Name,0,,35.755,3.55,26672.0,618.0,598925312.0,851968.0,49.2890625
+01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",Detect New Local Admin account,0,,36.169,4.31,51957.0,529.0,484634624.0,843776.0,51.48046875
+01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,36.251,8.42,82331.0,620.0,595247104.0,876544.0,48.859375
+01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,38.049,9.63,62407.0,874.0,747986944.0,1085440.0,57.96875
+01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,36.167,4.88,57232.0,619.0,497954816.0,872448.0,48.72265625
+01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",Known Services Killed by Ransomware,3,,35.765,5.67,50214.0,659.0,487628800.0,1015808.0,51.5234375
+01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,36.184,6.5600000000000005,69822.0,617.0,455229440.0,876544.0,48.91015625
+01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,57.764,21.41,212685.0,869.0,1641365504.0,1372160.0,49.48046875
+01/17/2025:00:00:00,01/19/2025:00:00:00,"(Timestamp('2025-01-17 00:00:00'), Timestamp('2025-01-19 00:00:00'))",Windows Event For Service Disabled,1,,35.804,7.15,75392.0,643.0,481648640.0,847872.0,48.91015625
+10/01/2025:00:00:00,10/03/2025:00:00:00,"(Timestamp('2025-10-01 00:00:00'), Timestamp('2025-10-03 00:00:00'))",Clop Ransomware Known Service Name,0,,3.337,1.44,372.0,274.0,475136.0,106496.0,17.109375
+10/01/2025:00:00:00,10/03/2025:00:00:00,"(Timestamp('2025-10-01 00:00:00'), Timestamp('2025-10-03 00:00:00'))",Detect New Local Admin account,0,,6.555,1.64,2462.0,592.0,16617472.0,217088.0,23.56640625
+10/01/2025:00:00:00,10/03/2025:00:00:00,"(Timestamp('2025-10-01 00:00:00'), Timestamp('2025-10-03 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,6.276,1.5599999999999998,3804.0,323.0,22282240.0,172032.0,20.4765625
+10/01/2025:00:00:00,10/03/2025:00:00:00,"(Timestamp('2025-10-01 00:00:00'), Timestamp('2025-10-03 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,14.199,8.74,5232.0,640.0,41816064.0,397312.0,45.2734375
+10/01/2025:00:00:00,10/03/2025:00:00:00,"(Timestamp('2025-10-01 00:00:00'), Timestamp('2025-10-03 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,2.951,1.6599999999999997,867.0,521.0,282624.0,208896.0,11.30078125
+10/01/2025:00:00:00,10/03/2025:00:00:00,"(Timestamp('2025-10-01 00:00:00'), Timestamp('2025-10-03 00:00:00'))",Known Services Killed by Ransomware,1,,7.596,1.7400000000000002,2444.0,373.0,22781952.0,237568.0,23.328125
+10/01/2025:00:00:00,10/03/2025:00:00:00,"(Timestamp('2025-10-01 00:00:00'), Timestamp('2025-10-03 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,5.977,1.5699999999999998,3330.0,372.0,11526144.0,184320.0,21.23828125
+10/01/2025:00:00:00,10/03/2025:00:00:00,"(Timestamp('2025-10-01 00:00:00'), Timestamp('2025-10-03 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,2.868,1.62,1036.0,329.0,1032192.0,126976.0,32.7109375
+10/01/2025:00:00:00,10/03/2025:00:00:00,"(Timestamp('2025-10-01 00:00:00'), Timestamp('2025-10-03 00:00:00'))",Windows Event For Service Disabled,0,,5.715,1.7200000000000002,3729.0,413.0,7344128.0,212992.0,43.9921875
+10/31/2025:16:00:00,11/02/2025:16:00:00,"(Timestamp('2025-10-31 16:00:00'), Timestamp('2025-11-02 16:00:00'))",Clop Ransomware Known Service Name,0,,3.577,1.4800000000000002,941.0,226.0,7589888.0,98304.0,17.8203125
+10/31/2025:16:00:00,11/02/2025:16:00:00,"(Timestamp('2025-10-31 16:00:00'), Timestamp('2025-11-02 16:00:00'))",Detect New Local Admin account,0,,6.549,2.1,4728.0,398.0,11264000.0,249856.0,4.7421875
+10/31/2025:16:00:00,11/02/2025:16:00:00,"(Timestamp('2025-10-31 16:00:00'), Timestamp('2025-11-02 16:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,6.494,1.5700000000000005,5859.0,407.0,24522752.0,245760.0,6.0078125
+10/31/2025:16:00:00,11/02/2025:16:00:00,"(Timestamp('2025-10-31 16:00:00'), Timestamp('2025-11-02 16:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,10.372,6.96,5799.0,742.0,28241920.0,421888.0,12.59375
+10/31/2025:16:00:00,11/02/2025:16:00:00,"(Timestamp('2025-10-31 16:00:00'), Timestamp('2025-11-02 16:00:00'))",Kerberoasting spn request with RC4 encryption,0,,3.298,1.22,1436.0,312.0,6488064.0,114688.0,21.609375
+10/31/2025:16:00:00,11/02/2025:16:00:00,"(Timestamp('2025-10-31 16:00:00'), Timestamp('2025-11-02 16:00:00'))",Known Services Killed by Ransomware,1,,6.239,1.62,4438.0,573.0,21282816.0,344064.0,11.828125
+10/31/2025:16:00:00,11/02/2025:16:00:00,"(Timestamp('2025-10-31 16:00:00'), Timestamp('2025-11-02 16:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,6.1530000000000005,1.7099999999999995,4970.0,525.0,14499840.0,270336.0,-36.51171875
+10/31/2025:16:00:00,11/02/2025:16:00:00,"(Timestamp('2025-10-31 16:00:00'), Timestamp('2025-11-02 16:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,3.0460000000000003,1.63,3130.0,324.0,3846144.0,126976.0,22.578125
+10/31/2025:16:00:00,11/02/2025:16:00:00,"(Timestamp('2025-10-31 16:00:00'), Timestamp('2025-11-02 16:00:00'))",Windows Event For Service Disabled,1,,5.902,1.73,5759.0,600.0,15548416.0,327680.0,-23.4765625
+11/14/2025:02:00:00,11/16/2025:02:00:00,"(Timestamp('2025-11-14 02:00:00'), Timestamp('2025-11-16 02:00:00'))",Clop Ransomware Known Service Name,0,,3.239,1.35,350.0,312.0,4038656.0,114688.0,17.046875
+11/14/2025:02:00:00,11/16/2025:02:00:00,"(Timestamp('2025-11-14 02:00:00'), Timestamp('2025-11-16 02:00:00'))",Detect New Local Admin account,0,,5.6000000000000005,1.5799999999999998,2485.0,343.0,20770816.0,155648.0,21.19140625
+11/14/2025:02:00:00,11/16/2025:02:00:00,"(Timestamp('2025-11-14 02:00:00'), Timestamp('2025-11-16 02:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,5.538,1.45,3064.0,318.0,14630912.0,151552.0,19.4453125
+11/14/2025:02:00:00,11/16/2025:02:00:00,"(Timestamp('2025-11-14 02:00:00'), Timestamp('2025-11-16 02:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,11.124,7.470000000000001,4154.0,628.0,21811200.0,327680.0,42.0390625
+11/14/2025:02:00:00,11/16/2025:02:00:00,"(Timestamp('2025-11-14 02:00:00'), Timestamp('2025-11-16 02:00:00'))",Kerberoasting spn request with RC4 encryption,0,,2.93,1.39,304.0,313.0,2052096.0,114688.0,20.59375
+11/14/2025:02:00:00,11/16/2025:02:00:00,"(Timestamp('2025-11-14 02:00:00'), Timestamp('2025-11-16 02:00:00'))",Known Services Killed by Ransomware,1,,6.181,1.46,2982.0,380.0,18411520.0,212992.0,27.19921875
+11/14/2025:02:00:00,11/16/2025:02:00:00,"(Timestamp('2025-11-14 02:00:00'), Timestamp('2025-11-16 02:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,5.208,1.5,3317.0,367.0,3936256.0,163840.0,30.4453125
+11/14/2025:02:00:00,11/16/2025:02:00:00,"(Timestamp('2025-11-14 02:00:00'), Timestamp('2025-11-16 02:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,3.128,1.49,2939.0,326.0,2916352.0,126976.0,32.83203125
+11/14/2025:02:00:00,11/16/2025:02:00:00,"(Timestamp('2025-11-14 02:00:00'), Timestamp('2025-11-16 02:00:00'))",Windows Event For Service Disabled,0,,4.953,1.61,4069.0,405.0,7585792.0,167936.0,42.6328125
+12/01/2025:23:59:59,12/03/2025:23:59:59,"(Timestamp('2025-12-01 23:59:59'), Timestamp('2025-12-03 23:59:59'))",Clop Ransomware Known Service Name,0,,2.028,0.7999999999999999,1042.0,222.0,6135808.0,73728.0,16.46875
+12/01/2025:23:59:59,12/03/2025:23:59:59,"(Timestamp('2025-12-01 23:59:59'), Timestamp('2025-12-03 23:59:59'))",Detect New Local Admin account,0,,2.272,0.91,1522.0,337.0,8437760.0,94208.0,20.078125
+12/01/2025:23:59:59,12/03/2025:23:59:59,"(Timestamp('2025-12-01 23:59:59'), Timestamp('2025-12-03 23:59:59'))",ESCU Network Share Discovery Via Dir Command Rule,0,,2.033,0.91,1413.0,308.0,11927552.0,90112.0,18.9765625
+12/01/2025:23:59:59,12/03/2025:23:59:59,"(Timestamp('2025-12-01 23:59:59'), Timestamp('2025-12-03 23:59:59'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,9.02,6.04,4224.0,507.0,37752832.0,266240.0,33.265625
+12/01/2025:23:59:59,12/03/2025:23:59:59,"(Timestamp('2025-12-01 23:59:59'), Timestamp('2025-12-03 23:59:59'))",Kerberoasting spn request with RC4 encryption,0,,1.925,0.8799999999999999,1607.0,308.0,1298432.0,94208.0,17.703125
+12/01/2025:23:59:59,12/03/2025:23:59:59,"(Timestamp('2025-12-01 23:59:59'), Timestamp('2025-12-03 23:59:59'))",Known Services Killed by Ransomware,1,,3.248,1.02,2104.0,510.0,10637312.0,294912.0,13.3984375
+12/01/2025:23:59:59,12/03/2025:23:59:59,"(Timestamp('2025-12-01 23:59:59'), Timestamp('2025-12-03 23:59:59'))",Non Chrome Process Accessing Chrome Default Dir,0,,1.872,0.91,1395.0,305.0,1486848.0,94208.0,20.91015625
+12/01/2025:23:59:59,12/03/2025:23:59:59,"(Timestamp('2025-12-01 23:59:59'), Timestamp('2025-12-03 23:59:59'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,1.988,0.91,3068.0,317.0,5140480.0,102400.0,22.91015625
+12/01/2025:23:59:59,12/03/2025:23:59:59,"(Timestamp('2025-12-01 23:59:59'), Timestamp('2025-12-03 23:59:59'))",Windows Event For Service Disabled,1,,2.04,0.99,2277.0,307.0,4927488.0,90112.0,22.3125
+08/01/2025:00:00:00,08/03/2025:00:00:00,"(Timestamp('2025-08-01 00:00:00'), Timestamp('2025-08-03 00:00:00'))",Clop Ransomware Known Service Name,0,,3.081,1.14,1376.0,404.0,778240.0,188416.0,1.9765625
+08/01/2025:00:00:00,08/03/2025:00:00:00,"(Timestamp('2025-08-01 00:00:00'), Timestamp('2025-08-03 00:00:00'))",Detect New Local Admin account,0,,6.551,1.1800000000000002,8982.0,480.0,18030592.0,270336.0,16.7421875
+08/01/2025:00:00:00,08/03/2025:00:00:00,"(Timestamp('2025-08-01 00:00:00'), Timestamp('2025-08-03 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,5.782,1.3199999999999998,8607.0,297.0,14082048.0,151552.0,17.78125
+08/01/2025:00:00:00,08/03/2025:00:00:00,"(Timestamp('2025-08-01 00:00:00'), Timestamp('2025-08-03 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,8.962,4.49,9018.0,544.0,24801280.0,278528.0,30.58203125
+08/01/2025:00:00:00,08/03/2025:00:00:00,"(Timestamp('2025-08-01 00:00:00'), Timestamp('2025-08-03 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,2.721,1.17,946.0,334.0,319488.0,98304.0,18.01953125
+08/01/2025:00:00:00,08/03/2025:00:00:00,"(Timestamp('2025-08-01 00:00:00'), Timestamp('2025-08-03 00:00:00'))",Known Services Killed by Ransomware,1,,6.038,1.4700000000000002,7100.0,598.0,13844480.0,348160.0,-36.91796875
+08/01/2025:00:00:00,08/03/2025:00:00:00,"(Timestamp('2025-08-01 00:00:00'), Timestamp('2025-08-03 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,5.737,1.32,9198.0,341.0,13082624.0,180224.0,21.6484375
+08/01/2025:00:00:00,08/03/2025:00:00:00,"(Timestamp('2025-08-01 00:00:00'), Timestamp('2025-08-03 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,2.484,1.17,2162.0,294.0,1429504.0,102400.0,16.11328125
+08/01/2025:00:00:00,08/03/2025:00:00:00,"(Timestamp('2025-08-01 00:00:00'), Timestamp('2025-08-03 00:00:00'))",Windows Event For Service Disabled,0,,5.522,1.41,11179.0,464.0,5758976.0,196608.0,39.48046875
+08/14/2025:12:00:00,08/16/2025:12:00:00,"(Timestamp('2025-08-14 12:00:00'), Timestamp('2025-08-16 12:00:00'))",Clop Ransomware Known Service Name,0,,3.021,1.42,1203.0,397.0,1081344.0,184320.0,-44.6171875
+08/14/2025:12:00:00,08/16/2025:12:00:00,"(Timestamp('2025-08-14 12:00:00'), Timestamp('2025-08-16 12:00:00'))",Detect New Local Admin account,0,,3.5340000000000003,1.35,8825.0,295.0,7933952.0,102400.0,19.67578125
+08/14/2025:12:00:00,08/16/2025:12:00:00,"(Timestamp('2025-08-14 12:00:00'), Timestamp('2025-08-16 12:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,3.36,1.41,5984.0,368.0,4812800.0,180224.0,11.1953125
+08/14/2025:12:00:00,08/16/2025:12:00:00,"(Timestamp('2025-08-14 12:00:00'), Timestamp('2025-08-16 12:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,8.719,6.18,5126.0,583.0,8531968.0,258048.0,55.79296875
+08/14/2025:12:00:00,08/16/2025:12:00:00,"(Timestamp('2025-08-14 12:00:00'), Timestamp('2025-08-16 12:00:00'))",Kerberoasting spn request with RC4 encryption,0,,2.754,1.39,1202.0,483.0,1077248.0,204800.0,-41.17578125
+08/14/2025:12:00:00,08/16/2025:12:00:00,"(Timestamp('2025-08-14 12:00:00'), Timestamp('2025-08-16 12:00:00'))",Known Services Killed by Ransomware,1,,4.109,1.7200000000000002,3364.0,375.0,18038784.0,163840.0,26.890625
+08/14/2025:12:00:00,08/16/2025:12:00:00,"(Timestamp('2025-08-14 12:00:00'), Timestamp('2025-08-16 12:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,2.919,1.55,7241.0,417.0,2551808.0,192512.0,29.640625
+08/14/2025:12:00:00,08/16/2025:12:00:00,"(Timestamp('2025-08-14 12:00:00'), Timestamp('2025-08-16 12:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,2.424,1.26,1321.0,337.0,974848.0,106496.0,32.6953125
+08/14/2025:12:00:00,08/16/2025:12:00:00,"(Timestamp('2025-08-14 12:00:00'), Timestamp('2025-08-16 12:00:00'))",Windows Event For Service Disabled,0,,3.166,1.7200000000000002,6429.0,447.0,12484608.0,155648.0,44.8671875
+08/02/2025:12:00:00,08/04/2025:12:00:00,"(Timestamp('2025-08-02 12:00:00'), Timestamp('2025-08-04 12:00:00'))",Clop Ransomware Known Service Name,0,,3.057,1.52,1020.0,264.0,4050944.0,110592.0,12.953125
+08/02/2025:12:00:00,08/04/2025:12:00:00,"(Timestamp('2025-08-02 12:00:00'), Timestamp('2025-08-04 12:00:00'))",Detect New Local Admin account,0,,5.2700000000000005,1.63,12802.0,327.0,13774848.0,155648.0,22.4296875
+08/02/2025:12:00:00,08/04/2025:12:00:00,"(Timestamp('2025-08-02 12:00:00'), Timestamp('2025-08-04 12:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,5.136,1.52,10425.0,271.0,14270464.0,147456.0,14.07421875
+08/02/2025:12:00:00,08/04/2025:12:00:00,"(Timestamp('2025-08-02 12:00:00'), Timestamp('2025-08-04 12:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,10.923,8.09,10411.0,614.0,23437312.0,327680.0,48.78125
+08/02/2025:12:00:00,08/04/2025:12:00:00,"(Timestamp('2025-08-02 12:00:00'), Timestamp('2025-08-04 12:00:00'))",Kerberoasting spn request with RC4 encryption,0,,2.854,1.4500000000000002,1218.0,385.0,1843200.0,122880.0,21.875
+08/02/2025:12:00:00,08/04/2025:12:00:00,"(Timestamp('2025-08-02 12:00:00'), Timestamp('2025-08-04 12:00:00'))",Known Services Killed by Ransomware,1,,5.68,1.58,7021.0,433.0,13983744.0,233472.0,28.27734375
+08/02/2025:12:00:00,08/04/2025:12:00:00,"(Timestamp('2025-08-02 12:00:00'), Timestamp('2025-08-04 12:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,4.814,1.35,10861.0,388.0,11395072.0,151552.0,24.87109375
+08/02/2025:12:00:00,08/04/2025:12:00:00,"(Timestamp('2025-08-02 12:00:00'), Timestamp('2025-08-04 12:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,2.696,1.5,3697.0,386.0,753664.0,147456.0,39.35546875
+08/02/2025:12:00:00,08/04/2025:12:00:00,"(Timestamp('2025-08-02 12:00:00'), Timestamp('2025-08-04 12:00:00'))",Windows Event For Service Disabled,0,,4.549,1.72,13434.0,480.0,7532544.0,196608.0,50.48828125
+08/26/2025:00:00:00,08/28/2025:00:00:00,"(Timestamp('2025-08-26 00:00:00'), Timestamp('2025-08-28 00:00:00'))",Clop Ransomware Known Service Name,0,,2.4130000000000003,1.65,505.0,359.0,94208.0,102400.0,25.04296875
+08/26/2025:00:00:00,08/28/2025:00:00:00,"(Timestamp('2025-08-26 00:00:00'), Timestamp('2025-08-28 00:00:00'))",Detect New Local Admin account,0,,3.99,1.69,4579.0,638.0,7081984.0,188416.0,28.3515625
+08/26/2025:00:00:00,08/28/2025:00:00:00,"(Timestamp('2025-08-26 00:00:00'), Timestamp('2025-08-28 00:00:00'))",ESCU Network Share Discovery Via Dir Command Rule,0,,3.258,1.47,2251.0,366.0,7335936.0,122880.0,21.75390625
+08/26/2025:00:00:00,08/28/2025:00:00:00,"(Timestamp('2025-08-26 00:00:00'), Timestamp('2025-08-28 00:00:00'))",ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,12.189,8.9,6461.0,647.0,26021888.0,352256.0,39.73828125
+08/26/2025:00:00:00,08/28/2025:00:00:00,"(Timestamp('2025-08-26 00:00:00'), Timestamp('2025-08-28 00:00:00'))",Kerberoasting spn request with RC4 encryption,0,,2.291,1.51,835.0,341.0,0.0,98304.0,26.3046875
+08/26/2025:00:00:00,08/28/2025:00:00:00,"(Timestamp('2025-08-26 00:00:00'), Timestamp('2025-08-28 00:00:00'))",Known Services Killed by Ransomware,1,,4.1770000000000005,1.48,2693.0,370.0,11976704.0,163840.0,32.4140625
+08/26/2025:00:00:00,08/28/2025:00:00:00,"(Timestamp('2025-08-26 00:00:00'), Timestamp('2025-08-28 00:00:00'))",Non Chrome Process Accessing Chrome Default Dir,0,,2.981,1.7100000000000002,7219.0,567.0,6004736.0,241664.0,-16.50390625
+08/26/2025:00:00:00,08/28/2025:00:00:00,"(Timestamp('2025-08-26 00:00:00'), Timestamp('2025-08-28 00:00:00'))",Windows AD Replication Request Initiated from Unsanctioned Location,0,,2.129,1.6,1058.0,361.0,40960.0,139264.0,41.01953125
+08/26/2025:00:00:00,08/28/2025:00:00:00,"(Timestamp('2025-08-26 00:00:00'), Timestamp('2025-08-28 00:00:00'))",Windows Event For Service Disabled,0,,2.888,1.57,3930.0,405.0,2781184.0,131072.0,39.79296875
+08/09/2025:04:00:00,08/11/2025:04:00:00,,Clop Ransomware Known Service Name,0,,2.488,1.5399999999999998,929.0,306.0,167936.0,90112.0,17.359375
+08/09/2025:04:00:00,08/11/2025:04:00:00,,Detect New Local Admin account,0,,3.733,1.5899999999999999,6867.0,636.0,9146368.0,258048.0,23.81640625
+08/09/2025:04:00:00,08/11/2025:04:00:00,,ESCU Network Share Discovery Via Dir Command Rule,0,,3.118,1.79,8274.0,573.0,8650752.0,241664.0,14.48046875
+08/09/2025:04:00:00,08/11/2025:04:00:00,,ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,8.576,6.2,7266.0,640.0,19177472.0,266240.0,30.58984375
+08/09/2025:04:00:00,08/11/2025:04:00:00,,Kerberoasting spn request with RC4 encryption,0,,2.289,1.6199999999999999,1898.0,378.0,512000.0,106496.0,22.34765625
+08/09/2025:04:00:00,08/11/2025:04:00:00,,Known Services Killed by Ransomware,1,,3.4,1.5299999999999998,5768.0,581.0,5337088.0,270336.0,13.11328125
+08/09/2025:04:00:00,08/11/2025:04:00:00,,Non Chrome Process Accessing Chrome Default Dir,0,,2.838,1.4700000000000002,8555.0,381.0,2826240.0,126976.0,22.67578125
+08/09/2025:04:00:00,08/11/2025:04:00:00,,Windows AD Replication Request Initiated from Unsanctioned Location,0,,2.189,1.68,2076.0,320.0,16384.0,106496.0,33.203125
+08/09/2025:04:00:00,08/11/2025:04:00:00,,Windows Event For Service Disabled,1,,2.617,1.6,9178.0,573.0,2666496.0,221184.0,23.08203125
+08/14/2025:00:00:00,08/16/2025:00:00:00,,Clop Ransomware Known Service Name,0,,2.957,1.59,2025.0,327.0,2158592.0,114688.0,18.59765625
+08/14/2025:00:00:00,08/16/2025:00:00:00,,Detect New Local Admin account,0,,3.202,1.8699999999999999,11390.0,340.0,1204224.0,110592.0,24.09375
+08/14/2025:00:00:00,08/16/2025:00:00:00,,ESCU Network Share Discovery Via Dir Command Rule,0,,3.218,1.7700000000000002,8127.0,378.0,675840.0,122880.0,23.77734375
+08/14/2025:00:00:00,08/16/2025:00:00:00,,ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,9.262,7.32,7108.0,643.0,10633216.0,286720.0,29.2421875
+08/14/2025:00:00:00,08/16/2025:00:00:00,,Kerberoasting spn request with RC4 encryption,0,,2.827,1.57,3100.0,379.0,954368.0,126976.0,26.2109375
+08/14/2025:00:00:00,08/16/2025:00:00:00,,Known Services Killed by Ransomware,1,,4.09,2.18,4619.0,410.0,9424896.0,180224.0,36.28515625
+08/14/2025:00:00:00,08/16/2025:00:00:00,,Non Chrome Process Accessing Chrome Default Dir,0,,2.673,1.76,9167.0,430.0,536576.0,159744.0,38.9375
+08/14/2025:00:00:00,08/16/2025:00:00:00,,Windows AD Replication Request Initiated from Unsanctioned Location,0,,2.5,1.6099999999999999,6401.0,533.0,16384.0,241664.0,37.1953125
+08/14/2025:00:00:00,08/16/2025:00:00:00,,Windows Event For Service Disabled,0,,3.088,1.8899999999999997,8840.0,457.0,1462272.0,159744.0,49.734375
+08/02/2025:00:00:00,08/04/2025:00:00:00,,Clop Ransomware Known Service Name,0,,2.694,1.3699999999999999,1277.0,308.0,0.0,94208.0,19.13671875
+08/02/2025:00:00:00,08/04/2025:00:00:00,,Detect New Local Admin account,0,,3.2720000000000002,1.5999999999999999,11856.0,339.0,2068480.0,114688.0,23.4140625
+08/02/2025:00:00:00,08/04/2025:00:00:00,,ESCU Network Share Discovery Via Dir Command Rule,0,,3.254,1.6199999999999999,14238.0,397.0,5341184.0,126976.0,23.83984375
+08/02/2025:00:00:00,08/04/2025:00:00:00,,ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,9.607,7.6,12029.0,691.0,13750272.0,364544.0,34.9296875
+08/02/2025:00:00:00,08/04/2025:00:00:00,,Kerberoasting spn request with RC4 encryption,0,,2.42,1.6099999999999999,3652.0,387.0,253952.0,110592.0,23.65625
+08/02/2025:00:00:00,08/04/2025:00:00:00,,Known Services Killed by Ransomware,1,,4.081,1.69,8684.0,423.0,6201344.0,180224.0,29.109375
+08/02/2025:00:00:00,08/04/2025:00:00:00,,Non Chrome Process Accessing Chrome Default Dir,0,,2.8930000000000002,1.6600000000000001,13901.0,454.0,933888.0,184320.0,43.42578125
+08/02/2025:00:00:00,08/04/2025:00:00:00,,Windows AD Replication Request Initiated from Unsanctioned Location,0,,2.466,1.6500000000000001,10111.0,545.0,1671168.0,249856.0,27.671875
+08/02/2025:00:00:00,08/04/2025:00:00:00,,Windows Event For Service Disabled,0,,3.118,1.71,13917.0,461.0,2764800.0,159744.0,48.55859375
+08/05/2025:08:00:00,08/07/2025:08:00:00,,Clop Ransomware Known Service Name,0,,2.278,1.4,276.0,306.0,0.0,90112.0,18.15234375
+08/05/2025:08:00:00,08/07/2025:08:00:00,,Detect New Local Admin account,0,,2.475,1.42,16628.0,741.0,1019904.0,245760.0,-41.9453125
+08/05/2025:08:00:00,08/07/2025:08:00:00,,ESCU Network Share Discovery Via Dir Command Rule,0,,2.308,1.73,10856.0,381.0,819200.0,102400.0,21.07421875
+08/05/2025:08:00:00,08/07/2025:08:00:00,,ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,9.789,7.359999999999999,10390.0,654.0,21082112.0,290816.0,44.06640625
+08/05/2025:08:00:00,08/07/2025:08:00:00,,Kerberoasting spn request with RC4 encryption,0,,2.075,1.48,465.0,359.0,0.0,102400.0,21.23046875
+08/05/2025:08:00:00,08/07/2025:08:00:00,,Known Services Killed by Ransomware,1,,3.303,1.64,7301.0,416.0,11948032.0,151552.0,37.19921875
+08/05/2025:08:00:00,08/07/2025:08:00:00,,Non Chrome Process Accessing Chrome Default Dir,0,,2.0420000000000003,1.6300000000000001,886.0,352.0,0.0,102400.0,36.640625
+08/05/2025:08:00:00,08/07/2025:08:00:00,,Windows AD Replication Request Initiated from Unsanctioned Location,0,,2.049,1.4000000000000001,5169.0,363.0,1351680.0,139264.0,42.546875
+08/05/2025:08:00:00,08/07/2025:08:00:00,,Windows Event For Service Disabled,1,,1.8940000000000001,1.6700000000000002,11949.0,505.0,1945600.0,221184.0,37.06640625
+08/08/2025:16:00:00,08/10/2025:16:00:00,,Clop Ransomware Known Service Name,0,,2.831,1.41,1561.0,323.0,208896.0,114688.0,17.24609375
+08/08/2025:16:00:00,08/10/2025:16:00:00,,Detect New Local Admin account,0,,2.971,1.53,7125.0,339.0,12288.0,114688.0,23.08984375
+08/08/2025:16:00:00,08/10/2025:16:00:00,,ESCU Network Share Discovery Via Dir Command Rule,0,,2.957,1.7500000000000002,5681.0,371.0,212992.0,122880.0,23.67578125
+08/08/2025:16:00:00,08/10/2025:16:00:00,,ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,6.067,4.5200000000000005,7211.0,634.0,655360.0,225280.0,40.47265625
+08/08/2025:16:00:00,08/10/2025:16:00:00,,Kerberoasting spn request with RC4 encryption,0,,2.997,1.77,2191.0,372.0,0.0,122880.0,20.8046875
+08/08/2025:16:00:00,08/10/2025:16:00:00,,Known Services Killed by Ransomware,1,,2.906,1.7,5540.0,379.0,2068480.0,139264.0,35.8515625
+08/08/2025:16:00:00,08/10/2025:16:00:00,,Non Chrome Process Accessing Chrome Default Dir,0,,2.71,1.72,6230.0,406.0,0.0,135168.0,39.5078125
+08/08/2025:16:00:00,08/10/2025:16:00:00,,Windows AD Replication Request Initiated from Unsanctioned Location,0,,2.706,1.62,1097.0,352.0,0.0,135168.0,49.43359375
+08/08/2025:16:00:00,08/10/2025:16:00:00,,Windows Event For Service Disabled,1,,2.613,1.6900000000000002,7444.0,412.0,573440.0,131072.0,45.93359375
+08/18/2025:00:00:00,08/20/2025:00:00:00,,Clop Ransomware Known Service Name,0,,2.438,1.25,193.0,164.0,0.0,65536.0,24.13671875
+08/18/2025:00:00:00,08/20/2025:00:00:00,,Detect New Local Admin account,0,,2.8080000000000003,1.46,6614.0,704.0,974848.0,253952.0,8.265625
+08/18/2025:00:00:00,08/20/2025:00:00:00,,ESCU Network Share Discovery Via Dir Command Rule,0,,2.484,1.44,2874.0,243.0,995328.0,77824.0,15.0390625
+08/18/2025:00:00:00,08/20/2025:00:00:00,,ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,10.062,8.52,8006.0,593.0,15646720.0,299008.0,37.28125
+08/18/2025:00:00:00,08/20/2025:00:00:00,,Kerberoasting spn request with RC4 encryption,0,,2.3040000000000003,1.31,1663.0,324.0,0.0,94208.0,19.35546875
+08/18/2025:00:00:00,08/20/2025:00:00:00,,Known Services Killed by Ransomware,1,,3.71,1.46,4314.0,373.0,9461760.0,139264.0,26.65625
+08/18/2025:00:00:00,08/20/2025:00:00:00,,Non Chrome Process Accessing Chrome Default Dir,0,,2.238,1.48,7210.0,322.0,2924544.0,98304.0,20.95703125
+08/18/2025:00:00:00,08/20/2025:00:00:00,,Windows AD Replication Request Initiated from Unsanctioned Location,0,,1.984,1.27,457.0,318.0,16384.0,102400.0,21.3984375
+08/18/2025:00:00:00,08/20/2025:00:00:00,,Windows Event For Service Disabled,0,,2.047,1.45,908.0,359.0,0.0,98304.0,30.03125
+08/25/2025:20:00:00,08/27/2025:20:00:00,,Clop Ransomware Known Service Name,0,,2.327,1.48,546.0,304.0,0.0,90112.0,16.328125
+08/25/2025:20:00:00,08/27/2025:20:00:00,,Detect New Local Admin account,0,,2.578,1.66,5544.0,749.0,3321856.0,266240.0,9.97265625
+08/25/2025:20:00:00,08/27/2025:20:00:00,,ESCU Network Share Discovery Via Dir Command Rule,0,,2.329,1.5699999999999998,6519.0,361.0,675840.0,159744.0,20.5703125
+08/25/2025:20:00:00,08/27/2025:20:00:00,,ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,11.035,8.99,6684.0,601.0,19361792.0,319488.0,35.5546875
+08/25/2025:20:00:00,08/27/2025:20:00:00,,Kerberoasting spn request with RC4 encryption,0,,2.08,1.57,1637.0,358.0,0.0,102400.0,23.953125
+08/25/2025:20:00:00,08/27/2025:20:00:00,,Known Services Killed by Ransomware,1,,3.04,1.56,3486.0,367.0,6983680.0,139264.0,29.92578125
+08/25/2025:20:00:00,08/27/2025:20:00:00,,Non Chrome Process Accessing Chrome Default Dir,0,,2.007,1.6300000000000001,7582.0,422.0,1032192.0,139264.0,39.12109375
+08/25/2025:20:00:00,08/27/2025:20:00:00,,Windows AD Replication Request Initiated from Unsanctioned Location,0,,1.959,1.51,819.0,323.0,49152.0,126976.0,30.59375
+08/25/2025:20:00:00,08/27/2025:20:00:00,,Windows Event For Service Disabled,0,,2.039,1.5,5133.0,405.0,53248.0,131072.0,42.16796875
+08/07/2025:16:00:00,08/09/2025:16:00:00,,Clop Ransomware Known Service Name,0,,2.564,1.4299999999999997,1650.0,312.0,335872.0,94208.0,15.48828125
+08/07/2025:16:00:00,08/09/2025:16:00:00,,Detect New Local Admin account,0,,2.6670000000000003,1.6900000000000002,13559.0,621.0,991232.0,212992.0,22.01953125
+08/07/2025:16:00:00,08/09/2025:16:00:00,,ESCU Network Share Discovery Via Dir Command Rule,0,,2.597,1.8000000000000003,10731.0,413.0,2736128.0,151552.0,25.08203125
+08/07/2025:16:00:00,08/09/2025:16:00:00,,ESCU Windows Rapid Authentication On Multiple Hosts Rule,0,,10.921,6.01,9001.0,614.0,23310336.0,323584.0,37.2265625
+08/07/2025:16:00:00,08/09/2025:16:00:00,,Kerberoasting spn request with RC4 encryption,0,,2.315,1.49,3146.0,381.0,0.0,106496.0,25.18359375
+08/07/2025:16:00:00,08/09/2025:16:00:00,,Known Services Killed by Ransomware,1,,3.498,1.8499999999999999,6687.0,424.0,8871936.0,151552.0,26.88671875
+08/07/2025:16:00:00,08/09/2025:16:00:00,,Non Chrome Process Accessing Chrome Default Dir,0,,2.3770000000000002,1.52,5062.0,364.0,0.0,102400.0,32.625
+08/07/2025:16:00:00,08/09/2025:16:00:00,,Windows AD Replication Request Initiated from Unsanctioned Location,0,,2.005,1.6500000000000001,6092.0,374.0,0.0,139264.0,40.25
+08/07/2025:16:00:00,08/09/2025:16:00:00,,Windows Event For Service Disabled,0,,2.283,1.54,11581.0,575.0,45056.0,217088.0,30.29296875

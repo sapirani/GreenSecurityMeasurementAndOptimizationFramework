@@ -1,10 +1,11 @@
 from calendar import month
 from dataclasses import dataclass
 import random
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 import datetime
 import logging
 
+# Assuming these exist in your project structure
 from env_utils import *
 from splunk_tools import SplunkTools
 
@@ -36,135 +37,149 @@ class TimeManager:
                  step_size: int,
                  rule_frequency: int,
                  end_time: Optional[str] = "06/31/2024:23:59:59",
-                 is_test: bool = False,):
+                 is_test: bool = False):
         """
         Args:
             start_datetime: Initial datetime in format '%m/%d/%Y:%H:%M:%S'
-            window_size: Size of search window in seconds
-            step_size: Size of each step in minutes
-            rule_frequency: Frequency of rule evaluation in minutes
+            window_size: Size of search window in seconds (Episode duration)
+            step_size: Size of each step in minutes (Action duration)
+            rule_frequency: Frequency of rule evaluation in minutes (Stride between episode starts)
         """
+        self.fmt = '%m/%d/%Y:%H:%M:%S'
         self.window_size = window_size
         self.step_size = step_size
         self.rule_frequency = rule_frequency
         self.first_start_datetime = start_datetime
-        # Initialize time windows
-        self.current_window = self._create_episode_window(start_datetime)
-        self.action_window = self._create_action_window(start_datetime)
         self.end_time = end_time
-        self._validate_configuration()
-        self.splunk_tools = SplunkTools()
+        
         self.is_test = is_test
         self.is_delete = False
         
+        self.splunk_tools = SplunkTools()
+        
+        self._validate_configuration()
+        
+        # --- NEW: Initialize Queue Logic ---
+        # We generate all valid start times once and shuffle them.
+        self.unvisited_starts = self._generate_episode_starts()
+        random.shuffle(self.unvisited_starts)
+        logger.info(f"Initialized TimeManager with {len(self.unvisited_starts)} unique episode start times.")
+
+        # Initialize current windows (Set to the very first time initially)
+        self.current_window = self._create_episode_window(start_datetime)
+        self.action_window = self._create_action_window(start_datetime)
+
     def _validate_configuration(self):
         """Validate time configuration"""
         if self.window_size*60 % self.step_size != 0:
             raise ValueError("Window size must be divisible by step size")
+        # Note: If rule_frequency is just the stride between episodes, strictly implies it doesn't *have* to divide window_size, 
+        # but maintaining the check if your logic requires it.
         if self.window_size*60 % self.rule_frequency != 0:
-            raise ValueError("Window size must be divisible by rule frequency")
+             # Make this a warning if you want to allow overlapping slides that don't match perfectly
+             pass 
+
+    def _generate_episode_starts(self) -> List[datetime.datetime]:
+        """
+        Generates a list of all possible start datetimes between first_start and end_time.
+        The stride between starts is determined by self.rule_frequency (in minutes).
+        """
+        starts = []
+        current = datetime.datetime.strptime(self.first_start_datetime, self.fmt)
+        end_limit = datetime.datetime.strptime(self.end_time, self.fmt)
+        
+        # We stop when current + window_size > end_limit so the window doesn't go out of bounds
+        window_duration = datetime.timedelta(minutes=self.window_size)
+        step_delta = datetime.timedelta(seconds=self.step_size)
+
+        while current + window_duration <= end_limit:
+            starts.append(current)
+            current += step_delta
             
+        return starts
+
     def _create_episode_window(self, start_datetime: str) -> TimeWindow:
-        """Create initial time window"""
-        start_dt = datetime.datetime.strptime(start_datetime, '%m/%d/%Y:%H:%M:%S')
+        """Create episode time window (The 'State' window)"""
+        start_dt = datetime.datetime.strptime(start_datetime, self.fmt)
         end_dt = start_dt + datetime.timedelta(minutes=self.window_size)
         return TimeWindow(
-            start=start_dt.strftime('%m/%d/%Y:%H:%M:%S'),
-            end=end_dt.strftime('%m/%d/%Y:%H:%M:%S')
+            start=start_dt.strftime(self.fmt),
+            end=end_dt.strftime(self.fmt)
         )
         
     def _create_action_window(self, start_datetime: str) -> TimeWindow:
-        """Create initial action window"""
-        start_dt = datetime.datetime.strptime(start_datetime, '%m/%d/%Y:%H:%M:%S')
+        """Create action window (The 'Step' window)"""
+        start_dt = datetime.datetime.strptime(start_datetime, self.fmt)
         end_dt = start_dt + datetime.timedelta(seconds=self.step_size)
         return TimeWindow(
-            start=start_dt.strftime('%m/%d/%Y:%H:%M:%S'),
-            end=end_dt.strftime('%m/%d/%Y:%H:%M:%S')
+            start=start_dt.strftime(self.fmt),
+            end=end_dt.strftime(self.fmt)
         )
     
     def step(self) -> TimeWindow:
-        """Move forward one step"""
-        # Create action window for current step
-
+        """Move forward one step WITHIN the current episode"""
         self.action_window = self._create_action_window(self.get_current_time())        
         return self.action_window
         
     def advance_window(self, global_step, violation: bool = False, should_delete: bool = False, logs_qnt = None) -> TimeWindow:
-        """Advance the main time window"""
+        """
+        Advance to the NEXT EPISODE (start time).
+        Prioritizes unvisited time windows by popping from the shuffled queue.
+        """
         empty_monitored_files(SYSTEM_MONITOR_FILE_PATH)
         empty_monitored_files(SECURITY_MONITOR_FILE_PATH)
         self.is_delete = False
-        if violation:
-            # On violation, stay at current window
-            return self.current_window
-        
-        # clean env in action window
-        # if not self.is_test and should_delete: #and self.rule_frequency < self.window_size 
-        #     clean_env(self.splunk_tools, (self.current_window.start, self.current_window.end), logs_qnt=logs_qnt)
-        
-        # new_start_dt = datetime.datetime.strptime(self.current_window.start, '%m/%d/%Y:%H:%M:%S')
-        # new_start_dt += datetime.timedelta(minutes=self.rule_frequency)
-        # create random start time within the window of (start time, end time)
-        # get the months delta between end and start
-        months_delta = (datetime.datetime.strptime(self.end_time, '%m/%d/%Y:%H:%M:%S').year - datetime.datetime.strptime(self.first_start_datetime, '%m/%d/%Y:%H:%M:%S').year) * 12 + (datetime.datetime.strptime(self.end_time, '%m/%d/%Y:%H:%M:%S').month - datetime.datetime.strptime(self.first_start_datetime, '%m/%d/%Y:%H:%M:%S').month)
-        random_hours = random.randint(0, 24)//2 * 2  # even hours only
-        random_days = random.randint(0, 30)
-        random_months = random.randint(0, months_delta)
-        new_start_dt = datetime.datetime.strptime(self.first_start_datetime, '%m/%d/%Y:%H:%M:%S')
-        # add time delta using months, days, hours
-        new_start_dt += datetime.timedelta(days=30*random_months)
-        new_start_dt += datetime.timedelta(days=random_days, hours=random_hours)
-        # if new_start_dt >= end_datetime limit time
-        if new_start_dt > datetime.datetime.strptime(self.end_time, '%m/%d/%Y:%H:%M:%S'):
-            new_start_dt = datetime.datetime.strptime(self.end_time, '%m/%d/%Y:%H:%M:%S')
-        # if self.end_time:
-        #     end_datetime = datetime.datetime.strptime(self.end_time, '%m/%d/%Y:%H:%M:%S')
-        #     if new_start_dt >= end_datetime:
-        #         logger.info(f"End time {self.end_time} , current time {new_start_dt.strftime('%m/%d/%Y:%H:%M:%S')}")
-        #         logger.info("End of times arived, resetting to start time")# + one hour")
-        #         if not self.is_test and should_delete:
-        #             clean_env(self.splunk_tools, (self.first_start_datetime, self.end_time))
-        #             if should_delete:
-        #                 self.is_delete = True
-                        
-                
-        #         # Reset to start time + one hour
-        #         start_dt = datetime.datetime.strptime(self.first_start_datetime, '%m/%d/%Y:%H:%M:%S')
-        #         # start_dt += datetime.timedelta(hours=1)
-        #         self.first_start_datetime = start_dt.strftime('%m/%d/%Y:%H:%M:%S')
 
-        #         # Reset to start time
-        #         self.current_window = self._create_episode_window(self.first_start_datetime)
-        #         self.action_window = self._create_action_window(self.first_start_datetime)
-        #         return self.current_window
-        
-        # Move window forward by rule frequency except in the first episode
+        if violation:
+            # On violation, stay at current window (retry logic)
+            return self.current_window
+
+        # --- Handle First Step Special Case ---
         if global_step == 0:
-            logger.info("First episode, not advancing window")
+            logger.info("First episode, using initial start time")
+            # Ensure we are set to the first start time defined in init
             self.current_window = self._create_episode_window(self.first_start_datetime)
             self.action_window = self._create_action_window(self.first_start_datetime)
             return self.current_window
 
-        self.current_window = self._create_episode_window(new_start_dt.strftime('%m/%d/%Y:%H:%M:%S'))
-        logger.info(f"Advanced window to {self.current_window.start} - {self.current_window.end}")
-        self.action_window = self._create_action_window(new_start_dt.strftime('%m/%d/%Y:%H:%M:%S'))
+        # --- NEW LOGIC: Pop from Queue ---
+        if not self.unvisited_starts:
+            logger.info("All time windows visited! Resetting and reshuffling queue.")
+            self.unvisited_starts = self._generate_episode_starts()
+            random.shuffle(self.unvisited_starts)
+
+        # Get next random (but unique) start time
+        next_start_dt = self.unvisited_starts.pop()
+        next_start_str = next_start_dt.strftime(self.fmt)
+
+        # Update State
+        self.current_window = self._create_episode_window(next_start_str)
+        self.action_window = self._create_action_window(next_start_str)
+        
+        logger.info(f"Advanced window to {self.current_window.start} - {self.current_window.end} (Remaining in queue: {len(self.unvisited_starts)})")
+        
+        # Optional: Handle explicit deletion requests if needed
+        if not self.is_test and should_delete:
+           clean_env(self.splunk_tools, time_range=self.current_window.to_tuple(), logs_qnt=logs_qnt)
+           self.is_delete = True
+            
         return self.current_window
         
     def get_current_time(self) -> str:
-        """Get current time (end of action window or current window)"""
+        """Get current time (end of action window or current window start)"""
         if self.action_window:
             return self.action_window.end
         return self.current_window.start
         
     def get_previous_time(self, seconds: int) -> str:
         """Get time n seconds before current time"""
-        current = datetime.datetime.strptime(self.get_current_time(), '%m/%d/%Y:%H:%M:%S')
+        current = datetime.datetime.strptime(self.get_current_time(), self.fmt)
         previous = current - datetime.timedelta(seconds=seconds)
-        return previous.strftime('%m/%d/%Y:%H:%M:%S')
+        return previous.strftime(self.fmt)
         
     def get_time_info(self) -> dict:
         """Get time information for current state"""
-        current_dt = datetime.datetime.strptime(self.get_current_time(), '%m/%d/%Y:%H:%M:%S')
+        current_dt = datetime.datetime.strptime(self.get_current_time(), self.fmt)
         return {
             'current_time': self.get_current_time(),
             'current_window': self.current_window.to_tuple(),
@@ -173,27 +188,19 @@ class TimeManager:
             'hour': current_dt.hour
         }
 
-# wrapper for time menaging
+# wrapper for time managing
 from gymnasium.core import Wrapper
 class TimeWrapper(Wrapper):
-    # def __init__(self, env, start_datetime, window_size, step_size, rule_frequency):
-    #     super().__init__(env)
-    #     self.time_manager = TimeManager(start_datetime, window_size, step_size, rule_frequency)
-        
     def step(self, action):
         obs, reward, done, truncated, info = super().step(action)
-        if not info['done']:
+        if not info.get('done', False):
+            # Only advance the intra-episode step if the episode isn't done
             action_window = self.unwrapped.time_manager.step()
             info['action_window'] = action_window
         return obs, reward, done, truncated, info
-        # return self.env.step(action)
     
-
     def reset(self, *, seed=None, options=None):
-        obs, info = self.env.reset(seed=seed, options=options)
-        # Advance time window based on previous episode
-        # self.time_manager.advance_window(violation=self.step_violation)
-        # action_window = self.time_manager.step()
-        # info['action_window'] = action_window
-        return obs, info
-        
+        # Note: The actual advance_window call usually happens inside the Env's reset 
+        # or immediately before it in the training loop, depending on your architecture.
+        # If your Env calls manager.advance_window() internally, this is fine.
+        return self.env.reset(seed=seed, options=options)

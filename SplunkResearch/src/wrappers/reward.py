@@ -374,55 +374,65 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             should_run = True
             attempt = 0
             stop_loop = False
-            while should_run and not stop_loop:
-                rerun = False
-                if attempt > 4:
-                    logger.info(f"Re-running due to mismatch in alerts difference")
-                    rerun = True
+            # while should_run and not stop_loop:
+            #     rerun = False
+            #     if attempt > 4:
+            #         logger.info(f"Re-running due to mismatch in alerts difference")
+            rerun = False
                     
-                attempt += 1
+            #     attempt += 1
                 # Normal execution flow
                 
-                raw_metrics, combined_metrics = self.get_current_reward_values(info['current_window'], should_execute)
-                should_run = False
-                baseline_raw_metrics, combined_baseline_metrics = self.process_metrics(
-                    self.get_baseline_data(info['current_window'], rerun).groupby('search_name')
-                )
-                if rerun or self.is_mock:
-                    stop_loop = True
+            raw_metrics, combined_metrics = self.get_current_reward_values(info['current_window'], should_execute)
+            should_run = False
+            baseline_raw_metrics, combined_baseline_metrics = self.process_metrics(
+                self.get_baseline_data(info['current_window'], rerun).groupby('search_name')
+            )
+                # if rerun or self.is_mock:
+                #     stop_loop = True
 
-                # find the difference of alerts between raw_metrics and baseline_raw_metrics
-                alerts_diff = {rule: raw_metrics[rule]['alert'] - baseline_raw_metrics.get(rule, {}).get('alert', 0) for rule in self.expected_alerts}
-                
-                # check compatibility of alerts_diff with diversity info
-                for rule in self.expected_alerts:
-                    if rule == 'ESCU Windows Rapid Authentication On Multiple Hosts Rule':
-                        continue
-                    relevant_log = self.unwrapped.section_logtypes.get(rule, None)
-                    if relevant_log:
-                        relevant_log = "_".join(relevant_log[0]) + "_1"
-                        diversity_value = diversity_logs.get(relevant_log, 0)
-                        if alerts_diff[rule] != diversity_value:
-                            logger.warning(f"Alert difference mismatch for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
-                            should_run = True
-                        else:
-                            logger.info(f"Alert difference match for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
-                            
-                if self.is_mock and self.measuring and should_execute:  
-                    combined_metrics['real_cpu'] = combined_metrics['cpu'] 
-
-                info['combined_metrics'] = combined_metrics
-                info['combined_baseline_metrics'] = combined_baseline_metrics
-                if self.is_mock and (self.use_alert or self.use_energy):
-                    current_alerts = self.alert_predictor.current_alerts
-                    # baseline_alerts = {rule: raw_baseline_metrics[rule]['alert'] for rule in self.expected_alerts}
-                    for rule in self.expected_alerts:
-                        raw_metrics[rule]['alert'] = current_alerts[rule]
+            # find the difference of alerts between raw_metrics and baseline_raw_metrics
+            alerts_diff = {rule: raw_metrics[rule]['alert'] - baseline_raw_metrics.get(rule, {}).get('alert', 0) for rule in self.expected_alerts}
+            
+            # check compatibility of alerts_diff with diversity info
+            for rule in self.expected_alerts:
+                if rule == 'ESCU Windows Rapid Authentication On Multiple Hosts Rule':
+                    continue
+                relevant_log = self.unwrapped.section_logtypes.get(rule, None)
+                if relevant_log:
+                    log_type = "_".join(relevant_log[0]) + "_1"
+                    diversity_value = diversity_logs.get(log_type, 0)
+                    if alerts_diff[rule] != diversity_value:
                         
-                        # raw_baseline_metrics[rule]['cpu'] = 0
-                        # raw_baseline_metrics[rule]['duration'] = 0
-                    info['combined_metrics']['alert'] = sum(current_alerts.values())# + sum(baseline_alerts.values())
-                sleep(2)
+                        logger.warning(f"Alert difference mismatch for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
+                        # get the field real_ts of the events in the results of the query to find the mismatch
+                        def get_event_times(rule_name, time_range):
+                            # query splunk for the events in the time range
+                            
+                            query = f'index="main" host="dt-splunk" EventCode={relevant_log[0][1]}  | stats count by real_ts var_id'
+                            print(time_range_date)
+                            results = self.unwrapped.splunk_tools.run_search(query, *time_range)
+                            formatted_log = "\n".join([json.dumps(record) for record in results])
+                            logger.info(f"Event times for {rule_name} in {time_range}: {formatted_log}")
+                        get_event_times(rule, (time_range_date[0].timestamp(), time_range_date[1].timestamp()))
+                    else:
+                        logger.info(f"Alert difference match for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
+                        
+            if self.is_mock and self.measuring and should_execute:  
+                combined_metrics['real_cpu'] = combined_metrics['cpu'] 
+
+            info['combined_metrics'] = combined_metrics
+            info['combined_baseline_metrics'] = combined_baseline_metrics
+            if self.is_mock and (self.use_alert or self.use_energy):
+                current_alerts = self.alert_predictor.current_alerts
+                # baseline_alerts = {rule: raw_baseline_metrics[rule]['alert'] for rule in self.expected_alerts}
+                for rule in self.expected_alerts:
+                    raw_metrics[rule]['alert'] = current_alerts[rule]
+                    
+                    # raw_baseline_metrics[rule]['cpu'] = 0
+                    # raw_baseline_metrics[rule]['duration'] = 0
+                info['combined_metrics']['alert'] = sum(current_alerts.values())# + sum(baseline_alerts.values())
+                # sleep(2)
 
                 
             if should_execute:
@@ -447,14 +457,9 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # info['ac_distribution_reward'] = -200*(info['ac_distribution_value'] ** 2)
             self.distributions.append(info['ac_distribution_value'])
             self.alerts.append(-predicted_alert_reward)
-            mean_distribution = np.mean(self.distributions) if len(self.distributions) > 0 else 0
-            std_distribution = np.std(self.distributions) if len(self.distributions) > 0 else 0
-            mean_alert = np.mean(self.alerts) if len(self.alerts) > 0 else 0
-            std_alert = np.std(self.alerts) if len(self.alerts) > 0 else 0
+
             
-            info['ac_distribution_reward'] = ((info['ac_distribution_value'] - mean_distribution)/ (std_distribution + self.epsilon))
-            # rescale to be between 0 and -1 with sigmoid
-            info['ac_distribution_reward'] = -1/(1 + np.exp(-info['ac_distribution_reward']))
+            info['ac_distribution_reward'] = -np.tanh(info['ac_distribution_value']*2)
             
             # info['ac_distribution_reward'] = dist_reward
             # info['ac_distribution_reward'] = 30*info['ac_distribution_value']
@@ -463,13 +468,10 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # info['alert_reward'] = ((predicted_alert_reward - sum(self.expected_alerts.values()))/std)
             # self.mean_alert = (self.unwrapped.all_steps_counter//self.unwrapped.total_steps - 1)*self.mean_alert + sum(raw_baseline_metrics[rule]['alert'] for rule in self.expected_alerts)/(self.unwrapped.all_steps_counter//self.unwrapped.total_steps)
             info['alert_reward'] = predicted_alert_reward
-            info['norm_alert_reward'] = (-predicted_alert_reward - mean_alert)/(std_alert + self.epsilon)
-            # clip the reward to be between 0 and -1
-            # info['norm_alert_reward'] = np.clip(info['norm_alert_reward'], -1, 0)
-            info['norm_alert_reward'] = -1/(1 + np.exp(-info['norm_alert_reward']))
+
             ############### Total reward ##############
             reward = self.gamma*info['ac_distribution_reward']
-            reward += self.beta*info['norm_alert_reward'] 
+            reward += self.beta*info['alert_reward'] 
 
             # reward = 0
             # if info.get('ac_distribution_value', 0) > self.env.distribution_threshold or predicted_alert_reward < self.alert_threshold:
@@ -491,6 +493,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         return obs, reward, terminated, truncated, info
     
 class EnergyRewardWrapper(RewardWrapper):
+    ENERGY_CHANGE_TARGET = 1  # Target energy change for normalization
     """Wrapper for energy consumption rewards"""
     def __init__(self, env: gym.Env, alpha: float = 0.5,is_mock: bool = False):
         super().__init__(env)
@@ -547,10 +550,10 @@ class EnergyRewardWrapper(RewardWrapper):
             #     energy_reward = 0
             # energy_reward = np.clip(energy_reward, 0, 1) # Normalize to [0, 1]
             info['energy_reward'] = energy_reward
-            mean_energy = np.mean(self.energies) if len(self.energies) > 0 else 0
-            std_energy = np.std(self.energies) if len(self.energies) > 0 else 0
-            info['norm_energy_reward'] = (energy_reward - mean_energy)/(std_energy + self.epsilon)
-            info['norm_energy_reward'] = 1/(1 + np.exp(-info['norm_energy_reward']))
+            # mean_energy = np.mean(self.energies) if len(self.energies) > 0 else 0
+            # std_energy = np.std(self.energies) if len(self.energies) > 0 else 0
+            
+            info['norm_energy_reward'] = np.clip(energy_reward/EnergyRewardWrapper.ENERGY_CHANGE_TARGET, 0, 1)
             logger.info(f"Energy reward: {energy_reward:.3f}, current: {current:.3f}, baseline: {baseline:.3f}")
             # reward +=  energy_reward
             # reward += self.alpha*energy_reward
