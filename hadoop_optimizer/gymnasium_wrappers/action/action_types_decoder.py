@@ -7,11 +7,6 @@ from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
 
 
 class ActionTypesDecoder(gym.ActionWrapper):
-    """
-    Similar implementation to Gymnasium's FlattenObservation
-    Another possible implementation: https://gist.github.com/colllin/1172e042edf267d5ec667fa9802673cf
-    """
-
     def action(self, action: WrapperActType) -> ActType:
         assert isinstance(self.unwrapped, OptimizerDeploymentEnv), \
             "This action decoder wrapper is dedicated for the OptimizerDeploymentEnv"
