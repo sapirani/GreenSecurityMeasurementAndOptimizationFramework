@@ -16,12 +16,7 @@ from hadoop_optimizer.deployment_server.drl_model.consts.state_telemetry import 
 from hadoop_optimizer.deployment_server.river_extensions.custom_agg import CustomAgg
 from hadoop_optimizer.deployment_server.river_extensions.time_aware_transformer_union import TimeAwareTransformerUnion
 from hadoop_optimizer.deployment_server.river_extensions.timezone_aware_time_rolling import TimezoneAwareTimeRolling
-
-
-class StateNotReadyException(Exception):
-    """Raised when the minimal required telemetry has not yet been retrieved by the DRL"""
-    def __init__(self):
-        super().__init__("minimal required telemetry is not yet available")
+from hadoop_optimizer.erros import StateNotReadyException
 
 
 class DRLState:

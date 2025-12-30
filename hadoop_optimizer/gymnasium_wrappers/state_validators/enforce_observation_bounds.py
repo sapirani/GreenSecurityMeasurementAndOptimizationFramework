@@ -1,12 +1,8 @@
 from typing import Any, SupportsFloat
 import gymnasium as gym
-from gymnasium import spaces
 from gymnasium.core import ObsType, ActType
 
-
-class OutOfBoundObservation(Exception):
-    def __init__(self, observation: ObsType, space: spaces.Space):
-        super().__init__(f"Observation out of bounds. Observation: {observation}, space: {space}")
+from hadoop_optimizer.erros import OutOfBoundObservation
 
 
 class EnforceObservationBounds(gym.Wrapper):

@@ -13,8 +13,8 @@ from hadoop_optimizer.DTOs.hadoop_job_config import HadoopJobConfig
 from hadoop_optimizer.DTOs.job_properties import JobProperties, get_job_properties
 from hadoop_optimizer.deployment_server.container.container import Container
 from hadoop_optimizer.deployment_server.drl_model.drl_model import DRLModel
-from hadoop_optimizer.deployment_server.drl_model.drl_state import StateNotReadyException
 from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
+from hadoop_optimizer.erros import EnvironmentTruncatedException, StateNotReadyException
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput
 from elastic_reader.main import run_elastic_reader
 
@@ -71,14 +71,6 @@ async def state_not_ready_exception_handler(request: Request, exc: StateNotReady
 #     drl_model: Annotated[DRLModel, Depends(Provide[Container.drl_model])],
 # ):
 #     return drl_model.determine_best_job_configuration(job_properties)
-
-
-class EnvironmentTruncatedException(Exception):
-    def __init__(self, last_job_configuration: HadoopJobConfig, elapsed_steps: int, max_steps: int):
-        self.last_job_configuration = last_job_configuration
-        self.elapsed_steps = elapsed_steps
-        self.max_steps = max_steps
-        super().__init__("Environment truncated or step called incorrectly")
 
 
 def determine_best_job_configuration(
