@@ -12,7 +12,7 @@ from elastic_reader.consts import ElasticIndex
 from hadoop_optimizer.DTOs.hadoop_job_execution_config import HadoopJobExecutionConfig
 from hadoop_optimizer.DTOs.job_properties import JobProperties, get_job_properties
 from hadoop_optimizer.deployment_server.container.container import Container
-from hadoop_optimizer.deployment_server.drl_model.drl_model import DRLModel
+from hadoop_optimizer.drl_telemetry.telemetry_manager import DRLTelemetryManager
 from hadoop_optimizer.drl_envs.consts import CURRENT_JOB_CONFIG_KEY, ELAPSED_STEPS_KEY, MAX_STEPS_KEY
 from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
 from hadoop_optimizer.erros import EnvironmentTruncatedException, StateNotReadyException
@@ -23,13 +23,13 @@ from elastic_reader.main import run_elastic_reader
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Starting Elastic reader in the background")
-    drl_model = app.container.drl_model()
+    drl_telemetry_manager = app.container.drl_telemetry_manager()
     time_picker_input = app.container.drl_time_picker_input()
     indices_to_read_from = app.container.config.indices_to_read_from()
     should_terminate_event = threading.Event()
     t = threading.Thread(
         target=run_telemetry_reader,
-        args=(drl_model, time_picker_input, indices_to_read_from, should_terminate_event),
+        args=(drl_telemetry_manager, time_picker_input, indices_to_read_from, should_terminate_event),
         daemon=True
     )
     t.start()
@@ -41,14 +41,14 @@ async def lifespan(app: FastAPI):
 
 
 def run_telemetry_reader(
-        drl_model: DRLModel,
+        drl_telemetry_manager: DRLTelemetryManager,
         time_picker_input: TimePickerChosenInput,
         indices_to_read_from: List[ElasticIndex],
         should_terminate_event: Optional[threading.Event] = None
 ):
     run_elastic_reader(
         time_picker_input=time_picker_input,
-        consumers=[drl_model],
+        consumers=[drl_telemetry_manager],
         indices_to_read_from=indices_to_read_from,
         should_terminate_event=should_terminate_event
     )
@@ -64,21 +64,12 @@ async def state_not_ready_exception_handler(request: Request, exc: StateNotReady
         content={"detail": str(exc)}
     )
 
-# TODO: INCORPORATE PREVIOUS DRL STATE CODE FOR CLUSTER LOAD
-# @app.get("/choose_configuration")
-# @inject
-# def choose_the_best_configuration_for_a_new_task_under_the_current_load(
-#     job_properties: Annotated[JobProperties, Depends(get_job_properties)],
-#     drl_model: Annotated[DRLModel, Depends(Provide[Container.drl_model])],
-# ):
-#     return drl_model.determine_best_job_configuration(job_properties)
-
 
 def determine_best_job_configuration(
         deployment_agent: BaseAlgorithm,
         deployment_env: OptimizerDeploymentEnv,
-        job_properties: JobProperties
-, ELAPSED_STEPS=None) -> HadoopJobExecutionConfig:
+        job_properties: JobProperties,
+) -> HadoopJobExecutionConfig:
     with deployment_env:
         obs, _ = deployment_env.reset(options=job_properties.model_dump())
         while True:

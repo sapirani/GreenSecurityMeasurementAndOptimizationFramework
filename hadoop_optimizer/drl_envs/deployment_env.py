@@ -7,7 +7,8 @@ from pydantic import ValidationError
 from hadoop_optimizer.DTOs.hadoop_job_execution_config import HadoopJobExecutionConfig
 from hadoop_optimizer.DTOs.job_properties import JobProperties
 from hadoop_optimizer.drl_envs.consts import TERMINATE_ACTION_NAME, CURRENT_JOB_CONFIG_KEY, NEXT_JOB_CONFIG_KEY, \
-    JOB_PROPERTIES_KEY
+    JOB_PROPERTIES_KEY, DEFAULT_JOB_CONFIG_KEY
+from hadoop_optimizer.drl_telemetry.telemetry_manager import DRLTelemetryManager
 
 
 class OptimizerDeploymentEnv(gym.Env):
@@ -17,7 +18,7 @@ class OptimizerDeploymentEnv(gym.Env):
         2. cluster's load
         3. current hadoop job configuration
     """
-    def __init__(self):
+    def __init__(self, telemetry_manager: DRLTelemetryManager):
         super().__init__()
         # TODO: SUPPORT CURRENT CLUSTER LOAD
         self.observation_space: spaces.Dict = spaces.Dict({
@@ -30,6 +31,11 @@ class OptimizerDeploymentEnv(gym.Env):
             NEXT_JOB_CONFIG_KEY: self.job_config_space,
             TERMINATE_ACTION_NAME: spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
         })
+
+        self.telemetry_manager = telemetry_manager  # TODO: LEVERAGE TELEMETRY MANAGER INSIDE THE OBSERVATION SPACE
+        # TODO: THINK ABOUT WHAT TO DO WITH TELEMETRY IN THE TRAINING ENV
+        #  (AS IT SHOULD BE THE SAME ACROSS THE EPISODE, BUT EACH STEP AFFECTS IT BY ITSELF)
+        self.episodic_telemetry = None
 
         self._current_hadoop_config = HadoopJobExecutionConfig()
         self._episodic_job_properties: Optional[JobProperties] = None
@@ -90,7 +96,8 @@ class OptimizerDeploymentEnv(gym.Env):
 
         # TODO: CONSIDER RETURNING DEBUGGING INFO, such as the current cluster load
         self._current_hadoop_config = HadoopJobExecutionConfig()
-        info = {"default_config": True}
+        self.episodic_telemetry = self.telemetry_manager.get_telemetry()
+        info = {DEFAULT_JOB_CONFIG_KEY: True}
         return self._construct_observation(), info
 
     def step(self, action: ActType) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
@@ -123,6 +130,10 @@ class OptimizerDeploymentEnv(gym.Env):
 
         print("Episodic Job Properties:")
         print(self._episodic_job_properties)
+        print()
+
+        print("Episodic Telemetry:")
+        print(self.episodic_telemetry.to_string())
         print()
 
         print("Selected Action:")

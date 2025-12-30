@@ -7,8 +7,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.policies import ActorCriticPolicy
 from elastic_reader.consts import TimePickerInputStrategy
-from hadoop_optimizer.deployment_server.drl_model.drl_model import DRLModel
-from hadoop_optimizer.deployment_server.drl_model.drl_state import DRLState
+from hadoop_optimizer.drl_telemetry.telemetry_manager import DRLTelemetryManager
 from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
 from hadoop_optimizer.gymnasium_wrappers.action.action_types_decoder import ActionTypesDecoder
 from hadoop_optimizer.gymnasium_wrappers.action.flatten_action import FlattenAction
@@ -24,23 +23,18 @@ class Container(containers.DeclarativeContainer):
     # TODO: ENSURE THAT CONFIG HIERARCHY MAKES SENSE
     config = providers.Configuration()
 
-    drl_state: Provider[DRLState] = providers.Factory(
-        DRLState,
+    drl_telemetry_manager: Provider[DRLTelemetryManager] = providers.Singleton(
+        DRLTelemetryManager,
         time_windows_seconds=config.drl_state.time_windows_seconds,
         split_by=config.drl_state.split_by,
     )
 
-    # TODO: TURN INTO A CLASS THAT MONITORS THE CLUSTER LOAD
-    drl_model: Provider[DRLModel] = providers.Singleton(
-        DRLModel,
-        drl_state=drl_state
-    )
-
     base_env: Provider[gym.Env] = providers.Factory(
         OptimizerDeploymentEnv,
+        telemetry_manager=drl_telemetry_manager
     )
 
-    # TODO: ALLOW MORE CONFIGURABLE DECORATORS BOOTSTRAPPING
+    # TODO: ALLOW EASY CONFIGURATION OF DECORATORS IN BOOTSTRAPPING
     order_enforcer: Provider[gym.Env] = providers.Factory(
         OrderEnforcing,
         base_env,
