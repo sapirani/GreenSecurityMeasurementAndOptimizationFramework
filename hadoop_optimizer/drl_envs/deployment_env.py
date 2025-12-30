@@ -114,7 +114,7 @@ class OptimizerDeploymentEnv(gym.Env):
                 update=action[NEXT_JOB_CONFIG_KEY], deep=True
             )
         # TODO: CONSIDER RETURNING MORE DEBUGGING INFO, such as the current cluster load
-        info.update({"current_hadoop_config": self._current_hadoop_config.model_dump()})
+        info.update({CURRENT_JOB_CONFIG_KEY: self._current_hadoop_config.model_dump()})
 
         return self._construct_observation(), reward, terminated, truncated, info
 

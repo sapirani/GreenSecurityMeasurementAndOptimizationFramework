@@ -13,6 +13,7 @@ from hadoop_optimizer.DTOs.hadoop_job_execution_config import HadoopJobExecution
 from hadoop_optimizer.DTOs.job_properties import JobProperties, get_job_properties
 from hadoop_optimizer.deployment_server.container.container import Container
 from hadoop_optimizer.deployment_server.drl_model.drl_model import DRLModel
+from hadoop_optimizer.drl_envs.consts import CURRENT_JOB_CONFIG_KEY, ELAPSED_STEPS_KEY, MAX_STEPS_KEY
 from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
 from hadoop_optimizer.erros import EnvironmentTruncatedException, StateNotReadyException
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput
@@ -77,7 +78,7 @@ def determine_best_job_configuration(
         deployment_agent: BaseAlgorithm,
         deployment_env: OptimizerDeploymentEnv,
         job_properties: JobProperties
-) -> HadoopJobExecutionConfig:
+, ELAPSED_STEPS=None) -> HadoopJobExecutionConfig:
     with deployment_env:
         obs, _ = deployment_env.reset(options=job_properties.model_dump())
         while True:
@@ -86,13 +87,13 @@ def determine_best_job_configuration(
             deployment_env.render()
 
             if terminated:
-                return HadoopJobExecutionConfig.model_validate(info["current_hadoop_config"])   # TODO: USE A CONST FOR KEY NAME?
+                return HadoopJobExecutionConfig.model_validate(info[CURRENT_JOB_CONFIG_KEY])
 
             if truncated:
                 raise EnvironmentTruncatedException(
-                    HadoopJobExecutionConfig.model_validate(info["current_hadoop_config"]),
-                    info["elapsed_steps"],
-                    info["max_steps"],
+                    HadoopJobExecutionConfig.model_validate(info[CURRENT_JOB_CONFIG_KEY]),
+                    info[ELAPSED_STEPS_KEY],
+                    info[MAX_STEPS_KEY],
                 )
 
 
