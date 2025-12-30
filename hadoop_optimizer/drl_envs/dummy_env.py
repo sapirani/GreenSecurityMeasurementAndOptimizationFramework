@@ -4,6 +4,8 @@ import numpy as np
 from gymnasium import spaces
 from gymnasium.core import RenderFrame, ActType, ObsType
 
+from hadoop_optimizer.drl_envs.consts import JOB_PROPERTIES_KEY, CURRENT_JOB_CONFIG_KEY, TERMINATE_ACTION_NAME
+
 
 class DummyEnv(gym.Env):
     """
@@ -22,10 +24,10 @@ class DummyEnv(gym.Env):
         # )
 
         self.observation_space = spaces.Dict({
-            "job_properties": spaces.Dict({
+            JOB_PROPERTIES_KEY: spaces.Dict({
                 "input_size": spaces.Box(low=0, high=300, shape=(), dtype=np.float32)
             }),
-            "current_configuration": spaces.Dict({
+            CURRENT_JOB_CONFIG_KEY: spaces.Dict({
                 "number_of_mappers": spaces.Box(low=0, high=15, shape=(), dtype=np.uint16)  # TODO: SHOULD I GET RID OF THE UNIT AND PERFORM CASTING WITH NUMPY?
             }),
         })
@@ -43,21 +45,21 @@ class DummyEnv(gym.Env):
         options: dict[str, Any] | None = None,
     ) -> tuple[ObsType, dict[str, Any]]:
         return {
-            "job_properties": {
+            JOB_PROPERTIES_KEY: {
                 "input_size": 10
             },
-            "current_configuration": {
+            CURRENT_JOB_CONFIG_KEY: {
                 "number_of_mappers": 3
             }
         }, {}
 
     def step(self, action: ActType) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
-        if action["terminate"]:
+        if action[TERMINATE_ACTION_NAME]:
             return {
-            "job_properties": {
+            JOB_PROPERTIES_KEY: {
                 "input_size": 3
             },
-            "current_configuration": {
+            CURRENT_JOB_CONFIG_KEY: {
                 "number_of_mappers": 2
             }
         }, 0, True, False, {}
@@ -65,10 +67,10 @@ class DummyEnv(gym.Env):
 
         print("selected action:", action)
         return {
-            "job_properties": {
+            JOB_PROPERTIES_KEY: {
                 "input_size": 3
             },
-            "current_configuration": {
+            CURRENT_JOB_CONFIG_KEY: {
                 "number_of_mappers": 2
             }
         }, 0, False, False, {}

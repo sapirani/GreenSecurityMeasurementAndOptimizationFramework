@@ -6,10 +6,8 @@ from gymnasium.core import RenderFrame, ActType, ObsType
 from pydantic import ValidationError
 from hadoop_optimizer.DTOs.hadoop_job_config import HadoopJobConfig
 from hadoop_optimizer.DTOs.job_properties import JobProperties
-from hadoop_optimizer.drl_envs.consts import TERMINATE_ACTION_NAME
-from hadoop_optimizer.drl_envs.spaces_utils import hadoop_config_as_gymnasium_dict_space, \
-    job_properties_as_gymnasium_dict_space, dict_to_ndarrays, \
-    decode_action_types
+from hadoop_optimizer.drl_envs.consts import TERMINATE_ACTION_NAME, CURRENT_JOB_CONFIG_KEY, NEXT_JOB_CONFIG_KEY, \
+    JOB_PROPERTIES_KEY
 
 
 class OptimizerDeploymentEnv(gym.Env):
@@ -21,37 +19,55 @@ class OptimizerDeploymentEnv(gym.Env):
     """
     def __init__(self):
         super().__init__()
-        job_properties_state_dict_space = job_properties_as_gymnasium_dict_space()
-        hadoop_config_state_dict_space = hadoop_config_as_gymnasium_dict_space()
         # TODO: SUPPORT CURRENT CLUSTER LOAD
         self.observation_space: spaces.Dict = spaces.Dict({
-            "job_properties": job_properties_state_dict_space,
-            "current_job_config": hadoop_config_state_dict_space,
+            JOB_PROPERTIES_KEY: self.job_properties_space,
+            CURRENT_JOB_CONFIG_KEY: self.job_config_space,
         })
 
         # TODO: consider actions as delta increments (not absolute configuration)
         self.action_space = spaces.Dict({
-            "current_job_config": hadoop_config_state_dict_space,
+            NEXT_JOB_CONFIG_KEY: self.job_config_space,
             TERMINATE_ACTION_NAME: spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
         })
 
         self._current_hadoop_config = HadoopJobConfig()
         self._episodic_job_properties: Optional[JobProperties] = None
-        self._supported_job_config_values = set(hadoop_config_state_dict_space.keys())
         self._last_action: Optional[Dict[str, Any]] = None
         self.step_count = 0
+
+    @property
+    def job_config_space(self):
+        # TODO: extend this implementation with all the flags:
+        return spaces.Dict({
+            "number_of_mappers": spaces.Box(low=1, high=15, shape=(), dtype=np.float32),
+            "number_of_reducers": spaces.Box(low=1, high=15, shape=(), dtype=np.float32),
+            "map_memory_mb": spaces.Box(low=100, high=1500, shape=(), dtype=np.float32),
+            "should_compress": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
+            "map_vcores": spaces.Box(low=1, high=4, shape=(), dtype=np.float32),
+            "reduce_vcores": spaces.Box(low=1, high=4, shape=(), dtype=np.float32),
+        })
+
+    @property
+    def job_properties_space(self):
+        return spaces.Dict({
+            "input_size_gb": spaces.Box(low=0, high=300, shape=(), dtype=np.float32),
+            "cpu_bound_scale": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
+            "io_bound_scale": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
+        })
+
+    @property
+    def supported_configurations(self):
+        return set(self.job_config_space.keys())
 
     def _construct_observation(
             self,
     ) -> Dict[str, Any]:
         # TODO: return full observation (job properties, load, updated hadoop configuration)
-
-        raw_observation = {
-            "job_properties": self._episodic_job_properties.model_dump(),
-            "current_job_config": self._current_hadoop_config.model_dump(include=self._supported_job_config_values),
+        return {
+            JOB_PROPERTIES_KEY: self._episodic_job_properties.model_dump(),
+            CURRENT_JOB_CONFIG_KEY: self._current_hadoop_config.model_dump(include=self.supported_configurations),
         }
-
-        return dict_to_ndarrays(raw_observation)
 
     def reset(
         self,
@@ -86,17 +102,16 @@ class OptimizerDeploymentEnv(gym.Env):
         reward = 0  # there is no meaning for the reward in the deployment environment
         self.step_count += 1
 
-        decoded_action = decode_action_types(action, self._supported_job_config_values)
-        self._last_action = decoded_action.copy()
+        self._last_action = action.copy()
 
-        terminated = decoded_action[TERMINATE_ACTION_NAME]     # TODO: FIND WHY ALL ELEMENTS ARE NDARRAYS
+        terminated = action[TERMINATE_ACTION_NAME]
         if not terminated and not truncated:
             # apply action to modify selected hadoop configuration
             # TODO: if actions are becoming deltas: start from self._current_hadoop_config,
             #   instead of the default configuration
             default_config = HadoopJobConfig()
             self._current_hadoop_config = default_config.model_copy(
-                update=decoded_action["current_job_config"], deep=True
+                update=action[NEXT_JOB_CONFIG_KEY], deep=True
             )
         # TODO: CONSIDER RETURNING MORE DEBUGGING INFO, such as the current cluster load
         info.update({"current_hadoop_config": self._current_hadoop_config.model_dump()})

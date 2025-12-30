@@ -11,9 +11,11 @@ from hadoop_optimizer.deployment_server.drl_model.drl_model import DRLModel
 from hadoop_optimizer.deployment_server.drl_model.drl_state import DRLState
 from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
 from hadoop_optimizer.drl_envs.dummy_env import DummyEnv
+from hadoop_optimizer.gymnasium_wrappers.action.action_types_decoder import ActionTypesDecoder
 from hadoop_optimizer.gymnasium_wrappers.action.flatten_action import FlattenAction
-from hadoop_optimizer.gymnasium_wrappers.common.time_limit_wrapper import TimeLimitWrapper
-from hadoop_optimizer.gymnasium_wrappers.common.reset_enforcer import ResetEnforcer
+from hadoop_optimizer.gymnasium_wrappers.state.dict_leafs_as_numpy import DictLeafsAsNumpy
+from hadoop_optimizer.gymnasium_wrappers.state.time_limit_wrapper import TimeLimitWrapper
+from hadoop_optimizer.gymnasium_wrappers.state.reset_enforcer import ResetEnforcer
 from hadoop_optimizer.gymnasium_wrappers.state_validators.enforce_observation_bounds import EnforceObservationBounds
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
@@ -56,9 +58,14 @@ class Container(containers.DeclarativeContainer):
         time_limit_env,
     )
 
+    dict_leafs_as_numpy: Provider[gym.Env] = providers.Factory(
+        DictLeafsAsNumpy,
+        reset_enforcer_env,
+    )
+
     flatten_observation_env: Provider[gym.Env] = providers.Factory(
         FlattenObservation,
-        reset_enforcer_env,
+        dict_leafs_as_numpy,
     )
 
     enforce_observation_bounds: Provider[gym.Env] = providers.Factory(
@@ -66,12 +73,16 @@ class Container(containers.DeclarativeContainer):
         flatten_observation_env,
     )
 
-    flatten_action_env: Provider[gym.Env] = providers.Factory(
-        FlattenAction,
+    action_types_decoder_env: Provider[gym.Env] = providers.Factory(
+        ActionTypesDecoder,
         enforce_observation_bounds,
     )
 
-    # TODO: UNDERSTAND HOW TO WORK WITH RESCALING ACTIONS
+    flatten_action_env: Provider[gym.Env] = providers.Factory(
+        FlattenAction,
+        action_types_decoder_env,
+    )
+
     rescale_action_env: Provider[gym.Env] = providers.Factory(
         RescaleAction,
         flatten_action_env,
@@ -85,7 +96,6 @@ class Container(containers.DeclarativeContainer):
         min_obs=-1,
         max_obs=1,
     )
-
 
     # TODO: LOAD THE BEST AGENT INSTEAD OF INITIALIZING A NEW MODEL HERE, FOR EXAMPLE: PPO.load(<path>)
     deployment_agent: Provider[BaseAlgorithm] = providers.Singleton(
