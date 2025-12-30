@@ -410,12 +410,13 @@ class HadoopJobConfig(BaseModel):
             )
         return self
 
-    @field_validator("output_path", mode="after")
-    def ensure_no_output_path(cls, output_path: str) -> str:
-        if cls.hdfs_path_exists(Path(HDFS_NAMENODE) / Path(output_path)):
-            raise FileExistsError(f"Output path already exists: {output_path}")
-
-        return output_path
+    # TODO: SEPARATE TASK DEFINITION FROM OTHER FLAGS
+    # @field_validator("output_path", mode="after")
+    # def ensure_no_output_path(cls, output_path: str) -> str:
+    #     if cls.hdfs_path_exists(Path(HDFS_NAMENODE) / Path(output_path)):
+    #         raise FileExistsError(f"Output path already exists: {output_path}")
+    #
+    #     return output_path
 
     @classmethod
     def from_argparse(cls, args: argparse.Namespace) -> "HadoopJobConfig":

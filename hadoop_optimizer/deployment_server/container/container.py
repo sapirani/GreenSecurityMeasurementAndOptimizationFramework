@@ -2,8 +2,7 @@ import gymnasium as gym
 from datetime import datetime
 from dependency_injector import containers, providers
 from dependency_injector.providers import Provider
-from gymnasium.wrappers import OrderEnforcing, TimeAwareObservation, FlattenObservation, NormalizeObservation, \
-    RescaleObservation, RescaleAction
+from gymnasium.wrappers import OrderEnforcing, FlattenObservation, RescaleObservation
 from stable_baselines3 import PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.policies import ActorCriticPolicy
@@ -57,14 +56,9 @@ class Container(containers.DeclarativeContainer):
         time_limit_env,
     )
 
-    enforce_observation_bounds_env: Provider[gym.Env] = providers.Factory(
-        EnforceObservationBounds,
-        reset_enforcer_env,
-    )
-
     flatten_observation_env: Provider[gym.Env] = providers.Factory(
         FlattenObservation,
-        enforce_observation_bounds_env,
+        reset_enforcer_env,
     )
 
     flatten_action_env: Provider[gym.Env] = providers.Factory(
@@ -80,11 +74,16 @@ class Container(containers.DeclarativeContainer):
     #     max_action=1,
     # )
 
-    deployment_env: Provider[gym.Env] = providers.Factory(
+    rescale_observation_env: Provider[gym.Env] = providers.Factory(
         RescaleObservation,     # TODO: CONSIDER USING NormalizeObservation
         flatten_action_env,
         min_obs=-1,
         max_obs=1,
+    )
+
+    deployment_env: Provider[gym.Env] = providers.Factory(
+        EnforceObservationBounds,
+        rescale_observation_env,
     )
 
     # TODO: LOAD THE BEST AGENT INSTEAD OF INITIALIZING A NEW MODEL HERE, FOR EXAMPLE: PPO.load(<path>)

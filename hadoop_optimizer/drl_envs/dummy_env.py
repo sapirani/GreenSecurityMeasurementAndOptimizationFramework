@@ -32,7 +32,8 @@ class DummyEnv(gym.Env):
 
         self.action_space = self.action_space = spaces.Dict({
             "number_of_mappers": spaces.Box(low=0, high=15, shape=(), dtype=np.uint16),
-            "number_of_reducers": spaces.Box(low=50, high=70, shape=(), dtype=np.uint16)
+            "number_of_reducers": spaces.Box(low=50, high=70, shape=(), dtype=np.uint16),
+            "terminate": spaces.MultiBinary(1),
         })
 
     def reset(
@@ -51,6 +52,17 @@ class DummyEnv(gym.Env):
         }, {}
 
     def step(self, action: ActType) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
+        if action["terminate"]:
+            return {
+            "job_properties": {
+                "input_size": 3
+            },
+            "current_configuration": {
+                "number_of_mappers": 2
+            }
+        }, 0, True, False, {}
+
+
         print("selected action:", action)
         return {
             "job_properties": {
