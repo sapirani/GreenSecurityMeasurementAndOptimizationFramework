@@ -3,7 +3,7 @@ from datetime import datetime
 from dependency_injector import containers, providers
 from dependency_injector.providers import Provider
 from gymnasium.wrappers import OrderEnforcing, TimeAwareObservation, FlattenObservation, NormalizeObservation, \
-    RescaleObservation
+    RescaleObservation, RescaleAction
 from stable_baselines3 import PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.policies import ActorCriticPolicy
@@ -12,6 +12,7 @@ from hadoop_optimizer.deployment_server.drl_model.drl_model import DRLModel
 from hadoop_optimizer.deployment_server.drl_model.drl_state import DRLState
 from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
 from hadoop_optimizer.drl_envs.dummy_env import DummyEnv
+from hadoop_optimizer.gymnasium_wrappers.action.flatten_action import FlattenAction
 from hadoop_optimizer.gymnasium_wrappers.common.time_limit_wrapper import TimeLimitWrapper
 from hadoop_optimizer.gymnasium_wrappers.common.reset_enforcer import ResetEnforcer
 from hadoop_optimizer.gymnasium_wrappers.state_validators.enforce_observation_bounds import EnforceObservationBounds
@@ -66,9 +67,22 @@ class Container(containers.DeclarativeContainer):
         enforce_observation_bounds_env,
     )
 
+    flatten_action_env: Provider[gym.Env] = providers.Factory(
+        FlattenAction,
+        flatten_observation_env,
+    )
+
+    # TODO: UNDERSTAND HOW TO WORK WITH RESCALING ACTIONS
+    # rescale_action_env: Provider[gym.Env] = providers.Factory(
+    #     RescaleAction,
+    #     flatten_action_env,
+    #     min_action=0,
+    #     max_action=1,
+    # )
+
     deployment_env: Provider[gym.Env] = providers.Factory(
         RescaleObservation,     # TODO: CONSIDER USING NormalizeObservation
-        flatten_observation_env,
+        flatten_action_env,
         min_obs=-1,
         max_obs=1,
     )

@@ -94,10 +94,6 @@ def determine_best_job_configuration(
         while True:
             action, _states = deployment_agent.predict(obs)
             obs, rewards, terminated, truncated, info = deployment_env.step(action)
-
-            print("how observation looks like:")
-            print(obs)
-
             deployment_env.render()
 
             if terminated:

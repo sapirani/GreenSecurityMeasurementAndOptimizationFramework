@@ -1,14 +1,8 @@
-from typing import SupportsFloat, Any, Optional, Dict
+from typing import SupportsFloat, Any
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 from gymnasium.core import RenderFrame, ActType, ObsType
-from pydantic import ValidationError
-from hadoop_optimizer.DTOs.hadoop_job_config import HadoopJobConfig
-from hadoop_optimizer.DTOs.job_properties import JobProperties
-from hadoop_optimizer.drl_envs.consts import TERMINATE_ACTION_NAME
-from hadoop_optimizer.drl_envs.spaces_utils import hadoop_config_as_gymnasium_dict_space, \
-    job_properties_as_gymnasium_dict_space, decode_action, flatten_observation
 
 
 class DummyEnv(gym.Env):
@@ -32,19 +26,14 @@ class DummyEnv(gym.Env):
                 "input_size": spaces.Box(low=0, high=300, shape=(), dtype=np.float32)
             }),
             "current_configuration": spaces.Dict({
-                "number_of_mappers": spaces.Box(low=0, high=15, shape=(), dtype=np.uint16)
+                "number_of_mappers": spaces.Box(low=0, high=15, shape=(), dtype=np.uint16)  # TODO: SHOULD I GET RID OF THE UNIT AND PERFORM CASTING WITH NUMPY?
             }),
         })
 
-        self.action_space = self.action_space = spaces.MultiDiscrete([
-            15,     # number_of_mappers     (1–15)
-            15,     # number_of_reducers    (1–15)
-            20,     # map_memory_mb bins    (250, 300,...)
-            2,      # should_compress       (0/1)
-            4,      # map_vcores            (1–4)
-            4,      # reduce_vcores         (1–4)
-            2,      # terminate             (0/1)
-        ])
+        self.action_space = self.action_space = spaces.Dict({
+            "number_of_mappers": spaces.Box(low=0, high=15, shape=(), dtype=np.uint16),
+            "number_of_reducers": spaces.Box(low=50, high=70, shape=(), dtype=np.uint16)
+        })
 
     def reset(
         self,
@@ -62,6 +51,7 @@ class DummyEnv(gym.Env):
         }, {}
 
     def step(self, action: ActType) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
+        print("selected action:", action)
         return {
             "job_properties": {
                 "input_size": 3
