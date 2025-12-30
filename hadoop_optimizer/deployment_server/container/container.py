@@ -10,7 +10,6 @@ from elastic_reader.consts import TimePickerInputStrategy
 from hadoop_optimizer.deployment_server.drl_model.drl_model import DRLModel
 from hadoop_optimizer.deployment_server.drl_model.drl_state import DRLState
 from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
-from hadoop_optimizer.drl_envs.dummy_env import DummyEnv
 from hadoop_optimizer.gymnasium_wrappers.action.action_types_decoder import ActionTypesDecoder
 from hadoop_optimizer.gymnasium_wrappers.action.flatten_action import FlattenAction
 from hadoop_optimizer.gymnasium_wrappers.state.dict_leafs_as_numpy import DictLeafsAsNumpy

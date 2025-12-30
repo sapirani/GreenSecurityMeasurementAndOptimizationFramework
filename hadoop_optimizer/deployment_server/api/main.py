@@ -9,7 +9,7 @@ from stable_baselines3.common.base_class import BaseAlgorithm
 from starlette import status
 from starlette.responses import JSONResponse
 from elastic_reader.consts import ElasticIndex
-from hadoop_optimizer.DTOs.hadoop_job_config import HadoopJobConfig
+from hadoop_optimizer.DTOs.hadoop_job_execution_config import HadoopJobExecutionConfig
 from hadoop_optimizer.DTOs.job_properties import JobProperties, get_job_properties
 from hadoop_optimizer.deployment_server.container.container import Container
 from hadoop_optimizer.deployment_server.drl_model.drl_model import DRLModel
@@ -77,7 +77,7 @@ def determine_best_job_configuration(
         deployment_agent: BaseAlgorithm,
         deployment_env: OptimizerDeploymentEnv,
         job_properties: JobProperties
-) -> HadoopJobConfig:
+) -> HadoopJobExecutionConfig:
     with deployment_env:
         obs, _ = deployment_env.reset(options=job_properties.model_dump())
         while True:
@@ -86,11 +86,11 @@ def determine_best_job_configuration(
             deployment_env.render()
 
             if terminated:
-                return HadoopJobConfig.model_validate(info["current_hadoop_config"])   # TODO: USE A CONST FOR KEY NAME?
+                return HadoopJobExecutionConfig.model_validate(info["current_hadoop_config"])   # TODO: USE A CONST FOR KEY NAME?
 
             if truncated:
                 raise EnvironmentTruncatedException(
-                    HadoopJobConfig.model_validate(info["current_hadoop_config"]),
+                    HadoopJobExecutionConfig.model_validate(info["current_hadoop_config"]),
                     info["elapsed_steps"],
                     info["max_steps"],
                 )
@@ -102,7 +102,7 @@ def choose_the_best_configuration_for_a_new_task_under_the_current_load(
     job_properties: Annotated[JobProperties, Depends(get_job_properties)],
     deployment_agent: Annotated[BaseAlgorithm, Depends(Provide[Container.deployment_agent])],
     deployment_env: Annotated[OptimizerDeploymentEnv, Depends(Provide[Container.deployment_env])],
-) -> HadoopJobConfig:
+) -> HadoopJobExecutionConfig:
 
     try:
         return determine_best_job_configuration(deployment_agent, deployment_env, job_properties)

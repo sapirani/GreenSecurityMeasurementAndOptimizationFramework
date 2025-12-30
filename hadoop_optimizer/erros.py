@@ -1,11 +1,11 @@
 from gymnasium import spaces
 from gymnasium.core import ObsType
 
-from hadoop_optimizer.DTOs.hadoop_job_config import HadoopJobConfig
+from hadoop_optimizer.DTOs.hadoop_job_execution_config import HadoopJobExecutionConfig
 
 
 class EnvironmentTruncatedException(Exception):
-    def __init__(self, last_job_configuration: HadoopJobConfig, elapsed_steps: int, max_steps: int):
+    def __init__(self, last_job_configuration: HadoopJobExecutionConfig, elapsed_steps: int, max_steps: int):
         self.last_job_configuration = last_job_configuration
         self.elapsed_steps = elapsed_steps
         self.max_steps = max_steps

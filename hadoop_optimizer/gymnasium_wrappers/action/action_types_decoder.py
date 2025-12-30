@@ -1,7 +1,7 @@
 import gymnasium as gym
 import numpy as np
 from gymnasium.core import WrapperActType, ActType
-from hadoop_optimizer.DTOs.hadoop_job_config import HadoopJobConfig
+from hadoop_optimizer.DTOs.hadoop_job_execution_config import HadoopJobExecutionConfig
 from hadoop_optimizer.drl_envs.consts import NEXT_JOB_CONFIG_KEY, TERMINATE_ACTION_NAME
 from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
 
@@ -14,7 +14,7 @@ class ActionTypesDecoder(gym.ActionWrapper):
         decoded_action = {}
         next_job_config = action[NEXT_JOB_CONFIG_KEY]
 
-        for field_name, field_info in HadoopJobConfig.model_fields.items():
+        for field_name, field_info in HadoopJobExecutionConfig.model_fields.items():
             if field_name not in self.unwrapped.supported_configurations:
                 continue
 

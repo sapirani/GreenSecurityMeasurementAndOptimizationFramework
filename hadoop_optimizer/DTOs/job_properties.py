@@ -7,6 +7,9 @@ class JobProperties(BaseModel):
     cpu_bound_scale: float
     io_bound_scale: float
 
+    def __str__(self):
+        return self.__repr_str__('\n')
+
 
 def get_job_properties(
     input_size_gb: float = Query(

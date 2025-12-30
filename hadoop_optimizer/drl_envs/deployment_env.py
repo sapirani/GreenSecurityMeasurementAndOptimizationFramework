@@ -4,7 +4,7 @@ import numpy as np
 from gymnasium import spaces
 from gymnasium.core import RenderFrame, ActType, ObsType
 from pydantic import ValidationError
-from hadoop_optimizer.DTOs.hadoop_job_config import HadoopJobConfig
+from hadoop_optimizer.DTOs.hadoop_job_execution_config import HadoopJobExecutionConfig
 from hadoop_optimizer.DTOs.job_properties import JobProperties
 from hadoop_optimizer.drl_envs.consts import TERMINATE_ACTION_NAME, CURRENT_JOB_CONFIG_KEY, NEXT_JOB_CONFIG_KEY, \
     JOB_PROPERTIES_KEY
@@ -31,7 +31,7 @@ class OptimizerDeploymentEnv(gym.Env):
             TERMINATE_ACTION_NAME: spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
         })
 
-        self._current_hadoop_config = HadoopJobConfig()
+        self._current_hadoop_config = HadoopJobExecutionConfig()
         self._episodic_job_properties: Optional[JobProperties] = None
         self._last_action: Optional[Dict[str, Any]] = None
         self.step_count = 0
@@ -89,7 +89,7 @@ class OptimizerDeploymentEnv(gym.Env):
             raise ValueError("Received unexpected job properties") from e
 
         # TODO: CONSIDER RETURNING DEBUGGING INFO, such as the current cluster load
-        self._current_hadoop_config = HadoopJobConfig()
+        self._current_hadoop_config = HadoopJobExecutionConfig()
         info = {"default_config": True}
         return self._construct_observation(), info
 
@@ -109,7 +109,7 @@ class OptimizerDeploymentEnv(gym.Env):
             # apply action to modify selected hadoop configuration
             # TODO: if actions are becoming deltas: start from self._current_hadoop_config,
             #   instead of the default configuration
-            default_config = HadoopJobConfig()
+            default_config = HadoopJobExecutionConfig()
             self._current_hadoop_config = default_config.model_copy(
                 update=action[NEXT_JOB_CONFIG_KEY], deep=True
             )
@@ -123,9 +123,11 @@ class OptimizerDeploymentEnv(gym.Env):
 
         print("Episodic Job Properties:")
         print(self._episodic_job_properties)
+        print()
 
         print("Selected Action:")
         print(self._last_action)
+        print()
 
         print(f"------------ Current Hadoop Config (step {self.step_count}) ------------")
         print(self._current_hadoop_config)
