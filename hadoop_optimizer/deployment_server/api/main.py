@@ -129,6 +129,7 @@ def choose_the_best_configuration_for_a_new_task_under_the_current_load(
 
 if __name__ == '__main__':
     container = Container()
+    container.config.allowed_numeric_noise.from_value(0.001)
     container.config.max_episode_steps.from_value(100)
     container.config.indices_to_read_from.from_value([ElasticIndex.PROCESS, ElasticIndex.SYSTEM])
     container.config.drl_state.split_by.from_value("hostname")

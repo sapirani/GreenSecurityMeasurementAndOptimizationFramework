@@ -98,7 +98,6 @@ class OptimizerDeploymentEnv(gym.Env):
             self._current_hadoop_config = default_config.model_copy(
                 update=decoded_action["current_job_config"], deep=True
             )
-
         # TODO: CONSIDER RETURNING MORE DEBUGGING INFO, such as the current cluster load
         info.update({"current_hadoop_config": self._current_hadoop_config.model_dump()})
 
@@ -108,7 +107,7 @@ class OptimizerDeploymentEnv(gym.Env):
         print(f"****************** Current Step: {self.step_count} ******************")
 
         print("Episodic Job Properties:")
-        print(self._current_hadoop_config)
+        print(self._episodic_job_properties)
 
         print("Selected Action:")
         print(self._last_action)

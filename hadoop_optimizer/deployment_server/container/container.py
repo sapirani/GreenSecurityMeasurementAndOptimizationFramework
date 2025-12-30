@@ -2,7 +2,7 @@ import gymnasium as gym
 from datetime import datetime
 from dependency_injector import containers, providers
 from dependency_injector.providers import Provider
-from gymnasium.wrappers import OrderEnforcing, FlattenObservation, RescaleObservation
+from gymnasium.wrappers import OrderEnforcing, FlattenObservation, RescaleObservation, RescaleAction
 from stable_baselines3 import PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.policies import ActorCriticPolicy
@@ -61,36 +61,39 @@ class Container(containers.DeclarativeContainer):
         reset_enforcer_env,
     )
 
-    flatten_action_env: Provider[gym.Env] = providers.Factory(
-        FlattenAction,
+    enforce_observation_bounds: Provider[gym.Env] = providers.Factory(
+        EnforceObservationBounds,
         flatten_observation_env,
     )
 
-    # TODO: UNDERSTAND HOW TO WORK WITH RESCALING ACTIONS
-    # rescale_action_env: Provider[gym.Env] = providers.Factory(
-    #     RescaleAction,
-    #     flatten_action_env,
-    #     min_action=0,
-    #     max_action=1,
-    # )
+    flatten_action_env: Provider[gym.Env] = providers.Factory(
+        FlattenAction,
+        enforce_observation_bounds,
+    )
 
-    rescale_observation_env: Provider[gym.Env] = providers.Factory(
-        RescaleObservation,     # TODO: CONSIDER USING NormalizeObservation
+    # TODO: UNDERSTAND HOW TO WORK WITH RESCALING ACTIONS
+    rescale_action_env: Provider[gym.Env] = providers.Factory(
+        RescaleAction,
         flatten_action_env,
+        min_action=0,
+        max_action=1,
+    )
+
+    deployment_env: Provider[gym.Env] = providers.Factory(
+        RescaleObservation,     # TODO: CONSIDER USING NormalizeObservation
+        rescale_action_env,
         min_obs=-1,
         max_obs=1,
     )
 
-    deployment_env: Provider[gym.Env] = providers.Factory(
-        EnforceObservationBounds,
-        rescale_observation_env,
-    )
 
     # TODO: LOAD THE BEST AGENT INSTEAD OF INITIALIZING A NEW MODEL HERE, FOR EXAMPLE: PPO.load(<path>)
     deployment_agent: Provider[BaseAlgorithm] = providers.Singleton(
         PPO,
         policy=ActorCriticPolicy,
         env=deployment_env,
+        # TODO: REMOVE WHEN WE HAVE A REAL MODEL, IT INCREASES THE PREDICTION VARIANCE
+        policy_kwargs=dict(log_std_init=0.8)
     )
 
     drl_time_picker_input: Provider[TimePickerChosenInput] = providers.Factory(

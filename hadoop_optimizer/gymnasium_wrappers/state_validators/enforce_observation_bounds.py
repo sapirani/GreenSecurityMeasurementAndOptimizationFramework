@@ -26,7 +26,7 @@ class EnforceObservationBounds(gym.Wrapper):
 
     def step(self, action: ActType) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = self.env.step(action)
-        if not self.env.observation_space.contains(obs):
+        if not self.env.observation_space.contains(obs):    # TODO: AVOID NUMERIC ERRORS
             raise OutOfBoundObservation(observation=obs, space=self.observation_space)
         return obs, reward, terminated, truncated, info
 
