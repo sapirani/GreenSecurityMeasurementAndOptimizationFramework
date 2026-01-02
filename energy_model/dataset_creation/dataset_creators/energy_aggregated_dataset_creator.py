@@ -2,14 +2,21 @@ from typing import Callable, Union
 
 from overrides import override
 
+from energy_model.configs.columns import SystemColumns
 from energy_model.dataset_creation.dataset_creation_config import AggregationName
 from energy_model.dataset_creation.dataset_creators.aggregated_dataset_creator import AggregatedDatasetCreator
-from energy_model.configs.columns import SystemColumns
 from energy_model.dataset_creation.target_calculators.battery_drain_target_calculator import \
     BatteryDrainTargetCalculator
 
 
 class EnergyAggregatedDatasetCreator(AggregatedDatasetCreator):
+    """
+    This class represents the basic reading from elastic.
+    Reading only process of interest logs.
+    Aggregations on every process telemetry per batch.
+    The system energy per batch per process is calculated by the battery drain between the first and last samples of each process in the batch.
+    """
+
     def __init__(self, batch_time_intervals: list[int] = None):
         super().__init__(target_calculator=BatteryDrainTargetCalculator(), batch_time_intervals=batch_time_intervals)
 

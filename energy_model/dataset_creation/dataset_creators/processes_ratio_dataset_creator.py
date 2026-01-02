@@ -12,6 +12,13 @@ DEFAULT_ENERGY_RATIO = 1.0
 
 
 class ProcessesRatioDatasetCreator(BasicDatasetCreator):
+    """
+    This class represents the basic reading from elastic.
+    Reading only process of interest logs.
+    No aggregations on samples.
+    Calculating the impact of each sample of each process in case where multiple processes appear in a single batch.
+    """
+
     def __init__(self, target_calculator: TargetCalculator):
         super().__init__(target_calculator)
         self.__resource_energy_calculator = ResourceEnergyCalculator()

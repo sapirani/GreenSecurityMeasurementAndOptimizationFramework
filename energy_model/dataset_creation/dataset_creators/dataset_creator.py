@@ -1,45 +1,28 @@
 from abc import ABC, abstractmethod
-from collections import defaultdict
-from dataclasses import asdict
-from datetime import datetime
 from typing import Callable, Union
 
 import pandas as pd
 
-from DTOs.aggregators_features.energy_model_features.full_energy_model_features import ExtendedEnergyModelFeatures
-from DTOs.process_info import ProcessIdentity
-from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
-from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
-from DTOs.session_host_info import SessionHostIdentity
-from elastic_reader.consts import ElasticIndex
-from elastic_reader.elastic_reader import ElasticReader
-from elastic_reader.elastic_reader_parameters import time_picker_input_strategy, preconfigured_time_picker_input
 from energy_model.configs.columns import ProcessColumns, SystemColumns
 from energy_model.dataset_creation.dataset_creation_config import DEFAULT_BATCH_INTERVAL_SECONDS, TIMESTAMP_COLUMN_NAME, \
-    MINIMAL_BATCH_DURATION, IDLE_SESSION_ID_NAME, AggregationName, COLUMNS_TO_CALCULATE_DIFF, COLUMNS_TO_SUM
+    MINIMAL_BATCH_DURATION, AggregationName, COLUMNS_TO_CALCULATE_DIFF, COLUMNS_TO_SUM
+from energy_model.dataset_creation.dataset_readers.dataset_reader import DatasetReader
 from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
 from energy_model.energy_model_parameters import FULL_DATASET_BEFORE_PROCESSING_PATH
-from energy_model.energy_model_utils.energy_model_convertor import EnergyModelConvertor
-from energy_model.energy_model_utils.energy_model_feature_extractor import EnergyModelFeatureExtractor
-from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 
 
 class DatasetCreator(ABC):
-    def __init__(self, target_calculator: TargetCalculator, batch_time_intervals: list[int] = None):
+    def __init__(self, target_calculator: TargetCalculator, dataset_reader: DatasetReader,
+                 batch_time_intervals: list[int] = None):
         if batch_time_intervals is None:
             batch_time_intervals = DEFAULT_BATCH_INTERVAL_SECONDS
 
-        self.__elastic_reader_iterator = ElasticReader(
-            get_time_picker_input(time_picker_input_strategy, preconfigured_time_picker_input),
-            [ElasticIndex.PROCESS, ElasticIndex.SYSTEM]).read()
-        self.__processes_features_extractor_mapping: dict[ProcessIdentity, EnergyModelFeatureExtractor] = defaultdict(
-            lambda: EnergyModelFeatureExtractor())
         self.__batch_time_intervals = batch_time_intervals
         self.__target_calculator = target_calculator
+        self.__dataset_reader = dataset_reader
 
     def create_dataset(self) -> pd.DataFrame:
-        all_samples_features = self.__create_all_dataset_objects()
-        df = self.__convert_objects_to_dataframe(all_samples_features)
+        df = self.__dataset_reader.read_dataset()
 
         full_df = pd.DataFrame()
         for batch_interval in self.__batch_time_intervals:
@@ -47,34 +30,6 @@ class DatasetCreator(ABC):
             full_df = pd.concat([full_df, full_df_for_interval], ignore_index=True)
 
         full_df.to_csv(FULL_DATASET_BEFORE_PROCESSING_PATH)
-        return full_df
-
-    def __create_all_dataset_objects(self) -> list[ExtendedEnergyModelFeatures]:
-        all_samples = []
-        for sample in self.__elastic_reader_iterator:
-            metadata = sample.metadata
-            if sample.system_raw_results is None or IDLE_SESSION_ID_NAME in metadata.session_host_identity.session_id:
-                continue
-
-            # todo: fix duration handling in case of multiple sessions and hostnames running at the same time (single iteration raw results may contain samples from different measurements)
-            iteration_samples = self._extract_iteration_samples(sample.system_raw_results,
-                                                                list(sample.processes_raw_results.values()),
-                                                                metadata.timestamp, metadata.session_host_identity)
-
-            all_samples.extend(iteration_samples)
-
-        return all_samples
-
-    @staticmethod
-    def __convert_objects_to_dataframe(all_samples_features: list[ExtendedEnergyModelFeatures]):
-        samples_as_df = [EnergyModelConvertor.convert_complete_features_to_pandas(sample, timestamp=sample.timestamp,
-                                                                                  session_id=sample.session_id,
-                                                                                  hostname=sample.hostname,
-                                                                                  pid=sample.pid,
-                                                                                  battery_capacity_mwh_system=sample.battery_remaining_capacity_mWh,
-                                                                                  **asdict(sample.hardware_features))
-                         for sample in all_samples_features]
-        full_df = pd.concat(samples_as_df, ignore_index=True)
         return full_df
 
     def __handle_single_time_interval(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
@@ -170,13 +125,6 @@ class DatasetCreator(ABC):
             col: lambda x: x.iloc[0] - x.iloc[-1] for col in available_columns if col in COLUMNS_TO_CALCULATE_DIFF
         })
         return columns_aggregations
-
-    @abstractmethod
-    def _extract_iteration_samples(self, system_raw_results: SystemRawResults,
-                                   processes_raw_results: list[ProcessRawResults],
-                                   timestamp: datetime, session_host_identity: SessionHostIdentity) -> \
-                                   list[ExtendedEnergyModelFeatures]:
-        pass
 
     @abstractmethod
     def _add_energy_necessary_columns(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
