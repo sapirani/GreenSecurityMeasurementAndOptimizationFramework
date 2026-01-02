@@ -1,14 +1,6 @@
-from datetime import datetime
 import pandas as pd
 
 from energy_model.configs.columns import SystemColumns
-from DTOs.aggregators_features.energy_model_features.full_energy_model_features import ExtendedEnergyModelFeatures
-from DTOs.process_info import ProcessIdentity
-from DTOs.aggregators_features.empty_features import EmptyFeatures
-from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
-from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
-from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
-from DTOs.session_host_info import SessionHostIdentity
 from energy_model.dataset_creation.dataset_creators.dataset_creator import DatasetCreator
 
 
@@ -18,6 +10,7 @@ class BasicDatasetCreator(DatasetCreator):
     Reading only process of interest logs.
     No special aggregations on the data.
     """
+
     def _add_energy_necessary_columns(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
         """
             This method calculates the target column and adds it to the dataframe.

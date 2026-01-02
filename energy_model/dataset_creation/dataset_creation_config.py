@@ -1,3 +1,5 @@
+from enum import Enum
+
 from energy_model.configs.columns import SystemColumns, ProcessColumns
 from utils.general_consts import MINUTE
 
@@ -25,3 +27,18 @@ class AggregationName:
     SUM: str = "sum"
     FIRST_SAMPLE: str = "first"
     LAST_SAMPLE: str = "last"
+
+class DatasetReaderType(Enum):
+    ProcessOfInterest = 1
+    AllProcesses = 2
+
+class DatasetCreatorType(Enum):
+    Basic = 1
+    WithAggregation = 2
+    WithEnergyAggregation = 3
+    WithProcessRatio = 4
+
+class TargetCalculatorType(Enum):
+    SystemBased = 1
+    IdleBased = 2
+    BatteryDrainBased = 3
