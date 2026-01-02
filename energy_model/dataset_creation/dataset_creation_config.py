@@ -42,3 +42,8 @@ class TargetCalculatorType(Enum):
     SystemBased = 1
     IdleBased = 2
     BatteryDrainBased = 3
+
+
+DEFAULT_TARGET_CALCULATOR = TargetCalculatorType.SystemBased
+DEFAULT_DATASET_READER = DatasetReaderType.ProcessOfInterest
+DEFAULT_DATASET_CREATOR = DatasetCreatorType.Basic
