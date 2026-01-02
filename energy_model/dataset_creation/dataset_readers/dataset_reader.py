@@ -19,7 +19,7 @@ from energy_model.energy_model_utils.energy_model_convertor import EnergyModelCo
 from energy_model.energy_model_utils.energy_model_feature_extractor import EnergyModelFeatureExtractor
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 
-
+# todo: can be a consumer
 class DatasetReader(ABC):
     def __init__(self):
         self.__elastic_reader_iterator = ElasticReader(
