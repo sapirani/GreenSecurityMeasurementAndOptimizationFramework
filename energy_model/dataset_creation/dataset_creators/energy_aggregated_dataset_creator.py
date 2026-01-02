@@ -25,6 +25,13 @@ class EnergyAggregatedDatasetCreator(AggregatedDatasetCreator):
 
     @override
     def _get_necessary_aggregations(self, available_columns: list[str]) -> dict[str, Union[list[str], str, Callable]]:
+        """
+        For each batch:
+            - Calculate the total energy consumption per second of that batch, by calculating the battery drain during that batch.
+            - Adding the calculated result as new column.
+            - aggregate over each process's telemetry. Aggregations contain also first and last battery capacity values.
+        """
+
         aggregations_dict = super()._get_necessary_aggregations(available_columns)
         aggregations_dict[SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL] = [AggregationName.FIRST_SAMPLE,
                                                                             AggregationName.LAST_SAMPLE]

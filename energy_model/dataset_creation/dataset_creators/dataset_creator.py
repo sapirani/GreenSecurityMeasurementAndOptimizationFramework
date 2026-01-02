@@ -5,13 +5,17 @@ import pandas as pd
 
 from energy_model.configs.columns import ProcessColumns, SystemColumns
 from energy_model.dataset_creation.dataset_creation_config import DEFAULT_BATCH_INTERVAL_SECONDS, TIMESTAMP_COLUMN_NAME, \
-    MINIMAL_BATCH_DURATION, AggregationName, COLUMNS_TO_CALCULATE_DIFF, COLUMNS_TO_SUM, DEFAULT_FILTERING_SINGLE_PROCESS
+    MINIMAL_BATCH_DURATION, AggregationName, COLUMNS_TO_CALCULATE_DIFF, COLUMNS_TO_SUM, \
+    DEFAULT_FILTERING_SINGLE_PROCESS, AggregationValue
 from energy_model.dataset_creation.dataset_readers.dataset_reader import DatasetReader
 from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
 from energy_model.energy_model_parameters import FULL_DATASET_BEFORE_PROCESSING_PATH
 
 
 class DatasetCreator(ABC):
+    """
+    Class for processing the telemetry data and calculating the energy usage of each sample.
+    """
     def __init__(self, target_calculator: TargetCalculator, dataset_reader: DatasetReader,
                  batch_time_intervals: list[int] = None, single_process_only: bool = DEFAULT_FILTERING_SINGLE_PROCESS):
         if batch_time_intervals is None:
@@ -83,7 +87,7 @@ class DatasetCreator(ABC):
         df_with_necessary_columns = self._add_energy_necessary_columns(df, batch_duration_seconds)
 
         results = []
-        # Step 2: Handle batches separately depending on process_id count
+        # Handle batches separately depending on process_id count
         for batch_id, batch_df in df_with_necessary_columns.groupby(SystemColumns.BATCH_ID_COL, group_keys=False):
             if self.__single_process_only:
                 # Filter out batches with more than 1 processes
@@ -122,7 +126,7 @@ class DatasetCreator(ABC):
     def _get_necessary_aggregations(self, available_columns: list[str]) -> dict[str, Union[list[str], str, Callable]]:
         consts_columns = list(set(available_columns) - set(COLUMNS_TO_SUM))
         consts_columns = list(set(consts_columns) - set(COLUMNS_TO_CALCULATE_DIFF))
-        columns_aggregations = {
+        columns_aggregations: dict[str, AggregationValue] = {
             col: AggregationName.SUM for col in available_columns if col in COLUMNS_TO_SUM
         }
         columns_aggregations.update({
@@ -133,6 +137,15 @@ class DatasetCreator(ABC):
         })
         return columns_aggregations
 
+
     @abstractmethod
     def _add_energy_necessary_columns(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
+        """
+        This method requires calculating the relevant features for calculating the target column.
+        Input:
+            df - pandas dataframe with all raw information.
+            batch_duration_seconds - duration of each batch in seconds.
+        Output:
+            pandas dataframe with columns that are relevant for calculating the target.
+        """
         pass

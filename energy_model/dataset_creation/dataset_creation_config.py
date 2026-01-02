@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Union, Callable
 
 from energy_model.configs.columns import SystemColumns, ProcessColumns
 from utils.general_consts import MINUTE
@@ -43,6 +44,7 @@ class TargetCalculatorType(Enum):
     IdleBased = 2
     BatteryDrainBased = 3
 
+AggregationValue = Union[str, Callable, list[str]]
 
 DEFAULT_TARGET_CALCULATOR = TargetCalculatorType.SystemBased
 DEFAULT_DATASET_READER = DatasetReaderType.ProcessOfInterest

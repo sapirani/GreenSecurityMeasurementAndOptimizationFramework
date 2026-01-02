@@ -5,7 +5,10 @@ import pandas as pd
 
 
 class TargetCalculator(ABC):
-    def __init__(self, target_column: str, must_appear_columns: list[Union[str | tuple[str]]]):
+    """
+        Class for analyzing the processed telemetry data and calculating the energy usage.
+    """
+    def __init__(self, target_column: str, must_appear_columns: list[Union[str, tuple[str, str]]]):
         self._target_column = target_column
         self._must_appear_columns = must_appear_columns
 
@@ -19,4 +22,11 @@ class TargetCalculator(ABC):
 
     @abstractmethod
     def _add_target_to_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Method that calculates the energy usage of each sample.
+        Input:
+            df - the full telemetry dataset.
+        Output:
+            df with another column that represents the calculated target.
+        """
         pass

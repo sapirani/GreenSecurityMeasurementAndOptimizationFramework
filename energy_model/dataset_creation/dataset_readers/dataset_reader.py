@@ -21,6 +21,9 @@ from user_input.elastic_reader_input.time_picker_input_factory import get_time_p
 
 # todo: can be a consumer
 class DatasetReader(ABC):
+    """
+        Class for reading the raw telemetry data from the elastic using the relevant filter.
+    """
     def __init__(self):
         self.__elastic_reader_iterator = ElasticReader(
             get_time_picker_input(time_picker_input_strategy, preconfigured_time_picker_input),
@@ -50,10 +53,8 @@ class DatasetReader(ABC):
 
         return all_samples
 
-    def _extract_iteration_samples(self, system_raw_results: SystemRawResults,
-                                   processes_raw_results: list[ProcessRawResults],
-                                   iteration_metadata: IterationMetadata) -> \
-            list[ExtendedEnergyModelFeatures]:
+    def _extract_iteration_samples(self, system_raw_results: SystemRawResults, processes_raw_results: list[ProcessRawResults],
+                                   iteration_metadata: IterationMetadata) -> list[ExtendedEnergyModelFeatures]:
         iteration_samples = []
         for process_result in processes_raw_results:
             if not self._should_use_sample(system_raw_results, process_result, iteration_metadata):
@@ -89,4 +90,13 @@ class DatasetReader(ABC):
     @abstractmethod
     def _should_use_sample(self, system_raw_results: SystemRawResults, process_raw_results: ProcessRawResults,
                            iteration_metadata: IterationMetadata) -> bool:
+        """
+        Method that determines if a single sample should be part of the final dataset or not.
+        Input:
+            system_raw_results - the system telemetry of the sample.
+            process_raw_results - the process telemetry of the sample.
+            iteration_metadata - the iteration metadata.
+        Output:
+            boolean indicating if the sample is part of the final dataset.
+        """
         pass

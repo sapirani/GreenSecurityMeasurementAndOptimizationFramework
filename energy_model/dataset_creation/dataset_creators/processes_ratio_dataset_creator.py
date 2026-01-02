@@ -28,6 +28,14 @@ class ProcessesRatioDatasetCreator(BasicDatasetCreator):
 
     @override
     def _add_energy_necessary_columns(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
+        """
+            For each batch:
+                - Calculate the total energy consumption per second of that batch, by calculating the battery drain during that batch.
+                - Adding the calculated result as new column.
+                - Calculate the ratio of a specific sample on the overall batch's energy usage.
+                    * If the batch has single process - the ratio is 1
+                    * If the batch has multiple process - the ratio is calculated based on resource consumption.
+        """
         df_without_process_ratio = super()._add_energy_necessary_columns(df, batch_duration_seconds)
         unique_procs = df_without_process_ratio[ProcessColumns.PROCESS_ID_COL].nunique()
         if unique_procs > 1:
