@@ -30,3 +30,7 @@ class TargetCalculator(ABC):
             df with another column that represents the calculated target.
         """
         pass
+
+    @abstractmethod
+    def get_name(self) -> str:
+        pass

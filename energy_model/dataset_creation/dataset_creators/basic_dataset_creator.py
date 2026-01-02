@@ -10,6 +10,8 @@ class BasicDatasetCreator(DatasetCreator):
     Reading only process of interest logs.
     No special aggregations on the data.
     """
+    def get_name(self) -> str:
+        return "basic_dataset_creator"
 
     def _add_energy_necessary_columns(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
         """

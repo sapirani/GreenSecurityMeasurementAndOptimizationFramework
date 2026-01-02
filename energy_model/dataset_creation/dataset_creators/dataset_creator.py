@@ -9,7 +9,6 @@ from energy_model.dataset_creation.dataset_creation_config import DEFAULT_BATCH_
     DEFAULT_FILTERING_SINGLE_PROCESS, AggregationValue
 from energy_model.dataset_creation.dataset_readers.dataset_reader import DatasetReader
 from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
-from energy_model.energy_model_parameters import FULL_DATASET_BEFORE_PROCESSING_PATH
 
 
 class DatasetCreator(ABC):
@@ -34,7 +33,6 @@ class DatasetCreator(ABC):
             full_df_for_interval = self.__handle_single_time_interval(df, batch_interval)
             full_df = pd.concat([full_df, full_df_for_interval], ignore_index=True)
 
-        full_df.to_csv(FULL_DATASET_BEFORE_PROCESSING_PATH)
         return full_df
 
     def __handle_single_time_interval(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
@@ -85,7 +83,7 @@ class DatasetCreator(ABC):
 
     def __extend_df_with_target(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
         df_with_necessary_columns = self._add_energy_necessary_columns(df, batch_duration_seconds)
-
+        removed_samples = 0
         results = []
         # Handle batches separately depending on process_id count
         for batch_id, batch_df in df_with_necessary_columns.groupby(SystemColumns.BATCH_ID_COL, group_keys=False):
@@ -93,12 +91,14 @@ class DatasetCreator(ABC):
                 # Filter out batches with more than 1 processes
                 unique_procs = batch_df[ProcessColumns.PROCESS_ID_COL].nunique()
                 if unique_procs > 1:
+                    removed_samples += len(batch_df)
                     continue
 
             batch_df_with_target = self.__target_calculator.add_target_to_dataframe(batch_df)
             results.append(batch_df_with_target)
 
         df_with_target = pd.concat(results, ignore_index=True)
+        print(f"Used {df.shape[0] - removed_samples}/{df.shape[0]} samples while extending the dataset with target.")
         return df_with_target
 
     @staticmethod
@@ -137,6 +137,9 @@ class DatasetCreator(ABC):
         })
         return columns_aggregations
 
+    def get_dataset_file_name(self, dir_path: str) -> str:
+        return f"{dir_path}\\{self.get_name()}_{self.__dataset_reader.get_name()}_{self.__target_calculator.get_name()}.csv"
+
 
     @abstractmethod
     def _add_energy_necessary_columns(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
@@ -148,4 +151,8 @@ class DatasetCreator(ABC):
         Output:
             pandas dataframe with columns that are relevant for calculating the target.
         """
+        pass
+
+    @abstractmethod
+    def get_name(self) -> str:
         pass

@@ -8,3 +8,6 @@ class AllProcessesReader(DatasetReader):
     def _should_use_sample(self, system_raw_results: SystemRawResults, process_raw_results: ProcessRawResults,
                            iteration_metadata: IterationMetadata) -> bool:
         return True
+
+    def get_name(self) -> str:
+        return "all_processes_reader"

@@ -14,3 +14,6 @@ class SystemBasedTargetCalculator(TargetCalculator):
                                    df[SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL])
 
         return df
+
+    def get_name(self) -> str:
+        return "system_based_target_calculator"

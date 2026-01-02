@@ -26,6 +26,9 @@ class ProcessesRatioDatasetCreator(BasicDatasetCreator):
         super().__init__(target_calculator, dataset_reader, batch_time_intervals, single_process_only)
         self.__resource_energy_calculator = ResourceEnergyCalculator()
 
+    def get_name(self) -> str:
+        return "process_ratio_dataset_creator"
+
     @override
     def _add_energy_necessary_columns(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
         """

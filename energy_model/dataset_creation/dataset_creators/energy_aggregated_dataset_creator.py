@@ -23,6 +23,9 @@ class EnergyAggregatedDatasetCreator(AggregatedDatasetCreator):
         super().__init__(target_calculator=BatteryDrainTargetCalculator(), dataset_reader=dataset_reader,
                          batch_time_intervals=batch_time_intervals, single_process_only=single_process_only)
 
+    def get_name(self) -> str:
+        return "energy_aggregated_dataset_creator"
+
     @override
     def _get_necessary_aggregations(self, available_columns: list[str]) -> dict[str, Union[list[str], str, Callable]]:
         """

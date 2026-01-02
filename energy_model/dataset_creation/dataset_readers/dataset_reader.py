@@ -100,3 +100,7 @@ class DatasetReader(ABC):
             boolean indicating if the sample is part of the final dataset.
         """
         pass
+
+    @abstractmethod
+    def get_name(self) -> str:
+        pass

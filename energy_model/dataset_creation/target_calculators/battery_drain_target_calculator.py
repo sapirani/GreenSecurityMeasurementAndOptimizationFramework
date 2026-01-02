@@ -16,7 +16,10 @@ class BatteryDrainTargetCalculator(TargetCalculator):
     def _add_target_to_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         df[self._target_column] = df[(
             SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL, AggregationName.FIRST_SAMPLE)] \
-                                - df[(
+                                  - df[(
             SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL, AggregationName.LAST_SAMPLE)]
 
         return df
+
+    def get_name(self) -> str:
+        return "battery_drain_based_target_calculator"

@@ -31,5 +31,5 @@ class IdleBasedTargetCalculator(TargetCalculator):
         df[self._target_column] = df[self._target_column] * df[SystemColumns.ENERGY_RATIO_SHARE]
         return df
 
-
-
+    def get_name(self) -> str:
+        return "idle_based_target_calculator"

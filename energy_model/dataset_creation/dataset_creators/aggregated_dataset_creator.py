@@ -12,6 +12,9 @@ class AggregatedDatasetCreator(BasicDatasetCreator):
     Aggregations on every process telemetry per batch.
     """
 
+    def get_name(self) -> str:
+        return "aggregated_dataset_creator"
+
     @override
     def _add_energy_necessary_columns(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
         """

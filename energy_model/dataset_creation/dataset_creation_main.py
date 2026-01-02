@@ -2,7 +2,8 @@ from energy_model.dataset_creation.dataset_creation_config import DEFAULT_DATASE
     DEFAULT_TARGET_CALCULATOR, DEFAULT_BATCH_INTERVAL_SECONDS, DatasetReaderType, TargetCalculatorType, \
     DatasetCreatorType
 from energy_model.dataset_creation.dataset_creator_factory import DatasetCreatorFactory
-from energy_model.energy_model_parameters import FULL_DATASET_BEFORE_PROCESSING_PATH
+from energy_model.energy_model_parameters import FULL_DATASET_BEFORE_PROCESSING_PATH, FULL_DATASET_BEFORE_PROCESSING_DIR
+
 if __name__ == '__main__':
     print("Welcome to Dataset Creator!")
     print("Choose from the following options:")
@@ -16,6 +17,8 @@ if __name__ == '__main__':
             DEFAULT_TARGET_CALCULATOR,
             DEFAULT_BATCH_INTERVAL_SECONDS
         )
+
+        print(f"Using dataset creator with: dataset_reader = {DEFAULT_DATASET_READER}, target_calculator = {DEFAULT_TARGET_CALCULATOR}, batch_size = {DEFAULT_BATCH_INTERVAL_SECONDS}, dataset_creator = {DEFAULT_DATASET_CREATOR}")
     elif implementation_choice == 2:
         print("Configure the Dataset Creator yourself!")
         print("Choose DatasetReader from the following options:")
@@ -48,8 +51,11 @@ if __name__ == '__main__':
                                                                         target_calculator_choice,
                                                                         should_filter_batches,
                                                                         batch_intervals)
+        print(f"Using dataset creator with: dataset_reader = {dataset_reader_choice}, target_calculator = {target_calculator_choice}, batch_size = {batch_intervals}, dataset_creator = {dataset_creator_choice}, should_filter_batches = {should_filter_batches}")
     else:
         raise ValueError(f"Unsupported implementation type {implementation_choice}!")
 
     full_dataset = dataset_creator.create_dataset()
-    full_dataset.to_csv(FULL_DATASET_BEFORE_PROCESSING_PATH)
+    dataset_path = dataset_creator.get_dataset_file_name(FULL_DATASET_BEFORE_PROCESSING_DIR)
+    full_dataset.to_csv(dataset_path, index=False)
+    print(f"Saved dataset into: {dataset_path}")
