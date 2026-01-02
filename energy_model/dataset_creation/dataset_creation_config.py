@@ -22,6 +22,6 @@ COLUMNS_TO_SUM = [SystemColumns.CPU_SYSTEM_COL, ProcessColumns.CPU_PROCESS_COL,
 
 
 class AggregationName:
-    SUM = "sum"
-    FIRST_SAMPLE = "first"
-    LAST_SAMPLE = "last"
+    SUM: str = "sum"
+    FIRST_SAMPLE: str = "first"
+    LAST_SAMPLE: str = "last"

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import asdict
 from datetime import datetime
+from typing import Callable, Union
 
 import pandas as pd
 
@@ -15,7 +16,7 @@ from elastic_reader.elastic_reader import ElasticReader
 from elastic_reader.elastic_reader_parameters import time_picker_input_strategy, preconfigured_time_picker_input
 from energy_model.configs.columns import ProcessColumns, SystemColumns
 from energy_model.dataset_creation.dataset_creation_config import DEFAULT_BATCH_INTERVAL_SECONDS, TIMESTAMP_COLUMN_NAME, \
-    MINIMAL_BATCH_DURATION, IDLE_SESSION_ID_NAME
+    MINIMAL_BATCH_DURATION, IDLE_SESSION_ID_NAME, AggregationName, COLUMNS_TO_CALCULATE_DIFF, COLUMNS_TO_SUM
 from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
 from energy_model.energy_model_parameters import FULL_DATASET_BEFORE_PROCESSING_PATH
 from energy_model.energy_model_utils.energy_model_convertor import EnergyModelConvertor
@@ -86,7 +87,8 @@ class DatasetCreator(ABC):
         full_df_for_interval = self._remove_temporary_columns(full_df_for_interval)
         return full_df_for_interval
 
-    def __add_batch_id(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
+    @staticmethod
+    def __add_batch_id(df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
         df = df.copy()
 
         # Group by session id.
@@ -99,7 +101,8 @@ class DatasetCreator(ABC):
 
         return df
 
-    def __check_dataset_validity(self, df: pd.DataFrame):
+    @staticmethod
+    def __check_dataset_validity(df: pd.DataFrame):
         # count unique session_id per batch
         session_counts = df.groupby(SystemColumns.BATCH_ID_COL)[SystemColumns.SESSION_ID_COL].nunique()
 
@@ -153,6 +156,20 @@ class DatasetCreator(ABC):
                         SystemColumns.BATCH_ID_COL, TIMESTAMP_COLUMN_NAME,
                         SystemColumns.SESSION_ID_COL, ProcessColumns.PROCESS_ID_COL],
                        axis=1)
+
+    def _get_necessary_aggregations(self, available_columns: list[str]) -> dict[str, Union[list[str], str, Callable]]:
+        consts_columns = list(set(available_columns) - set(COLUMNS_TO_SUM))
+        consts_columns = list(set(consts_columns) - set(COLUMNS_TO_CALCULATE_DIFF))
+        columns_aggregations = {
+            col: AggregationName.SUM for col in available_columns if col in COLUMNS_TO_SUM
+        }
+        columns_aggregations.update({
+            col: AggregationName.FIRST_SAMPLE for col in available_columns if col in consts_columns
+        })
+        columns_aggregations.update({
+            col: lambda x: x.iloc[0] - x.iloc[-1] for col in available_columns if col in COLUMNS_TO_CALCULATE_DIFF
+        })
+        return columns_aggregations
 
     @abstractmethod
     def _extract_iteration_samples(self, system_raw_results: SystemRawResults,

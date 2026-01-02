@@ -1,0 +1,22 @@
+import pandas as pd
+
+from energy_model.configs.columns import SystemColumns
+from energy_model.dataset_creation.dataset_creation_config import AggregationName
+from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
+
+
+class BatteryDrainTargetCalculator(TargetCalculator):
+    def __init__(self):
+        super().__init__(target_column=SystemColumns.ENERGY_USAGE_SYSTEM_COL,
+                         must_appear_columns=[
+                             (SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL, AggregationName.FIRST_SAMPLE),
+                             (SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL, AggregationName.LAST_SAMPLE)
+                         ])
+
+    def _add_target_to_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        df[self._target_column] = df[(
+            SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL, AggregationName.FIRST_SAMPLE)] \
+                                - df[(
+            SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL, AggregationName.LAST_SAMPLE)]
+
+        return df
