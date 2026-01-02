@@ -36,12 +36,17 @@ if __name__ == '__main__':
         print("4. Processes Ratio - If a batch contains more than one process, calculate the impact of this process on the energy usage of the entire batch.")
         dataset_creator_choice = DatasetCreatorType(int(input("Please enter your choice: ")))
 
+        print("Do you wish to use only batches with a single process? (y\\n) ")
+        should_filter_batches_choice = input()
+        should_filter_batches = True if should_filter_batches_choice == 'y' else False
+
         print("Enter batch intervals:")
         batch_intervals = [int(interval) for interval in input("Enter space-separated integers: ").split()]
 
         dataset_creator = DatasetCreatorFactory.dataset_creator_factory(dataset_reader_choice,
                                                                         dataset_creator_choice,
                                                                         target_calculator_choice,
+                                                                        should_filter_batches,
                                                                         batch_intervals)
     else:
         raise ValueError(f"Unsupported implementation type {implementation_choice}!")

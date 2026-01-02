@@ -5,7 +5,7 @@ import pandas as pd
 
 from energy_model.configs.columns import ProcessColumns, SystemColumns
 from energy_model.dataset_creation.dataset_creation_config import DEFAULT_BATCH_INTERVAL_SECONDS, TIMESTAMP_COLUMN_NAME, \
-    MINIMAL_BATCH_DURATION, AggregationName, COLUMNS_TO_CALCULATE_DIFF, COLUMNS_TO_SUM
+    MINIMAL_BATCH_DURATION, AggregationName, COLUMNS_TO_CALCULATE_DIFF, COLUMNS_TO_SUM, DEFAULT_FILTERING_SINGLE_PROCESS
 from energy_model.dataset_creation.dataset_readers.dataset_reader import DatasetReader
 from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
 from energy_model.energy_model_parameters import FULL_DATASET_BEFORE_PROCESSING_PATH
@@ -13,13 +13,14 @@ from energy_model.energy_model_parameters import FULL_DATASET_BEFORE_PROCESSING_
 
 class DatasetCreator(ABC):
     def __init__(self, target_calculator: TargetCalculator, dataset_reader: DatasetReader,
-                 batch_time_intervals: list[int] = None):
+                 batch_time_intervals: list[int] = None, single_process_only: bool = DEFAULT_FILTERING_SINGLE_PROCESS):
         if batch_time_intervals is None:
             batch_time_intervals = DEFAULT_BATCH_INTERVAL_SECONDS
 
         self.__batch_time_intervals = batch_time_intervals
         self.__target_calculator = target_calculator
         self.__dataset_reader = dataset_reader
+        self.__single_process_only = single_process_only
 
     def create_dataset(self) -> pd.DataFrame:
         df = self.__dataset_reader.read_dataset()
@@ -84,6 +85,12 @@ class DatasetCreator(ABC):
         results = []
         # Step 2: Handle batches separately depending on process_id count
         for batch_id, batch_df in df_with_necessary_columns.groupby(SystemColumns.BATCH_ID_COL, group_keys=False):
+            if self.__single_process_only:
+                # Filter out batches with more than 1 processes
+                unique_procs = batch_df[ProcessColumns.PROCESS_ID_COL].nunique()
+                if unique_procs > 1:
+                    continue
+
             batch_df_with_target = self.__target_calculator.add_target_to_dataframe(batch_df)
             results.append(batch_df_with_target)
 

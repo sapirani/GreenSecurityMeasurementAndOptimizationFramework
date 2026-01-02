@@ -18,9 +18,8 @@ from energy_model.dataset_creation.target_calculators.target_calculator import T
 
 class DatasetCreatorFactory:
     @staticmethod
-    def dataset_creator_factory(dataset_reader_choice: DatasetReaderType,
-                                dataset_creator_choice: DatasetCreatorType,
-                                target_calculator_choice: TargetCalculatorType,
+    def dataset_creator_factory(dataset_reader_choice: DatasetReaderType, dataset_creator_choice: DatasetCreatorType,
+                                target_calculator_choice: TargetCalculatorType, should_filter_batches: bool,
                                 batch_time_intervals: list[int] = None) -> DatasetCreator:
         if (target_calculator_choice == TargetCalculatorType.IdleBased and dataset_creator_choice != DatasetCreatorType.WithProcessRatio) or (
             target_calculator_choice == TargetCalculatorType.BatteryDrainBased and dataset_creator_choice != DatasetCreatorType.WithEnergyAggregation):
@@ -31,13 +30,13 @@ class DatasetCreatorFactory:
         dataset_reader = DatasetCreatorFactory.get_dataset_reader(dataset_reader_choice)
 
         if dataset_creator_choice == DatasetCreatorType.WithProcessRatio:
-            return ProcessesRatioDatasetCreator(target_calculator, dataset_reader, batch_time_intervals)
+            return ProcessesRatioDatasetCreator(target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
         elif dataset_creator_choice == DatasetCreatorType.WithEnergyAggregation:
-            return EnergyAggregatedDatasetCreator(dataset_reader, batch_time_intervals)
+            return EnergyAggregatedDatasetCreator(dataset_reader, batch_time_intervals, should_filter_batches)
         elif dataset_creator_choice == DatasetCreatorType.WithAggregation:
-            return AggregatedDatasetCreator(target_calculator, dataset_reader, batch_time_intervals)
+            return AggregatedDatasetCreator(target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
         elif dataset_creator_choice == DatasetCreatorType.Basic:
-            return BasicDatasetCreator(target_calculator, dataset_reader, batch_time_intervals)
+            return BasicDatasetCreator(target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
         else:
             raise ValueError(f"Dataset Creator Type {dataset_creator_choice} is not supported!")
 

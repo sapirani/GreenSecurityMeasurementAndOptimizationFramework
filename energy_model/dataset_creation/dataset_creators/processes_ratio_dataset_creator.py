@@ -4,6 +4,7 @@ from overrides import override
 
 from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
 from energy_model.configs.columns import ProcessColumns, SystemColumns
+from energy_model.dataset_creation.dataset_creation_config import DEFAULT_FILTERING_SINGLE_PROCESS
 from energy_model.dataset_creation.dataset_creators.basic_dataset_creator import BasicDatasetCreator
 from energy_model.dataset_creation.dataset_readers.dataset_reader import DatasetReader
 from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
@@ -21,8 +22,8 @@ class ProcessesRatioDatasetCreator(BasicDatasetCreator):
     """
 
     def __init__(self, target_calculator: TargetCalculator, dataset_reader: DatasetReader,
-                 batch_time_intervals: list[int] = None):
-        super().__init__(target_calculator, dataset_reader, batch_time_intervals)
+                 batch_time_intervals: list[int] = None, single_process_only: bool = DEFAULT_FILTERING_SINGLE_PROCESS):
+        super().__init__(target_calculator, dataset_reader, batch_time_intervals, single_process_only)
         self.__resource_energy_calculator = ResourceEnergyCalculator()
 
     @override

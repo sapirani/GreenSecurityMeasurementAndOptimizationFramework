@@ -47,3 +47,4 @@ class TargetCalculatorType(Enum):
 DEFAULT_TARGET_CALCULATOR = TargetCalculatorType.SystemBased
 DEFAULT_DATASET_READER = DatasetReaderType.ProcessOfInterest
 DEFAULT_DATASET_CREATOR = DatasetCreatorType.Basic
+DEFAULT_FILTERING_SINGLE_PROCESS = True
