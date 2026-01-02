@@ -39,14 +39,14 @@ class ProcessesRatioDatasetCreator(BasicDatasetCreator):
                     * If the batch has single process - the ratio is 1
                     * If the batch has multiple process - the ratio is calculated based on resource consumption.
         """
-        df_without_process_ratio = super()._add_energy_necessary_columns(df, batch_duration_seconds)
-        unique_procs = df_without_process_ratio[ProcessColumns.PROCESS_ID_COL].nunique()
+        df_with_basic_columns = super()._add_energy_necessary_columns(df, batch_duration_seconds)
+        unique_procs = df_with_basic_columns[ProcessColumns.PROCESS_ID_COL].nunique()
         if unique_procs > 1:
-            df_without_process_ratio = self.__calculate_energy_ratio_by_resources(df)
+            df_with_basic_columns = self.__calculate_energy_ratio_by_resources(df_with_basic_columns)
         else:
-            df_without_process_ratio[SystemColumns.ENERGY_RATIO_SHARE] = DEFAULT_ENERGY_RATIO
+            df_with_basic_columns[SystemColumns.ENERGY_RATIO_SHARE] = DEFAULT_ENERGY_RATIO
 
-        return df_without_process_ratio
+        return df_with_basic_columns
 
     def __calculate_energy_ratio_by_resources(self, df: pd.DataFrame) -> pd.DataFrame:
         # todo: a key can be (pid, process_name) in the future

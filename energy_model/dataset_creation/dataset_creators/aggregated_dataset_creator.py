@@ -2,7 +2,10 @@ import pandas as pd
 from overrides import override
 
 from energy_model.configs.columns import ProcessColumns, SystemColumns
+from energy_model.dataset_creation.dataset_creation_config import DEFAULT_FILTERING_SINGLE_PROCESS, AggregationName
 from energy_model.dataset_creation.dataset_creators.basic_dataset_creator import BasicDatasetCreator
+from energy_model.dataset_creation.dataset_readers.dataset_reader import DatasetReader
+from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
 
 
 class AggregatedDatasetCreator(BasicDatasetCreator):
@@ -11,6 +14,9 @@ class AggregatedDatasetCreator(BasicDatasetCreator):
     Reading only process of interest logs.
     Aggregations on every process telemetry per batch.
     """
+    def __init__(self, target_calculator: TargetCalculator, dataset_reader: DatasetReader,
+                 batch_time_intervals: list[int] = None, single_process_only: bool = DEFAULT_FILTERING_SINGLE_PROCESS):
+        super().__init__(target_calculator, dataset_reader, batch_time_intervals, single_process_only, f"{SystemColumns.BATCH_ID_COL}_{AggregationName.FIRST_SAMPLE}")
 
     def get_name(self) -> str:
         return "aggregated_dataset_creator"
