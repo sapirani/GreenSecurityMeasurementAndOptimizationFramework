@@ -33,7 +33,7 @@ class AggregatedDatasetCreator(BasicDatasetCreator):
         df_without_aggregations = super()._add_energy_necessary_columns(df, batch_duration_seconds)
         necessary_aggregations = self._get_necessary_aggregations(df_without_aggregations.columns.to_list())
         df_grouped = (
-            df_without_aggregations.groupby([SystemColumns.BATCH_ID_COL, ProcessColumns.PROCESS_ID_COL], as_index=False)
+            df_without_aggregations.groupby([self._batch_id_column, ProcessColumns.PROCESS_ID_COL], as_index=False)
             .agg(necessary_aggregations)
         )
         return df_grouped

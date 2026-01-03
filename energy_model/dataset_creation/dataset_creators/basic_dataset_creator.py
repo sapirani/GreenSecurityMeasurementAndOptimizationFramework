@@ -22,11 +22,11 @@ class BasicDatasetCreator(DatasetCreator):
 
         # Calculate system energy consumption rate (mWh/sec) for each batch
         energy_per_batch = (
-            df.groupby(SystemColumns.BATCH_ID_COL)[SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL]
+            df.groupby(self._batch_id_column)[SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL]
             .agg(lambda s: (s.iloc[0] - s.iloc[-1]) / batch_duration_seconds)
             .rename(SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL)
         )
 
         # Merge batch-level system energy rates back into the main DataFrame
-        df = df.merge(energy_per_batch, on=SystemColumns.BATCH_ID_COL, how="left")
+        df = df.merge(energy_per_batch, on=self._batch_id_column, how="left")
         return df

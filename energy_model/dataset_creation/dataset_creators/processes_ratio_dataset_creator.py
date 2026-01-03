@@ -41,15 +41,14 @@ class ProcessesRatioDatasetCreator(BasicDatasetCreator):
         """
         df_with_basic_columns = super()._add_energy_necessary_columns(df, batch_duration_seconds)
         uniques_per_batch = (
-            df.groupby(SystemColumns.BATCH_ID_COL)[ProcessColumns.PROCESS_ID_COL]
+            df.groupby(self._batch_id_column)[ProcessColumns.PROCESS_ID_COL]
             .agg(lambda s: (s.nunique()))
             .rename(SystemColumns.NUMBER_OF_UNIQUE_PROCESSES)
         )
 
-        df_with_basic_columns = df_with_basic_columns.merge(uniques_per_batch, on=SystemColumns.BATCH_ID_COL,
-                                                            how="left")
+        df_with_basic_columns = df_with_basic_columns.merge(uniques_per_batch, on=self._batch_id_column, how="left")
 
-        df_with_basic_columns = df_with_basic_columns.groupby(SystemColumns.BATCH_ID_COL, group_keys=False).apply(
+        df_with_basic_columns = df_with_basic_columns.groupby(self._batch_id_column, group_keys=False).apply(
             self.__calculate_energy_ratio)
 
         return df_with_basic_columns

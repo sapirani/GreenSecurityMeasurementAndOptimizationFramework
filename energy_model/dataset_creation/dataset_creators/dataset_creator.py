@@ -25,7 +25,7 @@ class DatasetCreator(ABC):
         self.__target_calculator = target_calculator
         self.__dataset_reader = dataset_reader
         self.__single_process_only = single_process_only
-        self.__batch_id_column = batch_id_column
+        self._batch_id_column = batch_id_column
 
     def create_dataset(self) -> pd.DataFrame:
         df = self.__dataset_reader.read_dataset()
@@ -53,7 +53,7 @@ class DatasetCreator(ABC):
         # Group by session id.
         # For each group, calculate time delta of each sample (time passed since the beginning of the session).
         # Then, split the time delta by batch_duration_seconds to define the index of the batch.
-        df[self.__batch_id_column] = df[SystemColumns.SESSION_ID_COL] + '_' + (
+        df[self._batch_id_column] = df[SystemColumns.SESSION_ID_COL] + '_' + (
             df.groupby(SystemColumns.SESSION_ID_COL)[TIMESTAMP_COLUMN_NAME]
             .transform(lambda x: ((x - x.min()).dt.total_seconds() // batch_duration_seconds).astype(int).astype(str))
         )
@@ -62,7 +62,7 @@ class DatasetCreator(ABC):
 
     def __check_dataset_validity(self, df: pd.DataFrame):
         # count unique session_id per batch
-        session_counts = df.groupby(self.__batch_id_column)[SystemColumns.SESSION_ID_COL].nunique()
+        session_counts = df.groupby(self._batch_id_column)[SystemColumns.SESSION_ID_COL].nunique()
 
         # batches with more than 1 session_id
         bad_batches = session_counts[session_counts > 1]
@@ -70,7 +70,7 @@ class DatasetCreator(ABC):
         if not bad_batches.empty:
             print("⚠️ Warning: Some batches contain multiple session_ids!")
             for batch_id in bad_batches.index:
-                batch_df = df[df[self.__batch_id_column] == batch_id]
+                batch_df = df[df[self._batch_id_column] == batch_id]
 
                 session_ids = batch_df[SystemColumns.SESSION_ID_COL].unique()
                 start_time = batch_df[TIMESTAMP_COLUMN_NAME].min()
@@ -88,12 +88,12 @@ class DatasetCreator(ABC):
         removed_samples = 0
         results = []
         # Handle batches separately depending on process_id count
-        for batch_id, batch_df in df_with_necessary_columns.groupby(self.__batch_id_column, group_keys=False):
+        for batch_id, batch_df in df_with_necessary_columns.groupby(self._batch_id_column, group_keys=False):
             if self.__single_process_only:
                 # Filter out batches with more than 1 processes
                 unique_procs = batch_df[ProcessColumns.PROCESS_ID_COL].nunique()
                 if unique_procs > 1:
-                    removed_samples += len(batch_df)
+                    removed_samples += len(df[df[self._batch_id_column] == batch_id])
                     continue
 
             batch_df_with_target = self.__target_calculator.add_target_to_dataframe(batch_df)
@@ -122,22 +122,22 @@ class DatasetCreator(ABC):
 
     def __filter_last_batch_records(self, df: pd.DataFrame) -> pd.DataFrame:
         # get last batch
-        last_batch_id = df[self.__batch_id_column].max()
-        last_batch = df[df[self.__batch_id_column] == last_batch_id]
+        last_batch_id = df[self._batch_id_column].max()
+        last_batch = df[df[self._batch_id_column] == last_batch_id]
 
         # compute its duration (max - min timestamp)
         duration = (last_batch[TIMESTAMP_COLUMN_NAME].max() - last_batch[TIMESTAMP_COLUMN_NAME].min()).total_seconds()
 
         # check if it's shorter than MINIMAL_BATCH_DURATION minutes
         if duration < MINIMAL_BATCH_DURATION:
-            df = df[df[self.__batch_id_column] != last_batch_id]
+            df = df[df[self._batch_id_column] != last_batch_id]
 
         return df
 
     def _remove_temporary_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         return df.drop([SystemColumns.ENERGY_USAGE_PER_SECOND_SYSTEM_COL,
                         SystemColumns.BATTERY_CAPACITY_MWH_SYSTEM_COL,
-                        self.__batch_id_column, TIMESTAMP_COLUMN_NAME,
+                        self._batch_id_column, TIMESTAMP_COLUMN_NAME,
                         SystemColumns.SESSION_ID_COL, ProcessColumns.PROCESS_ID_COL],
                        axis=1)
 
