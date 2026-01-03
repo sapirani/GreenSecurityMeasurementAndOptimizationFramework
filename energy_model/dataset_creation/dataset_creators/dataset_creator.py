@@ -99,23 +99,6 @@ class DatasetCreator(ABC):
         print(f"Used {df.shape[0] - removed_samples}/{df.shape[0]} samples while extending the dataset with target.")
         return df_with_target
 
-    def __normalize_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        # Flatten MultiIndex columns if they exist
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = [
-                f"{col[0]}_{col[1]}" if col[1] else col[0]
-                for col in df.columns
-            ]
-
-        # Ensure no nested objects remain
-        df = df.applymap(
-            lambda x: x.iloc[0, 0] if isinstance(x, pd.DataFrame)
-            else x.iloc[0] if isinstance(x, pd.Series)
-            else x
-        )
-
-        return df
-
     def __filter_last_batch_records(self, df: pd.DataFrame) -> pd.DataFrame:
         # get last batch
         last_batch_id = df[SystemColumns.BATCH_ID_COL].max()
