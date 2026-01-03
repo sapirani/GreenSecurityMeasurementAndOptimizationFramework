@@ -3,8 +3,6 @@ from energy_model.dataset_creation.dataset_creation_config import DatasetReaderT
 from energy_model.dataset_creation.dataset_creators.aggregated_dataset_creator import AggregatedDatasetCreator
 from energy_model.dataset_creation.dataset_creators.basic_dataset_creator import BasicDatasetCreator
 from energy_model.dataset_creation.dataset_creators.dataset_creator import DatasetCreator
-from energy_model.dataset_creation.dataset_creators.energy_aggregated_dataset_creator import \
-    EnergyAggregatedDatasetCreator
 from energy_model.dataset_creation.dataset_creators.processes_ratio_dataset_creator import ProcessesRatioDatasetCreator
 from energy_model.dataset_creation.dataset_readers.all_processes_reader import AllProcessesReader
 from energy_model.dataset_creation.dataset_readers.dataset_reader import DatasetReader
@@ -15,14 +13,17 @@ from energy_model.dataset_creation.target_calculators.idle_based_target_calculat
 from energy_model.dataset_creation.target_calculators.system_based_target_calculator import SystemBasedTargetCalculator
 from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
 
+ERROR_MSG = "Target Calculator Type {target_calculator_choice} does not match the Dataset Creator Type {dataset_creator_choice}!"
 
 class DatasetCreatorFactory:
     @staticmethod
     def dataset_creator_factory(dataset_reader_choice: DatasetReaderType, dataset_creator_choice: DatasetCreatorType,
                                 target_calculator_choice: TargetCalculatorType, should_filter_batches: bool,
                                 batch_time_intervals: list[int] = None) -> DatasetCreator:
-        if (target_calculator_choice == TargetCalculatorType.IdleBased and dataset_creator_choice != DatasetCreatorType.WithProcessRatio) or (
-            target_calculator_choice == TargetCalculatorType.BatteryDrainBased and dataset_creator_choice != DatasetCreatorType.WithEnergyAggregation):
+        if (target_calculator_choice != TargetCalculatorType.IdleBased and dataset_creator_choice == DatasetCreatorType.WithProcessRatio) or \
+           (target_calculator_choice != TargetCalculatorType.BatteryDrainBased and dataset_creator_choice == DatasetCreatorType.WithEnergyAggregation) or \
+           (target_calculator_choice == TargetCalculatorType.IdleBased and dataset_creator_choice != DatasetCreatorType.WithProcessRatio) or \
+           (target_calculator_choice == TargetCalculatorType.BatteryDrainBased and dataset_creator_choice != DatasetCreatorType.WithEnergyAggregation):
             raise ValueError(
                 f"Target Calculator Type {target_calculator_choice} does not match the Dataset Creator Type {dataset_creator_choice}!")
 
@@ -32,7 +33,7 @@ class DatasetCreatorFactory:
         if dataset_creator_choice == DatasetCreatorType.WithProcessRatio:
             return ProcessesRatioDatasetCreator(target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
         elif dataset_creator_choice == DatasetCreatorType.WithEnergyAggregation:
-            return EnergyAggregatedDatasetCreator(dataset_reader, batch_time_intervals, should_filter_batches)
+            return AggregatedDatasetCreator(target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
         elif dataset_creator_choice == DatasetCreatorType.WithAggregation:
             return AggregatedDatasetCreator(target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
         elif dataset_creator_choice == DatasetCreatorType.Basic:

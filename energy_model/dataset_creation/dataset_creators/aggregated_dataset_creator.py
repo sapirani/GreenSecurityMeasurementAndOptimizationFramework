@@ -16,7 +16,8 @@ class AggregatedDatasetCreator(BasicDatasetCreator):
     """
     def __init__(self, target_calculator: TargetCalculator, dataset_reader: DatasetReader,
                  batch_time_intervals: list[int] = None, single_process_only: bool = DEFAULT_FILTERING_SINGLE_PROCESS):
-        super().__init__(target_calculator, dataset_reader, batch_time_intervals, single_process_only, f"{SystemColumns.BATCH_ID_COL}_{AggregationName.FIRST_SAMPLE}")
+        super().__init__(target_calculator=target_calculator, dataset_reader=dataset_reader,
+                         batch_time_intervals=batch_time_intervals, single_process_only=single_process_only)
 
     def get_name(self) -> str:
         return "aggregated_dataset_creator"
@@ -33,7 +34,7 @@ class AggregatedDatasetCreator(BasicDatasetCreator):
         df_without_aggregations = super()._add_energy_necessary_columns(df, batch_duration_seconds)
         necessary_aggregations = self._get_necessary_aggregations(df_without_aggregations.columns.to_list())
         df_grouped = (
-            df_without_aggregations.groupby([self._batch_id_column, ProcessColumns.PROCESS_ID_COL], as_index=False)
+            df_without_aggregations.groupby([SystemColumns.BATCH_ID_COL, ProcessColumns.PROCESS_ID_COL], as_index=False)
             .agg(necessary_aggregations)
         )
         return df_grouped

@@ -23,7 +23,8 @@ class ProcessesRatioDatasetCreator(BasicDatasetCreator):
 
     def __init__(self, target_calculator: TargetCalculator, dataset_reader: DatasetReader,
                  batch_time_intervals: list[int] = None, single_process_only: bool = DEFAULT_FILTERING_SINGLE_PROCESS):
-        super().__init__(target_calculator, dataset_reader, batch_time_intervals, single_process_only)
+        super().__init__(target_calculator=target_calculator, dataset_reader=dataset_reader,
+                         batch_time_intervals=batch_time_intervals, single_process_only=single_process_only)
         self.__resource_energy_calculator = ResourceEnergyCalculator()
 
     def get_name(self) -> str:
@@ -41,14 +42,14 @@ class ProcessesRatioDatasetCreator(BasicDatasetCreator):
         """
         df_with_basic_columns = super()._add_energy_necessary_columns(df, batch_duration_seconds)
         uniques_per_batch = (
-            df.groupby(self._batch_id_column)[ProcessColumns.PROCESS_ID_COL]
+            df.groupby(SystemColumns.BATCH_ID_COL)[ProcessColumns.PROCESS_ID_COL]
             .agg(lambda s: (s.nunique()))
             .rename(SystemColumns.NUMBER_OF_UNIQUE_PROCESSES)
         )
 
-        df_with_basic_columns = df_with_basic_columns.merge(uniques_per_batch, on=self._batch_id_column, how="left")
+        df_with_basic_columns = df_with_basic_columns.merge(uniques_per_batch, on=SystemColumns.BATCH_ID_COL, how="left")
 
-        df_with_basic_columns = df_with_basic_columns.groupby(self._batch_id_column, group_keys=False).apply(
+        df_with_basic_columns = df_with_basic_columns.groupby(SystemColumns.BATCH_ID_COL, group_keys=False).apply(
             self.__calculate_energy_ratio)
 
         return df_with_basic_columns
