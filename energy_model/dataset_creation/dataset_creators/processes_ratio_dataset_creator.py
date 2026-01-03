@@ -40,13 +40,27 @@ class ProcessesRatioDatasetCreator(BasicDatasetCreator):
                     * If the batch has multiple process - the ratio is calculated based on resource consumption.
         """
         df_with_basic_columns = super()._add_energy_necessary_columns(df, batch_duration_seconds)
-        unique_procs = df_with_basic_columns[ProcessColumns.PROCESS_ID_COL].nunique()
-        if unique_procs > 1:
-            df_with_basic_columns = self.__calculate_energy_ratio_by_resources(df_with_basic_columns)
-        else:
-            df_with_basic_columns[SystemColumns.ENERGY_RATIO_SHARE] = DEFAULT_ENERGY_RATIO
+        uniques_per_batch = (
+            df.groupby(SystemColumns.BATCH_ID_COL)[ProcessColumns.PROCESS_ID_COL]
+            .agg(lambda s: (s.nunique()))
+            .rename(SystemColumns.NUMBER_OF_UNIQUE_PROCESSES)
+        )
+
+        df_with_basic_columns = df_with_basic_columns.merge(uniques_per_batch, on=SystemColumns.BATCH_ID_COL,
+                                                            how="left")
+
+        df_with_basic_columns = df_with_basic_columns.groupby(SystemColumns.BATCH_ID_COL, group_keys=False).apply(
+            self.__calculate_energy_ratio)
 
         return df_with_basic_columns
+
+    def __calculate_energy_ratio(self, batch_df: pd.DataFrame) -> pd.DataFrame:
+        if batch_df[SystemColumns.NUMBER_OF_UNIQUE_PROCESSES].iloc[0] > 1:
+            batch_df = self.__calculate_energy_ratio_by_resources(batch_df)
+        else:
+            batch_df[SystemColumns.ENERGY_RATIO_SHARE] = DEFAULT_ENERGY_RATIO
+
+        return batch_df
 
     def __calculate_energy_ratio_by_resources(self, df: pd.DataFrame) -> pd.DataFrame:
         # todo: a key can be (pid, process_name) in the future
@@ -78,4 +92,6 @@ class ProcessesRatioDatasetCreator(BasicDatasetCreator):
     @override
     def _remove_temporary_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         df_without_basic_columns = super()._remove_temporary_columns(df)
-        return df_without_basic_columns.drop([SystemColumns.ENERGY_RATIO_SHARE], axis=1)
+        return df_without_basic_columns.drop(
+            [SystemColumns.ENERGY_RATIO_SHARE, SystemColumns.NUMBER_OF_UNIQUE_PROCESSES],
+            axis=1)
