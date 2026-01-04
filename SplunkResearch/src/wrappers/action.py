@@ -8,6 +8,12 @@ from gymnasium.core import ActionWrapper
 from gymnasium import make, spaces
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import requests
+import sys
+import urllib3
+
+# Suppress insecure request warnings (equivalent to curl -k silent mode)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
 SPLUNK_BINARY_PATH = "/opt/splunk/bin/splunk"
@@ -353,7 +359,7 @@ class Action(ActionWrapper):
         for batch in self.unwrapped.log_generator.generate_massive_stream(configs, batch_size=50000):
             self.save_mixed_batch(batch)
             
-        self.delete_episodic_logs(self.unwrapped.log_generator.logs_to_delete)
+        # self.delete_episodic_logs(self.unwrapped.log_generator.logs_to_delete)
         
         self.flush_logs(security_log_file_path, log_type="Security")
         self.flush_logs(system_log_file_path, log_type="System")
@@ -365,24 +371,25 @@ class Action(ActionWrapper):
         all_end_date = dt_all_end_date.strftime("%Y-%m-%dT%H:%M:%S")
         
         # logs_len = sum([sum([logs[x]['count'] for x in logs]) for logs, _ in self.episodic_logs_to_inject]) - sum([sum([info[log_type][var_id] for log_type in info for var_id in info[log_type]]) for time_range, info in self.unwrapped.log_generator.logs_to_delete.items()])
-        logs_count = 0
-        for time_range, info in self.unwrapped.log_generator.fake_splunk_state.items():
-            dt_time_start = datetime.datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S')
-            dt_time_end = datetime.datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S')
-            if dt_time_start >= dt_all_start_date and dt_time_end <= dt_all_end_date:
-                logs_count += sum([info[log_type][var_id] for log_type in info for var_id in info[log_type]])    
+        logs_count = sum([sum([logs[x]['count'] for x in logs]) for logs, _ in self.episodic_logs_to_inject])
+        # logs_count = 0
+        # for time_range, info in self.unwrapped.log_generator.fake_splunk_state.items():
+        #     dt_time_start = datetime.datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S')
+        #     dt_time_end = datetime.datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S')
+        #     if dt_time_start >= dt_all_start_date and dt_time_end <= dt_all_end_date:
+        #         logs_count += sum([info[log_type][var_id] for log_type in info for var_id in info[log_type]])    
         logger.info(f"Total episodic logs to inject: {logs_count}")
         attempts = 0
         while (logs_count - results) /  logs_count > 0.01 :
             sleep(2)
-            query = f'index=main host="dt-splunk" | stats count'
+            query = f'index={self.unwrapped.splunk_tools.index_name} host IN ("dt-splunk", 132.72.81.150) | stats count'
             # query = f'index=main host="dt-splunk" Injection_id={injection_id} | stats count'
             results = self.unwrapped.splunk_tools.run_search(query, all_start_date, all_end_date)            
             results = int(results[0]['count'])
             logger.info(f"Waiting for logs to be indexed: {results}/{logs_count}, {(logs_count - results) /  logs_count * 100:.2f}% remaining")
             attempts += 1
             if attempts > 10:
-                logger.warning("T")
+                logger.warning("Max attempts reached while waiting for logs to be indexed.")
                 break
         
         # delete the logs according to self.unwrapped.log_generator.logs_to_delete
@@ -393,64 +400,123 @@ class Action(ActionWrapper):
         # sleep(waiting_time)  # wait for logs to be indexed
 
 
+    # def flush_logs(self, log_file_path, log_type="Security"):
+    #     cmd_list = [
+    #         'sudo', '-S',
+    #         SPLUNK_BINARY_PATH,
+    #         "add",
+    #         "oneshot",
+    #         log_file_path,
+    #         "-index", self.unwrapped.splunk_tools.index_name,
+    #         "-sourcetype", "WinEventLog:" + log_type,
+    #         "-auth", f"{self.unwrapped.splunk_tools.splunk_username}:{self.unwrapped.splunk_tools.splunk_password}"
+    #     ]
+
+    #     # print(f"Injecting {log_file_path} into Splunk. This will block until complete...")
+    #     # 4. Run the command
+    #     try:
+    #         # input: Sends the password string to the command's stdin
+    #         # text=True: Encodes the input and decodes stdout/stderr as text (using UTF-8)
+    #         # capture_output=True: Captures stdout and stderr
+    #         # check=True: Raises an error if the command returns a non-zero exit code
+    #         result = subprocess.run(
+    #             cmd_list,
+    #             input=" \n",
+    #             text=True,
+    #             capture_output=True,
+    #             check=True
+    #         )
+            
+    #         # If the command was successful
+    #         # print("Command executed successfully:")
+    #         if result.stdout:
+    #             logger.info("\n--- STDOUT ---")
+    #             logger.info(result.stdout)
+    #         if result.stderr:
+    #             logger.info("\n--- STDERR ---")
+    #             logger.info(result.stderr)
+
+    #     except subprocess.CalledProcessError as e:
+    #         # This block runs if check=True and the command fails
+    #         print("Command failed:", file=sys.stderr)
+    #         print(f"Return Code: {e.returncode}", file=sys.stderr)
+            
+    #         if e.stdout:
+    #             print("\n--- STDOUT ---", file=sys.stderr)
+    #             print(e.stdout, file=sys.stderr)
+            
+    #         if e.stderr:
+    #             print("\n--- STDERR ---", file=sys.stderr)
+    #             # Check for the specific sudo error
+    #             if "no password was provided" in e.stderr or "incorrect password" in e.stderr:
+    #                 print("Hint: The password may have been incorrect.", file=sys.stderr)
+    #             else:
+    #                 print(e.stderr, file=sys.stderr)
+
+    #     except FileNotFoundError:
+    #         # This block runs if "sudo" or the splunk path is not found
+    #         print(f"Error: Command not found.", file=sys.stderr)
+    #         print(f"Please check the path: {cmd_list[2]}", file=sys.stderr)
     def flush_logs(self, log_file_path, log_type="Security"):
-        cmd_list = [
-            'sudo', '-S',
-            SPLUNK_BINARY_PATH,
-            "add",
-            "oneshot",
-            log_file_path,
-            "-index", "main",
-            "-sourcetype", "WinEventLog:" + log_type,
-            "-auth", "shouei:123456789" # Add this if you need to authenticate
-        ]
+        # Configuration
+        # Default management URI is localhost:8089. Change IP if Splunk is remote.
+        splunk_mgmt_uri = f"https://{self.unwrapped.splunk_tools.splunk_host}:8089"
+        endpoint = f"{splunk_mgmt_uri}/services/receivers/stream"
+        
+        # Credentials and Metadata from your existing object
+        username = self.unwrapped.splunk_tools.splunk_username
+        password = self.unwrapped.splunk_tools.splunk_password
+        index = self.unwrapped.splunk_tools.index_name
+        sourcetype = "WinEventLog:" + log_type
 
-        # print(f"Injecting {log_file_path} into Splunk. This will block until complete...")
-        # 4. Run the command
+        # 1. Prepare Parameters (Query String)
+        params = {
+            "index": index,
+            "sourcetype": sourcetype
+        }
+        
+        # 2. Prepare Headers (Equivalent to -H "x-splunk-input-mode: streaming")
+        headers = {
+            "x-splunk-input-mode": "streaming"
+        }
+
+        # print(f"Streaming {log_file_path} to Splunk via REST API...")
+
         try:
-            # input: Sends the password string to the command's stdin
-            # text=True: Encodes the input and decodes stdout/stderr as text (using UTF-8)
-            # capture_output=True: Captures stdout and stderr
-            # check=True: Raises an error if the command returns a non-zero exit code
-            result = subprocess.run(
-                cmd_list,
-                input=" \n",
-                text=True,
-                capture_output=True,
-                check=True
-            )
-            
-            # If the command was successful
-            # print("Command executed successfully:")
-            if result.stdout:
-                logger.info("\n--- STDOUT ---")
-                logger.info(result.stdout)
-            if result.stderr:
-                logger.info("\n--- STDERR ---")
-                logger.info(result.stderr)
+            # 3. Open file and POST it (Equivalent to -d @/local/path/data.json)
+            # We open in 'rb' (read binary) to stream raw data
+            with open(log_file_path, 'rb') as f:
+                response = requests.post(
+                    endpoint,
+                    auth=(username, password), # Equivalent to -u admin:pass
+                    params=params,             # Adds ?index=...&sourcetype=...
+                    headers=headers,
+                    data=f,                    # The file content
+                    verify=False,              # Equivalent to curl -k
+                    timeout=30                 # Prevent hanging indefinitely
+                )
 
-        except subprocess.CalledProcessError as e:
-            # This block runs if check=True and the command fails
-            print("Command failed:", file=sys.stderr)
-            print(f"Return Code: {e.returncode}", file=sys.stderr)
-            
-            if e.stdout:
-                print("\n--- STDOUT ---", file=sys.stderr)
-                print(e.stdout, file=sys.stderr)
-            
-            if e.stderr:
-                print("\n--- STDERR ---", file=sys.stderr)
-                # Check for the specific sudo error
-                if "no password was provided" in e.stderr or "incorrect password" in e.stderr:
-                    print("Hint: The password may have been incorrect.", file=sys.stderr)
-                else:
-                    print(e.stderr, file=sys.stderr)
+            # 4. Check for HTTP Errors
+            response.raise_for_status()
+
+            # Optional: Log success
+            if response.text:
+                logger.info(f"Splunk Response: {response.text}")
+
+        except requests.exceptions.HTTPError as e:
+            # This runs if Splunk returns 4xx or 5xx
+            print(f"Splunk API Error: {e}", file=sys.stderr)
+            print(f"Response Body: {e.response.text}", file=sys.stderr)
+
+        except requests.exceptions.ConnectionError:
+            print(f"Connection Failed: Could not reach {splunk_mgmt_uri}", file=sys.stderr)
+            print("Check if Splunk is running and port 8089 is open.", file=sys.stderr)
 
         except FileNotFoundError:
-            # This block runs if "sudo" or the splunk path is not found
-            print(f"Error: Command not found.", file=sys.stderr)
-            print(f"Please check the path: {cmd_list[2]}", file=sys.stderr)
-        
+            print(f"Error: Log file not found at {log_file_path}", file=sys.stderr)
+
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}", file=sys.stderr)
         
     def step(self, action):
         """Inject logs and step environment"""
@@ -929,6 +995,7 @@ class Action8(Action):
             diversity_list = action[len(self.unwrapped.top_logtypes):]
             # current_quota = action[-1]
             # num_logs = 20000
+            # num_logs = self.unwrapped.config.additional_percentage * 10000
             num_logs = self.unwrapped.config.additional_percentage * self.current_real_quantity
             # num_logs = 1000
             self.inserted_logs = 0
@@ -1005,7 +1072,6 @@ class Action8(Action):
             # self.remaining_quota = self.quota
             self.info = kwargs["options"]
             self.unwrapped.episodic_inserted_logs = 0
-            self.unwrapped.episodic_fake_logs_qnt = 0
             obs, info = self.env.reset(**kwargs)
             
             return obs, info

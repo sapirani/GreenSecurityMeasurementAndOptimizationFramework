@@ -129,7 +129,11 @@ class TimeManager:
         empty_monitored_files(SYSTEM_MONITOR_FILE_PATH)
         empty_monitored_files(SECURITY_MONITOR_FILE_PATH)
         self.is_delete = False
-
+        # Optional: Handle explicit deletion requests if needed
+        if not self.is_test and should_delete:
+           clean_env(self.splunk_tools, time_range=self.current_window.to_tuple(), logs_qnt=logs_qnt)
+           self.is_delete = True
+           
         if violation:
             # On violation, stay at current window (retry logic)
             return self.current_window
@@ -158,10 +162,7 @@ class TimeManager:
         
         logger.info(f"Advanced window to {self.current_window.start} - {self.current_window.end} (Remaining in queue: {len(self.unvisited_starts)})")
         
-        # Optional: Handle explicit deletion requests if needed
-        if not self.is_test and should_delete:
-           clean_env(self.splunk_tools, time_range=self.current_window.to_tuple(), logs_qnt=logs_qnt)
-           self.is_delete = True
+
             
         return self.current_window
         

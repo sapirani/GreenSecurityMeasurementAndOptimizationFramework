@@ -59,11 +59,11 @@ es_logger = get_measurement_logger(
 )
 
 BASIC_QUERIES = {"Windows Event For Service Disabled":"`wineventlog_system` EventCode=7040",
-"Detect New Local Admin account":"`wineventlog_security` EventCode=4732",
-"ESCU Network Share Discovery Via Dir Command Rule":"index=main `wineventlog_security` EventCode=5140",
+"Detect New Local Admin Account":"`wineventlog_security` EventCode=4732",
+"ESCU Network Share Discovery Via Dir Command Rule":"`wineventlog_security` EventCode=5140",
 "Known Services Killed by Ransomware":"`wineventlog_system` EventCode=7036",
 "Non Chrome Process Accessing Chrome Default Dir":"`wineventlog_security` EventCode=4663",
-"Kerberoasting spn request with RC4 encryption":"`wineventlog_security` EventCode=4769 ",
+"Kerberoasting SPN Request With RC4 Encryption":"`wineventlog_security` EventCode=4769 ",
 "Clop Ransomware Known Service Name":"`wineventlog_system` EventCode=7045",
 'Windows AD Replication Request Initiated from Unsanctioned Location':"`wineventlog_security` EventCode=4662",
 'ESCU Windows Rapid Authentication On Multiple Hosts Rule':"`wineventlog_security` EventCode=4624",}
@@ -169,7 +169,7 @@ class SplunkTools(object):
         self.stop_cpu_monitor = threading.Event()
         while True:
             try:
-                self.active_saved_searches = self.get_saved_search_names(active_saved_searches)
+                self.active_saved_searches = self.get_saved_search_names(active_saved_searches, owner=self.splunk_username)
                 self.real_logtypes_counter = {}
                 self.rule_frequency = rule_frequency
                 self.service = client.connect(
@@ -197,68 +197,147 @@ class SplunkTools(object):
         #         logger.info(f"Deleted {response['deleted']} documents from index sid")
 
     async def run_saved_search(self, search_name: str, start_time: Optional[float] = None, end_time: Optional[float] = None, interval: float = 0.2) -> QueryMetrics:
-        saved_search = self.service.saved_searches[search_name]
-        search_query = saved_search.content['search']  # the actual SPL
-        search_query = f"search {search_query}"
-        logger.info(f'Running saved search: {search_name}')
-        job = self.service.jobs.create(
-            search_query,
-            earliest_time=start_time,
-            latest_time=end_time
-        )
+        # saved_search = self.service.saved_searches[search_name]
+        # search_query = saved_search.content['search']  # the actual SPL
+        # search_query = f"search index={self.index_name} {search_query}"
+        # logger.info(f'Running saved search: {search_name}')
+        # job = self.service.jobs.create(
+        #     search_query,
+        #     earliest_time=start_time,
+        #     latest_time=end_time
+        # )
 
-        while "pid" not in job["content"]:
-            await asyncio.sleep(0.2)
-            job.refresh()
+        # while "pid" not in job["content"]:
+        #     await asyncio.sleep(0.2)
+        #     job.refresh()
 
-            # logger.info('Waiting for PID assignment...')
-            if job["content"]['isDone'] == '1':
-                job = self.service.jobs.create(
-                search_query,
-                earliest_time=start_time,
-                latest_time=end_time
+        #     # logger.info('Waiting for PID assignment...')
+        #     if job["content"]['isDone'] == '1':
+        #         job = self.service.jobs.create(
+        #         search_query,
+        #         earliest_time=start_time,
+        #         latest_time=end_time
+        #     )
+        # pid = int(job["content"]["pid"])
+        # if self.mode == Mode.PROFILE:
+        #     es_logger.info(f"PID SID MAPPING", extra={
+        #         'timestamp': datetime.now(timezone.utc).isoformat(),
+        #         'pid': pid,
+        #         'rule_name': search_name,
+        #     })
+        # logger.info(f'Saved search "{search_name}" started with PID: {pid}')
+        # metrics_snapshots: List[Dict] = []
+
+        # async def monitor_task():
+        #     async for m, _ in monitor_process(pid, interval):
+        #         metrics_snapshots.append(m)
+
+        # task = asyncio.create_task(monitor_task())
+
+        # while not job.is_done():
+        #     await asyncio.sleep(0.3)
+        #     job.refresh()
+
+        # task.cancel()
+        # await asyncio.gather(task, return_exceptions=True)
+
+        # # compute delta metrics
+        # if metrics_snapshots:
+        #     first, last = metrics_snapshots[0], metrics_snapshots[-1]
+        #     delta_metrics = {k: last[k] - first.get(k, 0) for k in last}
+        # else:
+        #     delta_metrics = {}
+        # results_count = int(job["content"].get("resultCount", 0)),
+        # if isinstance(results_count, (tuple, list)):
+        #     results_count = results_count[0]
+        # execution_time = float(job["content"].get("runDuration", 0.0)),
+        # if isinstance(execution_time, (tuple, list)):
+        #     execution_time = execution_time[0]
+        # events_count = 0
+        # if self.mode == Mode.PROFILE:
+        #     # Check events count via BASIC_QUERIES
+        #     eventcode_search = BASIC_QUERIES.get(search_name, None)
+        #     if eventcode_search:
+        #         eventcode_query = f'search index={self.index_name} {eventcode_search} host IN ("dt-splunk", 132.72.81.150)  | stats count'
+        #         eventcode_job = self.service.jobs.create(eventcode_query, earliest_time=start_time, latest_time=end_time)
+        #         while True:
+        #             eventcode_job.refresh()
+        #             if eventcode_job.content['isDone'] == '1':
+        #                 break
+        #             await asyncio.sleep(0.1)
+        #         events_count = int(eventcode_job["eventCount"]) if "eventCount" in eventcode_job else 0
+
+        # # build QueryMetrics instance
+        # qmetric = QueryMetrics(
+        #     timestamp=datetime.now(timezone.utc).isoformat(),
+        #     pid=pid,
+        #     events_count=events_count,                
+        #     search_name=search_name,
+        #     results_count=results_count,
+        #     execution_time=execution_time,
+        #     cpu=delta_metrics.get("cpu_seconds", 0.0),
+        #     io_metrics={
+        #         "read_bytes": delta_metrics.get("read_bytes", 0),
+        #         "write_bytes": delta_metrics.get("write_bytes", 0),
+        #         "read_count": delta_metrics.get("read_count", 0),
+        #         "write_count": delta_metrics.get("write_count", 0),
+        #     },
+        #     memory_mb=delta_metrics.get("mem_used_mb", 0.0)
+        # )
+        # if self.mode == Mode.PROFILE:
+        #     es_logger.info(f"CPU PID SID MAPPING", extra=
+        #                    asdict(qmetric)
+        #                    )
+        # return qmetric
+        """
+        Replaces the old logic. Calls the remote endpoint to do the heavy lifting.
+        start_time/end_time should be Epoch strings or relative time strings (e.g. "-15m").
+        """
+        
+        # 1. Prepare Payload
+        payload = {
+            "search_name": search_name,
+            "index_name": self.index_name,
+            "earliest_time": start_time,
+            "latest_time": end_time,
+            "app": "search",
+            "owner": self.splunk_username,
+        }
+
+        # 2. Call the Remote API (The "Black Box")
+        # We use standard requests, but you can wrap this in aiohttp if you want async IO
+        try:
+            # Using verify=False because self-signed certs are common in dev
+            response = requests.post(
+                self.base_url + "/services/profiler_api",
+                auth=self.auth, 
+                json=payload, 
+                verify=False,
+                params={'output_mode': 'json'}
             )
-        pid = int(job["content"]["pid"])
-        if self.mode == Mode.PROFILE:
-            es_logger.info(f"PID SID MAPPING", extra={
-                'timestamp': datetime.now(timezone.utc).isoformat(),
-                'pid': pid,
-                'rule_name': search_name,
-            })
-        logger.info(f'Saved search "{search_name}" started with PID: {pid}')
-        metrics_snapshots: List[Dict] = []
-
-        async def monitor_task():
-            async for m, _ in monitor_process(pid, interval):
-                metrics_snapshots.append(m)
-
-        task = asyncio.create_task(monitor_task())
-
-        while not job.is_done():
-            await asyncio.sleep(0.3)
-            job.refresh()
-
-        task.cancel()
-        await asyncio.gather(task, return_exceptions=True)
-
-        # compute delta metrics
-        if metrics_snapshots:
-            first, last = metrics_snapshots[0], metrics_snapshots[-1]
-            delta_metrics = {k: last[k] - first.get(k, 0) for k in last}
-        else:
-            delta_metrics = {}
-        results_count = int(job["content"].get("resultCount", 0)),
-        if isinstance(results_count, (tuple, list)):
-            results_count = results_count[0]
-        execution_time = float(job["content"].get("runDuration", 0.0)),
-        if isinstance(execution_time, (tuple, list)):
-            execution_time = execution_time[0]
+            response.raise_for_status()
+            data = response.json()
+            logger.info(f"Profiling data for {search_name}: {data}")
+        except Exception as e:
+            # Handle error gracefully
+            logger.error(f"Error profiling {search_name}: {e}")
+            try:
+                error_data = response.json()
+                logger.error(f"Error Message: {error_data.get('error')}")
+                logger.error("-" * 40)
+                logger.error("REMOTE TRACEBACK:")
+                logger.error(error_data.get('traceback'))
+                logger.error("-" * 40)
+            except ValueError:
+                # If server didn't return JSON (e.g., plain HTML error page)
+                logger.error(f"Raw Response Text: {response.text}")
+            return None
         events_count = 0
         if self.mode == Mode.PROFILE:
             # Check events count via BASIC_QUERIES
             eventcode_search = BASIC_QUERIES.get(search_name, None)
             if eventcode_search:
-                eventcode_query = f'search {eventcode_search} host="dt-splunk"  | stats count'
+                eventcode_query = f'search index={self.index_name} {eventcode_search} host IN ("dt-splunk", 132.72.81.150)  | stats count'
                 eventcode_job = self.service.jobs.create(eventcode_query, earliest_time=start_time, latest_time=end_time)
                 while True:
                     eventcode_job.refresh()
@@ -266,30 +345,28 @@ class SplunkTools(object):
                         break
                     await asyncio.sleep(0.1)
                 events_count = int(eventcode_job["eventCount"]) if "eventCount" in eventcode_job else 0
-
-        # build QueryMetrics instance
+        
+        # 3. Map Response to QueryMetrics (The "Original Flow")
         qmetric = QueryMetrics(
             timestamp=datetime.now(timezone.utc).isoformat(),
-            pid=pid,
-            events_count=events_count,                
+            pid=int(data.get("pid", 0)),
             search_name=search_name,
-            results_count=results_count,
-            execution_time=execution_time,
-            cpu=delta_metrics.get("cpu_seconds", 0.0),
+            results_count=data.get("results_count", 0),
+            execution_time=data.get("execution_time", 0.0),
+            
+            # Now this is the REAL /proc value from the server
+            cpu=data.get("cpu_seconds", 0.0), 
+            events_count= events_count,
+            memory_mb=data.get("memory_mb", 0.0),
             io_metrics={
-                "read_bytes": delta_metrics.get("read_bytes", 0),
-                "write_bytes": delta_metrics.get("write_bytes", 0),
-                "read_count": delta_metrics.get("read_count", 0),
-                "write_count": delta_metrics.get("write_count", 0),
-            },
-            memory_mb=delta_metrics.get("mem_used_mb", 0.0)
+                "read_bytes": data.get("read_bytes", 0),    
+                "write_bytes": data.get("write_bytes", 0),
+                "read_count": data.get("read_count", 0),
+                "write_count": data.get("write_count", 0),
+                }
         )
-        if self.mode == Mode.PROFILE:
-            es_logger.info(f"CPU PID SID MAPPING", extra=
-                           asdict(qmetric)
-                           )
         return qmetric
-    
+
     def clear_os_cache(self):
         try:
             # Run the command exactly as requested
@@ -316,6 +393,7 @@ class SplunkTools(object):
         for result in results:
             result.start_time = time_range[0]
             result.end_time = time_range[1]
+            logger.info(f'Finished running saved search: {result.search_name}')
         return results
         
     def load_real_logs_distribution_bucket(self, start_time, end_time):
@@ -507,7 +585,7 @@ class SplunkTools(object):
                 f.write(f'{log}\n\n')        
         
     def get_saved_search_names(self, active_saved_searches, get_only_enabled=True, app="search", owner="shouei"):
-        query = f"| rest /servicesNS/shouei/search/saved/searches splunk_server=local| search eai:acl.app={app} eai:acl.owner={owner}  | table title, search, cron_schedule, disabled"
+        query = f"| rest /servicesNS/{owner}/search/saved/searches splunk_server=local| search eai:acl.app={app} eai:acl.owner={owner}  | table title, search, cron_schedule, disabled"
         url = f"{self.base_url}/services/search/jobs/export"
         data = {'output_mode': 'json', 'search': query}
         headers = {
@@ -583,7 +661,7 @@ class SplunkTools(object):
             
             # 1. Create the Search Job
             job = self.service.jobs.create(
-                f'search index=main | '
+                f'search index={self.index_name} | '
                 'eval _time=strftime(_time,"%Y-%m-%d %H:%M:00") | '
                 'stats count by source EventCode _time', 
                 earliest_time=start_time.strftime('%Y-%m-%d %H:%M:%S'), 
@@ -845,50 +923,55 @@ class SplunkTools(object):
 
         def run_delete_query(time_range, condition):
             """Runs the delete query once and returns number of deleted logs."""
+            
+            # 1. Build Query
+            # Note: Ensure IP is quoted in SPL if it causes issues, though usually fine.
+            base_query = f'search index={self.index_name} host=132.72.81.150'
             if condition:
-                query = f'search index=main host="dt-splunk" {condition} | delete'
+                query = f'{base_query} {condition} | delete'
             else:
-                query = f'search index=main host="dt-splunk" | delete'
+                query = f'{base_query} | delete'
 
-            # Time range handling
+            # 2. Handle Time (Convert to Epoch)
+            kwargs = {
+                "count": 0,
+                "exec_mode": "blocking" # Recommended for delete operations to ensure completion
+            }
+
             if time_range is None:
-                time_range = ("0", datetime.now())
-
-            if isinstance(time_range, str):
-                start_time = f"-{time_range}"
-                job = self.service.jobs.create(
-                    query,
-                    earliest_time=start_time,
-                    time_format='%Y-%m-%d %H:%M:%S',
-                    count=0,
-                )
+                # Default to all time or specific window if needed
+                kwargs["earliest_time"] = "0" 
+            elif isinstance(time_range, str):
+                # Relative time (e.g., "15m") is safe to pass as string
+                kwargs["earliest_time"] = f"-{time_range}"
+                kwargs["latest_time"] = "now"
             else:
-                start_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
-                end_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
-                job = self.service.jobs.create(
-                    query,
-                    earliest_time=start_time,
-                    latest_time=end_time,
-                    time_format='%Y-%m-%d %H:%M:%S',
-                    count=0,
-                )
+                # Absolute time: Convert to Epoch (Float)
+                t_start = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S')
+                t_end = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S')
+                
+                # .timestamp() converts to epoch based on local machine time
+                kwargs["earliest_time"] = t_start.timestamp()
+                kwargs["latest_time"] = t_end.timestamp()
 
-            # Wait for job to complete
-            while True:
-                job.refresh()
-                if job.content['isDone'] == '1':
-                    break
-                time.sleep(2)
+            # 3. Create Job
+            # We removed 'time_format' as it's unnecessary with Epoch
+            job = self.service.jobs.create(query, **kwargs)
 
-            # Parse results
-            results_json = json.load(job.results(output_mode='json'))
-            try:
-                deleted_logs_qnt = int(results_json['results'][1]['deleted'])
-            except Exception:
-                deleted_logs_qnt = int(results_json['results'][0]['deleted'])
-
-            return deleted_logs_qnt
-
+            # 4. Parse Results Safely
+            # With exec_mode='blocking', no need to poll loop
+            reader = job.results(output_mode='json')
+            results_json = json.load(reader)
+            
+            deleted_count = 0
+            if 'results' in results_json and len(results_json['results']) > 0:
+                # | delete usually returns one row with field "deleted"
+                # We iterate just in case, or safely access index 0
+                for row in results_json['results']:
+                    if 'deleted' in row:
+                        deleted_count += int(row['deleted'])
+            
+            return deleted_count
         # --- Main loop with stop condition ---
         total_deleted = 0
         attempts = 0

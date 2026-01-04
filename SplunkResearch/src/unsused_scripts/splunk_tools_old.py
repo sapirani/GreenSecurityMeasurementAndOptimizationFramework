@@ -55,7 +55,7 @@ es_logger = get_measurement_logger(
 
 BASIC_QUERIES = {"Windows Event For Service Disabled":"`wineventlog_system` EventCode=7040",
 "Detect New Local Admin account":"`wineventlog_security` EventCode=4720 OR (EventCode=4732 Group_Name=Administrators)",
-"ESCU Network Share Discovery Via Dir Command Rule":"index=main `wineventlog_security` EventCode=5140",
+"ESCU Network Share Discovery Via Dir Command Rule":"`wineventlog_security` EventCode=5140",
 "Known Services Killed by Ransomware":"`wineventlog_system` EventCode=7036",
 "Non Chrome Process Accessing Chrome Default Dir":"`wineventlog_security` EventCode=4663",
 "Kerberoasting spn request with RC4 encryption":"`wineventlog_security` EventCode=4769 ",
@@ -997,7 +997,7 @@ class SplunkTools(object):
         
         # Use RFC3339 format for Splunk query
         job = self.service.jobs.create(
-            f'search index=main | '
+            f'search index={self.index_name} | '
             'eval _time=strftime(_time,"%Y-%m-%d %H:%M:00") | '
             'stats count by source EventCode _time', 
             earliest_time=start_time.strftime('%Y-%m-%d %H:%M:%S'), 
@@ -1217,9 +1217,9 @@ class SplunkTools(object):
         def run_delete_query(time_range, condition):
             """Runs the delete query once and returns number of deleted logs."""
             if condition:
-                query = f'search index=main host="dt-splunk" {condition} | delete'
+                query = f'search index={self.index_name} host="dt-splunk" {condition} | delete'
             else:
-                query = f'search index=main host="dt-splunk" | delete'
+                query = f'search index={self.index_name} host="dt-splunk" | delete'
 
             # Time range handling
             if time_range is None:

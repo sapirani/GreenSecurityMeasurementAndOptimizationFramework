@@ -6,7 +6,7 @@ from src.log_generator import LogGenerator
 from resources.section_logtypes import section_logtypes
 
 # fake_start_datetime = "04/30/2023:08:00:00"
-# savedsearches = ["Detect New Local Admin account", "ESCU Network Share Discovery Via Dir Command Rule", "Known Services Killed by Ransomware", "Non Chrome Process Accessing Chrome Default Dir"]
+# savedsearches = ["Detect New Local Admin Account", "ESCU Network Share Discovery Via Dir Command Rule", "Known Services Killed by Ransomware", "Non Chrome Process Accessing Chrome Default Dir"]
 # relevant_logtypes = sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]})) #[(x[0], str(x[1])) for x in state_span]
 # relevant_logtypes.append(('wineventlog:security', '4624'))
 # splunk_tools_instance = SplunkTools(savedsearches)
@@ -33,7 +33,7 @@ from resources.section_logtypes import section_logtypes
 #                  "logs_per_minute": 300, "additional_percentage":additional_percentage,
 #                  "fake_start_datetime": fake_start_datetime})
 # #######################################
-# savedsearches = ["Windows Event For Service Disabled","Detect New Local Admin account", "ESCU Network Share Discovery Via Dir Command Rule", "Known Services Killed by Ransomware", "Non Chrome Process Accessing Chrome Default Dir"]
+# savedsearches = ["Windows Event For Service Disabled","Detect New Local Admin Account", "ESCU Network Share Discovery Via Dir Command Rule", "Known Services Killed by Ransomware", "Non Chrome Process Accessing Chrome Default Dir"]
 # relevant_logtypes = sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]})) #[(x[0], str(x[1])) for x in state_span]
 # relevant_logtypes.append(('wineventlog:security', '4624'))
 # splunk_tools_instance = SplunkTools(savedsearches)
@@ -95,11 +95,11 @@ from resources.section_logtypes import section_logtypes
 #                  "fake_start_datetime": fake_start_datetime})
 # #######################################
 # savedsearches = ["Windows Event For Service Disabled",
-#                  "Detect New Local Admin account",
+#                  "Detect New Local Admin Account",
 #                  "ESCU Network Share Discovery Via Dir Command Rule",
 #                  "Known Services Killed by Ransomware",
 #                  "Non Chrome Process Accessing Chrome Default Dir",
-#                  "Kerberoasting spn request with RC4 encryption",
+#                  "Kerberoasting SPN Request With RC4 Encryption",
 #                  "Clop Ransomware Known Service Name"]
 # relevant_logtypes = sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]})) #[(x[0], str(x[1])) for x in state_span]
 # relevant_logtypes.append(('wineventlog:security', '4624'))
@@ -218,11 +218,11 @@ from resources.section_logtypes import section_logtypes
 #######################################
 fake_start_datetime = "05/03/2024:13:00:00"
 savedsearches = ["Windows Event For Service Disabled",
-                 "Detect New Local Admin account",
+                 "Detect New Local Admin Account",
                  "ESCU Network Share Discovery Via Dir Command Rule",
                  "Known Services Killed by Ransomware",
                  "Non Chrome Process Accessing Chrome Default Dir",
-                 "Kerberoasting spn request with RC4 encryption",
+                 "Kerberoasting SPN Request With RC4 Encryption",
                  "Clop Ransomware Known Service Name"]
 register(id='splunk_train-v0',
         entry_point='custom_splunk.envs:SplunkEnv', 
@@ -245,7 +245,7 @@ register(id='splunk_eval-v0',
 #######################################
 savedsearches = [
                  "ESCU Network Share Discovery Via Dir Command Rule",
-                 "Kerberoasting spn request with RC4 encryption",
+                 "Kerberoasting SPN Request With RC4 Encryption",
                  "Clop Ransomware Known Service Name"]
 fake_start_datetime = "05/03/2024:13:00:00"
 env_id = "splunk_train-v1"
@@ -270,11 +270,11 @@ register(id=env_id,
 #######################################
 #######################################
 savedsearches = ["Windows Event For Service Disabled",
-                 "Detect New Local Admin account",
+                 "Detect New Local Admin Account",
                  "ESCU Network Share Discovery Via Dir Command Rule",
                  "Known Services Killed by Ransomware",
                  "Non Chrome Process Accessing Chrome Default Dir",
-                 "Kerberoasting spn request with RC4 encryption",
+                 "Kerberoasting SPN Request With RC4 Encryption",
                  "Clop Ransomware Known Service Name"]
 fake_start_datetime = "09/03/2023:13:00:00"
 env_id = "splunk_train-v2"
@@ -300,7 +300,7 @@ register(id=env_id,
 #######################################
 savedsearches = [
                  "ESCU Network Share Discovery Via Dir Command Rule",
-                 "Kerberoasting spn request with RC4 encryption",
+                 "Kerberoasting SPN Request With RC4 Encryption",
                  "Clop Ransomware Known Service Name"]
 fake_start_datetime = "09/03/2023:13:00:00"
 env_id = "splunk_train-v3"
@@ -326,7 +326,7 @@ register(id=env_id,
 #######################################
 savedsearches = [
                  "ESCU Network Share Discovery Via Dir Command Rule",
-                 "Kerberoasting spn request with RC4 encryption",
+                 "Kerberoasting SPN Request With RC4 Encryption",
                  "Clop Ransomware Known Service Name"]
 fake_start_datetime = "12/03/2023:13:00:00"
 env_id = "splunk_train-v30"
@@ -341,7 +341,7 @@ register(id=env_id,
 #######################################
 savedsearches = [
                  "ESCU Network Share Discovery Via Dir Command Rule",
-                 "Kerberoasting spn request with RC4 encryption",
+                 "Kerberoasting SPN Request With RC4 Encryption",
                  "Clop Ransomware Known Service Name"]
 fake_start_datetime = "04/01/2024:00:00:00"
 env_id = "splunk_train-v31"
@@ -355,11 +355,11 @@ register(id=env_id,
 #######################################
 #######################################
 savedsearches = ["Windows Event For Service Disabled",
-                 "Detect New Local Admin account",
+                 "Detect New Local Admin Account",
                  "ESCU Network Share Discovery Via Dir Command Rule",
                  "Known Services Killed by Ransomware",
                  "Non Chrome Process Accessing Chrome Default Dir",
-                 "Kerberoasting spn request with RC4 encryption",
+                 "Kerberoasting SPN Request With RC4 Encryption",
                  "Clop Ransomware Known Service Name",
                  'Windows AD Replication Request Initiated from Unsanctioned Location',
                  'ESCU Windows Rapid Authentication On Multiple Hosts Rule',
@@ -390,10 +390,10 @@ register(id=env_id,
 #######################################
 fake_start_datetime = "05/03/2024:13:00:00"
 savedsearches = ["Windows Event For Service Disabled",
-                 "Detect New Local Admin account",
+                 "Detect New Local Admin Account",
                  "Known Services Killed by Ransomware",
                  "Non Chrome Process Accessing Chrome Default Dir",
-                 "Kerberoasting spn request with RC4 encryption",
+                 "Kerberoasting SPN Request With RC4 Encryption",
                  "Clop Ransomware Known Service Name"]
 register(id='splunk_train-v4',
         entry_point='custom_splunk.envs:SplunkEnv', 
@@ -416,7 +416,7 @@ register(id='splunk_eval-v4',
 #######################################
 fake_start_datetime = "05/03/2024:13:00:00"
 savedsearches = ["Windows Event For Service Disabled",
-                 "Detect New Local Admin account",
+                 "Detect New Local Admin Account",
                  "Known Services Killed by Ransomware",
                  "Non Chrome Process Accessing Chrome Default Dir"
                  ]
@@ -441,7 +441,7 @@ register(id='splunk_eval-v5',
 #######################################
 fake_start_datetime = "09/03/2024:13:00:00"
 savedsearches = ["Windows Event For Service Disabled",
-                 "Detect New Local Admin account",
+                 "Detect New Local Admin Account",
                  "Known Services Killed by Ransomware",
                  "Non Chrome Process Accessing Chrome Default Dir"
                  ]
@@ -466,7 +466,7 @@ register(id='splunk_eval-v6',
 #######################################
 fake_start_datetime = "09/03/2024:13:00:00"
 savedsearches = ["Windows Event For Service Disabled",
-                 "Detect New Local Admin account",
+                 "Detect New Local Admin Account",
                  "ESCU Network Share Discovery Via Dir Command Rule",
                  "Known Services Killed by Ransomware",
                  "Non Chrome Process Accessing Chrome Default Dir",
@@ -491,10 +491,10 @@ register(id='splunk_eval-v7',
 #######################################
 #######################################
 savedsearches = ["Windows Event For Service Disabled",
-                 "Detect New Local Admin account",
+                 "Detect New Local Admin Account",
                  "Known Services Killed by Ransomware",
                  "Non Chrome Process Accessing Chrome Default Dir",
-                 "Kerberoasting spn request with RC4 encryption",
+                 "Kerberoasting SPN Request With RC4 Encryption",
                  "Clop Ransomware Known Service Name"]
 fake_start_datetime = "09/03/2023:13:00:00"
 env_id = "splunk_train-v8"

@@ -169,6 +169,8 @@ class StateWrapper(ObservationWrapper):
         self.unwrapped.ac_fake_distribution = {logtype: 0 for logtype in self.unwrapped.top_logtypes}
         self.unwrapped.ac_fake_distribution['other'] = 0
         self.unwrapped.rules_rel_diff_alerts = {rule : 0 for rule in self.unwrapped.relevant_logtypes}
+        self.unwrapped.episodic_fake_logs_qnt = 0
+        self.unwrapped.episodic_inserted_logs = 0
         
         # reset episode logs which are placed at lower wrapper (action)
         # self.action_wrapper.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.unwrapped.top_logtypes for istrigger in [0, 1]}

@@ -110,11 +110,11 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             'ESCU Windows Rapid Authentication On Multiple Hosts Rule': 0,
             'Windows AD Replication Request Initiated from Unsanctioned Location': 0,
             'Windows Event For Service Disabled': 2.5,
-            'Detect New Local Admin account': 0.7,
+            'Detect New Local Admin Account': 0.7,
             'ESCU Network Share Discovery Via Dir Command Rule': 0,
             'Known Services Killed by Ransomware': 6,
             'Non Chrome Process Accessing Chrome Default Dir': 0,
-            'Kerberoasting spn request with RC4 encryption': 0,
+            'Kerberoasting SPN Request With RC4 Encryption': 0,
             'Clop Ransomware Known Service Name': 0
         }
         self.measuring = False
@@ -255,7 +255,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         return self.process_metrics(grouped)
     
     def convert_metrics(self, time_range, rules_metrics):
-        logger.info(f"rules_metrics: {rules_metrics}")
+        # logger.info(f"rules_metrics: {rules_metrics}")
         return [{
             'search_name': metric.search_name,
             'alert': metric.results_count,
@@ -384,6 +384,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 # Normal execution flow
                 
             raw_metrics, combined_metrics = self.get_current_reward_values(info['current_window'], should_execute)
+            # logger.info(f"Raw metrics: {raw_metrics}")
             should_run = False
             baseline_raw_metrics, combined_baseline_metrics = self.process_metrics(
                 self.get_baseline_data(info['current_window'], rerun).groupby('search_name')
@@ -409,7 +410,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                         def get_event_times(rule_name, time_range):
                             # query splunk for the events in the time range
                             
-                            query = f'index="main" host="dt-splunk" EventCode={relevant_log[0][1]}  | stats count by real_ts var_id'
+                            query = f'index={self.unwrapped.splunk_tools.index_name} host IN ("dt-splunk", 132.72.81.150) EventCode={relevant_log[0][1]}  | stats count by real_ts var_id'
                             print(time_range_date)
                             results = self.unwrapped.splunk_tools.run_search(query, *time_range)
                             formatted_log = "\n".join([json.dumps(record) for record in results])
@@ -468,11 +469,10 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # info['alert_reward'] = ((predicted_alert_reward - sum(self.expected_alerts.values()))/std)
             # self.mean_alert = (self.unwrapped.all_steps_counter//self.unwrapped.total_steps - 1)*self.mean_alert + sum(raw_baseline_metrics[rule]['alert'] for rule in self.expected_alerts)/(self.unwrapped.all_steps_counter//self.unwrapped.total_steps)
             info['alert_reward'] = predicted_alert_reward
-
+            info['norm_alert_reward'] = -np.tanh(-predicted_alert_reward/30)
             ############### Total reward ##############
             reward = self.gamma*info['ac_distribution_reward']
-            reward += self.beta*info['alert_reward'] 
-
+            reward += self.beta*info['norm_alert_reward']
             # reward = 0
             # if info.get('ac_distribution_value', 0) > self.env.distribution_threshold or predicted_alert_reward < self.alert_threshold:
             #     if info.get('ac_distribution_value', 0) > self.env.distribution_threshold:
@@ -543,7 +543,7 @@ class EnergyRewardWrapper(RewardWrapper):
             baseline = info['combined_baseline_metrics']['cpu']
 
             
-            energy_reward = (current  - baseline) / baseline
+            energy_reward = (current  - baseline) / (baseline + self.epsilon)
             self.energies.append(energy_reward)
 
             # if energy_reward <= 0.1:
@@ -553,7 +553,8 @@ class EnergyRewardWrapper(RewardWrapper):
             # mean_energy = np.mean(self.energies) if len(self.energies) > 0 else 0
             # std_energy = np.std(self.energies) if len(self.energies) > 0 else 0
             
-            info['norm_energy_reward'] = np.clip(energy_reward/EnergyRewardWrapper.ENERGY_CHANGE_TARGET, 0, 1)
+            info['norm_energy_reward'] = np.clip(energy_reward, 0, 1)
+            # info['norm_energy_reward'] = np.clip(energy_reward/EnergyRewardWrapper.ENERGY_CHANGE_TARGET, 0, 1)
             logger.info(f"Energy reward: {energy_reward:.3f}, current: {current:.3f}, baseline: {baseline:.3f}")
             # reward +=  energy_reward
             # reward += self.alpha*energy_reward
