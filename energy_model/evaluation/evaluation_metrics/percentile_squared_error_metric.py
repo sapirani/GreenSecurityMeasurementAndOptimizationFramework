@@ -13,7 +13,14 @@ class PercentileSquaredErrorMetric(AbstractEvaluationMetric):
 
     def evaluate(self, y: pd.Series, y_pred: pd.Series) -> float:
         """
-            Computes the percentile of squared errors.
+            Computes a percentile of the squared prediction errors.
+
+            This metric measures the squared error between true and predicted values and
+            returns the specified percentile of those errors.
+            Unlike Mean Squared Error (MSE), which averages all errors, this metric captures the behavior
+            of a chosen portion of the error distribution (e.g., median error or worst-case tail errors).
+
+            It is especially useful when robustness to outliers is desired or when focusing on high-error cases.
         """
         y_true = np.asarray(y)
         y_pred = np.asarray(y_pred)
