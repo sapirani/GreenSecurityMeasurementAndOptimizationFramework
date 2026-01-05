@@ -10,7 +10,7 @@ from energy_model.dataset_creation.target_calculators.target_calculator import T
 
 class AggregatedDatasetCreator(BasicDatasetCreator):
     """
-    This class represents the basic reading from elastic.
+    This class represents the basic reading from elastic for the sake of dataset creation.
     Reading only process of interest logs.
     Aggregations on every process telemetry per batch.
     """
