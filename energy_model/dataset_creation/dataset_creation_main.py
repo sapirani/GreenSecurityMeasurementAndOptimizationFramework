@@ -8,7 +8,7 @@ from energy_model.energy_model_parameters import FULL_DATASET_BEFORE_PROCESSING_
 
 class PipelineType(Enum):
     Default = 1
-    Costume = 2
+    Custom = 2
     Exit = 3
 
 def print_main_hello_msg() -> PipelineType:
@@ -54,7 +54,7 @@ if __name__ == '__main__':
 
                 print(f"Using default dataset creator with: dataset_reader = {DEFAULT_DATASET_READER}, target_calculator = {DEFAULT_TARGET_CALCULATOR}, batch_size = {DEFAULT_BATCH_INTERVAL_SECONDS}, dataset_creator = {DEFAULT_DATASET_CREATOR}")
 
-            elif pipeline_choice == PipelineType.Costume:
+            elif pipeline_choice == PipelineType.Custom:
                 dataset_reader_choice = print_dataset_reader_type()
                 target_calculator_choice = print_target_calculator_type()
                 dataset_creator_choice = print_dataset_creator_type()

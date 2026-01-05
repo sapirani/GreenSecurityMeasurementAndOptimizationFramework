@@ -30,12 +30,12 @@ class DatasetCreator(ABC):
 
         full_df = pd.DataFrame()
         for batch_interval in self.__batch_time_intervals:
-            full_df_for_interval = self.__handle_single_time_interval(df, batch_interval)
+            full_df_for_interval = self.__process_single_time_interval(df, batch_interval)
             full_df = pd.concat([full_df, full_df_for_interval], ignore_index=True)
 
         return full_df
 
-    def __handle_single_time_interval(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
+    def __process_single_time_interval(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
         full_df_with_batch_id = self.__add_batch_id(df, batch_duration_seconds)
         self.__check_dataset_validity(full_df_with_batch_id)
 
