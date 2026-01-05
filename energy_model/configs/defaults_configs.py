@@ -1,4 +1,5 @@
 from energy_model.configs.columns import SystemColumns
+from energy_model.configs.evaluation_metrics_type import EvaluationMetricType
 from energy_model.dataset_processing.filters.negative_value_filter import NegativeValueFilter
 from energy_model.dataset_processing.filters.outliers_filter import OutlierFilter
 from energy_model.evaluation.evaluation_metrics.average_per_metric import AveragePERMetric
@@ -23,8 +24,8 @@ DEFAULT_EVALUATION_METRICS = [SymmetricMeanAbsolutePercentageError(), RelativeRo
                               PercentileSquaredErrorMetric(95), TailRootMeanSquaredErrorMetric(),
                               RootMeanSquaredErrorRatioMetric()]
 
-DEFAULT_BEST_MODEL_METRIC = "Symmetric Mean Absolute Percentage Error (Symmetric MAPE)"
-BEST_SYSTEM_MODEL_METRIC = "Root Mean Squared Error Ratio for Percentile 95"
+DEFAULT_BEST_MODEL_METRIC = EvaluationMetricType.SMAPE
+BEST_SYSTEM_MODEL_METRIC = EvaluationMetricType.RMSERatio
 BEST_PROCESS_MODEL_METRIC = DEFAULT_BEST_MODEL_METRIC
 
 NON_NEGATIVE_COLUMNS = [SystemColumns.DURATION_COL, SystemColumns.DISK_READ_BYTES_SYSTEM_COL,
