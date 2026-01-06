@@ -1,7 +1,7 @@
 from gymnasium import spaces
 from gymnasium.core import ObsType
 
-from hadoop_optimizer.DTOs.hadoop_job_execution_config import HadoopJobExecutionConfig
+from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 
 
 class EnvironmentTruncatedException(Exception):

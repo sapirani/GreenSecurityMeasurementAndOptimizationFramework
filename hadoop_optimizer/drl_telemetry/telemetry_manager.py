@@ -13,9 +13,9 @@ from elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
 from hadoop_optimizer.drl_telemetry.config.telemetry_fields import FIELD_NAMES_TO_AVERAGE, FIELD_NAMES_TO_SUM
 from hadoop_optimizer.drl_telemetry.consts.general import HOSTNAME_FIELD, SYSTEM_PREFIX
 from hadoop_optimizer.drl_telemetry.consts.telemetry_types import DRLTelemetryType
-from hadoop_optimizer.deployment_server.river_extensions.custom_agg import CustomAgg
-from hadoop_optimizer.deployment_server.river_extensions.time_aware_transformer_union import TimeAwareTransformerUnion
-from hadoop_optimizer.deployment_server.river_extensions.timezone_aware_time_rolling import TimezoneAwareTimeRolling
+from custom_package_extensions.river_extensions.custom_agg import CustomAgg
+from custom_package_extensions.river_extensions.time_aware_transformer_union import TimeAwareTransformerUnion
+from custom_package_extensions.river_extensions.timezone_aware_time_rolling import TimezoneAwareTimeRolling
 from hadoop_optimizer.erros import StateNotReadyException
 
 
@@ -120,13 +120,13 @@ class DRLTelemetryManager(AbstractElasticConsumer):
             DRLTelemetryType.SYSTEM_NETWORK_SENT_ENERGY_MWH: energy_model_result.network_io_sent_energy_consumption,
         }
 
-    def update_state(
+    def _update_state(
             self,
             iteration_raw_results: IterationRawResults,
             iteration_aggregation_results: Optional[IterationAggregatedResults]
     ):
         """
-        This function considers only the system iteration raw results, and preserve an state the represents
+        This function considers only the system iteration raw results, and preserve a state the represents
         the load on the entire cluster (for now, it is not being split by the cluster's hosts)
 
         Simplified assumptions for now:
@@ -171,7 +171,7 @@ class DRLTelemetryManager(AbstractElasticConsumer):
     def consume(self, iteration_raw_results: IterationRawResults,
                 iteration_aggregation_results: Optional[IterationAggregatedResults]):
         print("Consuming telemetry")
-        self.update_state(iteration_raw_results, iteration_aggregation_results)
+        self._update_state(iteration_raw_results, iteration_aggregation_results)
 
     def get_telemetry(self) -> pd.DataFrame:
         """

@@ -51,8 +51,8 @@ class Container(containers.DeclarativeContainer):
         wrappers_params=env_wrappers_params,
     )
 
-    # TODO: LOAD THE BEST AGENT INSTEAD OF INITIALIZING A NEW MODEL HERE, FOR EXAMPLE: PPO.load(<path>)
-    deployment_agent: Provider[BaseAlgorithm] = providers.Singleton(
+    # TODO: LOAD THE BEST MODEL INSTEAD OF INITIALIZING A NEW MODEL HERE, FOR EXAMPLE: PPO.load(<path>)
+    deployment_drl_model: Provider[BaseAlgorithm] = providers.Singleton(
         PPO,
         policy=ActorCriticPolicy,
         env=deployment_env,
@@ -62,6 +62,6 @@ class Container(containers.DeclarativeContainer):
 
     drl_manager: Provider[DRLManager] = providers.Factory(
         DRLManager,
-        deployment_agent=deployment_agent,
+        deployment_drl_model=deployment_drl_model,
         deployment_env=deployment_env,
     )

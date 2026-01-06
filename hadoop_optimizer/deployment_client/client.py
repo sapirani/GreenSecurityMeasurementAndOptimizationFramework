@@ -1,7 +1,7 @@
 import requests
 from urllib.parse import urljoin
-from hadoop_optimizer.DTOs.hadoop_job_execution_config import HadoopJobExecutionConfig
-from hadoop_optimizer.DTOs.job_properties import JobProperties
+from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
+from DTOs.hadoop.job_properties import JobProperties
 from hadoop_optimizer.deployment_client.consts import DEFAULT_CHOOSE_CONFIG_ENDPOINT_NAME, DEFAULT_SERVER_PORT, \
     DEFAULT_SERVER_IP
 

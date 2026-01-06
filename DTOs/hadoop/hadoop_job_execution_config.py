@@ -4,7 +4,7 @@ import re
 from pydantic import BaseModel, Field, model_validator
 
 # TODO: UNIFY WITH THE GNS3 PROJECT
-from hadoop_optimizer.DTOs.consts import HUMAN_READABLE_KEY, units, CompressionCodec, GarbageCollector, Groups
+from DTOs.hadoop.consts import HUMAN_READABLE_KEY, units, CompressionCodec, GarbageCollector, Groups
 
 
 def parse_size(value: str) -> int:

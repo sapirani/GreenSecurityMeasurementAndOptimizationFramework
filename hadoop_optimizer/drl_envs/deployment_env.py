@@ -4,8 +4,8 @@ import numpy as np
 from gymnasium import spaces
 from gymnasium.core import RenderFrame, ActType, ObsType
 from pydantic import ValidationError
-from hadoop_optimizer.DTOs.hadoop_job_execution_config import HadoopJobExecutionConfig
-from hadoop_optimizer.DTOs.job_properties import JobProperties
+from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
+from DTOs.hadoop.job_properties import JobProperties
 from hadoop_optimizer.drl_envs.consts import TERMINATE_ACTION_NAME, CURRENT_JOB_CONFIG_KEY, NEXT_JOB_CONFIG_KEY, \
     JOB_PROPERTIES_KEY, DEFAULT_JOB_CONFIG_KEY
 from hadoop_optimizer.drl_telemetry.telemetry_manager import DRLTelemetryManager

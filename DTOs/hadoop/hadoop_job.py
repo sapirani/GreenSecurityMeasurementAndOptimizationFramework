@@ -5,9 +5,9 @@ import argparse
 import inspect
 from enum import Enum
 from typing import List, Type, Dict, Any
-from hadoop_optimizer.DTOs.consts import HDFS_NAMENODE, HUMAN_READABLE_KEY, GENERAL_GROUP
-from hadoop_optimizer.DTOs.hadoop_job_definition import HadoopJobDefinition
-from hadoop_optimizer.DTOs.hadoop_job_execution_config import parse_size, HadoopJobExecutionConfig
+from DTOs.hadoop.consts import HDFS_NAMENODE, HUMAN_READABLE_KEY, GENERAL_GROUP
+from DTOs.hadoop.hadoop_job_definition import HadoopJobDefinition
+from DTOs.hadoop.hadoop_job_execution_config import parse_size, HadoopJobExecutionConfig
 
 
 # TODO: ENSURE SMOOTH INTEGRATION WITH THE GNS3 REPO WHEN COMBINING ALL INTO A MONOREPO

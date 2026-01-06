@@ -8,8 +8,8 @@ from fastapi import FastAPI, Depends, Request
 from starlette import status
 from starlette.responses import JSONResponse
 from elastic_reader.consts import ElasticIndex
-from hadoop_optimizer.DTOs.hadoop_job_execution_config import HadoopJobExecutionConfig
-from hadoop_optimizer.DTOs.job_properties import JobProperties, get_job_properties
+from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
+from DTOs.hadoop.job_properties import JobProperties, get_job_properties
 from hadoop_optimizer.deployment_server.container.container import Container
 from hadoop_optimizer.deployment_server.drl_manager import DRLManager
 from hadoop_optimizer.drl_telemetry.telemetry_manager import DRLTelemetryManager

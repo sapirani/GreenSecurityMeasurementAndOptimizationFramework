@@ -1,7 +1,7 @@
 import subprocess
 from pathlib import Path
 from pydantic import BaseModel, Field, field_validator
-from hadoop_optimizer.DTOs.consts import Groups, HDFS_NAMENODE
+from DTOs.hadoop.consts import Groups, HDFS_NAMENODE
 
 
 # TODO: ENSURE SMOOTH INTEGRATION WITH THE GNS3 REPO WHEN COMBINING ALL INTO A MONOREPO

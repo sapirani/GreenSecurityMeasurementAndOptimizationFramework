@@ -1,7 +1,7 @@
 import gymnasium as gym
 import numpy as np
 from gymnasium.core import WrapperActType, ActType
-from hadoop_optimizer.DTOs.hadoop_job_execution_config import HadoopJobExecutionConfig
+from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from hadoop_optimizer.drl_envs.consts import NEXT_JOB_CONFIG_KEY, TERMINATE_ACTION_NAME
 from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
 
