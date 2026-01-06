@@ -27,5 +27,3 @@ class HadoopOptimizerDeploymentClient:
         response.raise_for_status()
 
         return HadoopJobExecutionConfig.model_validate(response.json())
-
-
