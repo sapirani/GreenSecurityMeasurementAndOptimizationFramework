@@ -714,8 +714,8 @@ if __name__ == "__main__":
                             
                         )
 
-                        experiment_config.mode = "eval_post_training"#"eval_post_training"  # eval after training
-                        experiment_config.num_episodes = 50
+                        experiment_config.mode = "train"#"eval_post_training"  # eval after training
+                        experiment_config.num_episodes = 5000000000
                         manager = ExperimentManager(base_dir="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments")
                         results = manager.run_experiment(experiment_config)
 

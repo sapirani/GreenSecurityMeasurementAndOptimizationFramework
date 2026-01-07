@@ -145,6 +145,8 @@ class StateWrapper(ObservationWrapper):
             #     self.unwrapped.real_distribution['other'] += count
             #     self.unwrapped.ac_real_distribution['other'] += count
                 # self.total_current_logs += count
+        if self.is_sampled:
+            self.total_current_logs *= 10
         self.total_episode_logs += self.total_current_logs
         self.action_wrapper.current_real_quantity = self.total_current_logs
 

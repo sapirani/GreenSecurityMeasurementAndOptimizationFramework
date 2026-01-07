@@ -37,7 +37,8 @@ class TimeManager:
                  step_size: int,
                  rule_frequency: int,
                  end_time: Optional[str] = "06/31/2024:23:59:59",
-                 is_test: bool = False):
+                 is_test: bool = False,
+                 is_eval: bool = False):
         """
         Args:
             start_datetime: Initial datetime in format '%m/%d/%Y:%H:%M:%S'
@@ -62,7 +63,12 @@ class TimeManager:
         # --- NEW: Initialize Queue Logic ---
         # We generate all valid start times once and shuffle them.
         self.unvisited_starts = self._generate_episode_starts()
-        random.shuffle(self.unvisited_starts)
+        if is_eval:
+            # For evaluation, we want a fixed order for reproducibility
+            logger.info("Evaluation mode: using sorted episode start times for reproducibility.")
+            self.unvisited_starts.sort()
+        else:
+            random.shuffle(self.unvisited_starts)
         logger.info(f"Initialized TimeManager with {len(self.unvisited_starts)} unique episode start times.")
 
         # Initialize current windows (Set to the very first time initially)

@@ -51,7 +51,7 @@ class AlertPredictor:
 
         
         self.current_alerts[rule_name] = predicted_current
-        expected = self.expected_alerts.get(rule_name, 0)
+        expected = self.expected_alerts.get(rule_name, 0).get('alert', 0)
         gap = max(0, predicted_current - expected)
         reward = -(gap) / (expected + self.epsilon)
         
@@ -73,6 +73,7 @@ class AlertPredictor:
         # return np.mean(rewards) if rewards else 0
         # return sum(self.current_alerts.values())
         normal_alert_rate = sum(baseline_alerts.values())
+        # normal_alert_rate = sum(baseline_alerts.values())
         return min(-(sum(self.current_alerts.values()) - normal_alert_rate  + self.epsilon)/ (normal_alert_rate + self.epsilon), 0)
         # return min(-(sum(self.current_alerts.values()) - 7 )/ (7 + self.epsilon), 0)
         # return min(-(sum(self.current_alerts.values()) - sum(self.expected_alerts.values()))/ (sum(self.expected_alerts.values()) + self.epsilon), 0)
@@ -107,15 +108,15 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         
         # Initialize alert predictor
         self.expected_alerts = {
-            'ESCU Windows Rapid Authentication On Multiple Hosts Rule': 0,
-            'Windows AD Replication Request Initiated from Unsanctioned Location': 0,
-            'Windows Event For Service Disabled': 2.5,
-            'Detect New Local Admin Account': 0.7,
-            'ESCU Network Share Discovery Via Dir Command Rule': 0,
-            'Known Services Killed by Ransomware': 6,
-            'Non Chrome Process Accessing Chrome Default Dir': 0,
-            'Kerberoasting SPN Request With RC4 Encryption': 0,
-            'Clop Ransomware Known Service Name': 0
+            'ESCU Windows Rapid Authentication On Multiple Hosts Rule': {'alert':0},
+            'Windows AD Replication Request Initiated from Unsanctioned Location': {'alert':0},
+            'Windows Event For Service Disabled': {'alert':2.5},
+            'Detect New Local Admin Account': {'alert':0.7},
+            'ESCU Network Share Discovery Via Dir Command Rule': {'alert':0},
+            'Known Services Killed by Ransomware': {'alert':6},
+            'Non Chrome Process Accessing Chrome Default Dir': {'alert':0},
+            'Kerberoasting SPN Request With RC4 Encryption': {'alert':0},
+            'Clop Ransomware Known Service Name': {'alert':0}
         }
         self.measuring = False
         self.alert_predictor = AlertPredictor(self.expected_alerts)
@@ -203,7 +204,8 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         
         # Predict alert reward
         predicted_reward = self.alert_predictor.predict_overall_alert_reward(
-            raw_baseline_metrics, 
+            self.expected_alerts,
+            # raw_baseline_metrics, 
             diversity_logs,
             self.unwrapped.section_logtypes,
             self.is_mock, 
@@ -395,29 +397,30 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # find the difference of alerts between raw_metrics and baseline_raw_metrics
             alerts_diff = {rule: raw_metrics[rule]['alert'] - baseline_raw_metrics.get(rule, {}).get('alert', 0) for rule in self.expected_alerts}
             
-            # check compatibility of alerts_diff with diversity info
-            for rule in self.expected_alerts:
-                if rule == 'ESCU Windows Rapid Authentication On Multiple Hosts Rule':
-                    continue
-                relevant_log = self.unwrapped.section_logtypes.get(rule, None)
-                if relevant_log:
-                    log_type = "_".join(relevant_log[0]) + "_1"
-                    diversity_value = diversity_logs.get(log_type, 0)
-                    if alerts_diff[rule] != diversity_value:
-                        
-                        logger.warning(f"Alert difference mismatch for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
-                        # get the field real_ts of the events in the results of the query to find the mismatch
-                        def get_event_times(rule_name, time_range):
-                            # query splunk for the events in the time range
+            if (not self.is_mock  or self.measuring) and should_execute and self.use_energy and self.use_alert:
+                # check compatibility of alerts_diff with diversity info
+                for rule in self.expected_alerts:
+                    if rule == 'ESCU Windows Rapid Authentication On Multiple Hosts Rule':
+                        continue
+                    relevant_log = self.unwrapped.section_logtypes.get(rule, None)
+                    if relevant_log:
+                        log_type = "_".join(relevant_log[0]) + "_1"
+                        diversity_value = diversity_logs.get(log_type, 0)
+                        if alerts_diff[rule] != diversity_value:
                             
-                            query = f'index={self.unwrapped.splunk_tools.index_name} host IN ("dt-splunk", 132.72.81.150) EventCode={relevant_log[0][1]}  | stats count by real_ts var_id'
-                            print(time_range_date)
-                            results = self.unwrapped.splunk_tools.run_search(query, *time_range)
-                            formatted_log = "\n".join([json.dumps(record) for record in results])
-                            logger.info(f"Event times for {rule_name} in {time_range}: {formatted_log}")
-                        get_event_times(rule, (time_range_date[0].timestamp(), time_range_date[1].timestamp()))
-                    else:
-                        logger.info(f"Alert difference match for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
+                            logger.warning(f"Alert difference mismatch for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
+                            # get the field real_ts of the events in the results of the query to find the mismatch
+                            def get_event_times(rule_name, time_range):
+                                # query splunk for the events in the time range
+                                
+                                query = f'index={self.unwrapped.splunk_tools.index_name} host IN ("dt-splunk", 132.72.81.150) EventCode={relevant_log[0][1]}  | stats count by real_ts var_id'
+                                print(time_range_date)
+                                results = self.unwrapped.splunk_tools.run_search(query, *time_range)
+                                formatted_log = "\n".join([json.dumps(record) for record in results])
+                                logger.info(f"Event times for {rule_name} in {time_range}: {formatted_log}")
+                            get_event_times(rule, (time_range_date[0].timestamp(), time_range_date[1].timestamp()))
+                        else:
+                            logger.info(f"Alert difference match for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
                         
             if self.is_mock and self.measuring and should_execute:  
                 combined_metrics['real_cpu'] = combined_metrics['cpu'] 
@@ -460,7 +463,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             self.alerts.append(-predicted_alert_reward)
 
             
-            info['ac_distribution_reward'] = -np.tanh(info['ac_distribution_value']*2)
+            info['ac_distribution_reward'] = -np.tanh(info['ac_distribution_value']*4)
             
             # info['ac_distribution_reward'] = dist_reward
             # info['ac_distribution_reward'] = 30*info['ac_distribution_value']
@@ -469,7 +472,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # info['alert_reward'] = ((predicted_alert_reward - sum(self.expected_alerts.values()))/std)
             # self.mean_alert = (self.unwrapped.all_steps_counter//self.unwrapped.total_steps - 1)*self.mean_alert + sum(raw_baseline_metrics[rule]['alert'] for rule in self.expected_alerts)/(self.unwrapped.all_steps_counter//self.unwrapped.total_steps)
             info['alert_reward'] = predicted_alert_reward
-            info['norm_alert_reward'] = -np.tanh(-predicted_alert_reward/30)
+            info['norm_alert_reward'] = -np.tanh(-predicted_alert_reward/10)
             ############### Total reward ##############
             reward = self.gamma*info['ac_distribution_reward']
             reward += self.beta*info['norm_alert_reward']

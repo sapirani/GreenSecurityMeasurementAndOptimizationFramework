@@ -371,7 +371,7 @@ class Action(ActionWrapper):
         all_end_date = dt_all_end_date.strftime("%Y-%m-%dT%H:%M:%S")
         
         # logs_len = sum([sum([logs[x]['count'] for x in logs]) for logs, _ in self.episodic_logs_to_inject]) - sum([sum([info[log_type][var_id] for log_type in info for var_id in info[log_type]]) for time_range, info in self.unwrapped.log_generator.logs_to_delete.items()])
-        logs_count = sum([sum([logs[x]['count'] for x in logs]) for logs, _ in self.episodic_logs_to_inject])
+        logs_count = sum([sum([logs[x]['count'] for x in logs]) for logs, _ in self.episodic_logs_to_inject]) + 0.0000001
         # logs_count = 0
         # for time_range, info in self.unwrapped.log_generator.fake_splunk_state.items():
         #     dt_time_start = datetime.datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S')

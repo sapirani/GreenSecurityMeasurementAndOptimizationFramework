@@ -83,7 +83,7 @@ class SplunkEnv(gym.Env):
         self.all_data_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/all_data.csv"
         self.all_baseline_data = []
         self.all_baseline_data_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/all_baseline_data.csv"
-        
+        is_eval = 'eval' in config.env_id.lower()
 
         # Initialize time manager
         self.time_manager = TimeManager(
@@ -92,7 +92,8 @@ class SplunkEnv(gym.Env):
             step_size=config.action_duration,
             rule_frequency=config.rule_frequency,
             end_time=config.end_time,
-            is_test=config.is_test
+            is_test=config.is_test,
+            is_eval=is_eval
         )
         # Define basic action space that will be overridden by wrapper
         self.action_space = spaces.Box(
