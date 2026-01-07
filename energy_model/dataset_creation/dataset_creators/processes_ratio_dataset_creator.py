@@ -5,23 +5,21 @@ from overrides import override
 from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
 from energy_model.configs.columns import ProcessColumns, SystemColumns
 from energy_model.dataset_creation.dataset_creation_config import DEFAULT_FILTERING_SINGLE_PROCESS
-from energy_model.dataset_creation.dataset_creators.basic_dataset_creator import BasicDatasetCreator
-from energy_model.dataset_creation.dataset_readers.dataset_reader import DatasetReader
+from energy_model.dataset_creation.dataset_creators.energy_per_second_dataset_creator import EnergyPerSecondDatasetCreator
+from energy_model.dataset_creation.raw_telemetry_readers.raw_telemetry_reader import RawTelemetryReader
 from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
 from energy_model.energy_model_utils.resource_energy_calculator import ResourceEnergyCalculator
 
 DEFAULT_ENERGY_RATIO = 1.0
 
 
-class ProcessesRatioDatasetCreator(BasicDatasetCreator):
+class ProcessesRatioDatasetCreator(EnergyPerSecondDatasetCreator):
     """
     This class represents the basic reading from elastic.
-    Reading only process of interest logs.
     No aggregations on samples.
     Calculating the impact of each sample of each process in case where multiple processes appear in a single batch.
     """
-
-    def __init__(self, target_calculator: TargetCalculator, dataset_reader: DatasetReader,
+    def __init__(self, target_calculator: TargetCalculator, dataset_reader: RawTelemetryReader,
                  batch_time_intervals: list[int] = None, single_process_only: bool = DEFAULT_FILTERING_SINGLE_PROCESS):
         super().__init__(target_calculator=target_calculator, dataset_reader=dataset_reader,
                          batch_time_intervals=batch_time_intervals, single_process_only=single_process_only)

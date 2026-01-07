@@ -4,10 +4,9 @@ from energy_model.configs.columns import SystemColumns
 from energy_model.dataset_creation.dataset_creators.dataset_creator import DatasetCreator
 
 
-class BasicDatasetCreator(DatasetCreator):
+class EnergyPerSecondDatasetCreator(DatasetCreator):
     """
-    This class represents the basic reading from elastic.
-    Reading only process of interest logs.
+    This class represents the basic reading from elastic for the sake of dataset creation.
     No special aggregations on the data.
     """
     def get_name(self) -> str:

@@ -7,15 +7,16 @@ from energy_model.configs.columns import ProcessColumns, SystemColumns
 from energy_model.dataset_creation.dataset_creation_config import DEFAULT_BATCH_INTERVAL_SECONDS, TIMESTAMP_COLUMN_NAME, \
     MINIMAL_BATCH_DURATION, AggregationName, COLUMNS_TO_CALCULATE_DIFF, COLUMNS_TO_SUM, \
     DEFAULT_FILTERING_SINGLE_PROCESS, AggregationValue
-from energy_model.dataset_creation.dataset_readers.dataset_reader import DatasetReader
+from energy_model.dataset_creation.raw_telemetry_readers.raw_telemetry_reader import RawTelemetryReader
 from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
 
 
 class DatasetCreator(ABC):
     """
     Class for processing the telemetry data and calculating the energy usage of each sample.
+    The data is retrieved from elastic.
     """
-    def __init__(self, target_calculator: TargetCalculator, dataset_reader: DatasetReader,
+    def __init__(self, target_calculator: TargetCalculator, dataset_reader: RawTelemetryReader,
                  batch_time_intervals: list[int] = None, single_process_only: bool = DEFAULT_FILTERING_SINGLE_PROCESS):
         if batch_time_intervals is None:
             batch_time_intervals = DEFAULT_BATCH_INTERVAL_SECONDS
@@ -124,10 +125,10 @@ class DatasetCreator(ABC):
         consts_columns = list(set(available_columns) - set(COLUMNS_TO_SUM))
         consts_columns = list(set(consts_columns) - set(COLUMNS_TO_CALCULATE_DIFF))
         columns_aggregations: dict[str, AggregationValue] = {
-            col: AggregationName.SUM for col in available_columns if col in COLUMNS_TO_SUM
+            col: AggregationName.SUM.value for col in available_columns if col in COLUMNS_TO_SUM
         }
         columns_aggregations.update({
-            col: AggregationName.FIRST_SAMPLE for col in available_columns if col in consts_columns
+            col: AggregationName.FIRST_SAMPLE.value for col in available_columns if col in consts_columns
         })
         columns_aggregations.update({
             col: lambda x: x.iloc[0] - x.iloc[-1] for col in available_columns if col in COLUMNS_TO_CALCULATE_DIFF
