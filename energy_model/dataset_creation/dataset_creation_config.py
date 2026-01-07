@@ -24,12 +24,12 @@ COLUMNS_TO_SUM = [SystemColumns.CPU_SYSTEM_COL, ProcessColumns.CPU_PROCESS_COL,
                   SystemColumns.DISK_WRITE_TIME, ProcessColumns.PAGE_FAULT_PROCESS_COL]
 
 
-class AggregationName:
-    SUM: str = "sum"
-    FIRST_SAMPLE: str = "first"
-    LAST_SAMPLE: str = "last"
+class AggregationName(str, Enum):
+    SUM = "sum"
+    FIRST_SAMPLE = "first"
+    LAST_SAMPLE = "last"
 
-class DatasetReaderType(Enum):
+class RawTelemetryReaderType(Enum):
     ProcessOfInterest = 1
     AllProcesses = 2
 
@@ -47,6 +47,6 @@ class TargetCalculatorType(Enum):
 AggregationValue = Union[str, Callable, list[str]]
 
 DEFAULT_TARGET_CALCULATOR = TargetCalculatorType.SystemBased
-DEFAULT_DATASET_READER = DatasetReaderType.ProcessOfInterest
+DEFAULT_DATASET_READER = RawTelemetryReaderType.ProcessOfInterest
 DEFAULT_DATASET_CREATOR = DatasetCreatorType.Basic
 DEFAULT_FILTERING_SINGLE_PROCESS = True

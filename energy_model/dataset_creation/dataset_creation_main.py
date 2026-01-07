@@ -1,7 +1,7 @@
 from enum import Enum
 
 from energy_model.dataset_creation.dataset_creation_config import DEFAULT_DATASET_READER, DEFAULT_DATASET_CREATOR, \
-    DEFAULT_TARGET_CALCULATOR, DEFAULT_BATCH_INTERVAL_SECONDS, DatasetReaderType, TargetCalculatorType, \
+    DEFAULT_TARGET_CALCULATOR, DEFAULT_BATCH_INTERVAL_SECONDS, RawTelemetryReaderType, TargetCalculatorType, \
     DatasetCreatorType
 from energy_model.dataset_creation.dataset_creator_factory import DatasetCreatorFactory
 from energy_model.energy_model_parameters import FULL_DATASET_BEFORE_PROCESSING_DIR
@@ -18,11 +18,11 @@ def print_main_hello_msg() -> PipelineType:
     print("3. Exit the program.")
     return PipelineType(int(input("Please enter your choice: ")))
 
-def print_dataset_reader_type() -> DatasetReaderType:
+def print_dataset_reader_type() -> RawTelemetryReaderType:
     print("Choose DatasetReader from the following options:")
     print("1. Read only processes of interest")
     print("2. Read all processes available")
-    return DatasetReaderType(int(input("Please enter your choice: ")))
+    return RawTelemetryReaderType(int(input("Please enter your choice: ")))
 
 def print_target_calculator_type() -> TargetCalculatorType:
     print("Choose TargetCalculator from the following options:")
