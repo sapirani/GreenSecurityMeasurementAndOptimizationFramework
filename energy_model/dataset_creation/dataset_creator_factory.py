@@ -21,6 +21,13 @@ class DatasetCreatorFactory:
                                 target_calculator_choice: TargetCalculatorType, should_filter_batches: bool,
                                 batch_time_intervals: list[int] = None) -> DatasetCreator:
 
+        # Check if the combination of target calculator and dataset creator is valid
+        # The possible combinations are:
+        # * target calculator = Idle based <=> dataset creator = With Process Ratio
+        # * target calculator = Battery Drain based <=> dataset creator = With Energy Aggregations
+        # * target calculator = System based => dataset creator = EnergyPerSecond or With Aggregations
+        # These are the only possible combinations since we need to check whether different combinations work without errors.
+        # TODO: check other combinations and remove this if command
         if (target_calculator_choice != TargetCalculatorType.IdleBased and dataset_creator_choice == DatasetCreatorType.WithProcessRatio) or \
            (target_calculator_choice != TargetCalculatorType.BatteryDrainBased and dataset_creator_choice == DatasetCreatorType.WithEnergyAggregation) or \
            (target_calculator_choice == TargetCalculatorType.IdleBased and dataset_creator_choice != DatasetCreatorType.WithProcessRatio) or \

@@ -38,19 +38,19 @@ class ProcessesRatioDatasetCreator(EnergyPerSecondDatasetCreator):
                     * If the batch has single process - the ratio is 1
                     * If the batch has multiple process - the ratio is calculated based on resource consumption.
         """
-        df_with_basic_columns = super()._add_energy_necessary_columns(df, batch_duration_seconds)
+        df_with_telemetry_columns = super()._add_energy_necessary_columns(df, batch_duration_seconds)
         uniques_per_batch = (
             df.groupby(SystemColumns.BATCH_ID_COL)[ProcessColumns.PROCESS_ID_COL]
             .agg(lambda s: (s.nunique()))
             .rename(SystemColumns.NUMBER_OF_UNIQUE_PROCESSES)
         )
 
-        df_with_basic_columns = df_with_basic_columns.merge(uniques_per_batch, on=SystemColumns.BATCH_ID_COL, how="left")
+        df_with_telemetry_columns = df_with_telemetry_columns.merge(uniques_per_batch, on=SystemColumns.BATCH_ID_COL, how="left")
 
-        df_with_basic_columns = df_with_basic_columns.groupby(SystemColumns.BATCH_ID_COL, group_keys=False).apply(
+        df_with_telemetry_columns = df_with_telemetry_columns.groupby(SystemColumns.BATCH_ID_COL, group_keys=False).apply(
             self.__calculate_energy_ratio)
 
-        return df_with_basic_columns
+        return df_with_telemetry_columns
 
     def __calculate_energy_ratio(self, batch_df: pd.DataFrame) -> pd.DataFrame:
         if batch_df[SystemColumns.NUMBER_OF_UNIQUE_PROCESSES].iloc[0] > 1:
