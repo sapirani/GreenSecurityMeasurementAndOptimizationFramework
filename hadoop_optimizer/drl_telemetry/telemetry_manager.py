@@ -9,22 +9,17 @@ from DTOs.aggregated_results_dtos.energy_model_result import EnergyModelResult
 from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationAggregatedResults
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
 from DTOs.aggregation_types import AggregationType
-from hadoop_optimizer.DTOs.job_properties import JobProperties
-from hadoop_optimizer.drl_model.config.telemetry_fields import FIELD_NAMES_TO_AVERAGE, FIELD_NAMES_TO_SUM
-from hadoop_optimizer.drl_model.consts.general import HOSTNAME_FIELD, SYSTEM_PREFIX
-from hadoop_optimizer.drl_model.consts.state_telemetry import DRLTelemetryType
-from hadoop_optimizer.river_extensions.custom_agg import CustomAgg
-from hadoop_optimizer.river_extensions.time_aware_transformer_union import TimeAwareTransformerUnion
-from hadoop_optimizer.river_extensions.timezone_aware_time_rolling import TimezoneAwareTimeRolling
+from elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
+from hadoop_optimizer.drl_telemetry.config.telemetry_fields import FIELD_NAMES_TO_AVERAGE, FIELD_NAMES_TO_SUM
+from hadoop_optimizer.drl_telemetry.consts.general import HOSTNAME_FIELD, SYSTEM_PREFIX
+from hadoop_optimizer.drl_telemetry.consts.telemetry_types import DRLTelemetryType
+from custom_package_extensions.river_extensions.custom_agg import CustomAgg
+from custom_package_extensions.river_extensions.time_aware_transformer_union import TimeAwareTransformerUnion
+from custom_package_extensions.river_extensions.timezone_aware_time_rolling import TimezoneAwareTimeRolling
+from hadoop_optimizer.erros import StateNotReadyException
 
 
-class StateNotReadyException(Exception):
-    """Raised when the minimal required telemetry has not yet been retrieved by the DRL"""
-    def __init__(self):
-        super().__init__("minimal required telemetry is not yet available")
-
-
-class DRLState:
+class DRLTelemetryManager(AbstractElasticConsumer):
     """
     This version of DRL state is relatively naive.
     It uses the metrics gained from the entire nodes and processes, and aggregate them all together.
@@ -125,13 +120,13 @@ class DRLState:
             DRLTelemetryType.SYSTEM_NETWORK_SENT_ENERGY_MWH: energy_model_result.network_io_sent_energy_consumption,
         }
 
-    def update_state(
+    def __update_state(
             self,
             iteration_raw_results: IterationRawResults,
             iteration_aggregation_results: Optional[IterationAggregatedResults]
     ):
         """
-        This function considers only the system iteration raw results, and preserve an state the represents
+        This function considers only the system iteration raw results, and preserve a state the represents
         the load on the entire cluster (for now, it is not being split by the cluster's hosts)
 
         Simplified assumptions for now:
@@ -145,6 +140,9 @@ class DRLState:
         6. The metrics are being summed and there is no upper bound. The DRL might learn better when all metrics
         are represented as low numbers between 0 and 1.
         """
+        if not iteration_aggregation_results:
+            raise ValueError("Aggregations cannot be None in state computations")
+
         if iteration_raw_results.metadata != iteration_aggregation_results.iteration_metadata:
             raise ValueError("Received inconsistent metadata between raw results and aggregations")
 
@@ -173,7 +171,12 @@ class DRLState:
         with self.lock:
             self.time_aware_transformer.learn_one(complete_sample, t=timestamp)
 
-    def __extract_state_telemetry_entries(self) -> pd.DataFrame:
+    def consume(self, iteration_raw_results: IterationRawResults,
+                iteration_aggregation_results: Optional[IterationAggregatedResults]):
+        print("Consuming telemetry")
+        self.__update_state(iteration_raw_results, iteration_aggregation_results)
+
+    def get_telemetry(self) -> pd.DataFrame:
         """
         This turns the raw and aggregated data regarding the load on the system to an embedding space
         that summaries this data.
@@ -195,22 +198,3 @@ class DRLState:
                 raise StateNotReadyException()
 
             return telemetry_entries
-
-    @staticmethod
-    def __extract_state_job_entries(job_properties: JobProperties) -> pd.Series:
-        """
-        This turns the selected job properties to an embedding space that summaries this data.
-        This embedding is used as a part of the state space of the DRL.
-        """
-        return pd.Series(job_properties.dict())
-
-    def retrieve_state_entries(self, task_properties: JobProperties) -> pd.Series:
-        """
-        This function returns the entire state, which is consisted of:
-        1. a vector representing the load on the system
-        2. a vector representing the selected job that should be running in the system soon
-        Note: some metrics may result in negative value that is very close to 0, due to numeric errors
-        """
-        telemetry_entries = self.__extract_state_telemetry_entries().stack()
-        job_properties_entries = self.__extract_state_job_entries(task_properties)
-        return pd.concat([telemetry_entries, job_properties_entries])
