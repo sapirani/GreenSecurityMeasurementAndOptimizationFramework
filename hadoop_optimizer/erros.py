@@ -8,7 +8,9 @@ from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 
 class EnvironmentTruncatedException(Exception):
     """
-    Raised when a truncation condition outside the scope of the MDP is satisfied, typically, a timelimit.
+    Raised when a truncation condition outside the scope of the MDP is satisfied.
+    It means that the episode should terminate before reaching a terminal state (contrary to the definition of MDP),
+     typically due to a timelimit.
     """
     def __init__(
             self,
