@@ -179,7 +179,7 @@ class DRLTelemetryManager(AbstractElasticConsumer):
     def get_telemetry(self) -> pd.DataFrame:
         """
         This turns the raw and aggregated data regarding the load on the system to an embedding space
-        that summaries this data.f
+        that summaries this data.
         The embedding represents the load on the system in several distinct time windows, for example:
          last minute, last 5 minutes, last 10 minutes and last 20 minutes.
         This embedding is used as a part of the state space of the DRL.

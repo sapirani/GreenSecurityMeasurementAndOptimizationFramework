@@ -5,6 +5,9 @@ from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 
 
 class EnvironmentTruncatedException(Exception):
+    """
+    Raised when a truncation condition outside the scope of the MDP is satisfied, typically, a timelimit.
+    """
     def __init__(self, last_job_configuration: HadoopJobExecutionConfig, elapsed_steps: int, max_steps: int):
         self.last_job_configuration = last_job_configuration
         self.elapsed_steps = elapsed_steps
@@ -20,4 +23,4 @@ class StateNotReadyException(Exception):
 
 class OutOfBoundObservation(Exception):
     def __init__(self, observation: ObsType, space: spaces.Space):
-        super().__init__(f"Observation out of bounds. Observation: {observation}, space: {space}")
+        super().__init__(f"Observation (i.e., state) is out of bounds. Observation: {observation}, space: {space}")
