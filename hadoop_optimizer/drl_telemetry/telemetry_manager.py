@@ -120,7 +120,7 @@ class DRLTelemetryManager(AbstractElasticConsumer):
             DRLTelemetryType.SYSTEM_NETWORK_SENT_ENERGY_MWH: energy_model_result.network_io_sent_energy_consumption,
         }
 
-    def _update_state(
+    def __update_state(
             self,
             iteration_raw_results: IterationRawResults,
             iteration_aggregation_results: Optional[IterationAggregatedResults]
@@ -140,6 +140,9 @@ class DRLTelemetryManager(AbstractElasticConsumer):
         6. The metrics are being summed and there is no upper bound. The DRL might learn better when all metrics
         are represented as low numbers between 0 and 1.
         """
+        if not iteration_aggregation_results:
+            raise ValueError("Aggregations cannot be None in state computations")
+
         if iteration_raw_results.metadata != iteration_aggregation_results.iteration_metadata:
             raise ValueError("Received inconsistent metadata between raw results and aggregations")
 
@@ -171,12 +174,12 @@ class DRLTelemetryManager(AbstractElasticConsumer):
     def consume(self, iteration_raw_results: IterationRawResults,
                 iteration_aggregation_results: Optional[IterationAggregatedResults]):
         print("Consuming telemetry")
-        self._update_state(iteration_raw_results, iteration_aggregation_results)
+        self.__update_state(iteration_raw_results, iteration_aggregation_results)
 
     def get_telemetry(self) -> pd.DataFrame:
         """
         This turns the raw and aggregated data regarding the load on the system to an embedding space
-        that summaries this data.
+        that summaries this data.f
         The embedding represents the load on the system in several distinct time windows, for example:
          last minute, last 5 minutes, last 10 minutes and last 20 minutes.
         This embedding is used as a part of the state space of the DRL.

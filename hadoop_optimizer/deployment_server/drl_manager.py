@@ -17,10 +17,10 @@ class DRLManager:
         job_properties: JobProperties,
     ) -> HadoopJobExecutionConfig:
         with self.deployment_env:
-            obs, _ = self.deployment_env.reset(options=job_properties.model_dump())
+            observation, _ = self.deployment_env.reset(options=job_properties.model_dump())
             while True:
-                action, _states = self.deployment_drl_model.predict(obs)
-                obs, rewards, terminated, truncated, info = self.deployment_env.step(action)
+                action, _states = self.deployment_drl_model.predict(observation)
+                observation, rewards, terminated, truncated, info = self.deployment_env.step(action)
                 self.deployment_env.render()
 
                 if terminated:

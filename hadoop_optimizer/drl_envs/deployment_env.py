@@ -13,10 +13,23 @@ from hadoop_optimizer.drl_telemetry.telemetry_manager import DRLTelemetryManager
 
 class OptimizerDeploymentEnv(gym.Env):
     """
-    State:
+    This environment defines:
+        1. How state space looks like (what are the allowed values?
+        2. How action space looks like
+        3. What is the initial state (reset function)
+        4. What are the next state and reward, given an action is taken (step function)
+
+    State is generally composed of:
         1. job properties
         2. cluster's load
         3. current hadoop job configuration
+
+    Action defines whether to:
+        1. stop the episode (I.e., we found the optimal job configuration)
+        2. keep trying another job configuration, which the action itself defines
+
+    The reward pushes the DRL towards the optimal job configuration
+        (in terms of minimal running time and energy consumption), while performing minimal number of steps.
     """
     def __init__(self, telemetry_manager: DRLTelemetryManager):
         super().__init__()
