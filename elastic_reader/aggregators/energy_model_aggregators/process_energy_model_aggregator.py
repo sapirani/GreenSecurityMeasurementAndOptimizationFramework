@@ -26,8 +26,8 @@ class ProcessEnergyModelAggregator(EnergyModelAggregator):
 
     def _calculate_energy_per_resource(self, sample: CompleteEnergyModelFeatures,
                                        energy_prediction: float) -> SampleResourcesEnergy:
-        return self._resource_energy_calculator.calculate_relative_energy_consumption_process(sample.process_features,
-                                                                                              energy_prediction)
+        return self._hardware_resource_energy_calculator.calculate_relative_energy_consumption_process(sample.process_features,
+                                                                                                       energy_prediction)
 
     def _convert_features_to_dataframe(self, sample: CompleteEnergyModelFeatures) -> pd.DataFrame:
         return EnergyModelConvertor.convert_complete_features_to_pandas(sample)

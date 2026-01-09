@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 # For saving the dataset (before processing)
+FULL_DATASET_BEFORE_PROCESSING_DIR = Path(__file__).parent
 FULL_DATASET_BEFORE_PROCESSING_PATH = r"C:\Users\Administrator\Desktop\GreenSecurityAll\framework_code\energy_model\dataset_creation\full_dataset_system_based.csv"
 
 # Parameters for filtering outliers

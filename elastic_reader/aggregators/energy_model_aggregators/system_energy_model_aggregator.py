@@ -26,7 +26,7 @@ class SystemEnergyModelAggregator(EnergyModelAggregator):
 
     def _calculate_energy_per_resource(self, sample: SystemEnergyModelFeatures,
                                        energy_prediction: float) -> SampleResourcesEnergy:
-        return self._resource_energy_calculator.calculate_relative_energy_consumption_system(sample, energy_prediction)
+        return self._hardware_resource_energy_calculator.calculate_relative_energy_consumption_system(sample, energy_prediction)
 
     def _convert_features_to_dataframe(self, sample: SystemEnergyModelFeatures) -> pd.DataFrame:
         return EnergyModelConvertor.convert_system_features_to_pandas(sample)
