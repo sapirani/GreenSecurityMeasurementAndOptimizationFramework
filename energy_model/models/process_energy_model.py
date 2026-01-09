@@ -1,7 +1,7 @@
 import pandas as pd
 
 from energy_model.configs.columns import SystemColumns, ProcessColumns, COLUMNS_MAPPING
-from energy_model.configs.defaults_configs import DEFAULT_FILTERS
+from energy_model.configs.defaults_configs import BEST_PROCESS_MODEL_METRIC
 from energy_model.dataset_processing.filters.filter_manager import FilterManager
 from energy_model.energy_model_parameters import PROCESS_SYSTEM_DF_PATH
 from energy_model.dataset_processing.feature_selection.process_and_system_feature_selector import \
@@ -99,7 +99,20 @@ class ProcessEnergyModel(AbstractEnergyModel):
         """
         # Train full energy measurement model
         process_model, process_scaler = self._run_pipeline_executor(process_system_df,
-                                                                    ProcessColumns.ENERGY_USAGE_PROCESS_COL)
+                                                                    ProcessColumns.ENERGY_USAGE_PROCESS_COL,
+                                                                    best_model_metric_name=BEST_PROCESS_MODEL_METRIC,
+                                                                    hyper_parameters={
+                                                                      "loss": "squared_error",
+                                                                      "learning_rate": 0.06,
+                                                                      "max_iter": 300,
+                                                                      "max_depth": 11,
+                                                                      "min_samples_leaf": 20,
+                                                                      "l2_regularization": 0.05,
+                                                                      "max_bins": 255,
+                                                                      "early_stopping": True,
+                                                                      "validation_fraction": 0.1,
+                                                                      "n_iter_no_change": 20,
+                                                                      "random_state": 42})
 
         # Save elements to future use
         self._model = process_model

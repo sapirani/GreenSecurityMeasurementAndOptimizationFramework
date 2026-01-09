@@ -20,7 +20,7 @@ class EnergyPerResourceConsts:
     network_sent_kbytes = 0.005866983801
 
 
-class ResourceEnergyCalculator:
+class HardwareResourceEnergyCalculator:
     def __init__(self):
         self.__energy_per_cpu_time = EnergyPerResourceConsts.cpu_time_seconds
         self.__energy_per_gain_mb_ram = EnergyPerResourceConsts.memory_gain_mb
@@ -105,17 +105,17 @@ class ResourceEnergyCalculator:
                                                 total_energy: float) -> SampleResourcesEnergy:
         total_energy_by_resources = self.__calculate_total_energy(energy_per_resource)
         return SampleResourcesEnergy(
-            cpu_energy_consumption=ResourceEnergyCalculator.__normalize_energy_consumption(
+            cpu_energy_consumption=HardwareResourceEnergyCalculator.__normalize_energy_consumption(
                 energy_per_resource.cpu_energy_consumption, total_energy_by_resources, total_energy),
-            ram_energy_consumption=ResourceEnergyCalculator.__normalize_energy_consumption(
+            ram_energy_consumption=HardwareResourceEnergyCalculator.__normalize_energy_consumption(
                 energy_per_resource.ram_energy_consumption, total_energy_by_resources, total_energy),
-            disk_io_read_energy_consumption=ResourceEnergyCalculator.__normalize_energy_consumption(
+            disk_io_read_energy_consumption=HardwareResourceEnergyCalculator.__normalize_energy_consumption(
                 energy_per_resource.disk_io_read_energy_consumption, total_energy_by_resources, total_energy),
-            disk_io_write_energy_consumption=ResourceEnergyCalculator.__normalize_energy_consumption(
+            disk_io_write_energy_consumption=HardwareResourceEnergyCalculator.__normalize_energy_consumption(
                 energy_per_resource.disk_io_write_energy_consumption, total_energy_by_resources, total_energy),
-            network_io_received_energy_consumption=ResourceEnergyCalculator.__normalize_energy_consumption(
+            network_io_received_energy_consumption=HardwareResourceEnergyCalculator.__normalize_energy_consumption(
                 energy_per_resource.network_io_received_energy_consumption, total_energy_by_resources, total_energy),
-            network_io_sent_energy_consumption=ResourceEnergyCalculator.__normalize_energy_consumption(
+            network_io_sent_energy_consumption=HardwareResourceEnergyCalculator.__normalize_energy_consumption(
                 energy_per_resource.network_io_sent_energy_consumption, total_energy_by_resources, total_energy)
         )
 

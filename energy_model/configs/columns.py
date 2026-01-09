@@ -36,6 +36,7 @@ class SystemColumns:
     HOSTNAME_COL = "hostname"
     ENERGY_RATIO_SHARE = "energy_share"
     ENERGY_USAGE_SYSTEM_COL = "energy_consumption_system_mWh"
+    NUMBER_OF_UNIQUE_PROCESSES = "number_of_unique_processes"
 
 
 class IDLEColumns:
