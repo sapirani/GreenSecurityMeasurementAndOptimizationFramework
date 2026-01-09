@@ -8,7 +8,7 @@ from energy_model.dataset_creation.dataset_creation_config import DEFAULT_FILTER
 from energy_model.dataset_creation.dataset_creators.energy_per_second_dataset_creator import EnergyPerSecondDatasetCreator
 from energy_model.dataset_creation.raw_telemetry_readers.raw_telemetry_reader import RawTelemetryReader
 from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
-from energy_model.energy_model_utils.resource_energy_calculator import ResourceEnergyCalculator
+from energy_model.energy_model_utils.resource_energy_calculator import HardwareResourceEnergyCalculator
 
 DEFAULT_ENERGY_RATIO = 1.0
 
@@ -23,7 +23,7 @@ class ProcessesRatioDatasetCreator(EnergyPerSecondDatasetCreator):
                  batch_time_intervals: list[int] = None, single_process_only: bool = DEFAULT_FILTERING_SINGLE_PROCESS):
         super().__init__(target_calculator=target_calculator, dataset_reader=dataset_reader,
                          batch_time_intervals=batch_time_intervals, single_process_only=single_process_only)
-        self.__resource_energy_calculator = ResourceEnergyCalculator()
+        self.__hardware_resource_energy_calculator = HardwareResourceEnergyCalculator()
 
     def get_name(self) -> str:
         return "process_ratio_dataset_creator"
@@ -68,7 +68,7 @@ class ProcessesRatioDatasetCreator(EnergyPerSecondDatasetCreator):
         )
 
         processes_energy_by_resources = {
-            row.name: self.__resource_energy_calculator.calculate_total_energy_by_resources(
+            row.name: self.__hardware_resource_energy_calculator.calculate_total_energy_by_resources(
                 ProcessEnergyModelFeatures.from_pandas_series(row))
             for _, row in resources_per_process_df.iterrows()
         }

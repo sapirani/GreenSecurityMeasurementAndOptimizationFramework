@@ -11,7 +11,7 @@ from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawRes
 from elastic_reader.aggregators.abstract_aggregator import AbstractAggregator, T
 from energy_model.models.aggregations_energy_model import AggregationsEnergyModel, ModelType
 from energy_model.energy_model_utils.energy_model_feature_extractor import EnergyModelFeatureExtractor
-from energy_model.energy_model_utils.resource_energy_calculator import ResourceEnergyCalculator
+from energy_model.energy_model_utils.resource_energy_calculator import HardwareResourceEnergyCalculator
 from energy_model.energy_model_utils.sample_resources_energy import SampleResourcesEnergy
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ class EnergyModelAggregator(AbstractAggregator):
         if self.__model is None:
             raise RuntimeError(f"Energy Model for type {model_type.name} not found.")
         self._energy_model_feature_extractor = EnergyModelFeatureExtractor()
-        self._resource_energy_calculator = ResourceEnergyCalculator()
+        self._hardware_resource_energy_calculator = HardwareResourceEnergyCalculator()
         # todo: maybe support here the "DatasetProcessor" in order to change categorical columns, etc. Use when hardware columns are part of the train of the model
 
     @abstractmethod

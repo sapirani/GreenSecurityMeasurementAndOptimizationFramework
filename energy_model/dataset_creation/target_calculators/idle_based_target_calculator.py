@@ -1,12 +1,8 @@
-from dataclasses import fields
-
 import pandas as pd
 
 from DTOs.aggregators_features.energy_model_features.idle_energy_model_features import IdleEnergyModelFeatures
-from DTOs.aggregators_features.energy_model_features.process_energy_model_features import ProcessEnergyModelFeatures
 from energy_model.configs.columns import ProcessColumns, SystemColumns
 from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
-from energy_model.energy_model_utils.resource_energy_calculator import ResourceEnergyCalculator
 
 DEFAULT_ENERGY_PER_SECOND_IDLE_MEASUREMENT = 1.57
 DEFAULT_ENERGY_RATIO = 1.0
