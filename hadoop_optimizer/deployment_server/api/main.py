@@ -10,7 +10,7 @@ from starlette.responses import JSONResponse
 from elastic_reader.consts import ElasticIndex
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_properties import JobProperties, get_job_properties
-from hadoop_optimizer.deployment_server.container.container import Container
+from hadoop_optimizer.deployment_server.container.deployment_container import DeploymentContainer
 from hadoop_optimizer.deployment_server.drl_manager import DRLManager
 from hadoop_optimizer.drl_telemetry.telemetry_manager import DRLTelemetryManager
 from hadoop_optimizer.erros import EnvironmentTruncatedException, StateNotReadyException
@@ -67,7 +67,7 @@ async def state_not_ready_exception_handler(request: Request, exc: StateNotReady
 @inject
 def choose_the_best_configuration_for_a_new_task_under_the_current_load(
     job_properties: Annotated[JobProperties, Depends(get_job_properties)],
-    drl_manager: Annotated[DRLManager, Depends(Provide[Container.drl_manager])],
+    drl_manager: Annotated[DRLManager, Depends(Provide[DeploymentContainer.drl_manager])],
 ) -> HadoopJobExecutionConfig:
 
     try:
@@ -86,7 +86,7 @@ def choose_the_best_configuration_for_a_new_task_under_the_current_load(
 
 
 if __name__ == '__main__':
-    container = Container()
+    container = DeploymentContainer()
     container.config.allowed_numeric_noise.from_value(0.001)
     container.config.max_episode_steps.from_value(100)
     container.config.indices_to_read_from.from_value([ElasticIndex.PROCESS, ElasticIndex.SYSTEM])
