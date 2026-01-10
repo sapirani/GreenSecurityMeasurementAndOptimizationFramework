@@ -20,6 +20,9 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         self.__episodic_baseline_running_time: Optional[float] = None
         self.__episodic_baseline_energy_consumption_mwh: Optional[float] = None
 
+    def _custom_rendering(self):
+        print("Episodic Job Type:", self.__episodic_job_descriptor.job_type.value)
+
     def _init_episodic_job(self, options: dict[str, Any] | None) -> JobProperties:
         if options:
             raise ValueError("Options are not expected in training mode")
@@ -38,7 +41,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         self.__episodic_baseline_running_time = result.runtime_sec
         self.__episodic_baseline_energy_consumption_mwh = self.__compute_baseline_energy_consumption()
 
-        return self.__extract_job_properties(self.__episodic_job_descriptor)
+        return SupportedJobsConfig.extract_job_properties(self.__episodic_job_descriptor)
 
     def __compute_baseline_energy_consumption(self) -> float:
         """
@@ -57,8 +60,6 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         )
         return (result.runtime_sec - self.__episodic_baseline_running_time) / self.__episodic_baseline_running_time
 
-    # TODO: CONSIDER TRANSFERRING THESE FUNCTIONS FROM NOW ON INTO A SEPARATE CLASS DEDICATED FOR TRANSLATIONS
-        # BETWEEN JOB TYPES TO PROPERTIES + DEFINITION, AND KNOWING THE AVAILABLE INPUT SIZES FOR EACH JOB
     @staticmethod
     def __select_episodic_job_type(np_random: np.random.Generator) -> JobType:
         # TODO: SELECT EPISODIC JOB BASED ON A SMART LOGIC TAILORED TO THE TRAINING PROGRESSION
@@ -72,15 +73,3 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         supported_input_size_gb = SupportedJobsConfig.get_supported_input_size_gb(selected_job_type)
         selected_input_size_index = np_random.integers(0, len(supported_input_size_gb), dtype=int)
         return supported_input_size_gb[selected_input_size_index]
-
-    @staticmethod
-    def __extract_job_properties(job_descriptor: JobDescriptor):
-        # TODO: LEVERAGE THE JOB TYPE TO DEFINE THE CPU AND IO SCALE
-        return JobProperties(
-            input_size_gb=job_descriptor.input_size_gb,
-            cpu_bound_scale=0.5,
-            io_bound_scale=0.5,
-        )
-
-    def _custom_rendering(self):
-        print("Episodic Job Type:", self.__episodic_job_descriptor.job_type.value)

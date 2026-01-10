@@ -12,6 +12,7 @@ from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_types import JobType
 from DTOs.hadoop.training_run_job_response import TrainingJobRunResponse
+from hadoop_optimizer.supported_jobs.supported_jobs_config import SupportedJobsConfig
 from hadoop_optimizer.training_server.api.config import MAX_JOB_RUNTIME
 
 app = FastAPI()
@@ -36,13 +37,14 @@ def run_selected_job_within_the_digital_twin_environment(
     ]
 ) -> TrainingJobRunResponse:
 
-    job_definition = HadoopJobDefinition.from_general_description(job_descriptor)
+    job_definition = SupportedJobsConfig.extract_job_definition(job_descriptor)
     selected_job = HadoopJob(
         job_definition=job_definition,
         job_execution_config=job_execution_config,
     )
 
     try:
+        print("running job:", selected_job)
         start_time = time.perf_counter()
         subprocess.run(
             # selected_job.get_hadoop_job_args(),

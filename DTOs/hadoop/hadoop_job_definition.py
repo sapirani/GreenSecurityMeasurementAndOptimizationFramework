@@ -2,7 +2,6 @@ import subprocess
 from pathlib import Path
 from pydantic import BaseModel, Field, field_validator
 from DTOs.hadoop.consts import Groups, HDFS_NAMENODE
-from DTOs.hadoop.job_descriptor import JobDescriptor
 
 
 # TODO: ENSURE SMOOTH INTEGRATION WITH THE GNS3 REPO WHEN COMBINING ALL INTO A MONOREPO
@@ -16,28 +15,28 @@ class HadoopJobDefinition(BaseModel):
     }
 
     input_path: Path = Field(
-        default="/input",
+        default=Path("/input"),
         alias="i",
         title=Groups.TASK_DEFINITION.value,
         description="HDFS path to the input directory"
     )
 
     output_path: Path = Field(
-        default="/output",
+        default=Path("/output"),
         alias="o",
         title=Groups.TASK_DEFINITION.value,
         description="HDFS path to the output directory",
     )
 
     mapper_path: Path = Field(
-        default="/home/mapper.py",
+        default=Path("/home") / Path("mapper.py"),
         alias="mp",
         title=Groups.TASK_DEFINITION.value,
         description="Path to the mapper implementation",
     )
 
     reducer_path: Path = Field(
-        default="/home/reducer.py",
+        default=Path("/home") / Path("reducer.py"),
         alias="rp",
         title=Groups.TASK_DEFINITION.value,
         description="Path to the reducer implementation",
@@ -58,11 +57,3 @@ class HadoopJobDefinition(BaseModel):
             stderr=subprocess.DEVNULL,
         )
         return result.returncode == 0
-
-    @classmethod
-    def from_general_description(cls, job_descriptor: JobDescriptor) -> "HadoopJobDefinition":
-
-        # TODO: RESTRUCTURE THE INPUT PATHS AND MAPPER PATHS HIERARCHICALLY SO THEY COULD
-        #   BE INFERRED AUTOMATICALLY
-
-        return HadoopJobDefinition()

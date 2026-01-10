@@ -22,9 +22,12 @@ class HadoopOptimizerTrainingClient:
         job_descriptor: JobDescriptor,
         execution_configuration: HadoopJobExecutionConfig,
     ) -> TrainingJobRunResponse:
-        # todo: fix description
         """
-        :raises: requests.exceptions.HTTPError: 503 service unavailable
+        :raises:
+            1.  requests.exceptions.HTTPError: 422 not implemented (typically when selected job execution config is invalid)
+            2.  requests.exceptions.HTTPError: 500 internal server error (typically when Hadoop job can't run for some reason)
+            3.  requests.exceptions.HTTPError: 501 not implemented (typically when Hadoop is not installed)
+            4.  requests.exceptions.HTTPError: 503 gateway timout (when job execution has passed time limit)
         """
         response = requests.post(
             urljoin(self.api_address, self.run_job_endpoint_name),
