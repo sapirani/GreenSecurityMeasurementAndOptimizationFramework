@@ -1,5 +1,5 @@
 from pydantic import BaseModel
 
 
-class TrainingJobRunResponse(BaseModel):    # todo: is it supposed to be written here?
+class TrainingJobRunResponse(BaseModel):
     runtime_sec: float
