@@ -15,28 +15,28 @@ class HadoopJobDefinition(BaseModel):
     }
 
     input_path: Path = Field(
-        default="/input",
+        default=Path("/input"),
         alias="i",
         title=Groups.TASK_DEFINITION.value,
         description="HDFS path to the input directory"
     )
 
     output_path: Path = Field(
-        default="/output",
+        default=Path("/output"),
         alias="o",
         title=Groups.TASK_DEFINITION.value,
         description="HDFS path to the output directory",
     )
 
     mapper_path: Path = Field(
-        default="/home/mapper.py",
+        default=Path("/home") / Path("mapper.py"),
         alias="mp",
         title=Groups.TASK_DEFINITION.value,
         description="Path to the mapper implementation",
     )
 
     reducer_path: Path = Field(
-        default="/home/reducer.py",
+        default=Path("/home") / Path("reducer.py"),
         alias="rp",
         title=Groups.TASK_DEFINITION.value,
         description="Path to the reducer implementation",
