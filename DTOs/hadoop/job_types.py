@@ -3,5 +3,7 @@ from enum import Enum
 
 class JobType(str, Enum):
     word_count = "word_count"
-    monte_carlo_pi = "monte_carlo_pi"
-    # TODO: ADD MORE SUPPORTED JOB TYPES
+    anagrams = "anagrams"
+    line_statistics = "line_statistics"
+    # TODO: ADD MONTE CARLO PI (PROBLEM: THE INPUT SIZE IS ALWAYS ONE-LINER, AND BREAKS THE ASSUMPTION OF LARGE TEXTS)
+    # TODO: SUPPORT MORE JOB TYPES

@@ -35,6 +35,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
 
     def __init__(self, telemetry_manager: DRLTelemetryManager):
         super().__init__()
+        self.render_mode = "human"  # must be defined for successful rendering in training
         # TODO: SUPPORT CURRENT CLUSTER LOAD
         self.observation_space: spaces.Dict = spaces.Dict({
             JOB_PROPERTIES_KEY: self.job_properties_space,
@@ -142,6 +143,8 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
     def render(self) -> RenderFrame | list[RenderFrame] | None:
         print(f"****************** Current Step: {self.step_count} ******************")
 
+        self._custom_rendering()
+
         print("Episodic Job Properties:")
         print(self._episodic_job_properties)
         print()
@@ -172,4 +175,8 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
 
     @abstractmethod
     def _compute_reward(self, job_config: HadoopJobExecutionConfig, terminated: bool, truncated: bool) -> float:
+        pass
+
+    @abstractmethod
+    def _custom_rendering(self):
         pass

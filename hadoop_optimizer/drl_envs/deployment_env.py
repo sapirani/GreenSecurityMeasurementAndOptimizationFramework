@@ -21,3 +21,6 @@ class OptimizerDeploymentEnv(AbstractOptimizerEnvInterface):
         :return: 0, since upon deployment there is no need to compute rewards
         """
         return 0
+
+    def _custom_rendering(self):
+        pass
