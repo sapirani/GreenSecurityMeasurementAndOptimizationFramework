@@ -65,8 +65,6 @@ class TrainingContainer(containers.DeclarativeContainer):
         n_steps=2,
         n_epochs=1,
         batch_size=2,
-        # TODO: REMOVE WHEN WE HAVE A REAL MODEL, IT INCREASES THE PREDICTION VARIANCE
-        policy_kwargs=dict(log_std_init=0.8)
     )
 
     # TODO: SHOULD WE USE THE DRL MANAGER?

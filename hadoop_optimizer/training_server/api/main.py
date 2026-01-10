@@ -12,11 +12,9 @@ from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_types import JobType
 from DTOs.hadoop.training_run_job_response import TrainingJobRunResponse
-from hadoop_optimizer.training_server.container.training_container import TrainingContainer
+from hadoop_optimizer.training_server.api.config import MAX_JOB_RUNTIME
 
 app = FastAPI()
-
-MAX_JOB_RUNTIME = 4 * 60 * 60   # todo: add a configuration file somewhere / use dependency injector's config
 
 
 def get_job_descriptor(
@@ -27,7 +25,6 @@ def get_job_descriptor(
 
 
 @app.post("/run_job")
-# @inject # todo: think if dependency injector is required here
 def run_selected_job_within_the_digital_twin_environment(
     job_descriptor: JobDescriptor = Depends(get_job_descriptor),
     job_execution_config: HadoopJobExecutionConfig = Annotated[
@@ -73,9 +70,4 @@ def run_selected_job_within_the_digital_twin_environment(
 
 
 if __name__ == '__main__':
-    container = TrainingContainer()
-
-    container.wire(modules=[__name__])
-    app.container = container
-
     uvicorn.run(app, host="0.0.0.0", port=8000)
