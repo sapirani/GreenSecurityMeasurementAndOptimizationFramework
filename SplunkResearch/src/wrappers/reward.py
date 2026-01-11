@@ -503,7 +503,7 @@ class AlertRewardWrapper2(AlertRewardWrapper):
         
     def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
         """Calculate normalized alert reward"""
-        norm_alert_reward = -np.tanh(-predicted_alert_reward/100)
+        norm_alert_reward = -np.tanh(-predicted_alert_reward/30)
         return norm_alert_reward
     
     def step(self, action):

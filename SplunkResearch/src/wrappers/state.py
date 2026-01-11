@@ -26,8 +26,8 @@ class StateWrapper(ObservationWrapper):
 
         self.action_wrapper = self.get_wrapper(ActionWrapper)
         self.normal_alert_predictors = {}
-        for rule in self.unwrapped.savedsearches:
-            self.normal_alert_predictors[rule] = joblib.load(f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/models_{rule}_alerts.joblib")
+        # for rule in self.unwrapped.savedsearches:
+        #     self.normal_alert_predictors[rule] = joblib.load(f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/models_{rule}_alerts.joblib")
 
 
         self.total_current_logs = 0
