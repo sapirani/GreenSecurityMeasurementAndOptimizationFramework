@@ -38,3 +38,8 @@ class StateNotReadyException(Exception):
 class OutOfBoundObservation(Exception):
     def __init__(self, observation: ObsType, space: spaces.Space):
         super().__init__(f"Observation (i.e., state) is out of bounds. Observation: {observation}, space: {space}")
+
+
+class NoEnergyMeasurements(Exception):
+    def __init__(self):
+        super().__init__("minimal required energy measurements are not yet available")

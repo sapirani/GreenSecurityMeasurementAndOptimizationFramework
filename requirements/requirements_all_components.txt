@@ -49,3 +49,6 @@ scikit-learn==1.7.1
 
 # ==== DRL optimizer ====
 fastapi==0.120.4
+
+
+# todo add stable baselines3 (pip install stable-baselines3[extra])
