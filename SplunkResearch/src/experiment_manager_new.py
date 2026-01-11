@@ -89,6 +89,8 @@ class ExperimentConfig:
     distribution_threshold: float = 0.22
     alert_threshold: float = -10  # -6, -2, -10
     is_sample: bool = False
+    alert_reward_method: str = "AlertRewardWrapper"  # AlertRewardWrapper, AlertRewardWrapper1
+    distribution_reward_method: str = "DistributionRewardWrapper"  # DistributionRewardWrapper, DistributionRewardWrapper1
 
 class ExperimentManager:
     """Manages training and evaluation experiments"""
@@ -162,7 +164,7 @@ class ExperimentManager:
 
         # Add reward wrappers
         if config.use_distribution_reward:
-            env = DistributionRewardWrapper(
+            env = ENUM_DISTRIBUTION_REWARD_METHODS[config.distribution_reward_method](
                 env,
                 gamma=config.gamma_dist,
                 epsilon=1e-8,
@@ -180,12 +182,10 @@ class ExperimentManager:
                 alpha=config.alpha_energy,
                is_mock=config.is_mock,
             )
-            # env = AlertRewardWrapper(
-            #     env,
-            #     beta=config.beta_alert,
-            #     epsilon=1e-3,
-            #     is_mock=config.is_mock
-            # )
+            env = ENUM_ALERT_REWARD_METHODS[config.alert_reward_method](
+                env,
+                beta=config.beta_alert
+            )
 
             
         
@@ -281,8 +281,8 @@ class ExperimentManager:
         elif config.model_type in ['sac', 'td3', 'ddpg']:
             model_kwargs.update({          
                         'learning_starts': 60,  # (12 steps * 5 episodes)
-                        'gradient_steps': 12,
-                        'train_freq': (1, "episode"),          
+                        'gradient_steps': -1,
+                        'train_freq': (4, "episode"),          
                 #     "policy_kwargs": {
                 #     "net_arch": [512,128,128,64],
                         # 4. BUFFER
@@ -578,7 +578,7 @@ class ExperimentManager:
             #     experiment_kwargs=config,
             #     phase=config.get('phase', 'train')
             # ),
-            CheckpointCallback(save_freq=3000, save_path=self.dirs['models'], name_prefix=config.experiment_name),
+            CheckpointCallback(save_freq=10000, save_path=self.dirs['models'], name_prefix=config.experiment_name),
             
             CustomEvalCallback3(
                 eval_env=self.eval_env,
@@ -656,6 +656,9 @@ if __name__ == "__main__":
     gamma_dist = sys.argv[4] if len(sys.argv) > 4 else None
     is_sample = int(sys.argv[5]) if len(sys.argv) > 5 else None
     additional_percentage = float(sys.argv[6]) if len(sys.argv) > 6 else 1
+    alert_reward_method = sys.argv[7] if len(sys.argv) > 7 else "AlertRewardWrapper"
+    distribution_reward_method = sys.argv[8] if len(sys.argv) > 8 else "DistributionRewardWrapper"
+    learning_rate = float(sys.argv[9]) if len(sys.argv) > 9 else 3e-4
     # model_name = "train_20250927214506_70000_steps"
     # model_name = "train_20251010153827_70000_steps"
     print(f"Model name: {model_name}, alpha_energy: {alpha_energy}, beta_alert: {beta_alert}, gamma_dist: {gamma_dist}, is_sample: {is_sample}, additional_percentage: {additional_percentage}")
@@ -670,55 +673,56 @@ if __name__ == "__main__":
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/train_20250927214506_70000_steps.zip"
         model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/models/{model_name}.zip"
         print(f"Model path: {model_path}")
-        for learning_rate in [3e-4]: #0.0001
-            for n_steps in [64]:
-                for ent_coef in [0.05]:
-                    for is_random in [False]:
-                        env_config = SplunkConfig(
-                            # fake_start_datetime=retrain_fake_start_datetime,
-                            rule_frequency=120, #600,
-                            search_window=2880,
-                            # savedsearches=["rule1", "rule2"],
-                            logs_per_minute=150,
-                            additional_percentage=additional_percentage,
-                            action_duration=14400,#7200, 
-                            num_of_measurements=1,
-                            baseline_num_of_measurements=1,
-                            env_id="splunk_train-v32",
-                            # end_time="12/10/2024:00:00:00"       
-                            end_time="08/01/2025:00:00:00"       
-                        )
-                        # sched_LR = lr_schedule(initial_value = 0.01, rate = 5)
-                        experiment_config = ExperimentConfig(
-                            env_config=env_config,
-                            model_type="sac",# "ppo", # "a2c", "dqn", "sac", "td3", "recurrent_ppo"
-                            policy_type="MlpPolicy",# "td3_mlp", # "mlp", "MlpLstmPolicy" "MlpPolicy"
-                            learning_rate=learning_rate,#sched_LR,
-                            num_episodes=num_episodes,
-                            n_steps=n_steps,
-                            ent_coef=ent_coef,
-                            gamma=0.95,
-                            gamma_dist= float(gamma_dist) if gamma_dist else 0.2,
-                            alpha_energy= float(alpha_energy) if alpha_energy else 0.5,
-                            beta_alert= float(beta_alert) if beta_alert else 0.3,
-                            action_type=action_type,
-                            # experiment_name="test_experiment",
-                            use_alert_reward=True,
-                            use_energy_reward=True,
-                            use_random_agent=is_random,
-                            is_mock=False,
-                            model_path=model_path if model_path else None,
-                            distribution_threshold=0.22,
-                            alert_threshold=-10,
-                            is_sample= bool(is_sample) if is_sample else False,
-                            
-                        )
-
-                        experiment_config.mode = "train"#"eval_post_training"  # eval after training
-                        experiment_config.num_episodes = 5000000000
-                        manager = ExperimentManager(base_dir="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments")
-                        results = manager.run_experiment(experiment_config)
-
+        for n_steps in [64]:
+            for ent_coef in [0.05]:
+                for is_random in [False]:
+                    env_config = SplunkConfig(
+                        # fake_start_datetime=retrain_fake_start_datetime,
+                        rule_frequency=120, #600,
+                        search_window=2880,
+                        # savedsearches=["rule1", "rule2"],
+                        logs_per_minute=150,
+                        additional_percentage=additional_percentage,
+                        action_duration=14400,#7200, 
+                        num_of_measurements=1,
+                        baseline_num_of_measurements=1,
+                        env_id="splunk_train-v32",
+                        # end_time="12/10/2024:00:00:00"       
+                        end_time="08/01/2025:00:00:00"       
+                    )
+                    # sched_LR = lr_schedule(initial_value = 0.01, rate = 5)
+                    experiment_config = ExperimentConfig(
+                        env_config=env_config,
+                        model_type="sac",# "ppo", # "a2c", "dqn", "sac", "td3", "recurrent_ppo"
+                        policy_type="MlpPolicy",# "td3_mlp", # "mlp", "MlpLstmPolicy" "MlpPolicy"
+                        learning_rate=learning_rate,#sched_LR,
+                        num_episodes=num_episodes,
+                        n_steps=n_steps,
+                        ent_coef=ent_coef,
+                        gamma=0.95,
+                        gamma_dist= float(gamma_dist) if gamma_dist else 0.2,
+                        alpha_energy= float(alpha_energy) if alpha_energy else 0.5,
+                        beta_alert= float(beta_alert) if beta_alert else 0.3,
+                        action_type=action_type,
+                        # experiment_name="test_experiment",
+                        use_alert_reward=True,
+                        use_energy_reward=True,
+                        use_random_agent=is_random,
+                        is_mock=True,
+                        model_path=model_path if model_path else None,
+                        distribution_threshold=0.22,
+                        alert_threshold=-10,
+                        is_sample= bool(is_sample) if is_sample else False,
+                        alert_reward_method=alert_reward_method,
+                        distribution_reward_method=distribution_reward_method
                         
+                    )
+
+                    experiment_config.mode = "train"#"eval_post_training"  # eval after training
+                    experiment_config.num_episodes = 30000
+                    manager = ExperimentManager(base_dir="/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments")
+                    results = manager.run_experiment(experiment_config)
+
                     
                 
+            

@@ -24,12 +24,22 @@ import logging
 logger = logging.getLogger(__name__)
 from time_manager import TimeWindow
 std = 13
-
+expected_alerts = {
+    'Windows Event For Service Disabled': {'alert':2.5},
+    'Detect New Local Admin Account': {'alert':0.7},
+    'ESCU Network Share Discovery Via Dir Command Rule': {'alert':0},
+    'Known Services Killed by Ransomware': {'alert':6},
+    'Non Chrome Process Accessing Chrome Default Dir': {'alert':0},
+    'Kerberoasting SPN Request With RC4 Encryption': {'alert':0},
+    'Clop Ransomware Known Service Name': {'alert':0},
+    'Windows AD Replication Request Initiated from Unsanctioned Location': {'alert':0},
+    'ESCU Windows Rapid Authentication On Multiple Hosts Rule': {'alert':0}
+}
 class AlertPredictor:
     """Separate class to handle alert prediction logic"""
     
     def __init__(self, expected_alerts: Dict, epsilon: float = 1):
-        self.expected_alerts = expected_alerts
+        expected_alerts = expected_alerts
         self.epsilon = epsilon
         self.current_alerts = {}
         
@@ -51,7 +61,7 @@ class AlertPredictor:
 
         
         self.current_alerts[rule_name] = predicted_current
-        expected = self.expected_alerts.get(rule_name, 0).get('alert', 0)
+        expected = expected_alerts.get(rule_name, 0).get('alert', 0)
         gap = max(0, predicted_current - expected)
         reward = -(gap) / (expected + self.epsilon)
         
@@ -61,8 +71,7 @@ class AlertPredictor:
                                    section_logtypes: Dict, is_mock: bool = False, normalized_distribution: Optional[np.ndarray] = np.array([0.0])) -> float:
         """Predict overall alert reward for all rules"""
         rewards = []
-        baseline_alerts = {rule: baseline_metrics.get(rule, {}).get('alert', 0) for rule in self.expected_alerts}
-        for rule_name, expected in self.expected_alerts.items():
+        for rule_name, expected in expected_alerts.items():
             baseline_alert = baseline_metrics.get(rule_name, {}).get('alert', 0)
             reward = self.predict_alert_reward(
                 rule_name, baseline_alert, diversity_logs, 
@@ -72,11 +81,13 @@ class AlertPredictor:
             
         # return np.mean(rewards) if rewards else 0
         # return sum(self.current_alerts.values())
+        baseline_alerts = {rule: expected_alerts.get(rule, {}).get('alert', 0) for rule in expected_alerts}
+        
         normal_alert_rate = sum(baseline_alerts.values())
         # normal_alert_rate = sum(baseline_alerts.values())
         return min(-(sum(self.current_alerts.values()) - normal_alert_rate  + self.epsilon)/ (normal_alert_rate + self.epsilon), 0)
         # return min(-(sum(self.current_alerts.values()) - 7 )/ (7 + self.epsilon), 0)
-        # return min(-(sum(self.current_alerts.values()) - sum(self.expected_alerts.values()))/ (sum(self.expected_alerts.values()) + self.epsilon), 0)
+        # return min(-(sum(self.current_alerts.values()) - sum(expected_alerts.values()))/ (sum(expected_alerts.values()) + self.epsilon), 0)
 
 
 class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
@@ -107,30 +118,21 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         #         self.energy_models[rule] = pickle.load(open(f"/home/shouei/GreenSecurity-FirstExperiment/baseline_splunk_train-v32_2880_cpu_regressor_results/RandomForestRegressor_{rule}_with alert = 0.pkl", "rb"))
         
         # Initialize alert predictor
-        self.expected_alerts = {
-            'ESCU Windows Rapid Authentication On Multiple Hosts Rule': {'alert':0},
-            'Windows AD Replication Request Initiated from Unsanctioned Location': {'alert':0},
-            'Windows Event For Service Disabled': {'alert':2.5},
-            'Detect New Local Admin Account': {'alert':0.7},
-            'ESCU Network Share Discovery Via Dir Command Rule': {'alert':0},
-            'Known Services Killed by Ransomware': {'alert':6},
-            'Non Chrome Process Accessing Chrome Default Dir': {'alert':0},
-            'Kerberoasting SPN Request With RC4 Encryption': {'alert':0},
-            'Clop Ransomware Known Service Name': {'alert':0}
-        }
+
         self.measuring = False
-        self.alert_predictor = AlertPredictor(self.expected_alerts)
+        self.alert_predictor = AlertPredictor(expected_alerts)
         self.execution_decisions = []
         self.is_eval = is_eval
         self.is_train = is_train
         # lode joblib models for energy consumption for each rule
-        # for rule in self.expected_alerts:
-        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/mlp_models_all_rules_cpu.joblib"
+        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/models_all_rules_cpu.joblib"
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/models_all_rules_cpu.joblib"
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/model_{rule}.joblib"
         if path.exists(model_path):
             self.energy_models['all'] = joblib.load(model_path)
             # self.energy_models[rule] = joblib.load(model_path)
+        for rule in expected_alerts:
+            self.energy_models[rule] = joblib.load(f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/cpu_model_{rule}.joblib")
         self.distributions = []
         self.alerts = []
         self.epsilon = .00000001
@@ -167,10 +169,6 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 sleep(3)
                                 
                 logger.info(f"Running {running_dict}")
-                # Execute rules and get metrics
-                # if self.is_mock:
-                #     rules_metrics = self.mock_rules_metrics(time_range)
-                # else:
                 rules_metrics = asyncio.run(self.unwrapped.splunk_tools.run_saved_searches(time_range))
                 new_lines = self.convert_metrics(time_range, rules_metrics)
                 if len(new_lines) != 0:
@@ -204,8 +202,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         
         # Predict alert reward
         predicted_reward = self.alert_predictor.predict_overall_alert_reward(
-            self.expected_alerts,
-            # raw_baseline_metrics, 
+            raw_baseline_metrics, 
             diversity_logs,
             self.unwrapped.section_logtypes,
             self.is_mock, 
@@ -214,7 +211,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         # Decide whether to execute
         should_execute = True
         if self.enable_prediction and self.skip_on_low_alert:
-            # should_execute =  ((predicted_reward <= (sum(self.expected_alerts.values()) + (self.alert_threshold*std))) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval
+            # should_execute =  ((predicted_reward <= (sum(expected_alerts.values()) + (self.alert_threshold*std))) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval
             should_execute = ((predicted_reward >= self.alert_threshold) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval or True # TRY!!!!!!!
             
             # self.unwrapped.should_delete = should_execute and not self.is_mock and not self.measuring 
@@ -241,8 +238,6 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         if (self.is_mock and not self.measuring) or not should_execute or not self.use_energy or not self.use_alert:
             rules_metrics = self.mock_rules_metrics(time_range)
         else:
-            # rules_metrics, total_cpu = self.unwrapped.splunk_tools.run_saved_searches(
-            #     time_range, None, self.unwrapped.config.num_of_measurements)
             rules_metrics = asyncio.run(self.unwrapped.splunk_tools.run_saved_searches(
                 time_range))
         relevant_rows = self.convert_metrics(time_range, rules_metrics)
@@ -333,23 +328,23 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 diversity_logs,
                 info.get('ac_distribution_value', 0)
             )
-            # # dump baseline metrics to all data (once)
-            # if len(self.unwrapped.all_baseline_data) < len(self.unwrapped.baseline_df.time_range.unique()):
-            #     self.unwrapped.all_baseline_data.append({
-            #         'time_range': info['current_window'],
-            #         'ac_real_distribution': self.unwrapped.ac_real_distribution,
-            #         'raw_metrics':raw_baseline_metrics,
-            #     })
-            # else:
-            #     # dump and empty the all_data to csv in path if exists
-            #     all_baseline_data_df = pd.json_normalize(self.unwrapped.all_baseline_data, sep='_')
-            #     all_baseline_data_df.to_csv(self.unwrapped.all_baseline_data_path, index=False, mode='w')          
-            #     self.unwrapped.all_baseline_data = []
+            # dump baseline metrics to all data (once)
+            if len(self.unwrapped.all_baseline_data) < len(self.unwrapped.baseline_df.time_range.unique()):
+                self.unwrapped.all_baseline_data.append({
+                    'time_range': info['current_window'],
+                    'ac_real_distribution': self.unwrapped.ac_real_distribution,
+                    'raw_metrics':raw_baseline_metrics,
+                })
+            else:
+                # dump and empty the all_data to csv in path if exists
+                all_baseline_data_df = pd.json_normalize(self.unwrapped.all_baseline_data, sep='_')
+                all_baseline_data_df.to_csv(self.unwrapped.all_baseline_data_path, index=False, mode='w')          
+                self.unwrapped.all_baseline_data = []
             
             # Store prediction info
             info['predicted_alert_reward'] = predicted_alert_reward
-            info['execution_skipped'] = not should_execute and False # TRY!!!!!!!
-            if  ((random.randint(0, 100000) < 10   or self.is_eval) and should_execute and not self.is_mock):
+            # info['execution_skipped'] = not should_execute and False # TRY!!!!!!!
+            if  ((random.randint(0, 100000) < 10 or self.is_eval) and should_execute and not self.is_mock):
                 logger.info(f"Measuring")
                 self.measuring = True
             else:
@@ -395,11 +390,11 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 #     stop_loop = True
 
             # find the difference of alerts between raw_metrics and baseline_raw_metrics
-            alerts_diff = {rule: raw_metrics[rule]['alert'] - baseline_raw_metrics.get(rule, {}).get('alert', 0) for rule in self.expected_alerts}
+            alerts_diff = {rule: raw_metrics[rule]['alert'] - baseline_raw_metrics.get(rule, {}).get('alert', 0) for rule in expected_alerts}
             
             if (not self.is_mock  or self.measuring) and should_execute and self.use_energy and self.use_alert:
                 # check compatibility of alerts_diff with diversity info
-                for rule in self.expected_alerts:
+                for rule in expected_alerts:
                     if rule == 'ESCU Windows Rapid Authentication On Multiple Hosts Rule':
                         continue
                     relevant_log = self.unwrapped.section_logtypes.get(rule, None)
@@ -429,8 +424,8 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             info['combined_baseline_metrics'] = combined_baseline_metrics
             if self.is_mock and (self.use_alert or self.use_energy):
                 current_alerts = self.alert_predictor.current_alerts
-                # baseline_alerts = {rule: raw_baseline_metrics[rule]['alert'] for rule in self.expected_alerts}
-                for rule in self.expected_alerts:
+                # baseline_alerts = {rule: raw_baseline_metrics[rule]['alert'] for rule in expected_alerts}
+                for rule in expected_alerts:
                     raw_metrics[rule]['alert'] = current_alerts[rule]
                     
                     # raw_baseline_metrics[rule]['cpu'] = 0
@@ -439,7 +434,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 # sleep(2)
 
                 
-            if should_execute:
+            if should_execute and not self.is_mock and self.use_energy and self.use_alert:
                 self.unwrapped.all_data.append({
                     'time_range': info['current_window'],
                     'ac_fake_distribution': self.unwrapped.ac_fake_distribution,
@@ -456,44 +451,103 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # info['alert_reward'] = predicted_alert_reward
             if not self.use_alert:
                 predicted_alert_reward = 0
-                
-            ############## Distribution reward ##############    
-            # info['ac_distribution_reward'] = -200*(info['ac_distribution_value'] ** 2)
-            self.distributions.append(info['ac_distribution_value'])
-            self.alerts.append(-predicted_alert_reward)
 
-            
-            info['ac_distribution_reward'] = -np.tanh(info['ac_distribution_value']*4)
-            
-            # info['ac_distribution_reward'] = dist_reward
-            # info['ac_distribution_reward'] = 30*info['ac_distribution_value']
-            
-            ############## Alert reward ##############
-            # info['alert_reward'] = ((predicted_alert_reward - sum(self.expected_alerts.values()))/std)
-            # self.mean_alert = (self.unwrapped.all_steps_counter//self.unwrapped.total_steps - 1)*self.mean_alert + sum(raw_baseline_metrics[rule]['alert'] for rule in self.expected_alerts)/(self.unwrapped.all_steps_counter//self.unwrapped.total_steps)
-            info['alert_reward'] = predicted_alert_reward
-            info['norm_alert_reward'] = -np.tanh(-predicted_alert_reward/10)
-            ############### Total reward ##############
-            reward = self.gamma*info['ac_distribution_reward']
-            reward += self.beta*info['norm_alert_reward']
-            # reward = 0
-            # if info.get('ac_distribution_value', 0) > self.env.distribution_threshold or predicted_alert_reward < self.alert_threshold:
-            #     if info.get('ac_distribution_value', 0) > self.env.distribution_threshold:
-            #         reward += 0.2*info['ac_distribution_reward']
-            #         # reward += -(2**info['ac_distribution_reward'])
-                        
-            #     if predicted_alert_reward < self.alert_threshold:
-            #         reward += 0.2*info['alert_reward']
-            #         # reward += -(2**info['alert_reward'])
-            # else:
-            #     reward = 1
-
-            
-            # Store in info for other wrappers to use
             info['raw_metrics'] = raw_metrics
             info['raw_baseline_metrics'] = raw_baseline_metrics
             
         return obs, reward, terminated, truncated, info
+
+
+
+
+class AlertRewardWrapper(RewardWrapper):
+    """Wrapper for alert-based rewards"""
+    def __init__(self, env: gym.Env, beta: float = 0.5):
+        super().__init__(env)
+        self.beta = beta
+        
+    def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
+        """Calculate normalized alert reward"""
+        norm_alert_reward = -np.tanh(-predicted_alert_reward/10)
+        return norm_alert_reward
+    
+    def step(self, action):
+        """Override step to properly handle info updates"""
+        obs, reward, terminated, truncated, info = self.env.step(action)
+        if info.get('done', True):
+            predicted_alert_reward = info.get('predicted_alert_reward', 0)
+            info['alert_reward'] = predicted_alert_reward
+            info['norm_alert_reward'] = self.calculate_alert_reward(predicted_alert_reward)
+            ############### Total reward ##############
+            reward += self.unwrapped.total_steps*self.beta*info['norm_alert_reward']
+            logger.info(f"Alert reward: {predicted_alert_reward:.3f}, norm_alert_reward: {info['norm_alert_reward']:.3f}")
+        return obs, reward, terminated, truncated, info
+    
+class AlertRewardWrapper1(AlertRewardWrapper):
+    """Wrapper for alert-based rewards"""
+    def __init__(self, env: gym.Env, beta: float = 0.5):
+        super().__init__(env)
+        self.beta = beta
+        
+    def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
+        """Calculate normalized alert reward"""
+        norm_alert_reward = predicted_alert_reward
+        return norm_alert_reward
+
+class AlertRewardWrapper2(AlertRewardWrapper):
+    """Wrapper for alert-based rewards"""
+    def __init__(self, env: gym.Env, beta: float = 0.5):
+        super().__init__(env)
+        self.beta = beta
+        print(f"Beta: {self.beta}")
+        
+    def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
+        """Calculate normalized alert reward"""
+        norm_alert_reward = -np.tanh(-predicted_alert_reward/100)
+        return norm_alert_reward
+    
+    def step(self, action):
+        """Override step to properly handle info updates"""
+        obs, reward, terminated, truncated, info = self.env.step(action)
+        if info.get('done', True):
+            current_rules_alerts = {rule: info['raw_metrics'][rule]['alert'] for rule in expected_alerts}
+            # print(f"Current rules alerts: {current_rules_alerts}")
+            baseline_rules_alerts = {rule: expected_alerts[rule]['alert'] for rule in expected_alerts}
+            # print(f"Baseline rules alerts: {baseline_rules_alerts}")
+            # average relative diff of alerts by rule
+            alert_diffs = []
+            for rule in expected_alerts:
+                baseline_alert = baseline_rules_alerts.get(rule, 0)
+                alert_diff = (current_rules_alerts[rule] - baseline_alert) / (baseline_alert + 0.1)
+                alert_diffs.append(alert_diff)
+            if alert_diffs:
+                print(f"Alert diffs: {alert_diffs}")
+                reward_alert = min(0, -np.mean(alert_diffs))
+                
+            else:
+                reward_alert = 0
+            info['alert_reward'] = reward_alert
+            info['norm_alert_reward'] = self.calculate_alert_reward(reward_alert)
+            reward += self.unwrapped.total_steps*self.beta*info['norm_alert_reward']
+        return obs, reward, terminated, truncated, info
+
+class AlertRewardWrapper3(AlertRewardWrapper2):
+    def __init__(self, env: gym.Env, beta: float = 0.5):
+        super().__init__(env)
+        self.beta = beta
+          
+    def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
+        """Calculate normalized alert reward"""
+        norm_alert_reward = predicted_alert_reward
+        return norm_alert_reward  
+    
+# enum for different alert reward calculation methods     
+ENUM_ALERT_REWARD_METHODS = {
+    'AlertRewardWrapper': AlertRewardWrapper,
+    'AlertRewardWrapper1': AlertRewardWrapper1,
+    'AlertRewardWrapper2': AlertRewardWrapper2,
+    'AlertRewardWrapper3': AlertRewardWrapper3,
+    }         
     
 class EnergyRewardWrapper(RewardWrapper):
     ENERGY_CHANGE_TARGET = 1  # Target energy change for normalization
@@ -505,26 +559,41 @@ class EnergyRewardWrapper(RewardWrapper):
         self.energies = []
         self.epsilon = 1e-8
     
-    def estimate_energy_consumption(self, fake_dist, rules_alerts):
+    def estimate_energy_consumption(self, fake_dist, info):
         # Placeholder for energy consumption estimation logic
         # This should return the estimated energy consumption for the current state
         # Use the energy model to estimate energy consumption
+        rules_alerts = {rule: info['raw_metrics'][rule]['alert'] for rule in self.unwrapped.splunk_tools.active_saved_searches} 
+        
         model = self.env.energy_models["all"]
         # normalize the fake distribution and rule alert
         if not isinstance(fake_dist, np.ndarray):
             fake_dist = np.array(list(fake_dist)[:-1])
         rules_alerts_array = np.array(list(rules_alerts.values()))
         if fake_dist.ndim == 1:
-            fake_dist = fake_dist.reshape(-1, 1)
+            fake_dist = fake_dist.reshape(1, -1)
         if rules_alerts_array.ndim == 1:
-            rules_alerts_array = rules_alerts_array.reshape(-1, 1)
+            rules_alerts_array = rules_alerts_array.reshape(1, -1)
         # print(fake_dist, rules_alerts[rule])
+        # print(fake_dist)
+        # print(rules_alerts_array)
+        fake_dist = (fake_dist) /475796
+        rules_alerts_array = (rules_alerts_array - 1) / 203
+        X = np.concatenate((fake_dist, rules_alerts_array), axis=1)
+        # print(X)
+
+        # print(X)
+        # estimated_energy_all_model = model.predict(X)[0]
         
-        fake_dist = (fake_dist) /237158
-        rules_alerts_array = (rules_alerts_array - 0.0) / 38
-        X = np.concatenate((fake_dist, rules_alerts_array)).flatten().reshape(1, -1)
-        
-        estimated_energy = model.predict(X)[0]
+        # calculate estimated energy consumption using individual models and sum them
+        estimated_energy = 0
+        for i, rule in enumerate(expected_alerts):
+            rule_model = self.env.energy_models[rule]
+            rule_alert = rules_alerts_array[:, i].reshape(1, -1)
+            rule_X = np.concatenate((fake_dist, rule_alert), axis=1)
+            rule_cpu = rule_model.predict(rule_X)[0]
+            info['raw_metrics'][rule]['cpu'] = rule_cpu
+            estimated_energy += rule_cpu
         return estimated_energy
 
     
@@ -532,78 +601,26 @@ class EnergyRewardWrapper(RewardWrapper):
         """Override step to properly handle info updates"""
         obs, reward, terminated, truncated, info = self.env.step(action)
         if info.get('done', True):
-            if self.is_mock and not info.get('execution_skipped', False):  
-                rules_alerts = {rule: info['raw_metrics'][rule]['alert'] for rule in self.unwrapped.splunk_tools.active_saved_searches}                                         
+            if self.is_mock:  
+                # print(rules_alerts)
+                # print(self.unwrapped.ac_fake_distribution)                                        
                 estimated_energy = self.estimate_energy_consumption(
                     self.unwrapped.ac_fake_distribution.values(),
-                    rules_alerts
+                    info
                 )
-                # for rule in self.unwrapped.splunk_tools.active_saved_searches:
-                #     info['raw_metrics'][rule]['cpu'] = cpu_dict[rule]
+
                 info['combined_metrics']['cpu'] = estimated_energy
             current = info['combined_metrics']['cpu']
-
             baseline = info['combined_baseline_metrics']['cpu']
-
-            
-            energy_reward = (current  - baseline) / (baseline + self.epsilon)
+            energy_reward = max((current  - baseline) / (baseline + self.epsilon), 0)
             self.energies.append(energy_reward)
-
-            # if energy_reward <= 0.1:
-            #     energy_reward = 0
-            # energy_reward = np.clip(energy_reward, 0, 1) # Normalize to [0, 1]
             info['energy_reward'] = energy_reward
-            # mean_energy = np.mean(self.energies) if len(self.energies) > 0 else 0
-            # std_energy = np.std(self.energies) if len(self.energies) > 0 else 0
             
-            info['norm_energy_reward'] = np.clip(energy_reward, 0, 1)
+            # info['norm_energy_reward'] = np.clip(energy_reward, 0, 1)
+            info['norm_energy_reward'] = np.tanh(energy_reward*1.5)
             # info['norm_energy_reward'] = np.clip(energy_reward/EnergyRewardWrapper.ENERGY_CHANGE_TARGET, 0, 1)
             logger.info(f"Energy reward: {energy_reward:.3f}, current: {current:.3f}, baseline: {baseline:.3f}")
-            # reward +=  energy_reward
-            # reward += self.alpha*energy_reward
-            # if reward != 1:
-            #     return obs, reward, terminated, truncated, info
-
-            reward += self.alpha*info['norm_energy_reward']
-            # reward += 0.6*max(energy_reward, 0)
-    
-
-        # if info.get('done', True):
-        #     if self.is_mock and not info.get('execution_skipped', False):  
-        #         rules_alerts = {rule: info['raw_metrics'][rule]['alert'] for rule in self.unwrapped.splunk_tools.active_saved_searches}                                         
-        #         estimated_energy = self.estimate_energy_consumption(
-        #             self.unwrapped.ac_fake_distribution.values(),
-        #             rules_alerts
-        #         )
-        #         # for rule in self.unwrapped.splunk_tools.active_saved_searches:
-        #         #     info['raw_metrics'][rule]['cpu'] = cpu_dict[rule]
-        #         info['combined_metrics']['cpu'] = estimated_energy
-        #     current = info['combined_metrics']['cpu']
-
-        #     baseline = info['combined_baseline_metrics']['cpu']
-
-            
-        #     energy_reward = (current  - baseline) / baseline
-        #     # if energy_reward <= 0.1:
-        #     #     energy_reward = 0
-        #     # energy_reward = np.clip(energy_reward, 0, 1) # Normalize to [0, 1]
-        #     info['energy_reward'] = energy_reward
-        #     logger.info(f"Energy reward: {energy_reward:.3f}, current: {current:.3f}, baseline: {baseline:.3f}")
-        #     # reward +=  energy_reward
-        #     # reward += self.alpha*energy_reward
-        #     if reward != 1:
-        #         return obs, reward, terminated, truncated, info
-        #     reward = max(energy_reward, 0) * 100
-        #     if energy_reward > 0.6:
-        #         reward **= 3
-        #     elif energy_reward > 0.4:
-        #         reward **= 2
-            
-            # reward += self.unwrapped.total_steps*self.alpha*energy_reward
-        # reward = energy_reward/(reward + self.epsilon)
-            # reward += self.alpha * energy_reward
-            
-            
+            reward += self.unwrapped.total_steps*self.alpha*info['norm_energy_reward']
         return obs, reward, terminated, truncated, info
 
 class DistributionRewardWrapper(RewardWrapper):
@@ -611,6 +628,7 @@ class DistributionRewardWrapper(RewardWrapper):
     def __init__(self, env: gym.Env, gamma: float = 0.2, epsilon: float = 1e-8, distribution_freq: int = 3, distribution_threshold: float = 0.22):
         super().__init__(env)
         self.gamma = gamma
+        print(f"Gamma: {self.gamma}")
         self.epsilon = epsilon
         self.distribution_reward_freq = distribution_freq
         self.distribution_threshold = distribution_threshold #0.18 #0.22
@@ -618,59 +636,18 @@ class DistributionRewardWrapper(RewardWrapper):
         
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)    
-        # self.update_fake_distribution(self.episode_logs)
-
-        step_counter = info.get('step', 0)
-        # if  random.randint(0, 10) % self.distribution_reward_freq == 0:
-        #     info['distribution_value'] = dist_value
-        #     dist_reward = self._calculate_distribution_reward(dist_value)
-        #     # dist_reward /= 0.6 # NOrmalize the reward
-        #     info['distribution_reward'] = dist_reward
-        #     # reward += dist_reward
-        #     reward += dist_reward
-
-                # reward += self.gamma * dist_reward
-        # if info.get('done', True):
         dist_value = self._calculate_distribution_value(
             self.unwrapped.ac_real_state,
             self.unwrapped.ac_fake_state
         )
         info['ac_distribution_value'] = dist_value
-        # if not info.get('done', True):
-            # dist_value = self._calculate_distribution_value(
-            #     self.unwrapped.real_state,
-            #     self.unwrapped.fake_state
-            # )
-            # reward = -self.unwrapped.step_counter*(dist_value ** 2)
-            # dist_reward = self._calculate_distribution_reward(dist_value)
-            # dist_reward /= 0.6 # NOrmalize the reward
-        #     info['ac_distribution_reward'] = dist_reward
-        #     # reward += self.gamma*dist_reward
-        #     if reward < -1:
-        #         return obs, reward, terminated, truncated, info
-        #     if dist_value > self.distribution_threshold:
-        #         reward = -dist_value*100
-        #         reward = dist_reward
-        #     else:
-        #         reward = dist_reward
-
-        # # since this is the last wrapper, we can consider it as final reward
-        # logger.info(f"Reward: {reward}")  
+        info['ac_distribution_reward'] = self._calculate_distribution_reward(dist_value)
+        reward = self.gamma*info['ac_distribution_reward']
         return obs, reward, terminated, truncated, info
     
     def _calculate_distribution_reward(self, distribution_value: float) -> float:
-        # return 0.1 * np.log(distribution_value+self.epsilon) - distribution_value**2
-        # d_target = 0.2
-        # if distribution_value > 1.5*d_target:
-        #     self.gamma *= 1.5
-        # elif distribution_value < 0.5*d_target:
-        #     self.gamma *= 0.5
-        # return -self.gamma * distribution_value
-        return -distribution_value
-        # return -distribution_value/0.26
-        # return -(distribution_value*100)*3
-        # return np.log(1-distribution_value)
-     
+        return -np.tanh(distribution_value*4)
+
     def _calculate_distribution_value(self, real_dist, fake_dist):
         # Add epsilon and normalize
         real_dist = (real_dist + self.epsilon) / np.sum(real_dist + self.epsilon)
@@ -691,3 +668,19 @@ class DistributionRewardWrapper(RewardWrapper):
     def chi_square(self, p, q):
         return np.sum((p - q) ** 2 / (p + q + self.epsilon))
 
+class DistributionRewardWrapper1(DistributionRewardWrapper):
+    """Wrapper for distribution similarity rewards"""
+    def __init__(self, env: gym.Env, gamma: float = 0.2, epsilon: float = 1e-8, distribution_freq: int = 3, distribution_threshold: float = 0.22):
+        super().__init__(env)
+        self.gamma = gamma
+        self.epsilon = epsilon
+        self.distribution_reward_freq = distribution_freq
+        self.distribution_threshold = distribution_threshold #0.18 #0.22
+        
+    def calculate_distribution_reward(self, distribution_value: float) -> float:
+        return -distribution_value
+    
+ENUM_DISTRIBUTION_REWARD_METHODS = {
+    'DistributionRewardWrapper': DistributionRewardWrapper,
+    'DistributionRewardWrapper1': DistributionRewardWrapper1,
+    }

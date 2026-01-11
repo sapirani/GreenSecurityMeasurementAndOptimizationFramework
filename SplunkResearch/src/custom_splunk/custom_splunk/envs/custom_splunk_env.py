@@ -157,6 +157,7 @@ class SplunkEnv(gym.Env):
         self.baseline_dir.mkdir(parents=True, exist_ok=True)
         # Load or create baseline table
         self.baseline_path = self._get_baseline_path()
+        print("Baseline path:", self.baseline_path)
         self.baseline_df = self._load_baseline_table() 
         self.episodic_fake_logs_qnt = 0  
         
@@ -165,7 +166,8 @@ class SplunkEnv(gym.Env):
         """Get path for baseline data based on environment config"""
         env_id = self.unwrapped.config.env_id
         search_window = self.unwrapped.config.search_window
-        return self.baseline_dir / f"baseline_{env_id}_{search_window}.csv"
+        host_name = self.splunk_tools.splunk_host
+        return self.baseline_dir / f"baseline_{env_id}_{search_window}_{host_name.replace('.', '_')}.csv"
      
     def _load_baseline_table(self) -> pd.DataFrame:
         """Load existing baseline table or create new one"""

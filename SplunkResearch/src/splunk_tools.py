@@ -516,9 +516,6 @@ class SplunkTools(object):
         return len(self.active_saved_searches)
     
 
-
-   
-        
     
     def mock_run_saved_searches(self, time_range: Tuple[str, str]) -> List[QueryMetrics]:
         """

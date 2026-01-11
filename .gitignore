@@ -34,7 +34,7 @@ Windows*
 *cpu_regressor_results*
 program_parameters.py
 *backup*
-*.joblib
+# *.joblib
 SplunkResearch/energy_profile_final.log
 elastic_reader/elastic_reader_parameters.py
 measurements_model_pipeline/dataset_parameters.py
