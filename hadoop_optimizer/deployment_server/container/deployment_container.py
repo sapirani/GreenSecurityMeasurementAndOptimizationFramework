@@ -6,8 +6,8 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.policies import ActorCriticPolicy
 from elastic_reader.consts import TimePickerInputStrategy
-from hadoop_optimizer.deployment_server.drl_manager import DRLManager
-from hadoop_optimizer.drl_telemetry.telemetry_manager import DRLTelemetryManager
+from hadoop_optimizer.deployment_server.drl_deployment_manager import DRLDeploymentManager
+from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
 from hadoop_optimizer.env_composition_config.env_builder import build_env
 from hadoop_optimizer.env_composition_config.env_wrapper_spec import EnvWrappersParams
@@ -29,15 +29,15 @@ class DeploymentContainer(containers.DeclarativeContainer):
         ))
     )
 
-    drl_telemetry_manager: Provider[DRLTelemetryManager] = providers.Singleton(
-        DRLTelemetryManager,
+    telemetry_aggregator: Provider[TelemetryAggregator] = providers.Singleton(
+        TelemetryAggregator,
         time_windows_seconds=config.drl_state.time_windows_seconds,
         split_by=config.drl_state.split_by,
     )
 
     base_env: Provider[gym.Env] = providers.Factory(
         OptimizerDeploymentEnv,
-        telemetry_manager=drl_telemetry_manager
+        telemetry_aggregator=telemetry_aggregator
     )
 
     env_wrappers_params: Provider[EnvWrappersParams] = providers.Factory(
@@ -60,8 +60,8 @@ class DeploymentContainer(containers.DeclarativeContainer):
         policy_kwargs=dict(log_std_init=0.8)
     )
 
-    drl_manager: Provider[DRLManager] = providers.Factory(
-        DRLManager,
+    drl_deployment_manager: Provider[DRLDeploymentManager] = providers.Factory(
+        DRLDeploymentManager,
         deployment_drl_model=deployment_drl_model,
         deployment_env=deployment_env,
     )

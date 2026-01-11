@@ -48,7 +48,7 @@ def run_selected_job_within_the_digital_twin_environment(
         start_time = time.perf_counter()
         subprocess.run(
             # selected_job.get_hadoop_job_args(),
-            ["python", "-c", "import time; time.sleep(1)"],
+            ["python", "-c", "import time; time.sleep(30)"],
             check=True,
             timeout=MAX_JOB_RUNTIME,
         )

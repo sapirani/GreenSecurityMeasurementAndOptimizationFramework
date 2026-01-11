@@ -5,7 +5,7 @@ from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_properties import JobProperties
 from hadoop_optimizer.drl_envs.consts import TERMINATE_ACTION_NAME, CURRENT_JOB_CONFIG_KEY, NEXT_JOB_CONFIG_KEY, \
     JOB_PROPERTIES_KEY, DEFAULT_JOB_CONFIG_KEY
-from hadoop_optimizer.drl_telemetry.telemetry_manager import DRLTelemetryManager
+from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 import gymnasium as gym
 from gymnasium.core import RenderFrame, ActType, ObsType
 import numpy as np
@@ -33,7 +33,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         (in terms of minimal running time and energy consumption), while performing minimal number of steps.
     """
 
-    def __init__(self, telemetry_manager: DRLTelemetryManager):
+    def __init__(self, telemetry_aggregator: TelemetryAggregator):
         super().__init__()
         self.render_mode = "human"  # must be defined for successful rendering in training
         # TODO: SUPPORT CURRENT CLUSTER LOAD
@@ -48,7 +48,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
             TERMINATE_ACTION_NAME: spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
         })
 
-        self.telemetry_manager = telemetry_manager  # TODO: LEVERAGE TELEMETRY MANAGER INSIDE THE OBSERVATION SPACE
+        self.telemetry_aggregator = telemetry_aggregator  # TODO: LEVERAGE TELEMETRY MANAGER INSIDE THE OBSERVATION SPACE
         # TODO: THINK ABOUT WHAT TO DO WITH TELEMETRY IN THE TRAINING ENV
         #  (AS IT SHOULD BE THE SAME ACROSS THE EPISODE, BUT EACH STEP AFFECTS IT BY ITSELF)
         self.episodic_telemetry = None
@@ -91,14 +91,15 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
             CURRENT_JOB_CONFIG_KEY: self._current_hadoop_config.model_dump(include=self.supported_configurations),
         }
 
-    # todo: consider returning HadoopJobExecutionConfig instead of setting it directly into self._current_hadoop_config
-    def _build_next_state(self, action: ActType):
-        # apply action to modify selected hadoop configuration
+    @staticmethod
+    def _get_next_execution_config(action: ActType) -> HadoopJobExecutionConfig:
+        """ Apply action to modify next hadoop configuration """
         # TODO: if actions are becoming deltas: start from self._current_hadoop_config,
         #   instead of the default configuration
         default_config = HadoopJobExecutionConfig()
-        self._current_hadoop_config = default_config.model_copy(
-            update=action[NEXT_JOB_CONFIG_KEY], deep=True
+        return default_config.model_copy(
+            update=action[NEXT_JOB_CONFIG_KEY],
+            deep=True,
         )
 
     def reset(
@@ -114,7 +115,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
 
         # TODO: CONSIDER RETURNING DEBUGGING INFO, such as the current cluster load
         self._current_hadoop_config = HadoopJobExecutionConfig()
-        self.episodic_telemetry = self.telemetry_manager.get_telemetry()
+        self.episodic_telemetry = self.telemetry_aggregator.get_telemetry()
         info = {DEFAULT_JOB_CONFIG_KEY: True}
         return self._construct_observation(), info
 
@@ -131,7 +132,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
 
         terminated = action[TERMINATE_ACTION_NAME]
         if not terminated and not truncated:
-            self._build_next_state(action)
+            self._current_hadoop_config = self._get_next_execution_config(action)
 
         self._compute_reward(self._current_hadoop_config, terminated, truncated)
 

@@ -19,7 +19,7 @@ from custom_package_extensions.river_extensions.timezone_aware_time_rolling impo
 from hadoop_optimizer.erros import StateNotReadyException
 
 
-class DRLTelemetryManager(AbstractElasticConsumer):
+class TelemetryAggregator(AbstractElasticConsumer):
     """
     This version of DRL state is relatively naive.
     It uses the metrics gained from the entire nodes and processes, and aggregate them all together.
