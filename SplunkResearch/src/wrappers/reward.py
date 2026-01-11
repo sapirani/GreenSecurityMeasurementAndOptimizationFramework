@@ -409,7 +409,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                                 # query splunk for the events in the time range
                                 
                                 query = f'index={self.unwrapped.splunk_tools.index_name} host IN ("dt-splunk", 132.72.81.150) EventCode={relevant_log[0][1]}  | stats count by real_ts var_id'
-                                print(time_range_date)
+                                # print(time_range_date)
                                 results = self.unwrapped.splunk_tools.run_search(query, *time_range)
                                 formatted_log = "\n".join([json.dumps(record) for record in results])
                                 logger.info(f"Event times for {rule_name} in {time_range}: {formatted_log}")
@@ -499,7 +499,7 @@ class AlertRewardWrapper2(AlertRewardWrapper):
     def __init__(self, env: gym.Env, beta: float = 0.5):
         super().__init__(env)
         self.beta = beta
-        print(f"Beta: {self.beta}")
+        # print(f"Beta: {self.beta}")
         
     def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
         """Calculate normalized alert reward"""
@@ -521,7 +521,7 @@ class AlertRewardWrapper2(AlertRewardWrapper):
                 alert_diff = (current_rules_alerts[rule] - baseline_alert) / (baseline_alert + 0.1)
                 alert_diffs.append(alert_diff)
             if alert_diffs:
-                print(f"Alert diffs: {alert_diffs}")
+                # print(f"Alert diffs: {alert_diffs}")
                 reward_alert = min(0, -np.mean(alert_diffs))
                 
             else:
@@ -628,7 +628,7 @@ class DistributionRewardWrapper(RewardWrapper):
     def __init__(self, env: gym.Env, gamma: float = 0.2, epsilon: float = 1e-8, distribution_freq: int = 3, distribution_threshold: float = 0.22):
         super().__init__(env)
         self.gamma = gamma
-        print(f"Gamma: {self.gamma}")
+        # print(f"Gamma: {self.gamma}")
         self.epsilon = epsilon
         self.distribution_reward_freq = distribution_freq
         self.distribution_threshold = distribution_threshold #0.18 #0.22
