@@ -56,7 +56,7 @@ def run_elastic_reader(
     except KeyboardInterrupt:
         print("A keyboard interrupt was detected, finalizing...")
         print("Note: last iteration results might be incomplete due to interruption")
-        iterate_results(reader.identify_last_iterations(force=True), consumers, aggregation_manager)
+        iterate_results(reader.identify_non_graceful_termination(force=True), consumers, aggregation_manager)
 
     trigger_post_processing(consumers)
 
