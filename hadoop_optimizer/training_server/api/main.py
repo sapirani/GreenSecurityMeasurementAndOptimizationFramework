@@ -7,7 +7,6 @@ from fastapi import FastAPI, Depends
 from starlette import status
 
 from DTOs.hadoop.hadoop_job import HadoopJob
-from DTOs.hadoop.hadoop_job_definition import HadoopJobDefinition
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_types import JobType
@@ -72,4 +71,4 @@ def run_selected_job_within_the_digital_twin_environment(
 
 
 if __name__ == '__main__':
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=9000)

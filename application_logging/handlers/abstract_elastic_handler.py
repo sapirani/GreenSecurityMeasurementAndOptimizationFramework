@@ -5,6 +5,8 @@ import logging
 from typing import Optional, Dict, Any
 from elasticsearch import Elasticsearch
 
+TIMESTAMP_FIELD_NAME = "timestamp"
+
 
 class AbstractElasticSearchHandler(logging.Handler, ABC):
     def __init__(
@@ -44,7 +46,7 @@ class AbstractElasticSearchHandler(logging.Handler, ABC):
             if key not in reserved:
                 doc[key] = value
 
-        if "timestamp" not in doc:
-            doc["timestamp"]: datetime.now(timezone.utc).isoformat()
+        if TIMESTAMP_FIELD_NAME not in doc:
+            doc[TIMESTAMP_FIELD_NAME] = datetime.now(timezone.utc).isoformat()
 
         self._inner_emit(doc)
