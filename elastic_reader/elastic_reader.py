@@ -85,7 +85,6 @@ class ElasticReader:
                     seconds=NON_GRACEFUL_TERMINATION_DETECTION_WINDOW_SECONDS) or force:  # assuming it is the last iteration
 
                 yield from self.__yield_iteration_per_session_host(iteration_metadata, is_last_iteration=True)
-                self.__ongoing_iteration_metadata = None
 
     def __yield_iteration_per_session_host(self, iteration_metadata: IterationMetadata, *, is_last_iteration: bool):
         yield IterationRawResults(
@@ -97,6 +96,7 @@ class ElasticReader:
 
         # Delete previous iteration data
         self.__results_by_session_host.pop(iteration_metadata)
+        self.__ongoing_iteration_metadata = None
 
     @staticmethod
     def __is_scanner_terminated(raw_data):
@@ -127,10 +127,14 @@ class ElasticReader:
 
                 if examined_doc.meta.index == ElasticIndex.APPLICATION_FLOW:
                     if self.__is_scanner_terminated(raw_data):
-                        yield from self.__yield_iteration_per_session_host(
-                            self.__ongoing_iteration_metadata,
-                            is_last_iteration=True
-                        )
+                        # session ended (we fetched the last iteration) and we received the "termination message"
+                        # *before* other sessions retrieved any data (so the last iteration was not yielded already)
+                        if (current_doc_iteration_metadata.session_host_identity ==
+                                self.__ongoing_iteration_metadata.session_host_identity):
+                            yield from self.__yield_iteration_per_session_host(
+                                self.__ongoing_iteration_metadata,
+                                is_last_iteration=True
+                            )
                     continue
                 elif not self.__ongoing_iteration_metadata:  # first iteration
                     self.__ongoing_iteration_metadata = current_doc_iteration_metadata
