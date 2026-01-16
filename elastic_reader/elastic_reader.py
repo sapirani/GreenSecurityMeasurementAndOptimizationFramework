@@ -52,7 +52,21 @@ class ElasticReader:
             "timestamp",
             {"session_id.keyword": {"order": "asc"}},
             {"hostname.keyword": {"order": "asc"}},
-            {"_index": {"order": "asc"}},
+            { # index ordering
+                "_script": {
+                    "type": "number",
+                    "order": "asc",
+                    "script": {
+                        "lang": "painless",
+                        "source": f"""
+                              if (doc['_index'].value == '{ElasticIndex.PROCESS}') return 1;
+                              if (doc['_index'].value == '{ElasticIndex.SYSTEM}') return 2;
+                              if (doc['_index'].value == '{ElasticIndex.APPLICATION_FLOW}') return 3;
+                              return 999;
+                            """
+                    }
+                }
+            },
             {"pid": {"order": "asc", "missing": "_last", "unmapped_type": "long"}},
             {"process_name.keyword": {"order": "asc", "missing": "_last", "unmapped_type": "keyword"}},
             "_doc"
@@ -103,6 +117,13 @@ class ElasticReader:
         return raw_data.get('message') == "The scanner has finished measuring"
 
     def read(self) -> Iterator[IterationRawResults]:
+        """
+        Yield the iteration results right when they are ready.
+        Iteration results refers to all telemetry related to the same scanner iteration of measurements.
+        E.g., all processes telemetry and system telemetry are gathered into a single iteration results DTO.
+        Assumption: the scanner is outputting a termination message right when its last iteration is detected.
+        Important: this message should have the exact same timestamp as the telemetry results of the last iteration
+        """
         last_sort = None
 
         while True:
@@ -127,13 +148,10 @@ class ElasticReader:
 
                 if examined_doc.meta.index == ElasticIndex.APPLICATION_FLOW:
                     if self.__is_scanner_terminated(raw_data):
-                        # session ended (we fetched the last iteration) and we received the "termination message"
-                        # *before* other sessions retrieved any data (so the last iteration was not yielded already)
-                        if (current_doc_iteration_metadata.session_host_identity ==
-                                self.__ongoing_iteration_metadata.session_host_identity):
-                            yield from self.__yield_iteration_per_session_host(
-                                self.__ongoing_iteration_metadata,
-                                is_last_iteration=True
+                        # yield the last iteration results right away (when we receive the termination message)
+                        yield from self.__yield_iteration_per_session_host(
+                            self.__ongoing_iteration_metadata,
+                            is_last_iteration=True
                             )
                     continue
                 elif not self.__ongoing_iteration_metadata:  # first iteration
@@ -143,6 +161,7 @@ class ElasticReader:
                     if current_doc_iteration_metadata in self.__previous_metadata_set:
                         print("Warning! received an old metadata")
 
+                    # yield the previous iteration results as we reach to a new iteration
                     yield from self.__yield_iteration_per_session_host(
                         self.__ongoing_iteration_metadata,
                         is_last_iteration=False
