@@ -57,6 +57,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         self._episodic_job_properties: Optional[JobProperties] = None
         self._last_action: Optional[Dict[str, Any]] = None
         self.step_count = 0
+        self.episode_counter = 0
 
     @property
     def job_config_space(self):
@@ -110,6 +111,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
     ) -> tuple[ObsType, dict[str, Any]]:
         super().reset(seed=seed)
         self.step_count = 0
+        self.episode_counter += 1
 
         self._episodic_job_properties = self._init_episodic_job(options)
 

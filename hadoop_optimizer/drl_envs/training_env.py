@@ -4,6 +4,7 @@ from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
 from DTOs.hadoop.job_properties import JobProperties
 from DTOs.hadoop.job_types import JobType
+from DTOs.hadoop.training_metadata import TrainingMetadata
 from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOptimizerEnvInterface
 from hadoop_optimizer.drl_telemetry.energy_tracker import EnergyTracker
 from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator
@@ -20,11 +21,13 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             training_client: HadoopOptimizerTrainingClient,
             energy_tracker: EnergyTracker,
             reward_calculator: RewardCalculator,
+            training_session_id: str
     ):
         super().__init__(telemetry_aggregator)
         self.training_client = training_client
         self.energy_tracker = energy_tracker
         self.reward_calculator = reward_calculator
+        self.training_session_id = training_session_id
 
         self.__episodic_job_descriptor: Optional[JobDescriptor] = None
 
@@ -34,11 +37,23 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         print("Total Reward:", self.reward_calculator.last_reward)
         print("Episodic Job Type:", self.__episodic_job_descriptor.job_type.value)
 
-    def __run_job_and_measure_performance(self, job_config: HadoopJobExecutionConfig) -> JobExecutionPerformance:
-        self.energy_tracker.reset_tracker()
+    def __run_job_and_measure_performance(
+            self,
+            job_config: HadoopJobExecutionConfig,
+            *,
+            is_baseline: bool = False
+    ) -> JobExecutionPerformance:
+
+        self.energy_tracker.reset_tracker(self.training_session_id)
         result = self.training_client.run_job(
             job_descriptor=self.__episodic_job_descriptor,
             execution_configuration=job_config,
+            session_id=self.training_session_id,
+            scanner_extras=TrainingMetadata(
+                episode_num=self.episode_counter,
+                step_num=self.step_count,
+                is_baseline=is_baseline
+            )
         )
         # TODO: SHOULD WE USE PER-HOST ENERGY CONSUMPTION HERE?
         energy_consumption = sum(self.energy_tracker.get_energy_consumption().values())
@@ -53,7 +68,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         self.__episodic_job_descriptor = JobDescriptor(job_type=selected_job_type, input_size_gb=selected_input_size_gb)
 
         default_execution_configuration = HadoopJobExecutionConfig()
-        job_performance = self.__run_job_and_measure_performance(default_execution_configuration)
+        job_performance = self.__run_job_and_measure_performance(default_execution_configuration, is_baseline=True)
         self.reward_calculator.update_baseline_performance(job_performance)
 
         return SupportedJobsConfig.extract_job_properties(self.__episodic_job_descriptor)

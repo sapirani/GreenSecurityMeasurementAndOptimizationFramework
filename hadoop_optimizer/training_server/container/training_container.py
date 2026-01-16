@@ -4,6 +4,7 @@ from unittest.mock import Mock
 from dependency_injector import containers, providers
 import gymnasium as gym
 from dependency_injector.providers import Provider
+from human_id import generate_id
 from stable_baselines3 import PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.policies import ActorCriticPolicy
@@ -60,6 +61,7 @@ class TrainingContainer(containers.DeclarativeContainer):
         training_client=training_client,
         energy_tracker=energy_tracker,
         reward_calculator=reward_calculator,
+        training_session_id=generate_id(word_count=3)
     )
 
     env_wrappers_params: Provider[EnvWrappersParams] = providers.Factory(

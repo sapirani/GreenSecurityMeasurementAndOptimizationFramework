@@ -1,9 +1,12 @@
+from typing import Optional
+
 import requests
 from urllib.parse import urljoin
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
+from hadoop_optimizer.drl_envs.training_env import TrainingMetadata
 from hadoop_optimizer.training_client.consts import DEFAULT_CHOOSE_CONFIG_ENDPOINT_NAME, DEFAULT_SERVER_PORT, \
-    DEFAULT_SERVER_IP
+    DEFAULT_SERVER_IP, SESSION_ID_PARAM_NAME
 from DTOs.hadoop.training_run_job_response import TrainingJobRunResponse
 
 
@@ -21,6 +24,8 @@ class HadoopOptimizerTrainingClient:
         self,
         job_descriptor: JobDescriptor,
         execution_configuration: HadoopJobExecutionConfig,
+        session_id: Optional[str],
+        scanner_extras: Optional[TrainingMetadata]
     ) -> TrainingJobRunResponse:
         """
         :raises:
@@ -29,9 +34,16 @@ class HadoopOptimizerTrainingClient:
             3.  requests.exceptions.HTTPError: 501 not implemented (typically when Hadoop is not installed)
             4.  requests.exceptions.HTTPError: 503 gateway timout (when job execution has passed time limit)
         """
+        params = job_descriptor.model_dump()
+        if session_id:
+            params[SESSION_ID_PARAM_NAME] = session_id
+
+        if scanner_extras:
+            params = {**params, **scanner_extras.model_dump()}
+
         response = requests.post(
             urljoin(self.api_address, self.run_job_endpoint_name),
-            params=job_descriptor.model_dump(),
+            params=params,
             json=execution_configuration.model_dump(),
         )
         response.raise_for_status()

@@ -31,9 +31,6 @@ def run_energy_tracker(
         daemon=True
     )
     t.start()
-    print("Waiting for Elastic Reader Synchronization")
-    time.sleep(MAX_INDEXING_TIME_SECONDS)
-    print("Finished for Elastic Reader Synchronization")
     yield
     # shutdown code
     print("terminating elastic reader")
