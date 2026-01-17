@@ -34,10 +34,10 @@ class NodesTriggerSender(BaseModel):
 
     def get_receivers_addresses(self) -> List[Tuple[str, int]]:
         return [
-            # *[(datanode_url, self.datanodes_port) for datanode_url in self.datanodes_urls],
-            # (self.resource_manager_url, self.resource_manager_port),
+            *[(datanode_url, self.datanodes_port) for datanode_url in self.datanodes_urls],
+            (self.resource_manager_url, self.resource_manager_port),
             (self.namenode_url, self.namenode_port),
-            # (self.history_server_url, self.history_server_port)
+            (self.history_server_url, self.history_server_port)
         ]
 
     def _build_full_session_id(self, session_id: str):
