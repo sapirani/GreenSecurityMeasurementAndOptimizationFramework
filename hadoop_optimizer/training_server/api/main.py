@@ -96,6 +96,7 @@ def run_selected_job_within_the_digital_twin_environment(
             timeout=MAX_JOB_RUNTIME,
         )
         runtime = time.perf_counter() - start_time
+        subprocess.run(["hdfs", "dfs", "-rm", "-r", "-f", str(selected_job.job_definition.output_path)], check=True)
         nodes_trigger_sender.stop_measurement(session_id=session_id)
         return TrainingJobRunResponse(runtime_sec=runtime)
     except subprocess.TimeoutExpired:

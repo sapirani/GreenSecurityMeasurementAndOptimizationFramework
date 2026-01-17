@@ -48,7 +48,7 @@ def send_trigger(
                 continue
             logging.info(f"Connected to {receiver_address}, Sending:{trigger_message}")
             full_message = f"{trigger_message} --measurement_session_id {session_id} " \
-                           f"--scanner_logging_extras {json.dumps(scanner_logging_extras)}"
+                           f"--scanner_logging_extras '{json.dumps(scanner_logging_extras)}'"
             s.sendall(full_message.encode())
 
 

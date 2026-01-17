@@ -54,7 +54,7 @@ class NodesTriggerSender(BaseModel):
             scanner_logging_extras: Optional[Dict[str, str]] = None
     ):
         send_trigger(
-            TriggerAction.START_MEASUREMENT,
+            TriggerAction.START_MEASUREMENT.value,
             self.get_receivers_addresses(),
             self._build_full_session_id(session_id),
             scanner_logging_extras
@@ -62,14 +62,14 @@ class NodesTriggerSender(BaseModel):
 
     def stop_measurement(self, *, session_id: Optional[str] = None):
         send_trigger(
-            TriggerAction.STOP_MEASUREMENT,
+            TriggerAction.STOP_MEASUREMENT.value,
             self.get_receivers_addresses(),
             self._build_full_session_id(session_id)
         )
 
     def stop_program(self):
         send_trigger(
-            TriggerAction.STOP_PROGRAM,
+            TriggerAction.STOP_PROGRAM.value,
             self.get_receivers_addresses(),
             ""
         )
