@@ -14,6 +14,8 @@ class SupportedJobsConfig:
     def get_all_jobs() -> List[JobType]:
         return list(JobType)
 
+    # TODO: MAKE THIS LIST DYNAMIC (MAYBE BY A SEPARATE API ON THE TRAINING SERVER THAT OBSERVES THE DIRECTORY
+    #  STRUCTURE AND UNDERSTANDS) WHAT ARE THE SUPPORTED INPUT SIZES
     @staticmethod
     def get_supported_input_size_gb(job_type: JobType) -> List[float]:
         return [1, 5, 10]
@@ -51,26 +53,26 @@ class SupportedJobsConfig:
     def extract_job_definition(job_descriptor: JobDescriptor) -> HadoopJobDefinition:
         if job_descriptor.job_type == JobType.word_count:
             return HadoopJobDefinition(
-                input_path=Path(f"/input/input_{job_descriptor.input_size_gb}_gb"),
-                output_path=Path(f"/output/output_{job_descriptor.input_size_gb}_gb"),
-                mapper_path=Path(f"/home/word_count/mapper.py"),
-                reducer_path=Path("/home/word_count/reducer.py"),
+                input_path=Path(f"/input/{job_descriptor.input_size_gb}_gb"),
+                output_path=Path(f"/output/{job_descriptor.input_size_gb}_gb"),
+                mapper_path=Path(f"/home/mapreduce/word_count/mapper.py"),
+                reducer_path=Path("/home/mapreduce/word_count/reducer.py"),
             )
 
         elif job_descriptor.job_type == JobType.anagrams:
             return HadoopJobDefinition(
-                input_path=Path(f"/input/input_{job_descriptor.input_size_gb}_gb"),
-                output_path=Path(f"/output/output_{job_descriptor.input_size_gb}_gb"),
-                mapper_path=Path(f"/home/anagrams/mapper.py"),
-                reducer_path=Path("/home/anagrams/reducer.py"),
+                input_path=Path(f"/input/{job_descriptor.input_size_gb}_gb"),
+                output_path=Path(f"/output/{job_descriptor.input_size_gb}_gb"),
+                mapper_path=Path(f"/home/mapreduce/anagrams/mapper.py"),
+                reducer_path=Path("/home/mapreduce/anagrams/reducer.py"),
             )
 
         elif job_descriptor.job_type == JobType.line_statistics:
             return HadoopJobDefinition(
-                input_path=Path(f"/input/input_{job_descriptor.input_size_gb}_gb"),
-                output_path=Path(f"/output/output_{job_descriptor.input_size_gb}_gb"),
-                mapper_path=Path(f"/home/line_statistics/mapper.py"),
-                reducer_path=Path("/home/line_statistics/reducer.py"),
+                input_path=Path(f"/input/{job_descriptor.input_size_gb}_gb"),
+                output_path=Path(f"/output/{job_descriptor.input_size_gb}_gb"),
+                mapper_path=Path(f"/home/mapreduce/line_statistics/mapper.py"),
+                reducer_path=Path("/home/mapreduce/line_statistics/reducer.py"),
             )
 
         else:
