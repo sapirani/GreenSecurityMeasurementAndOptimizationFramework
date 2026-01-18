@@ -16,6 +16,7 @@ class EnergyTracker(AbstractElasticConsumer):
         self.measurement_session_id = None
 
         self._cond = threading.Condition()
+        # TODO: SUPPORT SESSION TERMINATION PER ALL HOSTS (NOT JUST ONE - WE HAVE 6 SESSION-HOST COMBINATIONS)
         self.session_done = False
 
     def consume(
@@ -50,8 +51,11 @@ class EnergyTracker(AbstractElasticConsumer):
 
         hostname = iteration_raw_results.metadata.session_host_identity.hostname
 
+        print("cond lock (consume)")
         with self._cond:
+            print("waiting for session not terminating (consume)")
             self._cond.wait_for(lambda: not self.session_done)
+            print("finished waiting for session not terminating (consume)")
 
             self.__hostname_to_energy[hostname] += energy_model_result.energy_mwh
 
@@ -64,8 +68,11 @@ class EnergyTracker(AbstractElasticConsumer):
         This function is supposed to be called right after the job has terminated (or even while the job is running).
         It is important to do so to avoid blocking the consume function
         """
+        print("cond lock (get_energy_consumption)")
         with self._cond:
+            print("waiting for the session to terminate (get_energy_consumption)")
             self._cond.wait_for(lambda: self.session_done)
+            print("session has terminated (get_energy_consumption)")
 
             if not self.__hostname_to_energy:
                 raise NoEnergyMeasurements()
@@ -80,7 +87,9 @@ class EnergyTracker(AbstractElasticConsumer):
         """
         Scanner is assumed to start running after calling this function
         """
+        print("cond lock (reset_tracker)")
         with self._cond:
+            print("within cond lock (reset_tracker)")
             self.__hostname_to_energy.clear()
             self.measurement_session_id = measurement_session_id
             self.session_done = False

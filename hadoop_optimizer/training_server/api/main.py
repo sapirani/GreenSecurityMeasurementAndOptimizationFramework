@@ -86,6 +86,7 @@ def run_selected_job_within_the_digital_twin_environment(
     nodes_trigger_sender = NodesTriggerSender()
     scanner_logging_extras = scanner_extras.model_dump() if scanner_extras else {}
 
+    # TODO: LOG THE JOB TYPE, IN ADDITION TO THE STEP AND EPISODE NUMBER
     try:
         nodes_trigger_sender.start_measurement(session_id=session_id, scanner_logging_extras=scanner_logging_extras)
         print("running job:", selected_job)
@@ -96,8 +97,6 @@ def run_selected_job_within_the_digital_twin_environment(
             timeout=MAX_JOB_RUNTIME,
         )
         runtime = time.perf_counter() - start_time
-        subprocess.run(["hdfs", "dfs", "-rm", "-r", "-f", str(selected_job.job_definition.output_path)], check=True)
-        nodes_trigger_sender.stop_measurement(session_id=session_id)
         return TrainingJobRunResponse(runtime_sec=runtime)
     except subprocess.TimeoutExpired:
         raise HTTPException(
@@ -114,6 +113,12 @@ def run_selected_job_within_the_digital_twin_environment(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail=f"Hadoop executable not found: {str(e)}"
         )
+    finally:
+        # TODO: ENSURE THAT THIS WORKS EVEN WHEN THE JOB ITSELF HAS FAILED TO RUN
+        print("Removing output directory")
+        subprocess.run(["hdfs", "dfs", "-rm", "-r", "-f", str(selected_job.job_definition.output_path)], check=True)
+        print("Sending stop measurement trigger")
+        nodes_trigger_sender.stop_measurement(session_id=session_id)
 
 
 if __name__ == '__main__':

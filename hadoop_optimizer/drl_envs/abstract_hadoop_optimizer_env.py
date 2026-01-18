@@ -62,6 +62,10 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
     @property
     def job_config_space(self):
         # TODO: extend this implementation with all the flags:
+        # TODO: TAILOR VALUES TO THE CURRENT CAPABILITIES OF THE SERVER:
+        #  (failed with state killed due to reduce capability required is more than the supported max container
+        #  capability in the cluster. kiling the jpb/ reduceResourceRequest:
+        #  <memory: 1024, vcores:4> MaxContainerCapability:<memory:3584, vCores:3>)
         return spaces.Dict({
             "number_of_mappers": spaces.Box(low=1, high=15, shape=(), dtype=np.float32),
             "number_of_reducers": spaces.Box(low=1, high=15, shape=(), dtype=np.float32),
