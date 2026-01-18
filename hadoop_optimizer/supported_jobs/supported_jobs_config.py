@@ -18,7 +18,7 @@ class SupportedJobsConfig:
     #  STRUCTURE AND UNDERSTANDS) WHAT ARE THE SUPPORTED INPUT SIZES
     @staticmethod
     def get_supported_input_size_gb(job_type: JobType) -> List[float]:
-        return [1, 5, 10]
+        return [0.3, 0.7, 1]
 
     @staticmethod
     def extract_job_properties(job_descriptor: JobDescriptor) -> JobProperties:
