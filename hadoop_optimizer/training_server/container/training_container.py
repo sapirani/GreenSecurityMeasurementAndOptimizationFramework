@@ -1,4 +1,5 @@
 from datetime import datetime
+from logging import Handler
 from unittest.mock import Mock
 
 from dependency_injector import containers, providers
@@ -42,15 +43,18 @@ class TrainingContainer(containers.DeclarativeContainer):
         reading_mode=ReadingMode.REALTIME,
     )
 
+    training_elastic_handler: Provider[Handler] = providers.Singleton(
+        get_elastic_logging_handler,
+        elastic_username=config.elastic_username,
+        elastic_password=config.elastic_password,
+        elastic_url=config.elastic_url,
+        index_name=IndexName.DRL_TRAINING,
+    )
+
     training_results_logger = providers.Singleton(
         get_measurement_logger,
         logger_name=LoggerName.DRL_TRAINING,
-        logger_handler=get_elastic_logging_handler(
-            config.elastic_username,
-            config.elastic_password,
-            config.elastic_url,
-            IndexName.DRL_TRAINING,
-        )
+        logger_handler=training_elastic_handler
     )
 
     energy_tracker: Provider[EnergyTracker] = providers.Singleton(

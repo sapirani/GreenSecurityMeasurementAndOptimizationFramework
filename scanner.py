@@ -87,11 +87,11 @@ def handle_sigint(signum, frame):
     done_scanning_event.set()
 
 
-def log_scanner_termination():
+def log_scanner_termination(logging_constant_extras: Dict):
     done_scanning_event.wait()
     application_flow_logger.info(
         "The scanner has finished measuring",
-        extra={TIMESTAMP_FIELD_NAME: last_iteration_timestamp}
+        extra={TIMESTAMP_FIELD_NAME: last_iteration_timestamp, **logging_constant_extras}
     )
 
 
@@ -870,9 +870,9 @@ def main(user_args):
         )
     )
 
-    application_flow_logger.info("The scanner is starting the measurement")
+    application_flow_logger.info("The scanner is starting the measurement", extra=user_args.logging_constant_extras)
 
-    log_scanner_termination_thread = Thread(target=log_scanner_termination)
+    log_scanner_termination_thread = Thread(target=log_scanner_termination, args=user_args.logging_constant_extras)
     log_scanner_termination_thread.start()
 
     scan_and_measure()

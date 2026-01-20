@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from typing import Any, Optional
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
@@ -77,8 +76,8 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         )
 
         self.training_results_logger.info(
-            "Summarised Training Step Results",
-            extra=asdict(training_step_results)
+            "Summarized Training Step Results",
+            extra=training_step_results.dict()
         )
 
         return job_performance
