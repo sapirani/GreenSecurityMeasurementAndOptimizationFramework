@@ -9,7 +9,7 @@ def get_elastic_logging_handler(
         elastic_password: str,
         elastic_url: str,
         index_name: str,
-        starting_time: float = time.time(),
+        start_timestamp: Optional[float] = None,
         pipeline_name: Optional[str] = None
 ) -> Handler:
     try:
@@ -18,7 +18,7 @@ def get_elastic_logging_handler(
             elastic_password=elastic_password,
             elastic_url=elastic_url,
             index_name=index_name,
-            start_timestamp=starting_time,
+            start_timestamp=start_timestamp,
             pipeline_name=pipeline_name
         )
     except ConnectionError:

@@ -16,7 +16,7 @@ class EnergyTracker(AbstractElasticConsumer):
         self.measurement_session_id = None
 
         self._cond = threading.Condition()
-        # TODO: SUPPORT SESSION TERMINATION PER ALL HOSTS (NOT JUST ONE - WE HAVE 6 SESSION-HOST COMBINATIONS)
+        self._finished_hosts = set()
         self.session_done = False
 
     def consume(
@@ -60,8 +60,12 @@ class EnergyTracker(AbstractElasticConsumer):
             self.__hostname_to_energy[hostname] += energy_model_result.energy_mwh
 
             if iteration_raw_results.is_last_iteration:
-                self.session_done = True
-                self._cond.notify_all()
+                self._finished_hosts.add(iteration_raw_results.metadata.session_host_identity.hostname)
+
+                # session ends when all seen hosts finished
+                if self._finished_hosts >= self.__hostname_to_energy.keys():
+                    self.session_done = True
+                    self._cond.notify_all()
 
     def get_energy_consumption(self) -> Dict[str, float]:
         """
@@ -91,6 +95,7 @@ class EnergyTracker(AbstractElasticConsumer):
         with self._cond:
             print("within cond lock (reset_tracker)")
             self.__hostname_to_energy.clear()
+            self._finished_hosts.clear()
             self.measurement_session_id = measurement_session_id
             self.session_done = False
             self._cond.notify_all()

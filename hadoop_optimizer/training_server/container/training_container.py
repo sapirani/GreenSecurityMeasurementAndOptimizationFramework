@@ -9,6 +9,8 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.policies import ActorCriticPolicy
 
+from application_logging.handlers.elastic_handler import get_elastic_logging_handler
+from application_logging.logging_utils import get_measurement_logger
 from elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
 from elastic_reader.consts import TimePickerInputStrategy
 from hadoop_optimizer.drl_envs.training_env import OptimizerTrainingEnv
@@ -19,6 +21,7 @@ from hadoop_optimizer.reward.reward_calculator import RewardCalculator
 from hadoop_optimizer.training_client.client import HadoopOptimizerTrainingClient
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
+from utils.general_consts import LoggerName, IndexName
 
 
 class TrainingContainer(containers.DeclarativeContainer):
@@ -37,6 +40,17 @@ class TrainingContainer(containers.DeclarativeContainer):
     elastic_aggregations_logger: Provider[ElasticAggregationsLogger] = providers.Singleton(
         ElasticAggregationsLogger,
         reading_mode=ReadingMode.REALTIME,
+    )
+
+    training_results_logger = providers.Singleton(
+        get_measurement_logger,
+        logger_name=LoggerName.DRL_TRAINING,
+        logger_handler=get_elastic_logging_handler(
+            config.elastic_username,
+            config.elastic_password,
+            config.elastic_url,
+            IndexName.DRL_TRAINING,
+        )
     )
 
     energy_tracker: Provider[EnergyTracker] = providers.Singleton(
@@ -61,7 +75,8 @@ class TrainingContainer(containers.DeclarativeContainer):
         training_client=training_client,
         energy_tracker=energy_tracker,
         reward_calculator=reward_calculator,
-        training_session_id=generate_id(word_count=3)
+        train_id=generate_id(word_count=3),
+        training_results_logger=training_results_logger,
     )
 
     env_wrappers_params: Provider[EnvWrappersParams] = providers.Factory(

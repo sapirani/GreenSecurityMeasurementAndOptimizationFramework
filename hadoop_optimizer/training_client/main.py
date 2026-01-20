@@ -1,5 +1,4 @@
 import threading
-import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import List
@@ -8,7 +7,8 @@ from dependency_injector.wiring import inject, Provide
 from stable_baselines3.common.base_class import BaseAlgorithm
 
 from elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
-from elastic_reader.consts import ElasticIndex, MAX_INDEXING_TIME_SECONDS
+from elastic_reader.consts import ElasticIndex
+from elastic_reader_parameters import ES_URL, ES_PASS, ES_USER
 from hadoop_optimizer.drl_telemetry.energy_tracker import EnergyTracker
 from hadoop_optimizer.training_server.container.training_container import TrainingContainer
 from elastic_reader.main import run_elastic_reader
@@ -61,6 +61,9 @@ if __name__ == '__main__':
     container.config.learning_total_timestamps.from_value(100)
     container.config.runtime_importance_factor.from_value(0.5)
     container.config.energy_importance_factor.from_value(0.5)
+    container.config.elastic_username.from_value(ES_USER)
+    container.config.elastic_password.from_value(ES_PASS)
+    container.config.elastic_url.from_value(ES_URL)
     container.config.indices_to_read_from.from_value([ElasticIndex.PROCESS, ElasticIndex.SYSTEM])
     container.wire(modules=[__name__])
     main()

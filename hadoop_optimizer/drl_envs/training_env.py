@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from typing import Any, Optional
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
@@ -5,6 +6,7 @@ from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
 from DTOs.hadoop.job_properties import JobProperties
 from DTOs.hadoop.job_types import JobType
 from DTOs.hadoop.training_metadata import TrainingMetadata
+from DTOs.hadoop.training_step_results import TrainingStepResults
 from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOptimizerEnvInterface
 from hadoop_optimizer.drl_telemetry.energy_tracker import EnergyTracker
 from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator
@@ -12,6 +14,7 @@ from hadoop_optimizer.reward.reward_calculator import RewardCalculator
 from hadoop_optimizer.supported_jobs.supported_jobs_config import SupportedJobsConfig
 from hadoop_optimizer.training_client.client import HadoopOptimizerTrainingClient
 import numpy as np
+from logging import Logger
 
 
 class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
@@ -21,13 +24,15 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             training_client: HadoopOptimizerTrainingClient,
             energy_tracker: EnergyTracker,
             reward_calculator: RewardCalculator,
-            training_session_id: str
+            train_id: str,
+            training_results_logger: Logger
     ):
         super().__init__(telemetry_aggregator)
         self.training_client = training_client
         self.energy_tracker = energy_tracker
         self.reward_calculator = reward_calculator
-        self.training_session_id = training_session_id
+        self.train_id = train_id
+        self.training_results_logger = training_results_logger
 
         self.__episodic_job_descriptor: Optional[JobDescriptor] = None
 
@@ -44,20 +49,39 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             is_baseline: bool = False
     ) -> JobExecutionPerformance:
 
-        self.energy_tracker.reset_tracker(self.training_session_id)
+        self.energy_tracker.reset_tracker(self.train_id)
+        training_metadata = TrainingMetadata(
+            episode_num=self.episode_counter,
+            step_num=self.step_count,
+            is_baseline=is_baseline
+        )
         result = self.training_client.run_job(
             job_descriptor=self.__episodic_job_descriptor,
             execution_configuration=job_config,
-            session_id=self.training_session_id,
-            scanner_extras=TrainingMetadata(
-                episode_num=self.episode_counter,
-                step_num=self.step_count,
-                is_baseline=is_baseline
-            )
+            session_id=self.train_id,
+            scanner_extras=training_metadata,
         )
         # TODO: SHOULD WE USE PER-HOST ENERGY CONSUMPTION HERE?
         energy_consumption = sum(self.energy_tracker.get_energy_consumption().values())
-        return JobExecutionPerformance(running_time_sec=result.runtime_sec, energy_use_mwh=energy_consumption)
+        job_performance = JobExecutionPerformance(
+            running_time_sec=result.runtime_sec,
+            energy_use_mwh=energy_consumption
+        )
+
+        training_step_results = TrainingStepResults(
+            job_descriptor=self.__episodic_job_descriptor,
+            job_config=job_config,
+            training_metadata=training_metadata,
+            job_performance=job_performance,
+            training_id=self.train_id,
+        )
+
+        self.training_results_logger.info(
+            "Summarised Training Step Results",
+            extra=asdict(training_step_results)
+        )
+
+        return job_performance
 
     def _init_episodic_job(self, options: dict[str, Any] | None) -> JobProperties:
         if options:
