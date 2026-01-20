@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import SupportsFloat, Any, Optional, Dict
+from typing import SupportsFloat, Any, Optional, Dict, Set
 
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_properties import JobProperties
@@ -60,31 +60,33 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         self.episode_counter = 0
 
     @property
-    def job_config_space(self):
+    def job_config_space(self) -> spaces.Dict:
+        """
+        Note: this space is the major part of the action space. It *must* suit the resource capabilities of the server
+        in which the tasks are executed at.
+        Do not ask for more resources (e.g., large amount of CPU cores) than what is configured in the server as
+        the limits.
+        """
         # TODO: extend this implementation with all the flags:
-        # TODO: TAILOR VALUES TO THE CURRENT CAPABILITIES OF THE SERVER:
-        #  (failed with state killed due to reduce capability required is more than the supported max container
-        #  capability in the cluster. kiling the jpb/ reduceResourceRequest:
-        #  <memory: 1024, vcores:4> MaxContainerCapability:<memory:3584, vCores:3>)
         return spaces.Dict({
             "number_of_mappers": spaces.Box(low=1, high=15, shape=(), dtype=np.float32),
             "number_of_reducers": spaces.Box(low=1, high=15, shape=(), dtype=np.float32),
-            "map_memory_mb": spaces.Box(low=100, high=1500, shape=(), dtype=np.float32),
+            "map_memory_mb": spaces.Box(low=256, high=4096, shape=(), dtype=np.float32),
             "should_compress": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
-            "map_vcores": spaces.Box(low=1, high=4, shape=(), dtype=np.float32),
-            "reduce_vcores": spaces.Box(low=1, high=4, shape=(), dtype=np.float32),
+            "map_vcores": spaces.Box(low=1, high=5, shape=(), dtype=np.float32),
+            "reduce_vcores": spaces.Box(low=1, high=5, shape=(), dtype=np.float32),
         })
 
     @property
-    def job_properties_space(self):
+    def job_properties_space(self) -> spaces.Dict:
         return spaces.Dict({
-            "input_size_gb": spaces.Box(low=0, high=300, shape=(), dtype=np.float32),
+            "input_size_gb": spaces.Box(low=0, high=20, shape=(), dtype=np.float32),
             "cpu_bound_scale": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
             "io_bound_scale": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
         })
 
     @property
-    def supported_configurations(self):
+    def supported_configurations(self) -> Set[str]:
         return set(self.job_config_space.keys())
 
     def _construct_observation(
