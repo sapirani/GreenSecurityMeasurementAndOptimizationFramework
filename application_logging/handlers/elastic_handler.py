@@ -10,8 +10,9 @@ def get_elastic_logging_handler(
         elastic_url: str,
         index_name: str,
         start_timestamp: Optional[float] = None,
-        pipeline_name: Optional[str] = None
-) -> Handler:
+        pipeline_name: Optional[str] = None,
+        ignore_exceptions: bool = False,
+) -> Optional[Handler]:
     try:
         return ElasticSearchLogHandler(
             elastic_username=elastic_username,
@@ -21,8 +22,11 @@ def get_elastic_logging_handler(
             start_timestamp=start_timestamp,
             pipeline_name=pipeline_name
         )
-    except ConnectionError:
-        return None
+    except ConnectionError as e:
+        if ignore_exceptions:
+            return None
+        else:
+            raise e
 
 
 class ElasticSearchLogHandler(AbstractElasticSearchHandler):

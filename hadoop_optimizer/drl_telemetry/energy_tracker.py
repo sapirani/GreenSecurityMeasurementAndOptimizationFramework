@@ -35,7 +35,11 @@ class EnergyTracker(AbstractElasticConsumer):
             raise ValueError("Received inconsistent metadata between raw results and aggregations")
 
         if iteration_raw_results.metadata.session_host_identity.session_id != self.measurement_session_id:
-            raise ValueError("Received measurement from unexpected session id")
+            raise ValueError(
+                f"Received measurement from unexpected session id, "
+                f"expected: {self.measurement_session_id}, "
+                f"received: {iteration_raw_results.metadata.session_host_identity.session_id}"
+            )
 
         energy_aggregator = iteration_aggregation_results.system_results[AggregationType.SystemEnergyModelAggregator]
         # used to ignore first iteration as the aggregations need more than one sample

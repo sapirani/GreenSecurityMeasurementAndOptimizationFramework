@@ -49,6 +49,7 @@ class TrainingContainer(containers.DeclarativeContainer):
         elastic_password=config.elastic_password,
         elastic_url=config.elastic_url,
         index_name=IndexName.DRL_TRAINING,
+        ignore_exceptions=False,
     )
 
     training_results_logger = providers.Singleton(

@@ -5,6 +5,7 @@ from typing import List
 
 from dependency_injector.wiring import inject, Provide
 from stable_baselines3.common.base_class import BaseAlgorithm
+from stable_baselines3.common.callbacks import CheckpointCallback
 
 from elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
 from elastic_reader.consts import ElasticIndex
@@ -43,13 +44,20 @@ def main(
         training_drl_model: BaseAlgorithm = Provide[TrainingContainer.training_drl_model],
         drl_model_storage_path: Path = Provide[TrainingContainer.config.drl_model_storage_path],
         learning_total_timestamps: int = Provide[TrainingContainer.config.learning_total_timestamps],
+        save_freq: int = Provide[TrainingContainer.config.save_freq],
 ) -> None:
+    checkpoint_callback = CheckpointCallback(
+        save_freq=save_freq,  # save every 'save_freq' steps
+        save_path="./models/",
+        name_prefix="ppo"
+    )
 
     with run_energy_tracker():
         training_drl_model.learn(
             total_timesteps=learning_total_timestamps,
             log_interval=1,
             progress_bar=True,
+            callback=checkpoint_callback
         )
         training_drl_model.save(drl_model_storage_path)
 
@@ -57,7 +65,8 @@ def main(
 if __name__ == '__main__':
     container = TrainingContainer()
     container.config.drl_model_storage_path.from_value(Path("trained_ppo"))
-    container.config.max_episode_steps.from_value(10)
+    container.config.max_episode_steps.from_value(20)
+    container.config.save_freq.from_value(10)
     container.config.learning_total_timestamps.from_value(100)
     container.config.runtime_importance_factor.from_value(0.5)
     container.config.energy_importance_factor.from_value(0.5)
