@@ -4,6 +4,7 @@ from typing import Optional, cast, Dict
 from DTOs.aggregated_results_dtos.empty_aggregation_results import EmptyAggregationResults
 from DTOs.aggregated_results_dtos.energy_model_result import EnergyModelResult
 from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationAggregatedResults
+from DTOs.hadoop.training_metadata import TrainingMetadata
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
 from DTOs.aggregation_types import AggregationType
 from elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
@@ -18,6 +19,7 @@ class EnergyTracker(AbstractElasticConsumer):
         self._cond = threading.Condition()
         self._finished_hosts = set()
         self.session_done = False
+        self.current_training_metadata: Optional[TrainingMetadata] = None
 
     def consume(
             self,
@@ -39,6 +41,14 @@ class EnergyTracker(AbstractElasticConsumer):
                 f"Received measurement from unexpected session id, "
                 f"expected: {self.measurement_session_id}, "
                 f"received: {iteration_raw_results.metadata.session_host_identity.session_id}"
+            )
+
+        received_training_metadata = TrainingMetadata.from_dict(iteration_aggregation_results.system_extras)
+        if self.current_training_metadata != received_training_metadata:
+            raise ValueError(
+                f"Received unexpected training metadata, "
+                f"expected: {self.current_training_metadata}, "
+                f"received: {received_training_metadata}"
             )
 
         energy_aggregator = iteration_aggregation_results.system_results[AggregationType.SystemEnergyModelAggregator]
@@ -83,7 +93,7 @@ class EnergyTracker(AbstractElasticConsumer):
 
             return dict(self.__hostname_to_energy)
 
-    def reset_tracker(self, measurement_session_id: str) -> None:
+    def reset_tracker(self, measurement_session_id: str, current_training_metadata: TrainingMetadata) -> None:
         """
         Scanner is assumed to start running after calling this function
         """
@@ -91,5 +101,6 @@ class EnergyTracker(AbstractElasticConsumer):
             self.__hostname_to_energy.clear()
             self._finished_hosts.clear()
             self.measurement_session_id = measurement_session_id
+            self.current_training_metadata = current_training_metadata
             self.session_done = False
             self._cond.notify_all()

@@ -10,6 +10,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.policies import ActorCriticPolicy
 
+from DTOs.hadoop.training_metadata import TrainingMetadata
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 from application_logging.logging_utils import get_measurement_logger
 from elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
@@ -41,6 +42,7 @@ class TrainingContainer(containers.DeclarativeContainer):
     elastic_aggregations_logger: Provider[ElasticAggregationsLogger] = providers.Singleton(
         ElasticAggregationsLogger,
         reading_mode=ReadingMode.REALTIME,
+        log_extra_fields=set(TrainingMetadata.model_fields.keys())
     )
 
     training_elastic_handler: Provider[Handler] = providers.Singleton(
@@ -64,8 +66,12 @@ class TrainingContainer(containers.DeclarativeContainer):
 
     reward_calculator: Provider[EnergyTracker] = providers.Factory(
         RewardCalculator,
-        runtime_importance_factor=config.runtime_importance_factor,
-        energy_importance_factor=config.energy_importance_factor,
+        alpha_hyperparam=config.alpha_hyperparam,
+        beta_hyperparam=config.beta_hyperparam,
+        lambda_hyperparam=config.lambda_hyperparam,
+        epsilon_hyperparam=config.epsilon_hyperparam,
+        tau_hyperparam=config.tau_hyperparam,
+        delta_hyperparam=config.delta_hyperparam,
     )
 
     # todo: think about what to do with the telemetry aggregator, is it necessary?

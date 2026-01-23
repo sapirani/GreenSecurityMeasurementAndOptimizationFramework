@@ -9,7 +9,7 @@ from DTOs.hadoop.training_step_results import TrainingStepResults
 from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOptimizerEnvInterface
 from hadoop_optimizer.drl_telemetry.energy_tracker import EnergyTracker
 from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator
-from hadoop_optimizer.reward.reward_calculator import RewardCalculator
+from hadoop_optimizer.reward.reward_calculator import RewardCalculator, INIT_STEP_REWARD
 from hadoop_optimizer.supported_jobs.supported_jobs_config import SupportedJobsConfig
 from hadoop_optimizer.training_client.client import HadoopOptimizerTrainingClient
 import numpy as np
@@ -34,11 +34,13 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         self.training_results_logger = training_results_logger
 
         self.__episodic_job_descriptor: Optional[JobDescriptor] = None
+        self.__current_step_performance: Optional[JobExecutionPerformance] = None
+        self.__current_step_reward = INIT_STEP_REWARD
 
     def _custom_rendering(self):
         print("Episodic Baseline Performance:", self.reward_calculator.baseline_performance)
-        print("Current Job Performance:", self.reward_calculator.last_job_performance)
-        print("Total Reward:", self.reward_calculator.last_reward)
+        print("Current Job Performance:", self.__current_step_performance)
+        print("Current Step Reward:", self.__current_step_reward)
         print("Episodic Job Type:", self.__episodic_job_descriptor.job_type.value)
 
     def __run_job_and_measure_performance(
@@ -48,12 +50,12 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             is_baseline: bool = False
     ) -> JobExecutionPerformance:
 
-        self.energy_tracker.reset_tracker(self.train_id)
         training_metadata = TrainingMetadata(
             episode_num=self.episode_counter,
             step_num=self.step_count,
             is_baseline=is_baseline
         )
+        self.energy_tracker.reset_tracker(self.train_id, training_metadata)
         result = self.training_client.run_job(
             job_descriptor=self.__episodic_job_descriptor,
             execution_configuration=job_config,
@@ -99,10 +101,16 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
     def _compute_reward(self, job_config: HadoopJobExecutionConfig, terminated: bool, truncated: bool) -> float:
         # TODO: THINK ABOUT WHAT TO DO WITH THE FIRST ITERATION THAT IS OUTPUTTING NON-RELEVANT ENERGY CONSUMPTION
         #   i think it happens only in the first episode
-        job_performance = self.__run_job_and_measure_performance(job_config)
-        computed_reward = self.reward_calculator.compute_reward(job_performance)
+        episode_is_over = (terminated or truncated)
+        if not episode_is_over:
+            self.__current_step_performance = self.__run_job_and_measure_performance(job_config)
+
+        self.__current_step_reward = self.reward_calculator.compute_reward(
+            self.__current_step_performance,
+            episode_is_over
+        )
         self.render()
-        return computed_reward
+        return self.__current_step_reward
 
     @staticmethod
     def __select_episodic_job_type(np_random: np.random.Generator) -> JobType:

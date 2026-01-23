@@ -53,11 +53,16 @@ class SystemRawResults(AbstractRawResults):
     battery_voltage_mV: Optional[float] = None
     core_percents: List[float] = field(default_factory=list)
 
+    extras: Dict[str, Any] = field(default_factory=dict)
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'SystemRawResults':
         init_kwargs = {}
 
         for f in fields(cls):
+            if f.name in ("extras", "core_percents"):
+                continue
+
             is_optional = (
                 f.default is not MISSING or
                 f.default_factory is not MISSING
@@ -68,8 +73,14 @@ class SystemRawResults(AbstractRawResults):
             elif not is_optional:
                 raise ValueError(f"Missing required field: {f.name}")
 
+        extra_fields = {
+            key: val for key, val in data.items()
+            if key not in init_kwargs and not key.startswith("core_")
+        }
+        init_kwargs["extras"] = extra_fields
+
         # Create object and compute duration
-        system_raw_results = SystemRawResults(**init_kwargs)
+        system_raw_results = cls(**init_kwargs)
         system_raw_results.core_percents = get_cores_metrics(data)
 
         return system_raw_results

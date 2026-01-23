@@ -87,11 +87,10 @@ def handle_sigint(signum, frame):
     done_scanning_event.set()
 
 
-def log_scanner_termination(logging_constant_extras: Dict):
-    done_scanning_event.wait()
+def log_scanner_termination():
     application_flow_logger.info(
         "The scanner has finished measuring",
-        extra={TIMESTAMP_FIELD_NAME: last_iteration_timestamp, **logging_constant_extras}
+        extra={TIMESTAMP_FIELD_NAME: last_iteration_timestamp}
     )
 
 
@@ -236,8 +235,8 @@ def continuously_measure():
 
     with processes_resource_usage_recorder:
         while should_scan(battery_capacity):
-            # Create a delay
-            time.sleep(SLEEP_BETWEEN_ITERATIONS_SECONDS)
+            # Wait until either done_scanning_event is set or SLEEP_BETWEEN_ITERATIONS_SECONDS passed
+            done_scanning_event.wait(timeout=SLEEP_BETWEEN_ITERATIONS_SECONDS)
 
             processes_results = processes_resource_usage_recorder.get_current_metrics()
             system_cpu_results = system_cpu_monitor.get_current_metrics()
@@ -258,6 +257,7 @@ def continuously_measure():
             battery_capacity = system_battery_results.battery_remaining_capacity_mWh
 
     done_scanning_event.set()   # releasing waiting threads / processes
+    log_scanner_termination()
 
 
 def save_general_disk(f: TextIO):
@@ -870,14 +870,9 @@ def main(user_args):
         )
     )
 
-    application_flow_logger.info("The scanner is starting the measurement", extra=user_args.logging_constant_extras)
-
-    log_scanner_termination_thread = Thread(target=log_scanner_termination, args=user_args.logging_constant_extras)
-    log_scanner_termination_thread.start()
+    application_flow_logger.info("The scanner is starting the measurement")
 
     scan_and_measure()
-
-    log_scanner_termination_thread.join()
 
     after_scanning_operations()
 

@@ -87,6 +87,7 @@ class AggregationManager:
             iteration_metadata=iteration_raw_results.metadata,
             processes_results=combined_process_results,
             system_results=system_aggregated_results,
+            system_extras=iteration_raw_results.system_raw_results.extras,
         )
 
     def __aggregate_system_metrics(
@@ -155,7 +156,8 @@ class AggregationManager:
                     process_of_interest=raw_process_results.process_of_interest,
                     arguments=raw_process_results.arguments
                 ),
-                aggregation_results=process_aggregation_results
+                aggregation_results=process_aggregation_results,
+                process_extras=raw_process_results.extras,
             )
 
         return processes_aggregation_results
