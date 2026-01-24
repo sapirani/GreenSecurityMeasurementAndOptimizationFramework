@@ -99,8 +99,6 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         return SupportedJobsConfig.extract_job_properties(self.__episodic_job_descriptor)
 
     def _compute_reward(self, job_config: HadoopJobExecutionConfig, terminated: bool, truncated: bool) -> float:
-        # TODO: THINK ABOUT WHAT TO DO WITH THE FIRST ITERATION THAT IS OUTPUTTING NON-RELEVANT ENERGY CONSUMPTION
-        #   i think it happens only in the first episode
         episode_is_over = (terminated or truncated)
         if not episode_is_over:
             self.__current_step_performance = self.__run_job_and_measure_performance(job_config)

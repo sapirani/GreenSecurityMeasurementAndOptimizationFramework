@@ -11,7 +11,7 @@ class TriggerAction(str, Enum):
     STOP_PROGRAM = "stop_program"
 
 
-class NodesTriggerSender(BaseModel):
+class HadoopClusterTriggerSender(BaseModel):
     session_id_prefix: str = Field("", description="Control the session id sent to the scanner")
     number_of_datanodes: int = Field(3, gt=0, description="number of hadoop_workers")
 

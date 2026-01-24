@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
     print("Starting Elastic reader in the background")
     telemetry_aggregator = app.container.telemetry_aggregator()
     time_picker_input = app.container.drl_time_picker_input()
-    indices_to_read_from = app.container.config.indices_to_read_from()
+    indices_to_read_from = app.container.config.elastic.indices_to_read_from()
     should_terminate_event = threading.Event()
     t = threading.Thread(
         target=run_telemetry_reader,
@@ -87,11 +87,10 @@ def choose_the_best_configuration_for_a_new_task_under_the_current_load(
 
 if __name__ == '__main__':
     container = DeploymentContainer()
-    container.config.allowed_numeric_noise.from_value(0.001)
-    container.config.max_episode_steps.from_value(100)
-    container.config.indices_to_read_from.from_value([ElasticIndex.PROCESS, ElasticIndex.SYSTEM])
-    container.config.drl_state.split_by.from_value("hostname")
-    container.config.drl_state.time_windows_seconds.from_value([1 * 60, 5 * 60, 10 * 60, 20 * 60])
+    container.config.elastic.indices_to_read_from.from_value([ElasticIndex.PROCESS, ElasticIndex.SYSTEM])
+    container.config.drl.env.max_episode_steps.from_value(100)
+    container.config.drl.state.split_by.from_value("hostname")
+    container.config.drl.state.time_windows_seconds.from_value([1 * 60, 5 * 60, 10 * 60, 20 * 60])
     container.wire(modules=[__name__])
     app.container = container
 

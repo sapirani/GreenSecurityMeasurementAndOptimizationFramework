@@ -47,9 +47,9 @@ class TrainingContainer(containers.DeclarativeContainer):
 
     training_elastic_handler: Provider[Handler] = providers.Singleton(
         get_elastic_logging_handler,
-        elastic_username=config.elastic_username,
-        elastic_password=config.elastic_password,
-        elastic_url=config.elastic_url,
+        elastic_username=config.elastic.username,
+        elastic_password=config.elastic.password,
+        elastic_url=config.elastic.url,
         index_name=IndexName.DRL_TRAINING,
         ignore_exceptions=False,
     )
@@ -66,12 +66,12 @@ class TrainingContainer(containers.DeclarativeContainer):
 
     reward_calculator: Provider[EnergyTracker] = providers.Factory(
         RewardCalculator,
-        alpha_hyperparam=config.alpha_hyperparam,
-        beta_hyperparam=config.beta_hyperparam,
-        lambda_hyperparam=config.lambda_hyperparam,
-        epsilon_hyperparam=config.epsilon_hyperparam,
-        tau_hyperparam=config.tau_hyperparam,
-        delta_hyperparam=config.delta_hyperparam,
+        alpha_hyperparam=config.drl.reward.alpha_hyperparam,
+        beta_hyperparam=config.drl.reward.beta_hyperparam,
+        lambda_hyperparam=config.drl.reward.lambda_hyperparam,
+        epsilon_hyperparam=config.drl.reward.epsilon_hyperparam,
+        tau_hyperparam=config.drl.reward.tau_hyperparam,
+        delta_hyperparam=config.drl.reward.delta_hyperparam,
     )
 
     # todo: think about what to do with the telemetry aggregator, is it necessary?
@@ -92,7 +92,7 @@ class TrainingContainer(containers.DeclarativeContainer):
 
     env_wrappers_params: Provider[EnvWrappersParams] = providers.Factory(
         EnvWrappersParams.from_config,
-        config
+        config.drl.env
     )
 
     training_env: Provider[gym.Env] = providers.Factory(

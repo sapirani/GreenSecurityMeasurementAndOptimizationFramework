@@ -12,7 +12,7 @@ from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_types import JobType
 from DTOs.hadoop.training_metadata import TrainingMetadata
 from DTOs.hadoop.training_run_job_response import TrainingJobRunResponse
-from hadoop_optimizer.nodes_trigger_sender import NodesTriggerSender
+from hadoop_optimizer.nodes_trigger_sender import HadoopClusterTriggerSender
 from hadoop_optimizer.supported_jobs.supported_jobs_config import SupportedJobsConfig
 from hadoop_optimizer.training_server.api.config import MAX_JOB_RUNTIME
 
@@ -82,13 +82,11 @@ def run_selected_job_within_the_digital_twin_environment(
         job_execution_config=job_execution_config,
     )
 
-    # TODO: BETTER NAMING?
-    nodes_trigger_sender = NodesTriggerSender()
+    cluster_trigger_sender = HadoopClusterTriggerSender()
     scanner_logging_extras = scanner_extras.model_dump() if scanner_extras else {}
 
-    # TODO: LOG THE JOB TYPE, IN ADDITION TO THE STEP AND EPISODE NUMBER
     try:
-        nodes_trigger_sender.start_measurement(session_id=session_id, scanner_logging_extras=scanner_logging_extras)
+        cluster_trigger_sender.start_measurement(session_id=session_id, scanner_logging_extras=scanner_logging_extras)
         print("running job:", selected_job)
         start_time = time.perf_counter()
         subprocess.run(
@@ -114,11 +112,10 @@ def run_selected_job_within_the_digital_twin_environment(
             detail=f"Hadoop executable not found: {str(e)}"
         )
     finally:
-        # TODO: ENSURE THAT THIS WORKS EVEN WHEN THE JOB ITSELF HAS FAILED TO RUN
         print("Removing output directory")
         subprocess.run(["hdfs", "dfs", "-rm", "-r", "-f", str(selected_job.job_definition.output_path)], check=True)
         print("Sending stop measurement trigger")
-        nodes_trigger_sender.stop_measurement(session_id=session_id)
+        cluster_trigger_sender.stop_measurement(session_id=session_id)
 
 
 if __name__ == '__main__':

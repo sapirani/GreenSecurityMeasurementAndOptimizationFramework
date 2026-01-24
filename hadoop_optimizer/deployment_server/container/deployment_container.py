@@ -16,7 +16,6 @@ from user_input.elastic_reader_input.time_picker_input_factory import get_time_p
 
 
 class DeploymentContainer(containers.DeclarativeContainer):
-    # TODO: ENSURE THAT CONFIG HIERARCHY MAKES SENSE
     config = providers.Configuration()
 
     drl_time_picker_input: Provider[TimePickerChosenInput] = providers.Factory(
@@ -31,8 +30,8 @@ class DeploymentContainer(containers.DeclarativeContainer):
 
     telemetry_aggregator: Provider[TelemetryAggregator] = providers.Singleton(
         TelemetryAggregator,
-        time_windows_seconds=config.drl_state.time_windows_seconds,
-        split_by=config.drl_state.split_by,
+        time_windows_seconds=config.drl.state.time_windows_seconds,
+        split_by=config.drl.state.split_by,
     )
 
     base_env: Provider[gym.Env] = providers.Factory(
@@ -42,7 +41,7 @@ class DeploymentContainer(containers.DeclarativeContainer):
 
     env_wrappers_params: Provider[EnvWrappersParams] = providers.Factory(
         EnvWrappersParams.from_config,
-        config
+        config.drl.env
     )
 
     deployment_env: Provider[gym.Env] = providers.Factory(
