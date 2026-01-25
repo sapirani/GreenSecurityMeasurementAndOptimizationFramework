@@ -71,6 +71,11 @@ class AggregationManager:
         It is accountable for calculating all kinds of aggregations, and log these aggregations into a separate index
         in Elastic.
         """
+        if iteration_raw_results.system_raw_results:
+            extras = iteration_raw_results.system_raw_results.extras
+        else:
+            print("Warning! detected None system results")
+            extras = {}
 
         system_aggregated_results = self.__aggregate_system_metrics(
             iteration_raw_results.system_raw_results,
@@ -87,7 +92,7 @@ class AggregationManager:
             iteration_metadata=iteration_raw_results.metadata,
             processes_results=combined_process_results,
             system_results=system_aggregated_results,
-            system_extras=iteration_raw_results.system_raw_results.extras,
+            system_extras=extras,
         )
 
     def __aggregate_system_metrics(

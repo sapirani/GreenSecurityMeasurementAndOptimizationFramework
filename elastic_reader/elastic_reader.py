@@ -100,7 +100,22 @@ class ElasticReader:
 
                 yield from self.__yield_iteration_per_session_host(iteration_metadata, is_last_iteration=True)
 
-    def __yield_iteration_per_session_host(self, iteration_metadata: IterationMetadata, *, is_last_iteration: bool):
+    def __yield_iteration_per_session_host(
+            self,
+            iteration_metadata: IterationMetadata,
+            *,
+            is_last_iteration: bool,
+            next_iteration_metadata: Optional[IterationMetadata] = None
+    ):
+        if not self.__results_by_session_host[iteration_metadata].get_system_result():
+            print(
+                "Warning! received empty system results\n"
+                f"metadata={iteration_metadata}\n"
+                f"next_iteration_metadata={next_iteration_metadata}\n"
+                f"is_last_iteration={is_last_iteration}\n"
+                f"processes_raw_results={self.__results_by_session_host[iteration_metadata].get_processes_results()}"
+            )
+
         yield IterationRawResults(
             metadata=iteration_metadata,
             system_raw_results=self.__results_by_session_host[iteration_metadata].get_system_result(),
@@ -141,7 +156,7 @@ class ElasticReader:
                 else:
                     return  # offline finished
 
-            # Process documents
+            # Process the documents
             for examined_doc in hits:
                 raw_data = examined_doc.to_dict()
                 current_doc_iteration_metadata = IterationMetadata.from_dict(raw_data)
@@ -152,7 +167,7 @@ class ElasticReader:
                         yield from self.__yield_iteration_per_session_host(
                             self.__ongoing_iteration_metadata,
                             is_last_iteration=True
-                            )
+                        )
                     continue
                 elif not self.__ongoing_iteration_metadata:  # first iteration
                     self.__ongoing_iteration_metadata = current_doc_iteration_metadata
@@ -164,7 +179,8 @@ class ElasticReader:
                     # yield the previous iteration results as we reach to a new iteration
                     yield from self.__yield_iteration_per_session_host(
                         self.__ongoing_iteration_metadata,
-                        is_last_iteration=False
+                        is_last_iteration=False,
+                        next_iteration_metadata=current_doc_iteration_metadata,
                     )
 
                     # Instantiate the new iteration
