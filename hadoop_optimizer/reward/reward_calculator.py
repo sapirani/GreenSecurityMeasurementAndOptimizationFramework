@@ -3,7 +3,6 @@ from typing import Optional
 
 from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
 
-INIT_STEP_REWARD = -100.0
 LAST_REWARD_MIN_IMPORTANCE_FACTOR = 10
 
 
@@ -61,10 +60,6 @@ class RewardCalculator:
         return self.__delta * runtime_gain + self.__tau * energy_gain
 
     def compute_reward(self, job_performance: Optional[JobExecutionPerformance], is_last_step: bool) -> float:
-        if not job_performance and is_last_step:
-            # episode has terminated right away without running any self-crafted configurations
-            return INIT_STEP_REWARD
-
         step_gain = self.__compute_step_gain(job_performance)
         is_last_step = int(is_last_step)
 

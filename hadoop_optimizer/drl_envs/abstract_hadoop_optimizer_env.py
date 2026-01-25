@@ -142,14 +142,9 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         self.step_count += 1
 
         self._last_action = action.copy()
-
         terminated = action[TERMINATE_ACTION_NAME]
-        if not terminated and not truncated:    # episode is not over yet
-            self._current_hadoop_config = self._get_next_execution_config(action)
-        else:
-            if self.step_count == 1:
-                print("Warning: DRL chose to terminate the episode right away without running self-crafted job configs")
 
+        self._current_hadoop_config = self._get_next_execution_config(action)
         self._compute_reward(self._current_hadoop_config, terminated, truncated)
 
         # TODO: CONSIDER RETURNING MORE DEBUGGING INFO, such as the current cluster load

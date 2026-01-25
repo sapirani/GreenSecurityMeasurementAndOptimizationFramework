@@ -9,7 +9,7 @@ from DTOs.hadoop.training_step_results import TrainingStepResults
 from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOptimizerEnvInterface
 from hadoop_optimizer.drl_telemetry.energy_tracker import EnergyTracker
 from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator
-from hadoop_optimizer.reward.reward_calculator import RewardCalculator, INIT_STEP_REWARD
+from hadoop_optimizer.reward.reward_calculator import RewardCalculator
 from hadoop_optimizer.supported_jobs.supported_jobs_config import SupportedJobsConfig
 from hadoop_optimizer.training_client.client import HadoopOptimizerTrainingClient
 import numpy as np
@@ -35,7 +35,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
 
         self.__episodic_job_descriptor: Optional[JobDescriptor] = None
         self.__current_step_performance: Optional[JobExecutionPerformance] = None
-        self.__current_step_reward = INIT_STEP_REWARD
+        self.__current_step_reward = None
 
     def _custom_rendering(self):
         print("Episodic Baseline Performance:", self.reward_calculator.baseline_performance)
@@ -99,14 +99,13 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         return SupportedJobsConfig.extract_job_properties(self.__episodic_job_descriptor)
 
     def _compute_reward(self, job_config: HadoopJobExecutionConfig, terminated: bool, truncated: bool) -> float:
-        episode_is_over = (terminated or truncated)
-        if not episode_is_over:
-            self.__current_step_performance = self.__run_job_and_measure_performance(job_config)
+        self.__current_step_performance = self.__run_job_and_measure_performance(job_config)
 
         self.__current_step_reward = self.reward_calculator.compute_reward(
             self.__current_step_performance,
-            episode_is_over
+            terminated or truncated
         )
+
         self.render()
         return self.__current_step_reward
 
