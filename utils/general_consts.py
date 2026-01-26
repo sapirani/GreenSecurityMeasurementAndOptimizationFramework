@@ -183,15 +183,17 @@ class BatteryColumns(str, Enum):
 class LoggerName:
     SYSTEM_METRICS = "system_metrics"
     PROCESS_METRICS = "process_metrics"
-    APPLICATION_FLOW = "system_metrics"
+    APPLICATION_FLOW = "application_flow"
     METRICS_AGGREGATIONS = "metrics_aggregations"
+    DRL_TRAINING = "drl_training"
 
 
 class IndexName:
     SYSTEM_METRICS = "system_metrics"
     PROCESS_METRICS = "process_metrics"
-    APPLICATION_FLOW = "system_metrics"
+    APPLICATION_FLOW = "application_flow"
     METRICS_AGGREGATIONS = "metrics_aggregations"
+    DRL_TRAINING = "drl_training"
 
 
 def get_scanner_version_name(battery_monitor_type: BatteryMonitorType, process_monitor_type: ProcessMonitorType) -> str:

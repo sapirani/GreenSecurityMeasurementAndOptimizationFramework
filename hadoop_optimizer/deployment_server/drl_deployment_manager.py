@@ -7,7 +7,7 @@ from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
 from hadoop_optimizer.erros import EnvironmentTruncatedException
 
 
-class DRLManager:
+class DRLDeploymentManager:
     def __init__(self, deployment_drl_model: BaseAlgorithm, deployment_env: OptimizerDeploymentEnv):
         self.deployment_drl_model = deployment_drl_model
         self.deployment_env = deployment_env

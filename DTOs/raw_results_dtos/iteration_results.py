@@ -18,7 +18,7 @@ class IterationResults:
         elif index == ElasticIndex.PROCESS:
             self.__add_process_result(ProcessRawResults.from_dict(raw_results))
         else:
-            raise ValueError("Received unexpected index")
+            raise ValueError(f"Received unexpected index: {index}")
 
     def __set_system_result(self, result: SystemRawResults):
         self.system_result = result

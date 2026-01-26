@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from logging import StreamHandler
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Set
 
 from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationAggregatedResults
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
@@ -20,7 +20,8 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
             *,
             reading_mode: ReadingMode,
             verbosity_level: Verbosity = Verbosity.NONE,
-            queued_iterations_num_max: int = 15     # used as an optimization for in offline mode
+            queued_iterations_num_max: int = 15,     # used as an optimization for in offline mode
+            log_extra_fields: Optional[Set[str]] = None
     ):
         self.logger = get_measurement_logger(
             logger_name=LoggerName.METRICS_AGGREGATIONS,
@@ -39,6 +40,8 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
             handler.setFormatter(PrettyExtrasFormatter())
             self.logger.addHandler(handler)
 
+        self.log_extra_fields = log_extra_fields if log_extra_fields else set()
+
         self.queued_iterations_num = 0
         self.queued_iterations_num_max = queued_iterations_num_max
 
@@ -52,7 +55,7 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
                 flat[key] = value
         return flat
 
-    # TODO: IF CALCAULTIONS ARE SELECTED - ENSURE THAT NO AGGREGATIONS ARE FOUND IN THE INDEX DURING THE ENTIRE REQUESTED TIMERANGE (RAISE AN EXCEPTION AND CRASH)
+    # TODO: IF CALCULATIONS ARE SELECTED - ENSURE THAT NO AGGREGATIONS ARE FOUND IN THE INDEX DURING THE ENTIRE REQUESTED TIMERANGE (RAISE AN EXCEPTION AND CRASH)
     def consume(
             self,
             iteration_raw_results: IterationRawResults,
@@ -73,7 +76,8 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
                         result_name: result_val
                         for aggregation_result in process_results.aggregation_results.values()
                         for result_name, result_val in asdict(aggregation_result).items()
-                    }
+                    },
+                    **{key: val for key, val in process_results.process_extras.items() if key in self.log_extra_fields}
                 }
             )
         self.logger.info(
@@ -82,7 +86,9 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
             {
                 **self._flatten_dict(asdict(iteration_aggregation_results.iteration_metadata)),
                 **{key: value for aggregation_result in iteration_aggregation_results.system_results.values()
-                   for key, value in asdict(aggregation_result).items()}
+                   for key, value in asdict(aggregation_result).items()},
+                **{key: val for key, val in iteration_aggregation_results.system_extras.items()
+                   if key in self.log_extra_fields}
             }
         )
 

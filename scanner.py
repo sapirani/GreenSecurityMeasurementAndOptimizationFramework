@@ -15,6 +15,7 @@ from prettytable import PrettyTable
 from threading import Thread, Timer
 import pandas as pd
 
+from application_logging.handlers.abstract_elastic_handler import TIMESTAMP_FIELD_NAME
 from application_logging.handlers.elastic_bulk_handler import get_elastic_bulk_handler
 from application_logging.logging_utils import get_measurement_logger
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
@@ -52,6 +53,7 @@ process_metrics_logger: Optional[logging.Logger] = None
 application_flow_logger: Optional[logging.Logger] = None
 session_id: str = ""
 start_date: datetime = datetime.now(timezone.utc)
+last_iteration_timestamp = datetime.fromtimestamp(0).isoformat()
 
 # include main programs and background
 processes_ids = []
@@ -83,6 +85,13 @@ def handle_sigint(signum, frame):
     if main_process:
         running_os.kill_process_gracefully(main_process.pid)  # killing the main process
     done_scanning_event.set()
+
+
+def log_scanner_termination():
+    application_flow_logger.info(
+        "The scanner has finished measuring",
+        extra={TIMESTAMP_FIELD_NAME: last_iteration_timestamp}
+    )
 
 
 def dataframe_append(df: pd.DataFrame, element: Dict) -> pd.DataFrame:
@@ -174,15 +183,15 @@ def save_metrics_results(
     global disk_io_each_moment_df
     global network_io_each_moment_df
     global battery_df
+    global last_iteration_timestamp
 
-    iteration_timestamp = datetime.now(timezone.utc).isoformat()
+    last_iteration_timestamp = datetime.now(timezone.utc).isoformat()
 
-    # TODO: SEND IN A BULK
     for process_results in processes_results:
         process_metrics_logger.info(
             "Process Measurements",
             extra={
-                "timestamp": iteration_timestamp,
+                TIMESTAMP_FIELD_NAME: last_iteration_timestamp,
                 **process_results.to_dict()
             }
         )
@@ -194,7 +203,7 @@ def save_metrics_results(
     system_metrics_logger.info(
         "System Measurements",
         extra={
-            "timestamp": iteration_timestamp,
+            TIMESTAMP_FIELD_NAME: last_iteration_timestamp,
             **system_cpu_results.to_dict(),
             **system_memory_results.to_dict(),
             **system_disk_results.to_dict(),
@@ -226,8 +235,8 @@ def continuously_measure():
 
     with processes_resource_usage_recorder:
         while should_scan(battery_capacity):
-            # Create a delay
-            time.sleep(SLEEP_BETWEEN_ITERATIONS_SECONDS)
+            # Wait until either done_scanning_event is set or SLEEP_BETWEEN_ITERATIONS_SECONDS passed
+            done_scanning_event.wait(timeout=SLEEP_BETWEEN_ITERATIONS_SECONDS)
 
             processes_results = processes_resource_usage_recorder.get_current_metrics()
             system_cpu_results = system_cpu_monitor.get_current_metrics()
@@ -248,6 +257,7 @@ def continuously_measure():
             battery_capacity = system_battery_results.battery_remaining_capacity_mWh
 
     done_scanning_event.set()   # releasing waiting threads / processes
+    log_scanner_termination()
 
 
 def save_general_disk(f: TextIO):
@@ -865,8 +875,6 @@ def main(user_args):
     scan_and_measure()
 
     after_scanning_operations()
-
-    application_flow_logger.info("The scanner has finished measuring")
 
     print(f"Finished scanning {session_id}")
 

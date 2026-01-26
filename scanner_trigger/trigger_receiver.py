@@ -3,6 +3,7 @@ import os
 import socket
 import subprocess
 import signal
+import shlex
 from typing import Optional, List
 
 import logging
@@ -74,7 +75,7 @@ def main(host: str, port: int, python_path: str, scanner_path: str, nice: int):
                 logging.debug(f"Received a message: {message}")
 
                 if b"start_measurement" in message:
-                    start_measurements_args = message.decode().split()
+                    start_measurements_args = shlex.split(message.decode())
                     start_measurements_args.remove("start_measurement")
                     start_measurement(python_path, scanner_path, nice, start_measurements_args)
 
