@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from functools import lru_cache
 import logging
 logger = logging.getLogger(__name__)
-PREFIX_PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/'
+PREFIX_PATH = '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/'
 
 def _worker_generate_log(task):
     """

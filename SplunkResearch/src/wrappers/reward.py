@@ -17,7 +17,7 @@ import joblib
 import sys
 
 from traitlets import Bool
-sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src')
+sys.path.insert(1, '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src')
 
 from env_utils import *
 import logging
@@ -125,14 +125,17 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         self.is_eval = is_eval
         self.is_train = is_train
         # lode joblib models for energy consumption for each rule
-        model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/models_all_rules_cpu.joblib"
+        model_path = f"/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src/models_all_rules_cpu.joblib"
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/models_all_rules_cpu.joblib"
         # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/model_{rule}.joblib"
         if path.exists(model_path):
             self.energy_models['all'] = joblib.load(model_path)
             # self.energy_models[rule] = joblib.load(model_path)
         for rule in expected_alerts:
-            self.energy_models[rule] = joblib.load(f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/cpu_model_{rule}.joblib")
+            self.energy_models[rule] = joblib.load(f"/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src/cpu_model_{rule}.joblib")
+#            for estimator in self.energy_models[rule].estimators_:
+#              if not hasattr(estimator, 'monotonic_cst'):
+#                estimator.monotonic_cst = None
         self.distributions = []
         self.alerts = []
         self.epsilon = .00000001
@@ -160,10 +163,10 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         if self.use_energy or self.use_alert :
             if sum(running_dict.values()) > 0:
                 logger.info(f"Need to run baseline for {running_dict}")
-                empty_monitored_files(SYSTEM_MONITOR_FILE_PATH)
-                empty_monitored_files(SECURITY_MONITOR_FILE_PATH)
+                empty_monitored_files(get_system_monitor_path(self.unwrapped.splunk_tools.splunk_host))
+                empty_monitored_files(get_security_monitor_path(self.unwrapped.splunk_tools.splunk_host))
                 logger.info('Cleaning the environment')
-                clean_env(self.unwrapped.splunk_tools, time_range)
+                clean_env(self.unwrapped.splunk_tools, time_range, logs_qnt=None, host=self.unwrapped.splunk_tools.splunk_host)
                 logger.info('Measure no agent reward values')
                 logger.info('wait for the environment to be cleaned')
                 sleep(3)
@@ -641,6 +644,7 @@ class DistributionRewardWrapper(RewardWrapper):
             self.unwrapped.ac_fake_state
         )
         info['ac_distribution_value'] = dist_value
+        info['full_ac_distribution_value'] = dist_value
         info['ac_distribution_reward'] = self._calculate_distribution_reward(dist_value)
         reward = self.gamma*info['ac_distribution_reward']
         return obs, reward, terminated, truncated, info

@@ -1,4 +1,5 @@
 from gymnasium.envs.registration import register
+
 # fake_start_datetime = "04/30/2023:08:00:00"
 # savedsearches = ["Detect New Local Admin Account", "ESCU Network Share Discovery Via Dir Command Rule", "Known Services Killed by Ransomware", "Non Chrome Process Accessing Chrome Default Dir"]
 # relevant_logtypes = sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]})) #[(x[0], str(x[1])) for x in state_span]

@@ -8,16 +8,16 @@ import sys
 import urllib3
 import logging
 
-sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src')
+sys.path.insert(1, '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src')
 from env_utils import *
 from time_manager import TimeManager
 
 
 
-sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment')
+sys.path.insert(1, '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch')
 import os
 from dotenv import load_dotenv
-load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/.env')
+load_dotenv('/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/.env')
 urllib3.disable_warnings()
 from splunk_tools import *
 from log_generator import LogGenerator
@@ -65,6 +65,7 @@ class SplunkConfig:
     env_id: str = "splunk_train-v32"
     end_time: str = None
     is_test: bool = False
+    ip: int = 1
 
 class SplunkEnv(gym.Env):
     """Splunk environment for resource consumption experiments"""
@@ -77,12 +78,12 @@ class SplunkEnv(gym.Env):
                  baseline_dir: str = "./baselines"):
         """Initialize environment."""
         super().__init__()
-        self.splunk_tools  = SplunkTools(savedsearches, config.rule_frequency)#, mode=Mode.PROFILE)
+        self.splunk_tools  = SplunkTools(savedsearches, config.rule_frequency, ip=config.ip)#, mode=Mode.PROFILE)
         self.episodic_inserted_logs = 0
         self.all_data = []
-        self.all_data_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/all_data.csv"
+        self.all_data_path = "/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/resources/all_data.csv"
         self.all_baseline_data = []
-        self.all_baseline_data_path = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/all_baseline_data.csv"
+        self.all_baseline_data_path = "/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/resources/all_baseline_data.csv"
         is_eval = 'eval' in config.env_id.lower()
 
         # Initialize time manager

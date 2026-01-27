@@ -353,8 +353,8 @@ class Action(ActionWrapper):
         
         # logger.info(f"Waiting for {sum(self.episode_logs.values())} logs to be written")
         # sleep(sum(self.episode_logs.values())/4500)  # wait for logs to be written
-        security_log_file_path = self.unwrapped.splunk_tools.log_file_prefix + "wineventlog:security.txt"
-        system_log_file_path = self.unwrapped.splunk_tools.log_file_prefix + "wineventlog:system.txt"
+        security_log_file_path = self.unwrapped.splunk_tools.log_file_prefix + "/wineventlog:security.txt"
+        system_log_file_path = self.unwrapped.splunk_tools.log_file_prefix + "/wineventlog:system.txt"
         
         for batch in self.unwrapped.log_generator.generate_massive_stream(configs, batch_size=50000):
             self.save_mixed_batch(batch)
@@ -462,7 +462,7 @@ class Action(ActionWrapper):
         # Default management URI is localhost:8089. Change IP if Splunk is remote.
         splunk_mgmt_uri = f"https://{self.unwrapped.splunk_tools.splunk_host}:8089"
         endpoint = f"{splunk_mgmt_uri}/services/receivers/stream"
-        
+        print(endpoint)
         # Credentials and Metadata from your existing object
         username = self.unwrapped.splunk_tools.splunk_username
         password = self.unwrapped.splunk_tools.splunk_password
@@ -472,7 +472,8 @@ class Action(ActionWrapper):
         # 1. Prepare Parameters (Query String)
         params = {
             "index": index,
-            "sourcetype": sourcetype
+            "sourcetype": sourcetype,
+            "host": "132.72.81.150"
         }
         
         # 2. Prepare Headers (Equivalent to -H "x-splunk-input-mode: streaming")
@@ -996,7 +997,7 @@ class Action8(Action):
             # current_quota = action[-1]
             # num_logs = 20000
             # num_logs = self.unwrapped.config.additional_percentage * 10000
-            num_logs = self.unwrapped.config.additional_percentage * self.current_real_quantity
+            num_logs = self.unwrapped.config.additional_percentage * 30000 # self.current_real_quantity
             # num_logs = 1000
             self.inserted_logs = 0
             self.current_logs = {}

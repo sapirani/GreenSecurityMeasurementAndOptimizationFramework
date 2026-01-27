@@ -21,13 +21,14 @@ logging.getLogger('sklearn').setLevel(logging.ERROR)
 class StateWrapper(ObservationWrapper):
     """Manages log type distributions and state normalization"""
     
-    def __init__(self, env, is_sampled):
+    def __init__(self, env, hosts_percentage=100):
         super().__init__(env)
 
         self.action_wrapper = self.get_wrapper(ActionWrapper)
         self.normal_alert_predictors = {}
-        # for rule in self.unwrapped.savedsearches:
-        #     self.normal_alert_predictors[rule] = joblib.load(f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/models_{rule}_alerts.joblib")
+
+        #for rule in self.unwrapped.savedsearches:
+        #    self.normal_alert_predictors[rule] = joblib.load(f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/models_{rule}_alerts.joblib")
 
 
         self.total_current_logs = 0
@@ -40,7 +41,7 @@ class StateWrapper(ObservationWrapper):
             shape=(len(self.unwrapped.top_logtypes)*2 + self.unwrapped.total_steps,),  # +1 for 'other' category
             dtype=np.float64
         )
-        self.is_sampled = is_sampled
+        self.hosts_percentage = hosts_percentage
 
       
     def get_wrapper(self, wrapper_class):
@@ -57,7 +58,7 @@ class StateWrapper(ObservationWrapper):
     def get_step_info(self):
         """Get current step info"""
         return {
-            'real_distribution': self.unwrapped.real_state,
+            # 'real_distribution': self.unwrapped.real_state,
             # 'fake_distribution': self.fake_state,
             'total_current_logs': self.total_current_logs,
             'real_relevant_distribution': self.unwrapped.real_relevant_distribution,
@@ -131,7 +132,7 @@ class StateWrapper(ObservationWrapper):
             
     def update_real_distribution(self, time_range):
         """Update real distribution from Splunk"""
-        real_counts = self.unwrapped.splunk_tools.get_real_distribution(*time_range, is_sampled=self.is_sampled)
+        real_counts = self.unwrapped.splunk_tools.get_real_distribution(*time_range, hosts_percentage=self.hosts_percentage)
         self.unwrapped.real_distribution = {logtype: 0 for logtype in self.unwrapped.top_logtypes}
         self.unwrapped.real_distribution['other'] = 0
         self.total_current_logs = 0
@@ -145,8 +146,10 @@ class StateWrapper(ObservationWrapper):
             #     self.unwrapped.real_distribution['other'] += count
             #     self.unwrapped.ac_real_distribution['other'] += count
                 # self.total_current_logs += count
-        if self.is_sampled:
-            self.total_current_logs *= 10
+        if self.hosts_percentage < 100:
+            # Scale up the logs based on the percentage of hosts used
+            scale_factor = 100 / self.hosts_percentage
+            self.total_current_logs = int(self.total_current_logs * scale_factor)
         self.total_episode_logs += self.total_current_logs
         self.action_wrapper.current_real_quantity = self.total_current_logs
 
@@ -190,8 +193,8 @@ class StateWrapper(ObservationWrapper):
 class StateWrapper3(StateWrapper):
     """Manages log type distributions and state normalization"""
 
-    def __init__(self, env, is_sampled=False):
-        super().__init__(env, is_sampled)
+    def __init__(self, env, hosts_percentage=100):
+        super().__init__(env, hosts_percentage)
         self.observation_space = spaces.Box(
             low=0,
             high=3,
@@ -263,15 +266,15 @@ class StateWrapper3(StateWrapper):
     def _normalize(self, state):
         """Normalize state vector"""
         return (state+ 0.0000000001) / (100000)  # Avoid division by zero
-        # return tate / (sum(state) + 0.0000000001)
+        # return state / (sum(state) + 0.0000000001)
      
 
      
 class StateWrapper4(StateWrapper):
     """Manages log type distributions and state normalization"""
 
-    def __init__(self, env, is_sampled=False):
-        super().__init__(env, is_sampled)
+    def __init__(self, env, hosts_percentage=100):
+        super().__init__(env, hosts_percentage)
         self.observation_space = spaces.Box(
             low=0,
             high=1,
@@ -356,8 +359,8 @@ class StateWrapper4(StateWrapper):
 class StateWrapper5(StateWrapper):
     """Manages log type distributions and state normalization"""
 
-    def __init__(self, env, is_sampled=False):
-        super().__init__(env, is_sampled)
+    def __init__(self, env, hosts_percentage=100):
+        super().__init__(env, hosts_percentage)
         self.observation_space = spaces.Box(
             low=0,
             high=1,
@@ -510,8 +513,8 @@ class StateWrapper5(StateWrapper):
 class StateWrapper6(StateWrapper):
     """Manages log type distributions and state normalization"""
 
-    def __init__(self, env, is_sampled=False):
-        super().__init__(env, is_sampled)
+    def __init__(self, env, hosts_percentage=100):
+        super().__init__(env, hosts_percentage)
         self.observation_space = spaces.Box(
             low=0,
             high=1,
@@ -586,8 +589,8 @@ class StateWrapper6(StateWrapper):
 class StateWrapper7(StateWrapper):
     """Manages log type distributions and state normalization"""
 
-    def __init__(self, env, is_sampled=False):
-        super().__init__(env, is_sampled)
+    def __init__(self, env, hosts_percentage=100):
+        super().__init__(env, hosts_percentage)
         self.observation_space = spaces.Box(
             low=0,
             high=1,
@@ -623,34 +626,14 @@ class StateWrapper7(StateWrapper):
         fake_sum = sum(ac_fake_state)
         self.unwrapped.fake_relevant_distribution = {"_".join(logtype): self.unwrapped.ac_fake_state[self.unwrapped.relevant_logtypes_indices[logtype]] for logtype in self.unwrapped.top_logtypes}
 
-        # Create the final state vector
-        # state = self.unwrapped.real_state
-        # state = np.append(self.unwrapped.real_state, self.unwrapped.fake_state)
         state = np.append(self.unwrapped.ac_real_state, self.unwrapped.ac_fake_state)
-        
-        # rules_rel_diff_alerts = [value for key, value in self.unwrapped.rules_rel_diff_alerts.items()]
-        # state = np.append(state, rules_rel_diff_alerts)
-        # sparse_vector = np.zeros(self.env.total_steps)
-        # sparse_vector[self.unwrapped.step_counter-1] = 1
-        # state = np.append(state, sparse_vector)
-        # state = np.append(state, self.current_real_quantity/100000) 
-        # real_total_logs = self.total_current_logs
+
         real_total_logs = self.total_episode_logs
         state = np.append(state, real_total_logs/500000)
         state = np.append(state, (self.unwrapped.episodic_inserted_logs+real_total_logs)/500000)
-        # # append to state the step index
-        # # state = np.append(state, self.env.step_counter/self.env.total_steps)
-        # # add sparse vector for step index
-        # append step index component
+
         state = np.append(state, self.unwrapped.step_counter/self.unwrapped.total_steps)
-        
-        # current_datetime = datetime.datetime.strptime(self.env.time_manager.action_window.end, '%m/%d/%Y:%H:%M:%S')
-        # weekday_vector = np.zeros(7)
-        # weekday_vector[current_datetime.weekday()] = 1
-        # hour_vector = np.zeros(24)
-        # hour_vector[current_datetime.hour] = 1
-        # state = np.append(state, weekday_vector)
-        # state = np.append(state, hour_vector)
+
         logger.info(f"State: {state}")
         self.unwrapped.obs = state
         return state
@@ -659,4 +642,3 @@ class StateWrapper7(StateWrapper):
         """Normalize state vector"""
         # return state / (500000)  # Avoid division by zero
         return state / (sum(state) + 0.0000000001)
-     

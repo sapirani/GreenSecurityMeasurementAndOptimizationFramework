@@ -1,4 +1,5 @@
 
+import os
 import random
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from typing import Dict, Any
@@ -6,7 +7,7 @@ import numpy as np
 from collections import defaultdict
 from stable_baselines3.common.evaluation import evaluate_policy
 from torch.utils.tensorboard import SummaryWriter
-
+import pandas as pd
 class MetricsLoggerCallback:
     """Base class containing shared logging logic"""
     
@@ -198,7 +199,9 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
                  render: bool = False,
                  verbose: int = 1,
                  writers=None,
-                 full_eval_env=None):
+                 full_eval_env=None,
+                 additional_percentage: float = 1.0,
+                 hosts_num: int = 100):
         
         EvalCallback.__init__(
             self,
@@ -213,6 +216,8 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
         )
         MetricsLoggerCallback.__init__(self, "eval", log_dir, rules, event_types, writers=writers)
         self.full_eval_env = full_eval_env
+        self.additional_percentage = additional_percentage
+        self.hosts_number = hosts_num
         
     def evaluate_policy(self, *args, **kwargs):
         """Override evaluate_policy to collect info during evaluation"""
@@ -291,7 +296,32 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
                     done = terminated or truncated
                     if done:
                         if 'ac_distribution_value' in info:
-                            self.eval_infos[-1]["full_ac_distribution_value"] = info['ac_distribution_value']
+                            last_real_eval_info = self.eval_infos[-1]
+                            print(last_real_eval_info)
+                            last_real_eval_info["full_ac_distribution_value"] = info['ac_distribution_value']
+                            # add all metrics to self.results_for_csv
+                            results_for_csv = [{
+                                "additional_percentage": self.additional_percentage,
+                                "hosts_number": self.hosts_number,
+                                "full_ac_distribution_value": last_real_eval_info["full_ac_distribution_value"],
+                                "cpu": last_real_eval_info['combined_metrics'].get('cpu', None),
+                                "baseline_cpu": last_real_eval_info['combined_baseline_metrics'].get('cpu', None),
+                                "duration": last_real_eval_info['combined_metrics'].get('duration', None),
+                                "baseline_duration": last_real_eval_info['combined_baseline_metrics'].get('duration', None),
+                                "read_bytes": last_real_eval_info['combined_metrics'].get('read_bytes', None),
+                                "baseline_read_bytes": last_real_eval_info['combined_baseline_metrics'].get('read_bytes', None),
+                                "write_bytes": last_real_eval_info['combined_metrics'].get('write_bytes', None),
+                                "baseline_write_bytes": last_real_eval_info['combined_baseline_metrics'].get('write_bytes', None),
+                                "alert": last_real_eval_info['combined_metrics'].get('alert', None),
+                                "baseline_alert": last_real_eval_info['combined_baseline_metrics'].get('alert', None),
+                                "memory_mb": last_real_eval_info['combined_metrics'].get('memory_mb', None),
+                                "baseline_memory_mb": last_real_eval_info['combined_baseline_metrics'].get('memory_mb', None),
+                            }]
+                            # dump to csv
+                            experiments_dir =self.log_dir.split("tensorboard")[0]
+                            csv_path = f"{experiments_dir}/full_eval_results.csv"
+                            pd.DataFrame(results_for_csv).to_csv(csv_path, mode="a", header=not os.path.exists(csv_path), index=False)
+                            
                         obs = self.full_eval_env.reset()
                 all_actions_list = []
 

@@ -6,6 +6,7 @@ import json
 import logging
 from multiprocessing import Pool
 from pyexpat import model
+import random
 import re
 import time
 from xxlimited import Str
@@ -36,7 +37,7 @@ import traceback
 
 CLK_TCK = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
 
-load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env')
+load_dotenv('/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src/.env')
 # Precompile the regex pattern
 pattern = re.compile(r"'(.*?)' (\D+) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} IDT) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \s+(\d+)\s+(\d+\.\d+)") # IDT and IST are changed when the time is changed
 savedsearches_path = '/opt/splunk/etc/users/shouei/search/local/savedsearches.conf'
@@ -44,7 +45,7 @@ APP = 'search'
 HEADERS = {
     "Content-Type": "application/x-www-form-urlencoded"
 }
-PREFIX_PATH = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/'
+PREFIX_PATH = '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/'
 import logging
 logger = logging.getLogger(__name__)
 
@@ -144,12 +145,12 @@ class SplunkTools(object):
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, active_saved_searches=None, rule_frequency=1, mode=Mode.ATTACK):
+    def __init__(self, active_saved_searches=None, rule_frequency=1, mode=Mode.ATTACK, ip=1):
         if self._initialized:
             return
         self.mode = mode
         self.pids = []
-        self.splunk_host = os.getenv("SPLUNK_HOST")
+        self.splunk_host = os.getenv(f"SPLUNK_HOST_{ip}")
         self.splunk_port = os.getenv("SPLUNK_PORT")
         self.base_url = f"https://{self.splunk_host}:{self.splunk_port}"
         self.splunk_username = os.getenv("SPLUNK_USERNAME")
@@ -158,10 +159,9 @@ class SplunkTools(object):
         self.hec_token1 = os.getenv('HEC_TOKEN1')
         self.hec_token2 = os.getenv('HEC_TOKEN2')
         self.auth = requests.auth.HTTPBasicAuth(self.splunk_username, self.splunk_password)
-        self.real_logs_distribution = pd.DataFrame(data=None, columns=['source', 'EventCode', '_time', 'count'])
+        self.real_logs_distribution = pd.DataFrame(data=None, columns=['source', 'EventCode', '_time', "host", 'count'])
         self.real_logs_distribution['_time'] = pd.to_datetime(self.real_logs_distribution['_time'])
-        self.sampled_real_logs_distribution = pd.DataFrame(data=None, columns=['source', 'EventCode', '_time', 'count'])
-        self.sampled_real_logs_distribution['_time'] = pd.to_datetime(self.real_logs_distribution['_time'])
+
         self.max_workers = 8
         self.total_interval_queue = queue.Queue()
         self.total_cpu_queue = queue.Queue()
@@ -184,7 +184,10 @@ class SplunkTools(object):
                 logger.error(f'Failed to connect to Splunk: {str(e)}')
                 time.sleep(120)#TODO: change to 5
         self._initialized = True
-        self.log_file_prefix = '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/'
+        self.log_file_prefix = f'/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/monitor_files_{self.splunk_host}'
+        self.subset = {}
+        self.subset_real_logs_distribution = pd.DataFrame()
+        self.full_hosts_list = {}
 
         # if self.mode == Mode.PROFILE:
         #         response = es_logger.handlers[0].es.delete_by_query(
@@ -197,98 +200,6 @@ class SplunkTools(object):
         #         logger.info(f"Deleted {response['deleted']} documents from index sid")
 
     async def run_saved_search(self, search_name: str, start_time: Optional[float] = None, end_time: Optional[float] = None, interval: float = 0.2) -> QueryMetrics:
-        # saved_search = self.service.saved_searches[search_name]
-        # search_query = saved_search.content['search']  # the actual SPL
-        # search_query = f"search index={self.index_name} {search_query}"
-        # logger.info(f'Running saved search: {search_name}')
-        # job = self.service.jobs.create(
-        #     search_query,
-        #     earliest_time=start_time,
-        #     latest_time=end_time
-        # )
-
-        # while "pid" not in job["content"]:
-        #     await asyncio.sleep(0.2)
-        #     job.refresh()
-
-        #     # logger.info('Waiting for PID assignment...')
-        #     if job["content"]['isDone'] == '1':
-        #         job = self.service.jobs.create(
-        #         search_query,
-        #         earliest_time=start_time,
-        #         latest_time=end_time
-        #     )
-        # pid = int(job["content"]["pid"])
-        # if self.mode == Mode.PROFILE:
-        #     es_logger.info(f"PID SID MAPPING", extra={
-        #         'timestamp': datetime.now(timezone.utc).isoformat(),
-        #         'pid': pid,
-        #         'rule_name': search_name,
-        #     })
-        # logger.info(f'Saved search "{search_name}" started with PID: {pid}')
-        # metrics_snapshots: List[Dict] = []
-
-        # async def monitor_task():
-        #     async for m, _ in monitor_process(pid, interval):
-        #         metrics_snapshots.append(m)
-
-        # task = asyncio.create_task(monitor_task())
-
-        # while not job.is_done():
-        #     await asyncio.sleep(0.3)
-        #     job.refresh()
-
-        # task.cancel()
-        # await asyncio.gather(task, return_exceptions=True)
-
-        # # compute delta metrics
-        # if metrics_snapshots:
-        #     first, last = metrics_snapshots[0], metrics_snapshots[-1]
-        #     delta_metrics = {k: last[k] - first.get(k, 0) for k in last}
-        # else:
-        #     delta_metrics = {}
-        # results_count = int(job["content"].get("resultCount", 0)),
-        # if isinstance(results_count, (tuple, list)):
-        #     results_count = results_count[0]
-        # execution_time = float(job["content"].get("runDuration", 0.0)),
-        # if isinstance(execution_time, (tuple, list)):
-        #     execution_time = execution_time[0]
-        # events_count = 0
-        # if self.mode == Mode.PROFILE:
-        #     # Check events count via BASIC_QUERIES
-        #     eventcode_search = BASIC_QUERIES.get(search_name, None)
-        #     if eventcode_search:
-        #         eventcode_query = f'search index={self.index_name} {eventcode_search} host IN ("dt-splunk", 132.72.81.150)  | stats count'
-        #         eventcode_job = self.service.jobs.create(eventcode_query, earliest_time=start_time, latest_time=end_time)
-        #         while True:
-        #             eventcode_job.refresh()
-        #             if eventcode_job.content['isDone'] == '1':
-        #                 break
-        #             await asyncio.sleep(0.1)
-        #         events_count = int(eventcode_job["eventCount"]) if "eventCount" in eventcode_job else 0
-
-        # # build QueryMetrics instance
-        # qmetric = QueryMetrics(
-        #     timestamp=datetime.now(timezone.utc).isoformat(),
-        #     pid=pid,
-        #     events_count=events_count,                
-        #     search_name=search_name,
-        #     results_count=results_count,
-        #     execution_time=execution_time,
-        #     cpu=delta_metrics.get("cpu_seconds", 0.0),
-        #     io_metrics={
-        #         "read_bytes": delta_metrics.get("read_bytes", 0),
-        #         "write_bytes": delta_metrics.get("write_bytes", 0),
-        #         "read_count": delta_metrics.get("read_count", 0),
-        #         "write_count": delta_metrics.get("write_count", 0),
-        #     },
-        #     memory_mb=delta_metrics.get("mem_used_mb", 0.0)
-        # )
-        # if self.mode == Mode.PROFILE:
-        #     es_logger.info(f"CPU PID SID MAPPING", extra=
-        #                    asdict(qmetric)
-        #                    )
-        # return qmetric
         """
         Replaces the old logic. Calls the remote endpoint to do the heavy lifting.
         start_time/end_time should be Epoch strings or relative time strings (e.g. "-15m").
@@ -395,7 +306,7 @@ class SplunkTools(object):
             result.end_time = time_range[1]
             logger.info(f'Finished running saved search: {result.search_name}')
         return results
-        
+    
     def load_real_logs_distribution_bucket(self, start_time, end_time):
             """
             Load and merge logs from multiple buckets within specified time range.
@@ -407,72 +318,97 @@ class SplunkTools(object):
             all_data = []
             current_ts = ts_start_time
 
-            logger.info('Loading sampled real logs distribution from splunk_results.csv')
-            df  = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/splunk_results_random.csv")
-            # df  = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/splunk_results.csv")
-            # df['_time'] = pd.to_datetime(df['_time'], format="%Y-%m-%dT%H:%M:%S.000%z",  errors='coerce')
-            # # convert _time format from 2023-09-01T00:00:00 to 2023-09-01 00:00:00
-            # df['_time'] = df['_time'].dt.strftime('%Y-%m-%d %H:%M:%S')
+
+            df  = pd.read_csv("/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/resources/all_dist_by_host.csv")
+ 
             df['_time'] = pd.to_datetime(df['_time'], format='%Y-%m-%d %H:%M:%S',  errors='coerce')
             df = df.dropna(subset=['_time'])
             for col in df.select_dtypes(include=['float64']).columns:
                 df[col] = df[col].astype('float32')
             for col in df.select_dtypes(include=['int64']).columns:
                 df[col] = df[col].astype('int32')
-            self.sampled_real_logs_distribution  = df
-            self.sampled_real_logs_distribution['source'].str.contains('Security|System', case=False, regex=True)
+            self.real_logs_distribution  = df
+            self.real_logs_distribution['source'].str.contains('Security|System', case=False, regex=True)
             
-            self.sampled_real_logs_distribution = self.sampled_real_logs_distribution.set_index('_time').sort_index()
+            self.real_logs_distribution = self.real_logs_distribution.set_index('_time').sort_index()  
+            self.full_hosts_list = self.real_logs_distribution['host'].unique().tolist()
+    # def load_real_logs_distribution_bucket(self, start_time, end_time):
+    #         """
+    #         Load and merge logs from multiple buckets within specified time range.
+    #         start_time and end_time should be timezone-aware datetime objects
+    #         """
+    #         ts_start_time = start_time
+    #         ts_end_time = end_time
+    #         logger.info(f'Loading real logs distribution for time range: {ts_start_time} - {ts_end_time}')
+    #         all_data = []
+    #         current_ts = ts_start_time
 
-            logger.info('Loading real logs distribution from output_buckets folder')
-            while current_ts < ts_end_time:
-                bucket_found = False
+    #         logger.info('Loading sampled real logs distribution from splunk_results.csv')
+    #         df  = pd.read_csv("/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src/splunk_results_random.csv")
+    #         # df  = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/splunk_results.csv")
+    #         # df['_time'] = pd.to_datetime(df['_time'], format="%Y-%m-%dT%H:%M:%S.000%z",  errors='coerce')
+    #         # # convert _time format from 2023-09-01T00:00:00 to 2023-09-01 00:00:00
+    #         # df['_time'] = df['_time'].dt.strftime('%Y-%m-%d %H:%M:%S')
+    #         df['_time'] = pd.to_datetime(df['_time'], format='%Y-%m-%d %H:%M:%S',  errors='coerce')
+    #         df = df.dropna(subset=['_time'])
+    #         for col in df.select_dtypes(include=['float64']).columns:
+    #             df[col] = df[col].astype('float32')
+    #         for col in df.select_dtypes(include=['int64']).columns:
+    #             df[col] = df[col].astype('int32')
+    #         self.sampled_real_logs_distribution  = df
+    #         self.sampled_real_logs_distribution['source'].str.contains('Security|System', case=False, regex=True)
+            
+    #         self.sampled_real_logs_distribution = self.sampled_real_logs_distribution.set_index('_time').sort_index()
+
+    #         logger.info('Loading real logs distribution from output_buckets folder')
+    #         while current_ts < ts_end_time:
+    #             bucket_found = False
     
-                for file in os.listdir(f'{PREFIX_PATH}resources/output_buckets'):
-                        start_date_file, start_time_file, end_date_file, end_time_file = file.strip(".csv").split('_')[1:]
+    #             for file in os.listdir(f'{PREFIX_PATH}resources/output_buckets'):
+    #                     start_date_file, start_time_file, end_date_file, end_time_file = file.strip(".csv").split('_')[1:]
                         
-                        start_date_time_file = datetime.strptime(
-                            f"{start_date_file} {start_time_file}", 
-                            '%Y-%m-%d %H-%M-%S'
-                        )
+    #                     start_date_time_file = datetime.strptime(
+    #                         f"{start_date_file} {start_time_file}", 
+    #                         '%Y-%m-%d %H-%M-%S'
+    #                     )
                         
-                        end_date_time_file = datetime.strptime(
-                            f"{end_date_file} {end_time_file}", 
-                            '%Y-%m-%d %H-%M-%S'
-                        )
-                        if start_date_time_file <= current_ts and end_date_time_file > current_ts:
-                            df = pd.read_csv(f'{PREFIX_PATH}resources/output_buckets/{file}')
-                            df['_time'] = pd.to_datetime(df['_time'], format='%Y-%m-%d %H:%M:%S',  errors='coerce')
-                            df = df.dropna(subset=['_time'])
-                            for col in df.select_dtypes(include=['float64']).columns:
-                                df[col] = df[col].astype('float32')
-                            for col in df.select_dtypes(include=['int64']).columns:
-                                df[col] = df[col].astype('int32')
-                            # Filter data for current time slice
-                            # mask = (df['_time'] >= current_ts)
-                            # if current_ts + (end_date_time_file - start_date_time_file) > ts_end_time:
-                                # mask &= (df['_time'] <= ts_end_time)
+    #                     end_date_time_file = datetime.strptime(
+    #                         f"{end_date_file} {end_time_file}", 
+    #                         '%Y-%m-%d %H-%M-%S'
+    #                     )
+    #                     if start_date_time_file <= current_ts and end_date_time_file > current_ts:
+    #                         df = pd.read_csv(f'{PREFIX_PATH}resources/output_buckets/{file}')
+    #                         df['_time'] = pd.to_datetime(df['_time'], format='%Y-%m-%d %H:%M:%S',  errors='coerce')
+    #                         df = df.dropna(subset=['_time'])
+    #                         for col in df.select_dtypes(include=['float64']).columns:
+    #                             df[col] = df[col].astype('float32')
+    #                         for col in df.select_dtypes(include=['int64']).columns:
+    #                             df[col] = df[col].astype('int32')
+    #                         # Filter data for current time slice
+    #                         # mask = (df['_time'] >= current_ts)
+    #                         # if current_ts + (end_date_time_file - start_date_time_file) > ts_end_time:
+    #                             # mask &= (df['_time'] <= ts_end_time)
                             
-                            all_data.append(df)
-                            # all_data.append(df[mask])
-                            current_ts = end_date_time_file
-                            bucket_found = True
-                            break
+    #                         all_data.append(df)
+    #                         # all_data.append(df[mask])
+    #                         current_ts = end_date_time_file
+    #                         bucket_found = True
+    #                         break
                     
-                if not bucket_found:
-                    self.create_new_distribution_bucket(current_ts, ts_end_time)
-                    continue
+    #             if not bucket_found:
+    #                 self.create_new_distribution_bucket(current_ts, ts_end_time)
+    #                 continue
                     
             
-            if all_data:
-                self.real_logs_distribution = pd.concat(all_data, ignore_index=True)
-                # include only security and system logs
-                self.real_logs_distribution = self.real_logs_distribution[
-                    self.real_logs_distribution['source'].str.contains('Security|System', case=False, regex=True)
-                ]
-                self.real_logs_distribution = self.real_logs_distribution.set_index('_time').sort_index()
+    #         if all_data:
+    #             self.real_logs_distribution = pd.concat(all_data, ignore_index=True)
+    #             # include only security and system logs
+    #             self.real_logs_distribution = self.real_logs_distribution[
+    #                 self.real_logs_distribution['source'].str.contains('Security|System', case=False, regex=True)
+    #             ]
+    #             self.real_logs_distribution = self.real_logs_distribution.set_index('_time').sort_index()
 
-                return
+    #             return
         
     def check_license_usage(self):
         """
@@ -577,6 +513,8 @@ class SplunkTools(object):
         return None  
                     
     def write_logs_to_monitor(self, logs, log_source):
+        if not os.path.exists(self.log_file_prefix):
+            os.makedirs(self.log_file_prefix)
         with open(f'{self.log_file_prefix}/{log_source}.txt', 'a') as f:
             for log in logs:
                 f.write(f'{log}\n\n')        
@@ -729,7 +667,7 @@ class SplunkTools(object):
 
             logger.info(f"Completed. Total records exported: {total_records}")
             
-    def get_releveant_distribution(self, start_time, end_time, is_sampled):
+    def get_releveant_distribution(self, start_time, end_time, hosts_percentage=100):
         """
         Get relevant logs distribution for a given time range.
         
@@ -749,7 +687,7 @@ class SplunkTools(object):
         # Then your lookup becomes:
         start_ts = pd.Timestamp(start_time, unit='s')
         end_ts = pd.Timestamp(end_time, unit='s')
-        if not is_sampled:
+        if hosts_percentage >= 100:
             relevant_logs = self.real_logs_distribution.loc[start_ts:end_ts]
             
             # Check if we have full coverage
@@ -771,12 +709,22 @@ class SplunkTools(object):
                 # logger.info(f'Relevant logs index range: {relevant_logs.index.min()} - {relevant_logs.index.max()}')
             relevant_logs.loc[:, 'count'] = relevant_logs['count'].astype(int)
         else:
-            relevant_logs = self.sampled_real_logs_distribution.loc[start_ts:end_ts]
+            # check if subset is empty or time range is outside current subset
+            if not self.subset:
+                # get random hosts
+                random_hosts = random.sample(self.full_hosts_list, 
+                                            int(len(self.full_hosts_list) * hosts_percentage / 100))
+                self.subset = set(random_hosts)
+                self.subset_real_logs_distribution = self.real_logs_distribution[
+                    self.real_logs_distribution['host'].isin(self.subset)
+                ]
+                
+            relevant_logs = self.subset_real_logs_distribution.loc[start_ts:end_ts]
             relevant_logs.loc[:, 'count'] = relevant_logs['count'].astype(int)
         
         return relevant_logs       
               
-    def get_real_distribution(self, start_time, end_time, is_sampled=False):
+    def get_real_distribution(self, start_time, end_time, hosts_percentage=100):
         """
         Get real log distribution for a given time range.
         
@@ -792,7 +740,7 @@ class SplunkTools(object):
         end_dt = datetime.strptime(end_time, '%m/%d/%Y:%H:%M:%S')
         logger.info(f"start_dt: {start_dt}, end_dt: {end_dt}")
         # Load real logs distribution
-        relevant_logs = self.get_releveant_distribution(start_dt, end_dt, is_sampled)
+        relevant_logs = self.get_releveant_distribution(start_dt, end_dt, hosts_percentage)
         
         # Group by source and EventCode, summing the counts
         relevant_logs = relevant_logs.groupby(['source', 'EventCode']).agg({'count': 'sum'}).reset_index()
@@ -812,80 +760,6 @@ class SplunkTools(object):
         
         return res_dict
 
-    
-    def get_search_details(self, search,  is_measure_energy=False):
-        search_id = search['search_id'].strip('\'')
-        rule_name = search['savedsearch_name']
-        executed_time = search['executed_time']
-        total_events = search['event_count']
-        total_run_time = search['total_run_time']
-        if is_measure_energy:
-            search_endpoint = f"{self.base_url}/services/search/jobs"
-            results_response = requests.get(f"{search_endpoint}/{search_id}", params={"output_mode": "json"}, auth=self.auth, verify=False)
-            results_data = json.loads(results_response.text)
-            try:
-                pid = results_data['entry'][0]['content']['pid']
-                runDuration = results_data['entry'][0]['content']['runDuration']
-                return (rule_name, (search_id, float(pid), executed_time, float(total_run_time), total_events))
-            except KeyError as e:
-                logger.info(f'KeyError - {str(e)}')
-            except IndexError as e:
-                logger.info(f'IndexError - {str(e)}')
-            except Exception as e:
-                logger.info('Unexpected error:', str(e))
-            logger.info(results_data)
-        else:
-            return (rule_name, (search_id, executed_time, float(total_run_time), total_events))
-
-    def get_rules_pids(self, time_range, num_of_searches, is_measure_energy=False):
-        """Get the PIDs of rules that were executed during the given time range."""
-        format_str = "%Y-%m-%d %H:%M:%S"
-        format_str2 = "%m/%d/%Y:%H:%M:%S"
-        api_lt = datetime.strptime(time_range[0], format_str2).timestamp()
-        api_et = datetime.strptime(time_range[1], format_str2).timestamp()
-        spl_query = (
-            f"search index=_audit action=search app=search search_type=scheduled info=completed earliest=-2m search_et={api_lt} search_lt={api_et}"
-            f'| regex search_id=\"scheduler.*\"| eval executed_time=strftime(exec_time, \"{format_str}\")'
-            f"| table search_id savedsearch_name _time executed_time event_count total_run_time | sort _time desc | head {num_of_searches}"
-        )
-        url = f"{self.base_url}/services/search/jobs"
-        data = {
-            "search": spl_query,
-            "exec_mode": "oneshot",
-            "output_mode": "json"
-        }
-        headers = {
-            "Content-Type": "application/json",
-        }
-        response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
-        logger.info(response.text)
-        if response.status_code != 200:
-            logger.info(f'Error: {response}')
-            return None
-        results = json.loads(response.text)['results']
-        with Pool() as pool:
-            results = pool.starmap(self.get_search_details, [(search, is_measure_energy) for search in results])   
-        pids = {}
-        for res in results:
-            if res is None:
-                continue
-            rule_name, details = res
-            pids.setdefault(rule_name, []).append(details)
-        return pids
-    
-    def get_alert_count(self, sids):
-        spl_query = f'search index=_audit action=alert_fired ss_app=search user=shouei earliest=-1h latest=now() | where sid IN {tuple(sids)} |stats count'.replace('\'', '\"')
-        # spl_query = 'search index=_internal sourcetype=scheduler thread_id=AlertNotifier* user="shouei"|stats count by savedsearch_name sid'
-        url = f"{self.base_url}/services/search/jobs"
-        data = {
-            "search": spl_query,
-            "exec_mode": "oneshot",
-            "output_mode": "json"
-        }
-        response = requests.post(url, headers=HEADERS, data=data, auth=(self.splunk_username, self.splunk_password), verify=False)
-        results = json.loads(response.text)
-        results = int(results['results'][0]['count'])
-        return results
     
     def run_search(self, query, earliest_time, latest_time):
         print(f'Running search: {query} from {earliest_time} to {latest_time}')
@@ -999,30 +873,6 @@ class SplunkTools(object):
 
         return total_deleted
 
-    def save_logs(self, log_source, eventcode, logs):
-        path = f'{PREFIX_PATH}logs_to_duplicate_files'
-        if not os.path.exists(path):
-            os.makedirs(path)
-        # replace / char with '__'
-        log_source = log_source.replace('/', '__')
-        with open(f'{path}/{log_source}_{eventcode}.txt', 'w') as f:
-            for log in logs:
-                f.write(f'{log}\n[EOF]\n')
-        logger.info(f'Saved {len(logs)} logs to {path}/{log_source}_{eventcode}.txt')
-
-                
-    def get_time(self, y, m, d, h, mi, s):
-        return datetime(y, m, d, h, mi, s).timestamp()
-    
-    def get_logs_amount(self, time_range):
-        start_dt = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S')
-        end_dt = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S')
-        relevant_logs = self.get_releveant_distribution(start_dt, end_dt)
-        return relevant_logs['count'].sum()
-  
-  
-  
-  
   
   
   

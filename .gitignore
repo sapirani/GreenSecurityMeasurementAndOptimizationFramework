@@ -1,7 +1,7 @@
 *.csv
-SplunkResearch/experiments/*
-!SplunkResearch/experiments/baseline/
-!SplunkResearch/experiments/baseline/*
+SplunkResearch/*experiments*/*
+!SplunkResearch/*experiments*/baseline/
+!SplunkResearch/*experiments*/baseline/*
 __pycache__
 .idea
 .ipynb_checkpoints
@@ -19,8 +19,7 @@ screenlog.*
 SplunkResearch/unused_folders
 SplunkResearch/src/unused_scripts
 config.json
-SplunkResearch/monitor_files/wineventlog:security.txt
-SplunkResearch/monitor_files/wineventlog:system.txt
+*monitor_files*
 SplunkResearch/best_experiments
 SplunkResearch/best_parallel_exp
 *.template
@@ -38,3 +37,4 @@ program_parameters.py
 SplunkResearch/energy_profile_final.log
 elastic_reader/elastic_reader_parameters.py
 measurements_model_pipeline/dataset_parameters.py
+*job*

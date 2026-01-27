@@ -4,9 +4,15 @@ import os
 import subprocess
 import json
 import numpy as np
+
+# Factory functions to generate paths
+def get_system_monitor_path(host):
+    return f"/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/monitor_files_{host}/wineventlog:system.txt"
+
+def get_security_monitor_path(host):
+    return f"/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/monitor_files_{host}/wineventlog:security.txt"
+
 logger = logging.getLogger(__name__)
-SYSTEM_MONITOR_FILE_PATH = r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:system.txt"
-SECURITY_MONITOR_FILE_PATH = r"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/wineventlog:security.txt"
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.integer):
@@ -50,12 +56,12 @@ def empty_monitored_files(monitored_file_path):
     with open(monitored_file_path, 'w') as fp:
         fp.write('')
         
-def clean_env(splunk_tools_instance, time_range=None,logs_qnt=None):
+def clean_env(splunk_tools_instance, time_range=None,logs_qnt=None, host='host1'):
     if time_range is None:
         time_range = ("04/29/2023:00:00:00","05/30/2023:00:00:00")
         splunk_tools_instance.delete_fake_logs(time_range)
-        empty_monitored_files(SYSTEM_MONITOR_FILE_PATH)
-        empty_monitored_files(SECURITY_MONITOR_FILE_PATH)
+        empty_monitored_files(get_system_monitor_path(host))
+        empty_monitored_files(get_security_monitor_path(host))
         return time_range
         
     # date = time_range[1].split(':')[0]
@@ -68,8 +74,8 @@ def clean_env(splunk_tools_instance, time_range=None,logs_qnt=None):
         end_time = end_time + datetime.timedelta(minutes=5)
         time_range = (start_time.strftime("%m/%d/%Y:%H:%M:%S"), end_time.strftime("%m/%d/%Y:%H:%M:%S"))
         logger.info(f'update time range to {time_range}')
-    empty_monitored_files(SYSTEM_MONITOR_FILE_PATH)
-    empty_monitored_files(SECURITY_MONITOR_FILE_PATH)
+        empty_monitored_files(get_system_monitor_path(host))
+        empty_monitored_files(get_security_monitor_path(host))
     splunk_tools_instance.delete_fake_logs(time_range, logs_qnt=logs_qnt)
 
     return time_range

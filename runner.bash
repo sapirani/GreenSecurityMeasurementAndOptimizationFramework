@@ -1,0 +1,11 @@
+sbatch gpu_job.sh train_20260111202046_360000_steps 0 1 AlertRewardWrapper
+wait
+sbatch gpu_job.sh train_20260112020820_360000_steps 0 1 AlertRewardWrapper2
+wait
+sbatch gpu_job.sh train_20260111202046_360000_steps 0 0.5 AlertRewardWrapper
+wait
+sbatch gpu_job.sh train_20260112020820_360000_steps 0 0.5 AlertRewardWrapper2
+wait
+sbatch gpu_job.sh train_20260111202046_360000_steps 1 1 AlertRewardWrapper
+wait
+sbatch gpu_job.sh train_20260112020820_360000_steps 1 1 AlertRewardWrapper2
