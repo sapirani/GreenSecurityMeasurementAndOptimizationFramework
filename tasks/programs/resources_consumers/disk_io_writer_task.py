@@ -5,7 +5,7 @@ import string
 from pathlib import Path
 import tempfile
 
-from tasks.resources_consumers.task_utils import extract_rate_and_size
+from tasks.programs.resources_consumers.task_utils import extract_rate_and_size
 
 TEMP_OUTPUT_DIRECTORY = os.path.join(tempfile.gettempdir(), "disk_io_test")
 BASE_FILE_NAME = "file"

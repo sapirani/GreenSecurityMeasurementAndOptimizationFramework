@@ -3,7 +3,7 @@ import socket
 import time
 import psutil
 
-from tasks.resources_consumers.task_utils import extract_rate_and_size
+from tasks.programs.resources_consumers.task_utils import extract_rate_and_size
 
 UDP_IP = "192.168.1.117"
 UDP_PORT = 12345
