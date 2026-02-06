@@ -75,3 +75,17 @@ dummy_task_rate = 1 / 5
 dummy_task_unit_size = 1024  # can be None
 
 tasks_to_run_in_parallel = ["run_memory_consumer", "run_disk_writer"] # list of tasks to run using the `multiple_resource_consumers_task`, must include at least one item.
+
+# ***** Parameters for Confidential Computing Tasks ***** #
+messages_to_encrypt_file = r"C:\Users\Administrator\Desktop\messages.txt"
+results_file_for_encryption = r"C:\Users\Administrator\Desktop\pycrypto_rsa_encryption_results.bin"
+
+messages_to_decrypt_file = results_file_for_encryption
+results_file_for_decryption = r"path-to-save-decrypted-results"
+
+security_algorithm_type = EncryptionType.PycryptoRSA
+block_cipher_mode = None #EncryptionMode.CBC
+algorithm_key_file = r"path-to-save-algorithm-key"
+
+min_key_value = 2 ** 2047 - 1
+max_key_value = 2 ** 2048 - 1

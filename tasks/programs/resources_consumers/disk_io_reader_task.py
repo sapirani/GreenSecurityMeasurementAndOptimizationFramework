@@ -1,10 +1,9 @@
-import argparse
 import os
 import time
 import tempfile
 from pathlib import Path
 
-from tasks.resources_consumers.task_utils import extract_rate_and_size
+from tasks.programs.resources_consumers.task_utils import extract_rate_and_size
 
 TEMP_DIRECTORY_NAME = os.path.join(tempfile.gettempdir(), "disk_io_test")
 BASE_FILE_NAME = "file"

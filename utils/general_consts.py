@@ -62,6 +62,11 @@ class ProgramToScan(Enum):
     NetworkSender = 15
     MemoryReleaser = 16
     MultipleResourceConsumer = 17
+    MessageEncryptor = 18
+    MessageDecryptor = 19
+    MessageAddition = 20
+    MessageMultiplication = 21
+    EncryptionPipelineExecutor = 22
 
 
 class ScanMode(Enum):

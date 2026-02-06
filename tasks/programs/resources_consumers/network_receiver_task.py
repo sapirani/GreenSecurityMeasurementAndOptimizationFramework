@@ -1,8 +1,5 @@
 import argparse
 import socket
-import time
-
-from tasks.resources_consumers.task_utils import extract_rate_and_size
 
 UDP_IP = "0.0.0.0"  # Listen on all interfaces
 UDP_PORT = 12345

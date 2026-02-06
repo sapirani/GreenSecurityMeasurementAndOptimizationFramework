@@ -4,12 +4,12 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from typing import Union, Callable
 
-from tasks.resources_consumers.memory_consumer_task import consume_ram
-from tasks.resources_consumers.memory_releaser_task import release_ram
-from tasks.resources_consumers.disk_io_writer_task import write_files
-from tasks.resources_consumers.disk_io_reader_task import read_files
-from tasks.resources_consumers.network_sender_task import send_udp_packets
-from tasks.resources_consumers.network_receiver_task import receive_udp_packets
+from tasks.programs.resources_consumers.memory_consumer_task import consume_ram
+from tasks.programs.resources_consumers.memory_releaser_task import release_ram
+from tasks.programs.resources_consumers.disk_io_writer_task import write_files
+from tasks.programs.resources_consumers.disk_io_reader_task import read_files
+from tasks.programs.resources_consumers.network_sender_task import send_udp_packets
+from tasks.programs.resources_consumers.network_receiver_task import receive_udp_packets
 
 CONSUMERS_METHODS = [consume_ram, write_files]
 DEFAULT_UNIT_SIZE = 1024
