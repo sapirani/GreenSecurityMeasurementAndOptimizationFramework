@@ -94,6 +94,8 @@ class ExperimentConfig:
     hosts_num: int = 100  # Percentage of hosts to use (0-100, where 100 = all hosts)
     alert_reward_method: str = "AlertRewardWrapper"  # AlertRewardWrapper, AlertRewardWrapper1
     distribution_reward_method: str = "DistributionRewardWrapper"  # DistributionRewardWrapper, DistributionRewardWrapper1
+    alert_epsilon: float = 1e-3
+    normalizer_factor: float = 1.0
 
 class ExperimentManager:
     """Manages training and evaluation experiments"""
@@ -158,8 +160,8 @@ class ExperimentManager:
         # env = SngleAction(env, config.use_random_agent)
         if config.action_type == "Action8":        
             env = Action8(env, config.use_random_agent)
-        elif config.action_type == "Action11":
-            env = Action11(env, config.use_random_agent)
+        elif config.action_type == "Action12":
+            env = Action12(env, config.use_random_agent)
         
 
         # if config.use_random_agent:
@@ -187,8 +189,10 @@ class ExperimentManager:
             )
             env = ENUM_ALERT_REWARD_METHODS[config.alert_reward_method](
                 env,
-                beta=config.beta_alert
-            )
+                beta=config.beta_alert,
+                epsilon=config.alert_epsilon,
+                normalizer_factor=config.normalizer_factor
+                )
 
             
         
@@ -389,12 +393,12 @@ class ExperimentManager:
                 results = self._run_training(model, env, config, callbacks)
             elif config.mode == "eval_post_training":  # eval after training
                 full_eval_env = None
-                if eval_config.hosts_num < 100:
-                    full_eval_config = replace(eval_config, hosts_num=100)
-                    full_eval_config = replace(full_eval_config, use_energy_reward=False)
-                    full_eval_config = replace(full_eval_config, is_mock=True)
-                    full_eval_config = replace(full_eval_config, use_alert_reward=False)
-                    full_eval_env = self.create_environment(full_eval_config)
+                # if eval_config.hosts_num < 100:
+                full_eval_config = replace(eval_config, hosts_num=100)
+                full_eval_config = replace(full_eval_config, use_energy_reward=False)
+                full_eval_config = replace(full_eval_config, is_mock=True)
+                full_eval_config = replace(full_eval_config, use_alert_reward=False)
+                full_eval_env = self.create_environment(full_eval_config)
                 results = self._run_evaluation(model, self.eval_env, eval_config, full_eval_env)
             else:  # retrain
                 results = self._run_retraining(model, env, config, callbacks)
@@ -457,7 +461,8 @@ class ExperimentManager:
             writers=writers,
             full_eval_env=full_eval_env,
             additional_percentage= config.env_config.additional_percentage,
-            hosts_num= config.hosts_num
+            hosts_num= config.hosts_num,
+            is_random_agent= config.use_random_agent,
         )
         eval_callback.model = model
         for _ in range(eval_episodes):
@@ -592,7 +597,7 @@ class ExperimentManager:
                 eval_env=self.eval_env,
                 log_dir=f"{self.dirs['tensorboard']._str}/{config.experiment_name}", rules=rules, event_types=event_types,
                 n_eval_episodes=1,
-                eval_freq=5600,
+                eval_freq=600000,#5600,
                 best_model_save_path=self.dirs['models'],
                 log_path=self.dirs['logs'],
                 # eval_log_dir=str(self.dirs['tensorboard']/f"eval_{config.experiment_name}"),
@@ -671,6 +676,9 @@ if __name__ == "__main__":
     mode = sys.argv[11] if len(sys.argv) > 11 else "eval_post_training"
     num_episodes = int(sys.argv[12]) if len(sys.argv) > 12 else 100
     ip = int(sys.argv[13]) if len(sys.argv) > 13 else 1
+    alert_epsilon = float(sys.argv[14]) if len(sys.argv) > 14 else 0.1
+    normalizer_factor = float(sys.argv[15]) if len(sys.argv) > 15 else 30
+    action_type = sys.argv[16] if len(sys.argv) > 16 else "Action8"
     # model_name = "train_20250927214506_70000_steps"
     # model_name = "train_20251010153827_70000_steps"
     print(f"Model name: {model_name}, alpha_energy: {alpha_energy}, beta_alert: {beta_alert}, gamma_dist: {gamma_dist}, hosts_num: {hosts_num}%, additional_percentage: {additional_percentage}")
@@ -727,8 +735,9 @@ if __name__ == "__main__":
             alert_threshold=-10,
             hosts_num=hosts_num,  # Percentage of hosts to use (0-100)
             alert_reward_method=alert_reward_method,
-            distribution_reward_method=distribution_reward_method
-            
+            distribution_reward_method=distribution_reward_method,
+            alert_epsilon=alert_epsilon,
+            normalizer_factor=normalizer_factor,            
         )
 
         experiment_config.mode = mode #"eval_post_training"  # eval after training

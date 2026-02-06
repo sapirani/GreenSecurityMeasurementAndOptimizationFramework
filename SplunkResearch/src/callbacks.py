@@ -201,7 +201,8 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
                  writers=None,
                  full_eval_env=None,
                  additional_percentage: float = 1.0,
-                 hosts_num: int = 100):
+                 hosts_num: int = 100,
+                 is_random_agent: bool = False):
         
         EvalCallback.__init__(
             self,
@@ -218,6 +219,7 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
         self.full_eval_env = full_eval_env
         self.additional_percentage = additional_percentage
         self.hosts_number = hosts_num
+        self.is_random_agent = is_random_agent
         
     def evaluate_policy(self, *args, **kwargs):
         """Override evaluate_policy to collect info during evaluation"""
@@ -319,7 +321,7 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
                             }]
                             # dump to csv
                             experiments_dir =self.log_dir.split("tensorboard")[0]
-                            csv_path = f"{experiments_dir}/full_eval_results.csv"
+                            csv_path = f"{experiments_dir}/full_eval_results_rnadom_{self.is_random_agent}.csv"
                             pd.DataFrame(results_for_csv).to_csv(csv_path, mode="a", header=not os.path.exists(csv_path), index=False)
                             
                         obs = self.full_eval_env.reset()

@@ -25,10 +25,10 @@ logger = logging.getLogger(__name__)
 from time_manager import TimeWindow
 std = 13
 expected_alerts = {
-    'Windows Event For Service Disabled': {'alert':2.5},
+    'Windows Event For Service Disabled': {'alert':4},
     'Detect New Local Admin Account': {'alert':0.7},
     'ESCU Network Share Discovery Via Dir Command Rule': {'alert':0},
-    'Known Services Killed by Ransomware': {'alert':6},
+    'Known Services Killed by Ransomware': {'alert':4},
     'Non Chrome Process Accessing Chrome Default Dir': {'alert':0},
     'Kerberoasting SPN Request With RC4 Encryption': {'alert':0},
     'Clop Ransomware Known Service Name': {'alert':0},
@@ -465,9 +465,11 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
 
 class AlertRewardWrapper(RewardWrapper):
     """Wrapper for alert-based rewards"""
-    def __init__(self, env: gym.Env, beta: float = 0.5):
+    def __init__(self, env: gym.Env, beta: float = 0.5, epsilon: float = 1e-8, normalizer_factor: float = 10):
         super().__init__(env)
         self.beta = beta
+        self.epsilon = epsilon
+        self.normalizer_factor = normalizer_factor
         
     def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
         """Calculate normalized alert reward"""
@@ -488,10 +490,12 @@ class AlertRewardWrapper(RewardWrapper):
     
 class AlertRewardWrapper1(AlertRewardWrapper):
     """Wrapper for alert-based rewards"""
-    def __init__(self, env: gym.Env, beta: float = 0.5):
+    def __init__(self, env: gym.Env, beta: float = 0.5, epsilon: float = 1e-8, normalizer_factor: float = 10):
         super().__init__(env)
         self.beta = beta
-        
+        self.epsilon = epsilon
+        self.normalizer_factor = normalizer_factor
+
     def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
         """Calculate normalized alert reward"""
         norm_alert_reward = predicted_alert_reward
@@ -499,14 +503,17 @@ class AlertRewardWrapper1(AlertRewardWrapper):
 
 class AlertRewardWrapper2(AlertRewardWrapper):
     """Wrapper for alert-based rewards"""
-    def __init__(self, env: gym.Env, beta: float = 0.5):
+    def __init__(self, env: gym.Env, beta: float = 0.5, epsilon: float = 1e-8, normalizer_factor: float = 10):
         super().__init__(env)
         self.beta = beta
-        # print(f"Beta: {self.beta}")
-        
+        self.epsilon = epsilon
+        self.normalizer_factor = normalizer_factor
+        self.baseline_rules_alerts = {rule: expected_alerts[rule]['alert'] for rule in expected_alerts} 
+
     def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
         """Calculate normalized alert reward"""
-        norm_alert_reward = -np.tanh(-predicted_alert_reward/30)
+        # norm_alert_reward = - self.normalizer_factor*((-predicted_alert_reward)**3)
+        norm_alert_reward = -2*np.tanh(-predicted_alert_reward/self.normalizer_factor)
         return norm_alert_reward
     
     def step(self, action):
@@ -515,13 +522,13 @@ class AlertRewardWrapper2(AlertRewardWrapper):
         if info.get('done', True):
             current_rules_alerts = {rule: info['raw_metrics'][rule]['alert'] for rule in expected_alerts}
             # print(f"Current rules alerts: {current_rules_alerts}")
-            baseline_rules_alerts = {rule: expected_alerts[rule]['alert'] for rule in expected_alerts}
+            
             # print(f"Baseline rules alerts: {baseline_rules_alerts}")
             # average relative diff of alerts by rule
             alert_diffs = []
             for rule in expected_alerts:
-                baseline_alert = baseline_rules_alerts.get(rule, 0)
-                alert_diff = (current_rules_alerts[rule] - baseline_alert) / (baseline_alert + 0.1)
+                baseline_alert = self.baseline_rules_alerts.get(rule, 0)
+                alert_diff = (current_rules_alerts[rule] - baseline_alert) / (baseline_alert + self.epsilon)
                 alert_diffs.append(alert_diff)
             if alert_diffs:
                 # print(f"Alert diffs: {alert_diffs}")
@@ -531,6 +538,7 @@ class AlertRewardWrapper2(AlertRewardWrapper):
                 reward_alert = 0
             info['alert_reward'] = reward_alert
             info['norm_alert_reward'] = self.calculate_alert_reward(reward_alert)
+            # reward += info['norm_alert_reward']
             reward += self.unwrapped.total_steps*self.beta*info['norm_alert_reward']
         return obs, reward, terminated, truncated, info
 
@@ -551,7 +559,7 @@ ENUM_ALERT_REWARD_METHODS = {
     'AlertRewardWrapper2': AlertRewardWrapper2,
     'AlertRewardWrapper3': AlertRewardWrapper3,
     }         
-    
+
 class EnergyRewardWrapper(RewardWrapper):
     ENERGY_CHANGE_TARGET = 1  # Target energy change for normalization
     """Wrapper for energy consumption rewards"""
@@ -621,8 +629,10 @@ class EnergyRewardWrapper(RewardWrapper):
             
             # info['norm_energy_reward'] = np.clip(energy_reward, 0, 1)
             info['norm_energy_reward'] = np.tanh(energy_reward*1.5)
+            # info['norm_energy_reward'] = energy_reward*100
             # info['norm_energy_reward'] = np.clip(energy_reward/EnergyRewardWrapper.ENERGY_CHANGE_TARGET, 0, 1)
             logger.info(f"Energy reward: {energy_reward:.3f}, current: {current:.3f}, baseline: {baseline:.3f}")
+            reward += info['norm_energy_reward']
             reward += self.unwrapped.total_steps*self.alpha*info['norm_energy_reward']
         return obs, reward, terminated, truncated, info
 
@@ -639,6 +649,7 @@ class DistributionRewardWrapper(RewardWrapper):
         
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)    
+        # if terminated:
         dist_value = self._calculate_distribution_value(
             self.unwrapped.ac_real_state,
             self.unwrapped.ac_fake_state
@@ -650,6 +661,7 @@ class DistributionRewardWrapper(RewardWrapper):
         return obs, reward, terminated, truncated, info
     
     def _calculate_distribution_reward(self, distribution_value: float) -> float:
+        # return -distribution_value*100
         return -np.tanh(distribution_value*4)
 
     def _calculate_distribution_value(self, real_dist, fake_dist):

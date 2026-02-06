@@ -8,12 +8,11 @@ import pandas as pd
 import random
 import sys
 import threading
-sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch')
+sys.path.insert(1, '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch')
 # config logging to file
 import logging
 import subprocess
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
-from program_parameters import *
 from resources.section_logtypes import section_logtypes
 from SplunkResearch.src.splunk_tools import *
 from SplunkResearch.src.env_utils import *
@@ -21,13 +20,13 @@ from datetime import datetime, timedelta
 
 sys.stdout.reconfigure(line_buffering=True)
 
-# sys.path.insert(1, '/home/shouei/GreenSecurity-FirstExperiment/application_logging/handlers')
-logging.basicConfig(filename='/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/energy_profile_final.log',
+# sys.path.insert(1, '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/application_logging/handlers')
+logging.basicConfig(filename='/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/energy_profile_final.log',
                     level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 # add elastic handler to logger
 SPLUNK_BINARY_PATH = "/opt/splunk/bin/splunk"
-log_file_prefix = "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/"
+
 # logger = logging.getLogger()
 
 def inject_episodic_logs():
@@ -42,65 +41,69 @@ def inject_episodic_logs():
     sleep(5)  # wait for logs to be indexed
 
 def flush_logs(log_file_path, log_type="Security"):
-    cmd_list = [
-        'sudo', '-S',
-        SPLUNK_BINARY_PATH,
-        "add",
-        "oneshot",
-        log_file_path,
-        "-index", "main",
-        "-sourcetype", "WinEventLog:" + log_type,
-        "-auth", "shouei:123456789" # Add this if you need to authenticate
-    ]
+    # Configuration
+    # Default management URI is localhost:8089. Change IP if Splunk is remote.
+    splunk_mgmt_uri = f"https://{splunk_tools.splunk_host}:8089"
+    endpoint = f"{splunk_mgmt_uri}/services/receivers/stream"
+    print(endpoint)
+    # Credentials and Metadata from your existing object
+    username = splunk_tools.splunk_username
+    password = splunk_tools.splunk_password
+    index = splunk_tools.index_name
+    sourcetype = "WinEventLog:" + log_type
 
-    # print(f"Injecting {log_file_path} into Splunk. This will block until complete...")
-    # 4. Run the command
+    # 1. Prepare Parameters (Query String)
+    params = {
+        "index": index,
+        "sourcetype": sourcetype,
+        "host": "132.72.81.150"
+    }
+    
+    # 2. Prepare Headers (Equivalent to -H "x-splunk-input-mode: streaming")
+    headers = {
+        "x-splunk-input-mode": "streaming"
+    }
+
+    # print(f"Streaming {log_file_path} to Splunk via REST API...")
+
     try:
-        # input: Sends the password string to the command's stdin
-        # text=True: Encodes the input and decodes stdout/stderr as text (using UTF-8)
-        # capture_output=True: Captures stdout and stderr
-        # check=True: Raises an error if the command returns a non-zero exit code
-        result = subprocess.run(
-            cmd_list,
-            input=" \n",
-            text=True,
-            capture_output=True,
-            check=True
-        )
-        
-        # If the command was successful
-        # print("Command executed successfully:")
-        if result.stdout:
-            logging.info("\n--- STDOUT ---")
-            logging.info(result.stdout)
-        if result.stderr:
-            logging.info("\n--- STDERR ---")
-            logging.info(result.stderr)
+        # 3. Open file and POST it (Equivalent to -d @/local/path/data.json)
+        # We open in 'rb' (read binary) to stream raw data
+        with open(log_file_path, 'rb') as f:
+            response = requests.post(
+                endpoint,
+                auth=(username, password), # Equivalent to -u admin:pass
+                params=params,             # Adds ?index=...&sourcetype=...
+                headers=headers,
+                data=f,                    # The file content
+                verify=False,              # Equivalent to curl -k
+                timeout=30                 # Prevent hanging indefinitely
+            )
 
-    except subprocess.CalledProcessError as e:
-        # This block runs if check=True and the command fails
-        print("Command failed:", file=sys.stderr)
-        print(f"Return Code: {e.returncode}", file=sys.stderr)
-        
-        if e.stdout:
-            print("\n--- STDOUT ---", file=sys.stderr)
-            print(e.stdout, file=sys.stderr)
-        
-        if e.stderr:
-            print("\n--- STDERR ---", file=sys.stderr)
-            # Check for the specific sudo error
-            if "no password was provided" in e.stderr or "incorrect password" in e.stderr:
-                print("Hint: The password may have been incorrect.", file=sys.stderr)
-            else:
-                print(e.stderr, file=sys.stderr)
+        # 4. Check for HTTP Errors
+        response.raise_for_status()
+
+        # Optional: Log success
+        if response.text:
+            logger.info(f"Splunk Response: {response.text}")
+
+    except requests.exceptions.HTTPError as e:
+        # This runs if Splunk returns 4xx or 5xx
+        print(f"Splunk API Error: {e}", file=sys.stderr)
+        print(f"Response Body: {e.response.text}", file=sys.stderr)
+
+    except requests.exceptions.ConnectionError:
+        print(f"Connection Failed: Could not reach {splunk_mgmt_uri}", file=sys.stderr)
+        print("Check if Splunk is running and port 8089 is open.", file=sys.stderr)
 
     except FileNotFoundError:
-        # This block runs if "sudo" or the splunk path is not found
-        print(f"Error: Command not found.", file=sys.stderr)
-        print(f"Please check the path: {cmd_list[2]}", file=sys.stderr)
+        print(f"Error: Log file not found at {log_file_path}", file=sys.stderr)
+
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}", file=sys.stderr)
 
 def write_logs_to_monitor( logs, log_source):
-    with open(f'/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/monitor_files/{log_source}.txt', 'a') as f:
+    with open(f'/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/monitor_files_{splunk_tools.splunk_host}/{log_source}.txt', 'a') as f:
         for log in logs:
             f.write(f'{log}\n\n')        
 
@@ -123,7 +126,7 @@ def check_logs_flushed(earliest_time, latest_time, expected_count, timeout=100):
     splunk_tools = SplunkTools()
     start_time = time.time()
     while time.time() - start_time < timeout:
-        search_query = f'index="main" host="dt-splunk"'
+        search_query = f'index="main" host IN (132.72.81.150, "dt-splunk", {splunk_tools.splunk_host}) '
         results = splunk_tools.run_search(search_query, earliest_time, latest_time)
         if results and int(results[0]['log_count']) >= expected_count:
             logging.info(f'All {expected_count} logs have been flushed to Splunk.')
@@ -135,7 +138,7 @@ def check_logs_flushed(earliest_time, latest_time, expected_count, timeout=100):
 
 # Main execution
 def overload_profile(savedsearches,experimented_savedsearches=None, splunk_tools=None): # TODO: Check wht detect new local admin account isnt find events
-    top_logtypes = pd.read_csv("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/resources/top_logtypes.csv")
+    top_logtypes = pd.read_csv("/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/resources/top_logtypes.csv")
     top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(['wineventlog:security', 'wineventlog:system'])]
     top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:50]
     top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
@@ -149,8 +152,9 @@ def overload_profile(savedsearches,experimented_savedsearches=None, splunk_tools
     # diversities = [0.5, 1, 5]
     diversities = [0, 0.01, 0.1, 0.5, 1 ,2, 5]
     # diversities = [0, 0.5, 1, 5, 10]
-    time_range = ("12/04/2024:08:00:00", "12/06/2024:08:00:00")
-    logging.info(clean_env(splunk_tools, time_range))
+    time_range = ("12/04/2021:08:00:00", "12/06/2021:08:00:00")
+    # time_range = ("12/04/2024:08:00:00", "12/06/2024:08:00:00")
+    logging.info(clean_env(splunk_tools, time_range, host=splunk_tools.splunk_host))
     injection_id = 0
     for rule in experimented_savedsearches:
         for diversity in diversities:
@@ -196,7 +200,7 @@ def overload_profile(savedsearches,experimented_savedsearches=None, splunk_tools
                             attempt = 0
                             while quantity > results and attempt < 7:
                                 sleep(2)
-                                query = f'index=main host="dt-splunk" | stats count'
+                                query = f'index=main host IN (132.72.81.150, "dt-splunk", {splunk_tools.splunk_host})  | stats count'
                                 # query = f'index=main host="dt-splunk" Injection_id={injection_id} | stats count'
                                 results = splunk_tools.run_search(query, start_date, end_date)            
                                 results = int(results[0]['count'])
@@ -208,8 +212,8 @@ def overload_profile(savedsearches,experimented_savedsearches=None, splunk_tools
                             else:
                                 logging.warning(f'Only {results}/{quantity} logs injected for injection_id {injection_id}. Retrying log generation.')
                                 # empty monitor files
-                                empty_monitored_files(SYSTEM_MONITOR_FILE_PATH)
-                                empty_monitored_files(SECURITY_MONITOR_FILE_PATH)
+                                empty_monitored_files(get_system_monitor_path(splunk_tools.splunk_host))
+                                empty_monitored_files(get_security_monitor_path(splunk_tools.splunk_host))
                                 quantity_to_add = quantity - results
                                 
                     scanner_id = f"{rule}_{log_source}_{eventcode}_{int(diversity*100)}_{quantity}_{j}_{datetime.now()}"
@@ -225,85 +229,75 @@ def overload_profile(savedsearches,experimented_savedsearches=None, splunk_tools
                     logging.info(f"scanner_id: {scanner_id}")
                 
                     # process = subprocess.Popen(["sudo", "-S", "-E", "env", "PATH=/usr/bin:/bin:/usr/sbin:/sbin:/home/shouei/anaconda3/envs/py38/bin", "/home/shouei/anaconda3/envs/py38/bin/python3", "../scanner.py", "--measurement_session_id", scanner_id],
-                    process = subprocess.Popen([ "/home/shouei/anaconda3/envs/py310_modelenv/bin/python3", "-u", "scanner.py", "--measurement_session_id", scanner_id, "--elastic_pipeline_processes", "enrich_pid_to_rule_name"],
-                                            stdin=subprocess.PIPE,
-                                            stdout=subprocess.PIPE,
-                                            stderr=subprocess.PIPE,
-                                            text=True,
-                                            bufsize=1)  # Line buffered
+                    # process = subprocess.Popen([ "/home/shouei/anaconda3/envs/py310_modelenv/bin/python3", "-u", "scanner.py", "--measurement_session_id", scanner_id, "--elastic_pipeline_processes", "enrich_pid_to_rule_name"],
+                    #                         stdin=subprocess.PIPE,
+                    #                         stdout=subprocess.PIPE,
+                    #                         stderr=subprocess.PIPE,
+                    #                         text=True,
+                    #                         bufsize=1)  # Line buffered
 
                     # Send the password to sudo without waiting for completion
                     # process.stdin.write(' \n')
                     # process.stdin.flush()
 
                     # Start non-blocking output handling
-                    thred_1, thred_2 = handle_process_output(process, logging)
-                    thred_1.start()
-                    thred_2.start()
-                    logging.info(f'Process started with PID: {process.pid} {scanner_id}')
+                    # thred_1, thred_2 = handle_process_output(process, logging)
+                    # thred_1.start()
+                    # thred_2.start()
+                    # logging.info(f'Process started with PID: {process.pid} {scanner_id}')
                     
-                    sleep(3)
+                    # sleep(3)
                     earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
                     latest_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').timestamp()
                     logging.info('Running saved searches')
                     results = asyncio.run(splunk_tools.run_saved_search(rule, start_time=earliest_time, end_time=latest_time))
-                    logging.info(f'Terminating scanner {scanner_id}')
+                    # logging.info(f'Terminating scanner {scanner_id}')
                     # subprocess.run(['pkill', 'scanner.py'],
                     #                 # input=' \n',
                     #                 text=True,
                     #                 check=False)
-                    sleep(2)
-                    process.send_signal(9)
-                    logging.warning('Killed all scanner.py processes as last resort')
-                    thred_1.join()
-                    thred_2.join()
-                    empty_monitored_files(SYSTEM_MONITOR_FILE_PATH)
-                    empty_monitored_files(SECURITY_MONITOR_FILE_PATH)
+                    # sleep(2)
+                    # process.send_signal(9)
+                    # logging.warning('Killed all scanner.py processes as last resort')
+                    # thred_1.join()
+                    # thred_2.join()
+                    empty_monitored_files(get_system_monitor_path(splunk_tools.splunk_host))
+                    empty_monitored_files(get_security_monitor_path(splunk_tools.splunk_host))
                     injection_id += 1
             # clean env
             logging.info('Cleaning environment')
-            logging.info(clean_env(splunk_tools, time_range))
+            logging.info(clean_env(splunk_tools, time_range, host=splunk_tools.splunk_host))
             # empty sid index from elastic
-            
 
-def routine_profile():
-    # This function is measuring the routine. altering the following profiles parameters:
-    # 1. what rules are running
-    # 2. how many hosts are forwarding logs
-    # 3. what frequency are the rules running
-    rules_number = [1, 5, 9]
-    hosts_number = [1, 10, 50, 100]
-    frequency = [1, 5, 10, 15, 60]  # in minutes
-    
-    for rule in rules_number:
-        for host in hosts_number:
-            for freq in frequency:
-                logging.info(f'Running routine profile with {rule} rules, {host} hosts and {freq} minutes frequency')
-                
                 
                 
 
 if __name__ == "__main__":
+    # read host from command line argument
+    host = sys.argv[1] if len(sys.argv) > 1 else '1'
     # Your existing setup
     savedsearches = [
         "Windows Event For Service Disabled",
-                 "Detect New Local Admin account",
+                 "Detect New Local Admin Account",
                  "ESCU Network Share Discovery Via Dir Command Rule",
                  "Known Services Killed by Ransomware",
                  "Non Chrome Process Accessing Chrome Default Dir",
-                 "Kerberoasting spn request with RC4 encryption",
+                 "Kerberoasting SPN Request With RC4 Encryption",
                  "Clop Ransomware Known Service Name",
                  'Windows AD Replication Request Initiated from Unsanctioned Location',
                  'ESCU Windows Rapid Authentication On Multiple Hosts Rule']
     experimented_savedsearches = [
-                "Windows Event For Service Disabled",
-                 "Detect New Local Admin account",
+        "Windows Event For Service Disabled",
+                 "Detect New Local Admin Account",
                  "ESCU Network Share Discovery Via Dir Command Rule",
                  "Known Services Killed by Ransomware",
                  "Non Chrome Process Accessing Chrome Default Dir",
-                 "Kerberoasting spn request with RC4 encryption",
+                 "Kerberoasting SPN Request With RC4 Encryption",
                  "Clop Ransomware Known Service Name",
                  'Windows AD Replication Request Initiated from Unsanctioned Location',
                  'ESCU Windows Rapid Authentication On Multiple Hosts Rule']
-    splunk_tools = SplunkTools(active_saved_searches=savedsearches, mode=Mode.PROFILE)
+    splunk_tools = SplunkTools(active_saved_searches=savedsearches, mode=Mode.PROFILE, ip=host)
+    global log_file_prefix 
+    log_file_prefix = f"/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/monitor_files_{splunk_tools.splunk_host}/"
+
     overload_profile(savedsearches, experimented_savedsearches, splunk_tools)

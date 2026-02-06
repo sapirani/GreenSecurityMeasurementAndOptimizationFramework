@@ -188,7 +188,14 @@ class SplunkTools(object):
         self.subset = {}
         self.subset_real_logs_distribution = pd.DataFrame()
         self.full_hosts_list = {}
-
+        # csv for profile mode results
+        if self.mode == Mode.PROFILE:
+            self.profile_results_file_path = f'profiling_results_{self.splunk_host}.csv'
+            self.profile_results_df = pd.DataFrame(columns=[
+                'timestamp', 'pid', 'events_count', 'search_name', 'results_count',
+                'execution_time', 'cpu', 'read_bytes', 'write_bytes',
+                'read_count', 'write_count',  'memory_mb', 'start_time', 'end_time'
+            ])
         # if self.mode == Mode.PROFILE:
         #         response = es_logger.handlers[0].es.delete_by_query(
         #             index="sid",
@@ -248,7 +255,7 @@ class SplunkTools(object):
             # Check events count via BASIC_QUERIES
             eventcode_search = BASIC_QUERIES.get(search_name, None)
             if eventcode_search:
-                eventcode_query = f'search index={self.index_name} {eventcode_search} host IN ("dt-splunk", 132.72.81.150)  | stats count'
+                eventcode_query = f'search index={self.index_name} {eventcode_search} host IN (132.72.81.150, "dt-splunk", {self.splunk_host})  | stats count'
                 eventcode_job = self.service.jobs.create(eventcode_query, earliest_time=start_time, latest_time=end_time)
                 while True:
                     eventcode_job.refresh()
@@ -276,6 +283,12 @@ class SplunkTools(object):
                 "write_count": data.get("write_count", 0),
                 }
         )
+        if self.mode == Mode.PROFILE:
+            # Append to profile results DataFrame
+            new_row = asdict(qmetric)
+            # append new_row to csv
+            new_row_df = pd.DataFrame([new_row])
+            new_row_df.to_csv(self.profile_results_file_path, mode='a', header=not os.path.exists(self.profile_results_file_path), index=False)
         return qmetric
 
     def clear_os_cache(self):
