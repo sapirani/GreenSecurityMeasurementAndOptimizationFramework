@@ -7,7 +7,7 @@ from energy_model.models.process_energy_model import ProcessEnergyModel
 from energy_model.models.system_energy_model import SystemEnergyModel
 
 if __name__ == "__main__":
-    full_df = pd.read_csv(FULL_DATASET_BEFORE_PROCESSING_PATH, index_col=0)
+    full_df = pd.read_csv(FULL_DATASET_BEFORE_PROCESSING_PATH)
 
     print("~~~~~~~~~~~~ Starting building System Energy Model ~~~~~~~~~~~~")
     if PersistenceManager.model_exists(SYSTEM_ENERGY_MODEL_FILE_NAME):
