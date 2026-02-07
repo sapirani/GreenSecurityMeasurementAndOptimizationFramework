@@ -4,10 +4,10 @@ import requests
 from urllib.parse import urljoin
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
-from hadoop_optimizer.drl_envs.training_env import TrainingMetadata
+from hadoop_optimizer.drl_envs.training_env import EpisodeContext
 from hadoop_optimizer.training_client.consts import DEFAULT_CHOOSE_CONFIG_ENDPOINT_NAME, DEFAULT_SERVER_PORT, \
     DEFAULT_SERVER_IP, SESSION_ID_PARAM_NAME
-from DTOs.hadoop.training_run_job_response import TrainingJobRunResponse
+from DTOs.hadoop.drl_training.training_run_job_response import TrainingJobRunResponse
 
 
 class HadoopOptimizerTrainingClient:
@@ -25,7 +25,7 @@ class HadoopOptimizerTrainingClient:
         job_descriptor: JobDescriptor,
         execution_configuration: HadoopJobExecutionConfig,
         session_id: Optional[str],
-        scanner_extras: Optional[TrainingMetadata]
+        scanner_extras: Optional[EpisodeContext]
     ) -> TrainingJobRunResponse:
         """
         :raises:

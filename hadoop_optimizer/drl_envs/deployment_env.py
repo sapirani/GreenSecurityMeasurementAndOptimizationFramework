@@ -2,7 +2,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
-from DTOs.hadoop.job_properties import JobProperties
+from DTOs.hadoop.drl_training.job_properties import JobProperties
 from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOptimizerEnvInterface
 
 
@@ -15,6 +15,9 @@ class OptimizerDeploymentEnv(AbstractOptimizerEnvInterface):
             return JobProperties.model_validate(options)
         except ValidationError as e:
             raise ValueError("Received unexpected job properties") from e
+
+    def _extra_step_init(self):
+        pass
 
     def _compute_reward(self, job_config: HadoopJobExecutionConfig, terminated: bool, truncated: bool) -> float:
         """

@@ -1,15 +1,14 @@
 from typing import Dict, Any
-
 from pydantic import BaseModel, Field
 
 
-class TrainingMetadata(BaseModel):
-    episode_num: int = Field(ge=0)
-    step_num: int = Field(ge=0)
+class EpisodeContext(BaseModel):
+    episode_num: int = Field(ge=0, description="Current episode number in training")
+    episode_step: int = Field(ge=0, description="Step number within this episode")
     is_baseline: bool
 
     @classmethod
-    def from_dict(cls, metadata_dict: Dict[str, Any]) -> "TrainingMetadata":
+    def from_dict(cls, metadata_dict: Dict[str, Any]) -> "EpisodeContext":
         field_names = set(cls.model_fields.keys())
 
         relevant_fields = {

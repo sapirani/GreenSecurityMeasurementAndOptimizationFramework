@@ -9,7 +9,7 @@ from starlette import status
 from starlette.responses import JSONResponse
 from elastic_reader.consts import ElasticIndex
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
-from DTOs.hadoop.job_properties import JobProperties, get_job_properties
+from DTOs.hadoop.drl_training.job_properties import JobProperties, get_job_properties
 from hadoop_optimizer.deployment_server.container.deployment_container import DeploymentContainer
 from hadoop_optimizer.deployment_server.drl_deployment_manager import DRLDeploymentManager
 from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator

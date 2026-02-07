@@ -1,9 +1,9 @@
 from pydantic import BaseModel
 
+from DTOs.hadoop.drl_training.training_metadata import TrainingMetadata
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
-from DTOs.hadoop.training_metadata import TrainingMetadata
 
 
 class TrainingStepResults(BaseModel):

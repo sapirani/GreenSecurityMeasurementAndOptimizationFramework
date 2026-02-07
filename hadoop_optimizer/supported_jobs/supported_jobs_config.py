@@ -3,7 +3,7 @@ from typing import List
 
 from DTOs.hadoop.hadoop_job_definition import HadoopJobDefinition
 from DTOs.hadoop.job_descriptor import JobDescriptor
-from DTOs.hadoop.job_properties import JobProperties
+from DTOs.hadoop.drl_training.job_properties import JobProperties
 from DTOs.hadoop.job_types import JobType
 
 

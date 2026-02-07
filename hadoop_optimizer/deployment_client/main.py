@@ -1,4 +1,4 @@
-from DTOs.hadoop.job_properties import JobProperties
+from DTOs.hadoop.drl_training.job_properties import JobProperties
 from hadoop_optimizer.deployment_client.client import HadoopOptimizerDeploymentClient
 
 

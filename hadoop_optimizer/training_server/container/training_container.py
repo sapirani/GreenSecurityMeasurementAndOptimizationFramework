@@ -10,12 +10,13 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.policies import ActorCriticPolicy
 
-from DTOs.hadoop.training_metadata import TrainingMetadata
+from DTOs.hadoop.drl_training.episode_context import EpisodeContext
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 from application_logging.logging_utils import get_measurement_logger
 from elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
 from elastic_reader.consts import TimePickerInputStrategy
 from hadoop_optimizer.drl_envs.training_env import OptimizerTrainingEnv
+from hadoop_optimizer.drl_envs.training_progress_tracker import TrainingProgressTracker
 from hadoop_optimizer.drl_telemetry.energy_tracker import EnergyTracker
 from hadoop_optimizer.env_composition_config.env_builder import build_env
 from hadoop_optimizer.env_composition_config.env_wrapper_spec import EnvWrappersParams
@@ -42,7 +43,7 @@ class TrainingContainer(containers.DeclarativeContainer):
     elastic_aggregations_logger: Provider[ElasticAggregationsLogger] = providers.Singleton(
         ElasticAggregationsLogger,
         reading_mode=ReadingMode.REALTIME,
-        log_extra_fields=set(TrainingMetadata.model_fields.keys())
+        log_extra_fields=set(EpisodeContext.model_fields.keys())
     )
 
     training_elastic_handler: Provider[Handler] = providers.Singleton(
@@ -62,6 +63,10 @@ class TrainingContainer(containers.DeclarativeContainer):
 
     energy_tracker: Provider[EnergyTracker] = providers.Singleton(
         EnergyTracker
+    )
+
+    training_progress_tracker: Provider[TrainingProgressTracker] = providers.Singleton(
+        TrainingProgressTracker
     )
 
     reward_calculator: Provider[EnergyTracker] = providers.Factory(
@@ -88,6 +93,7 @@ class TrainingContainer(containers.DeclarativeContainer):
         reward_calculator=reward_calculator,
         train_id=generate_id(word_count=3),
         training_results_logger=training_results_logger,
+        training_progress_tracker=training_progress_tracker
     )
 
     env_wrappers_params: Provider[EnvWrappersParams] = providers.Factory(

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import SupportsFloat, Any, Optional, Dict, Set
 
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
-from DTOs.hadoop.job_properties import JobProperties
+from DTOs.hadoop.drl_training.job_properties import JobProperties
 from hadoop_optimizer.drl_envs.consts import TERMINATE_ACTION_NAME, CURRENT_JOB_CONFIG_KEY, NEXT_JOB_CONFIG_KEY, \
     JOB_PROPERTIES_KEY, DEFAULT_JOB_CONFIG_KEY
 from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator
@@ -143,8 +143,9 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
 
         self._last_action = action.copy()
         terminated = action[TERMINATE_ACTION_NAME]
-
         self._current_hadoop_config = self._get_next_execution_config(action)
+
+        self._extra_step_init()
         self._compute_reward(self._current_hadoop_config, terminated, truncated)
 
         # TODO: CONSIDER RETURNING MORE DEBUGGING INFO, such as the current cluster load
@@ -153,7 +154,9 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         return self._construct_observation(), reward, terminated, truncated, info
 
     def render(self) -> RenderFrame | list[RenderFrame] | None:
-        print(f"****************** Current Step: {self.step_count} ******************")
+        print(f"****************** "
+              f"Current Episode: {self.episode_counter}, Current Step: {self.step_count} "
+              f"******************")
 
         self._custom_rendering()
 
@@ -183,6 +186,10 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         Note: seed can be accessed through self._np_random_seed
         :param options: additional parameters that are passed into the "reset" function of the environment
         """
+        pass
+
+    @abstractmethod
+    def _extra_step_init(self):
         pass
 
     @abstractmethod

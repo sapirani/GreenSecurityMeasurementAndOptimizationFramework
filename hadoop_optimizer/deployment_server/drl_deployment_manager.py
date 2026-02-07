@@ -1,7 +1,7 @@
 from stable_baselines3.common.base_class import BaseAlgorithm
 
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
-from DTOs.hadoop.job_properties import JobProperties
+from DTOs.hadoop.drl_training.job_properties import JobProperties
 from hadoop_optimizer.drl_envs.consts import CURRENT_JOB_CONFIG_KEY, ELAPSED_STEPS_KEY, MAX_STEPS_KEY
 from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
 from hadoop_optimizer.erros import EnvironmentTruncatedException

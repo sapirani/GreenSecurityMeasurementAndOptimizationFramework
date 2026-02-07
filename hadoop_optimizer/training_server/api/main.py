@@ -10,8 +10,8 @@ from DTOs.hadoop.hadoop_job import HadoopJob
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_types import JobType
-from DTOs.hadoop.training_metadata import TrainingMetadata
-from DTOs.hadoop.training_run_job_response import TrainingJobRunResponse
+from DTOs.hadoop.drl_training.episode_context import EpisodeContext
+from DTOs.hadoop.drl_training.training_run_job_response import TrainingJobRunResponse
 from hadoop_optimizer.nodes_trigger_sender import HadoopClusterTriggerSender
 from hadoop_optimizer.supported_jobs.supported_jobs_config import SupportedJobsConfig
 from hadoop_optimizer.training_server.api.config import MAX_JOB_RUNTIME
@@ -33,7 +33,7 @@ def get_scanner_extras(
         ge=0,
         description="The index of the episode within the entire training process, must be >0"
     ),
-    step_num: Optional[int] = Query(
+    episode_step: Optional[int] = Query(
         None,
         ge=0,
         description="The index of the current step withing the episode, must be >0"
@@ -42,13 +42,13 @@ def get_scanner_extras(
         None,
         description="Whether this run establishes the baseline performance for the current episode or not"
     )
-) -> Optional[TrainingMetadata]:
-    fields = [episode_num, step_num, is_baseline]
+) -> Optional[EpisodeContext]:
+    fields = [episode_num, episode_step, is_baseline]
 
     if all(f is None for f in fields):
         return None
     if all(f is not None for f in fields):
-        return TrainingMetadata(episode_num=episode_num, step_num=step_num, is_baseline=is_baseline)
+        return EpisodeContext(episode_num=episode_num, episode_step=episode_step, is_baseline=is_baseline)
 
     raise HTTPException(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -66,7 +66,7 @@ def get_session_id(
 def run_selected_job_within_the_digital_twin_environment(
     job_descriptor: JobDescriptor = Depends(get_job_descriptor),
     session_id: Optional[str] = Depends(get_session_id),
-    scanner_extras: Optional[TrainingMetadata] = Depends(get_scanner_extras),
+    scanner_extras: Optional[EpisodeContext] = Depends(get_scanner_extras),
     job_execution_config: HadoopJobExecutionConfig = Annotated[
         HadoopJobExecutionConfig,
         Body(

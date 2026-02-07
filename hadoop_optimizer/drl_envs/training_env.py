@@ -1,12 +1,15 @@
 from typing import Any, Optional
+
+from DTOs.hadoop.drl_training.training_metadata import TrainingMetadata
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
-from DTOs.hadoop.job_properties import JobProperties
+from DTOs.hadoop.drl_training.job_properties import JobProperties
 from DTOs.hadoop.job_types import JobType
-from DTOs.hadoop.training_metadata import TrainingMetadata
-from DTOs.hadoop.training_step_results import TrainingStepResults
+from DTOs.hadoop.drl_training.episode_context import EpisodeContext
+from DTOs.hadoop.drl_training.training_step_results import TrainingStepResults
 from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOptimizerEnvInterface
+from hadoop_optimizer.drl_envs.training_progress_tracker import TrainingProgressTracker
 from hadoop_optimizer.drl_telemetry.energy_tracker import EnergyTracker
 from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 from hadoop_optimizer.reward.reward_calculator import RewardCalculator
@@ -24,7 +27,8 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             energy_tracker: EnergyTracker,
             reward_calculator: RewardCalculator,
             train_id: str,
-            training_results_logger: Logger
+            training_results_logger: Logger,
+            training_progress_tracker: TrainingProgressTracker
     ):
         super().__init__(telemetry_aggregator)
         self.training_client = training_client
@@ -32,16 +36,22 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         self.reward_calculator = reward_calculator
         self.train_id = train_id
         self.training_results_logger = training_results_logger
+        self.training_progress_tracker = training_progress_tracker
 
         self.__episodic_job_descriptor: Optional[JobDescriptor] = None
         self.__current_step_performance: Optional[JobExecutionPerformance] = None
         self.__current_step_reward = None
 
+    def _extra_step_init(self):
+        self.training_progress_tracker.update_training_progress(self.__episodic_job_descriptor)
+
     def _custom_rendering(self):
+        print("Episodic Job Type:", self.__episodic_job_descriptor.job_type.value)
+        print("Training Progress Context:",
+              self.training_progress_tracker.get_progress_context(self.__episodic_job_descriptor, is_baseline=False))
         print("Episodic Baseline Performance:", self.reward_calculator.baseline_performance)
         print("Current Job Performance:", self.__current_step_performance)
         print("Current Step Reward:", self.__current_step_reward)
-        print("Episodic Job Type:", self.__episodic_job_descriptor.job_type.value)
 
     def __run_job_and_measure_performance(
             self,
@@ -49,18 +59,21 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             *,
             is_baseline: bool = False
     ) -> JobExecutionPerformance:
-
-        training_metadata = TrainingMetadata(
-            episode_num=self.episode_counter,
-            step_num=self.step_count,
+        progress_context = self.training_progress_tracker.get_progress_context(
+            self.__episodic_job_descriptor,
             is_baseline=is_baseline
         )
-        self.energy_tracker.reset_tracker(self.train_id, training_metadata)
+        episode_context = EpisodeContext(
+            episode_num=self.episode_counter,
+            episode_step=self.step_count,
+            is_baseline=is_baseline
+        )
+        self.energy_tracker.reset_tracker(self.train_id, episode_context)
         result = self.training_client.run_job(
             job_descriptor=self.__episodic_job_descriptor,
             execution_configuration=job_config,
             session_id=self.train_id,
-            scanner_extras=training_metadata,
+            scanner_extras=episode_context,
         )
         # TODO: SHOULD WE USE PER-HOST ENERGY CONSUMPTION HERE?
         energy_consumption = sum(self.energy_tracker.get_energy_consumption().values())
@@ -72,7 +85,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         training_step_results = TrainingStepResults(
             job_descriptor=self.__episodic_job_descriptor,
             job_config=job_config,
-            training_metadata=training_metadata,
+            training_metadata=TrainingMetadata(episode_context=episode_context, progress_context=progress_context),
             job_performance=job_performance,
             training_id=self.train_id,
         )
