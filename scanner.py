@@ -256,8 +256,8 @@ def continuously_measure():
 
             battery_capacity = system_battery_results.battery_remaining_capacity_mWh
 
+        log_scanner_termination()
     done_scanning_event.set()   # releasing waiting threads / processes
-    log_scanner_termination()
 
 
 def save_general_disk(f: TextIO):

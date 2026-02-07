@@ -38,6 +38,21 @@ class ElasticReader:
             lambda: IterationResults())
 
     def __get_next_hits(self, last_sort: Optional[List[Any]]) -> List[Hit]:
+        """
+        :param last_sort: latest result we had, as retrieved by the last hit.meta.sort.
+            The values in the list correspond to the fields that the query was sorted according to.
+        :return: available results from Elasticsearch, that where ingested into Elasticsearch after the last documented
+            represented as last_sort. If none exist, return an empty list
+
+        Important! sorting must be unique. I.e., we cannot have 2 or more documents receiving the same "sort score".
+            To "enhance" uniqueness, _seq_no is used. After each operation in the shard
+            (a subset of documents in the index), such as document insertion, update, or deletion, this number is
+             incremented and attached to the document. A single document is attached to a single shard.
+             In our case, where telemetry documents are not supposed to be modified and are used as read-only, this
+             number is fixed and unique per document in the shard.
+             In general, it is not guaranteed that _seq_no is globally unique across shards, so it must be ensured that
+             the combination with the order fields that the sorting relies on is unique
+        """
         s = Search(using=self.es, index=','.join(self.indices))
 
         # ensure all documents are indexed before querying
@@ -69,7 +84,11 @@ class ElasticReader:
             },
             {"pid": {"order": "asc", "missing": "_last", "unmapped_type": "long"}},
             {"process_name.keyword": {"order": "asc", "missing": "_last", "unmapped_type": "keyword"}},
-            "_doc"
+            # The previous fields are supposed to provide a unique combination.
+            # The following field is used just in case they aren't
+            # (and hopefully the documents do not share the exact same "_seq_no"  value since they reside in
+            # different shards and somehow the exact same number of operations occurred in each of the shards):
+            "_seq_no"
         )
 
         if last_sort:  # retrieve results that come after the last retrieved result
@@ -110,6 +129,7 @@ class ElasticReader:
         if not self.__results_by_session_host[iteration_metadata].get_system_result():
             print(
                 "Warning! received empty system results\n"
+                f"datetime.now()={datetime.now()}\n"
                 f"metadata={iteration_metadata}\n"
                 f"next_iteration_metadata={next_iteration_metadata}\n"
                 f"is_last_iteration={is_last_iteration}\n"
