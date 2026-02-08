@@ -38,6 +38,7 @@ class DatasetCreatorType(Enum):
     WithAggregation = 2
     WithEnergyAggregation = 3
     WithProcessRatio = 4
+    WithWindowAggregation = 5
 
 class TargetCalculatorType(Enum):
     SystemBased = 1
