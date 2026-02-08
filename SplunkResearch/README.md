@@ -4,13 +4,18 @@ A Deep Reinforcement Learning (DRL) research framework for studying the energy a
 
 ## Overview
 
-This project trains RL agents to strategically inject fake Windows Event Logs into Splunk, then measures the impact on:
+This project trains adversarial RL agents to perform stealthy log injection attacks on Splunk security monitoring systems. The agents learn to:
 
-- **CPU / energy consumption** of security detection rules
-- **Alert accuracy** (false positive/negative rates)
-- **Log distribution integrity** (deviation from baseline patterns)
+- **Maximize CPU/energy consumption** of Splunk detection rules through strategic log injection
+- **Maintain imperceptibility** by minimizing deviations in alert patterns
+- **Preserve log distribution stealth** by keeping injected logs close to baseline distributions
 
-The framework enables researchers to understand trade-offs between security monitoring coverage and resource consumption, evaluate detection rule robustness against log injection attacks, and optimize security operations for cost-effectiveness.
+The multi-objective reward function balances attack effectiveness (energy cost imposed on Splunk) against detectability (alert and distribution deviations). This framework enables researchers to:
+
+- Study adversarial attacks on SIEM systems
+- Evaluate detection rule robustness against sophisticated log injection
+- Understand the imperceptibility-effectiveness trade-off in adversarial log injection
+- Develop more resilient security monitoring systems
 
 ## Architecture
 
@@ -50,7 +55,7 @@ The system is built as a [Gymnasium](https://gymnasium.farama.org/) reinforcemen
 │  │  │  │   Distribution rewards)    │   │  │    │
 │  │  │  ├────────────────────────────┤   │  │    │
 │  │  │  │  State Wrapper             │   │  │    │
-│  │  │  │  (Distributions, KL div,   │   │  │    │
+│  │  │  │  (Real/fake distributions, │   │  │    │
 │  │  │  │   step counter)            │   │  │    │
 │  │  │  └────────────────────────────┘   │  │    │
 │  │  └────────────────┬──────────────────┘  │    │
@@ -286,9 +291,9 @@ All configuration values from `default.yaml` can be overridden via command-line 
 **Reward Weights:**
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `--alpha-energy` | `0.5` | Weight for energy/CPU reward |
-| `--beta-alert` | `0.3` | Weight for alert accuracy reward |
-| `--gamma-dist` | `0.2` | Weight for distribution fidelity reward |
+| `--alpha-energy` | `0.5` | Weight for energy/CPU cost (attack effectiveness) |
+| `--beta-alert` | `0.3` | Weight for alert deviation penalty (imperceptibility) |
+| `--gamma-dist` | `0.2` | Weight for distribution deviation penalty (stealthiness) |
 | `--alert-epsilon` | `0.1` | Alert reward epsilon |
 | `--normalizer-factor` | `30.0` | Reward normalizer factor |
 
@@ -364,14 +369,17 @@ Full mapping available in [section_logtypes.py](SplunkResearch/resources/section
 
 ## How It Works
 
-Each training step follows this cycle:
+Each training step follows this adversarial attack cycle:
 
-1. **Observe** — The agent receives the current state: real and fake log distributions, KL divergence, and step counter.
+1. **Observe** — The agent receives the current state: real and fake log distributions, and step counter.
 2. **Act** — The agent outputs an action vector specifying injection quota, per-rule log distribution, triggering levels, and diversity.
 3. **Inject** — The log generator creates realistic Windows Event Logs from templates and writes them to Splunk monitor files.
-4. **Execute** — Splunk saved searches (detection rules) run over the current time window.
-5. **Measure** — CPU time, I/O operations, result counts, and alert counts are recorded.
-6. **Reward** — A multi-component reward is computed from energy cost, alert deviations, and distribution fidelity.
+4. **Execute** — Splunk saved searches (detection rules) run over the current time window, consuming CPU resources.
+5. **Measure** — CPU time, I/O operations, result counts, and alert counts are profiled.
+6. **Reward** — Multi-objective reward computed as:
+   - **Positive**: Energy/CPU cost imposed on Splunk (attack effectiveness)
+   - **Penalty**: Deviation in alert patterns (reduces imperceptibility)
+   - **Penalty**: KL divergence from baseline log distributions (reduces stealthiness)
 7. **Cleanup** — Fake logs are deleted from Splunk at episode end.
 
 ## Analysis
