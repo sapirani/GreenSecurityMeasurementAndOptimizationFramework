@@ -535,7 +535,7 @@ class Action(ActionWrapper):
         self._calculate_quota()
         logs_to_inject = self.action(action)
         # logger.info(f"Action: {logs_to_inject}")
-        logger.info(f"Action window: {self.unwrapped.time_manager.action_window.to_tuple()}")
+        logger.debug(f"Action window: {self.unwrapped.time_manager.action_window.to_tuple()}")
         # self.inject_logs(logs_to_inject, self.env.time_manager.action_window.to_tuple())
 
         
@@ -782,7 +782,7 @@ class Action5(Action):
             
             # Normalize distribution
             distribution = distribution / (np.sum(distribution) + 1e-8) #TODO try softmax
-            logger.info(f"Action distribution: {distribution}")
+            logger.debug(f"Action distribution: {distribution}")
             # Calculate number of logs to inject
             num_logs = self.remaining_quota
             self.inserted_logs = 0
@@ -992,7 +992,7 @@ class Action8(Action):
             """Convert raw action to log injection dictionary"""
             # Split action into quota and distribution
             # check zero action 
-            logger.info(f"Raw action: {action}")
+            logger.debug(f"Raw action: {action}")
             distribution = action[:len(self.unwrapped.top_logtypes)]
             scaled_logits = 20 * distribution
             # softmax normalization
@@ -1410,7 +1410,7 @@ class Action12(Action):
             """Convert raw action to log injection dictionary"""
             # Split action into quota and distribution
             # check zero action 
-            logger.info(f"Raw action: {action}")
+            logger.debug(f"Raw action: {action}")
             distribution = action[:len(self.unwrapped.top_logtypes)]
             scaled_logits = 20 * distribution
             # softmax normalization

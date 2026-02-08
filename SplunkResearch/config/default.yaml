@@ -205,7 +205,8 @@ callbacks:
   # Checkpoint saving
   checkpoint:
     save_freq: 10000     # Save every N timesteps
-    name_prefix: model   # Prefix for saved models
+    name_prefix: checkpoint  # Prefix for saved checkpoints
+    keep_last_n: 3       # Keep only last N checkpoints per experiment
 
   # Evaluation callback
   eval:
@@ -222,6 +223,9 @@ logging:
   format: "%(asctime)s [%(levelname)s] %(name)s %(message)s"
   # Whether to log to console in addition to file
   log_to_console: false
+  # Log rotation settings
+  max_bytes: 52428800    # 50 MB per log file
+  backup_count: 3        # Keep 3 rotated log files
 
 # Splunk configuration (extends existing splunk section above)
 splunk:

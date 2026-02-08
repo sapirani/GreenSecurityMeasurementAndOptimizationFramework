@@ -257,7 +257,7 @@ class SplunkTools(object):
             )
             response.raise_for_status()
             data = response.json()
-            logger.info(f"Profiling data for {search_name}: {data}")
+            logger.debug(f"Profiling data for {search_name}: {data}")
         except Exception as e:
             # Handle error gracefully
             logger.error(f"Error profiling {search_name}: {e}")
@@ -775,7 +775,7 @@ class SplunkTools(object):
         # Convert string times to timezone-aware datetime objects
         start_dt = datetime.strptime(start_time, '%m/%d/%Y:%H:%M:%S')
         end_dt = datetime.strptime(end_time, '%m/%d/%Y:%H:%M:%S')
-        logger.info(f"start_dt: {start_dt}, end_dt: {end_dt}")
+        logger.debug(f"start_dt: {start_dt}, end_dt: {end_dt}")
         # Load real logs distribution
         relevant_logs = self.get_releveant_distribution(start_dt, end_dt, hosts_percentage)
         

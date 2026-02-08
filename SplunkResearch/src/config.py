@@ -63,10 +63,12 @@ class Config:
                 secrets = yaml.safe_load(f) or {}
                 self._deep_merge(self._config, secrets)
         else:
-            print(
-                f"WARNING: Secrets file not found: {secrets_path}\n"
+            import warnings
+            warnings.warn(
+                f"Secrets file not found: {secrets_path}. "
                 f"Copy config/secrets.yaml.example to config/secrets.yaml "
-                f"and fill in your credentials."
+                f"and fill in your credentials.",
+                UserWarning, stacklevel=2
             )
 
     def _deep_merge(self, base: Dict, update: Dict):

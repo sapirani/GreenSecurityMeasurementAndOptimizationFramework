@@ -106,7 +106,7 @@ class StateWrapper(ObservationWrapper):
         state = np.append(state, sparse_vector)
         # add sparse vector for weekday and hour
 
-        logger.info(f"State: {state}")
+        logger.debug(f"State: {state}")
         self.unwrapped.obs = state
         return state
 
@@ -588,10 +588,10 @@ class StateWrapper6(StateWrapper):
         # hour_vector[current_datetime.hour] = 1
         # state = np.append(state, weekday_vector)
         # state = np.append(state, hour_vector)
-        logger.info(f"State: {state}")
+        logger.debug(f"State: {state}")
         self.unwrapped.obs = state
         return state
-    
+
     def _normalize(self, state):
         """Normalize state vector"""
         # return state / (500000)  # Avoid division by zero
@@ -645,10 +645,10 @@ class StateWrapper7(StateWrapper):
 
         state = np.append(state, self.unwrapped.step_counter/self.unwrapped.total_steps)
 
-        logger.info(f"State: {state}")
+        logger.debug(f"State: {state}")
         self.unwrapped.obs = state
         return state
-    
+
     def _normalize(self, state):
         """Normalize state vector"""
         # return state / (500000)  # Avoid division by zero

@@ -217,8 +217,17 @@ def main():
     if args.model_name and mode != 'train':
         # Only set model_path for retrain/eval modes
         base_dir = config.get('paths.splunk_research_dir')
-        # Don't add .zip - stable_baselines3 handles extensions
-        model_path = f"{base_dir}/host_{host}_experiments/models/{args.model_name}"
+        exp_dir = f"{base_dir}/host_{host}_experiments"
+
+        # Try new per-experiment directory structure first, then legacy flat layout
+        new_path = f"{exp_dir}/runs/{args.model_name}/models/final"
+        legacy_path = f"{exp_dir}/models/{args.model_name}"
+
+        if os.path.exists(f"{new_path}.zip"):
+            model_path = new_path
+        else:
+            model_path = legacy_path
+        logger.info(f"Resolved model path: {model_path}")
     elif args.model_name and mode == 'train':
         logger.warning(f"model_name '{args.model_name}' provided but mode is 'train' - will create new model instead")
 

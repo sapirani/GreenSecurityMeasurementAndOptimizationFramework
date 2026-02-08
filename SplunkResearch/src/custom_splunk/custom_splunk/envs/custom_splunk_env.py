@@ -183,8 +183,8 @@ class SplunkEnv(gym.Env):
         """Execute environment step."""
         self.step_counter += 1
         self.all_steps_counter += 1
-        logger.info(f"Total steps: {self.all_steps_counter}")
-        logger.info(f"Step {self.step_counter}")
+        logger.debug(f"Total steps: {self.all_steps_counter}")
+        logger.debug(f"Step {self.step_counter}")
 
         self.done = self.step_violation or self._check_termination()
         truncated = False

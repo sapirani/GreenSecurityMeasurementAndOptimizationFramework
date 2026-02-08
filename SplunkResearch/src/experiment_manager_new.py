@@ -14,6 +14,10 @@ For CLI usage, see run_experiment.py
 import inspect
 from operator import is_
 import ssl
+import signal
+import subprocess
+import copy
+import re
 from typing import Dict, Any, Optional, List
 import sb3_contrib
 import stable_baselines3
@@ -22,11 +26,11 @@ import custom_splunk #dont remove!!!
 from custom_splunk.envs.custom_splunk_env import SplunkConfig
 import gymnasium as gym
 from gymnasium import register, spaces, make
-# from gymnasium.vector import VecNormalize, DummyVecEnv
 import pandas as pd
 import numpy as np
 import os
 import logging
+from logging.handlers import RotatingFileHandler
 import datetime
 from pathlib import Path
 import json
@@ -43,7 +47,6 @@ from time_manager import TimeWrapper
 import smtplib
 from email.message import EmailMessage
 from stable_baselines3.common.logger import configure
-# from energy_profile_final import handle_process_output
 logger = logging.getLogger(__name__)
 import torch as th
 import torch.nn as nn
@@ -99,28 +102,53 @@ class CustomExtractor(BaseFeaturesExtractor):
 
 class ExperimentManager:
     """Manages training and evaluation experiments"""
-    
+
     def __init__(self, base_dir: str = "experiments"):
         self.base_dir = Path(base_dir)
-        self._setup_directories()
+        self._setup_base_directories()
         self.experiments_db = self._load_experiments_db()
+        self._cleanup_stale_experiments()
+        self._migrate_legacy_filenames()
         self.eval_env = None
+        self.dirs = None
+        self._current_writers = None
 
-    def _setup_directories(self):
-        """Create necessary directories"""
+    def _setup_base_directories(self):
+        """Create base directories shared across experiments."""
+        self.base_dir.mkdir(parents=True, exist_ok=True)
+        self.baseline_dir = self.base_dir / 'baseline'
+        self.baseline_dir.mkdir(parents=True, exist_ok=True)
+        self.runs_dir = self.base_dir / 'runs'
+        self.runs_dir.mkdir(parents=True, exist_ok=True)
+
+    def _setup_experiment_dirs(self, experiment_name: str) -> dict:
+        """Create per-experiment directory structure.
+
+        Layout:
+            runs/{experiment_name}/
+            ├── experiment.log
+            ├── config.json
+            ├── models/
+            │   ├── final.zip
+            │   ├── best_model.zip
+            │   └── checkpoints/
+            ├── tensorboard/
+            └── results/
+        """
+        exp_dir = self.runs_dir / experiment_name
         dirs = {
-            'train': self.base_dir / 'train',
-            'eval': self.base_dir / 'eval',
-            'models': self.base_dir / 'models',
-            'logs': self.base_dir / 'logs',
-            'tensorboard': self.base_dir / 'tensorboard',
-            'baseline': self.base_dir / 'baseline'
+            'experiment': exp_dir,
+            'models': exp_dir / 'models',
+            'checkpoints': exp_dir / 'models' / 'checkpoints',
+            'logs': exp_dir,
+            'tensorboard': exp_dir / 'tensorboard',
+            'baseline': self.baseline_dir,
+            'results': exp_dir / 'results',
         }
-        
         for dir_path in dirs.values():
             dir_path.mkdir(parents=True, exist_ok=True)
-            
         self.dirs = dirs
+        return dirs
 
     def _load_experiments_db(self) -> pd.DataFrame:
         """Load or create experiments database"""
@@ -132,6 +160,9 @@ class ExperimentManager:
                 if df.empty or len(df.columns) == 0:
                     logger.warning(f"Empty or malformed experiments.csv found, creating new database")
                     return self._create_empty_experiments_db()
+                # Add git_info column if missing (backwards compat)
+                if 'git_info' not in df.columns:
+                    df['git_info'] = None
                 return df
             except pd.errors.EmptyDataError:
                 logger.warning(f"Empty experiments.csv found, creating new database")
@@ -142,7 +173,7 @@ class ExperimentManager:
         """Create an empty experiments database with proper schema"""
         return pd.DataFrame(columns=[
             'experiment_id', 'name', 'mode', 'start_time', 'end_time',
-            'config', 'status', 'metrics'
+            'config', 'status', 'metrics', 'git_info'
         ])
 
     def _save_experiments_db(self):
@@ -151,6 +182,34 @@ class ExperimentManager:
             self.base_dir / 'experiments.csv',
             index=False
         )
+
+    def _cleanup_stale_experiments(self, timeout_hours: int = 48):
+        """Mark experiments running longer than timeout as 'crashed'."""
+        if self.experiments_db.empty:
+            return
+        running = self.experiments_db[self.experiments_db['status'] == 'running']
+        now = datetime.datetime.now()
+        changed = False
+        for idx, row in running.iterrows():
+            try:
+                start = datetime.datetime.fromisoformat(row['start_time'])
+                if (now - start).total_seconds() > timeout_hours * 3600:
+                    self.experiments_db.loc[idx, 'status'] = 'crashed'
+                    self.experiments_db.loc[idx, 'end_time'] = now.isoformat()
+                    logger.warning(f"Marked stale experiment {row['name']} as crashed")
+                    changed = True
+            except (ValueError, TypeError):
+                continue
+        if changed:
+            self._save_experiments_db()
+
+    def _migrate_legacy_filenames(self):
+        """Rename legacy files with typos."""
+        for old_path in self.base_dir.glob('full_eval_results_rnadom_*.csv'):
+            new_path = old_path.parent / old_path.name.replace('rnadom', 'random')
+            if not new_path.exists():
+                old_path.rename(new_path)
+                logger.info(f"Migrated {old_path.name} -> {new_path.name}")
 
     def create_environment(self, env_config: SplunkConfig, overrides: dict = None) -> gym.Env:
         """Create and configure environment with reward wrappers
@@ -183,7 +242,7 @@ class ExperimentManager:
             id=env_config.env_id,
             config=env_config,
             top_logtypes=top_logtypes,
-            baseline_dir=self.dirs['baseline']
+            baseline_dir=self.baseline_dir
         )
 
         # Configure action space
@@ -259,7 +318,7 @@ class ExperimentManager:
             return self._create_new_model(env, overrides)
         else:
             return self._load_existing_model(env, overrides)
-        
+
     def _get_model_class(self, model_type: str):
         """Get model class based on type"""
         if model_type == "ppo":
@@ -276,7 +335,7 @@ class ExperimentManager:
             return TD3
         else:
             raise ValueError(f"Unknown model type: {model_type}")
-    
+
     def _get_policy_class(self, policy_type: str):
         """Get policy class based on type"""
         if policy_type == "mlp":
@@ -317,7 +376,6 @@ class ExperimentManager:
 
         model_type = get_config('experiment.model_type', 'sac')
         policy_type = get_config('experiment.policy_type', 'MlpPolicy')
-        experiment_name = get_config('experiment_name', 'experiment')
 
         model_cls = self._get_model_class(model_type)
 
@@ -329,7 +387,7 @@ class ExperimentManager:
             'policy': policy_type,
             'learning_rate': get_config('training.learning_rate', 3e-4),
             'gamma': get_config('training.gamma', 0.95),
-            'tensorboard_log': f"{str(self.dirs['tensorboard'])}/{experiment_name}",
+            'tensorboard_log': str(self.dirs['tensorboard']),
             'stats_window_size': get_config('training.stats_window_size', 5),
             'verbose': get_config('training.verbose', 0),
             'device': device
@@ -363,34 +421,90 @@ class ExperimentManager:
                     "log_std_init": get_config('training.sac.log_std_init', -3),
                 },
             })
-      
-            
+
+
         return model_cls(**model_kwargs)
-    
+
     def _generate_experiment_id(self):
         """Generate unique experiment ID"""
         return datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    
+
     def _setup_experiment_logging(self, experiment_name: str):
-        """Setup logging for experiment"""
+        """Setup logging for experiment with proper handler management and rotation."""
         log_level_str = config.get('logging.level', 'INFO')
         log_level = getattr(logging, log_level_str.upper(), logging.INFO)
         log_format = config.get('logging.format',
                                "%(asctime)s [%(levelname)s] %(name)s %(message)s")
         log_to_console = config.get('logging.log_to_console', False)
+        max_bytes = config.get('logging.max_bytes', 50 * 1024 * 1024)  # 50 MB default
+        backup_count = config.get('logging.backup_count', 3)
 
-        handlers = [
-            logging.FileHandler(self.dirs['logs'] / f"{experiment_name}.log")
-        ]
-        if log_to_console:
-            handlers.append(logging.StreamHandler())
+        root_logger = logging.getLogger()
 
-        logging.basicConfig(
-            level=log_level,
-            format=log_format,
-            handlers=handlers
+        # Remove existing file handlers (keep console handlers from previous setup)
+        for handler in root_logger.handlers[:]:
+            if isinstance(handler, logging.FileHandler):
+                handler.close()
+                root_logger.removeHandler(handler)
+
+        formatter = logging.Formatter(log_format)
+
+        # Add rotating file handler for this experiment
+        file_handler = RotatingFileHandler(
+            self.dirs['logs'] / "experiment.log",
+            maxBytes=max_bytes,
+            backupCount=backup_count
         )
-    
+        file_handler.setFormatter(formatter)
+        file_handler.setLevel(log_level)
+        root_logger.addHandler(file_handler)
+        root_logger.setLevel(log_level)
+
+        # Add console handler if requested and not already present
+        if log_to_console and not any(
+            isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
+            for h in root_logger.handlers
+        ):
+            console_handler = logging.StreamHandler()
+            console_handler.setFormatter(formatter)
+            root_logger.addHandler(console_handler)
+
+    def _get_git_info(self) -> dict:
+        """Capture git commit hash and dirty status for reproducibility."""
+        try:
+            commit = subprocess.check_output(
+                ['git', 'rev-parse', 'HEAD'],
+                stderr=subprocess.DEVNULL,
+                cwd=str(self.base_dir)
+            ).decode().strip()
+            dirty = bool(subprocess.check_output(
+                ['git', 'status', '--porcelain'],
+                stderr=subprocess.DEVNULL,
+                cwd=str(self.base_dir)
+            ).decode().strip())
+            return {'commit': commit, 'dirty': dirty}
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return {'commit': 'unknown', 'dirty': None}
+
+    def _get_full_config(self, overrides: dict) -> dict:
+        """Build the full effective configuration by merging defaults with overrides."""
+        # Deep copy defaults, strip secrets
+        safe_defaults = copy.deepcopy(config._config)
+        safe_defaults.pop('email', None)
+
+        return {
+            'defaults': safe_defaults,
+            'overrides': overrides.copy(),
+        }
+
+    def _save_experiment_config(self, experiment_name: str, overrides: dict):
+        """Save full config snapshot to experiment directory."""
+        full_config = self._get_full_config(overrides)
+        full_config['git'] = self._get_git_info()
+        config_path = self.dirs['experiment'] / 'config.json'
+        with open(config_path, 'w') as f:
+            json.dump(full_config, f, indent=2, default=str)
+
     def run_experiment(self, env_config: SplunkConfig, overrides: dict = None):
         """Run experiment based on configuration
 
@@ -405,7 +519,6 @@ class ExperimentManager:
             return overrides.get(key, config.get(key, default))
 
         # Generate experiment ID and name
-        logger.info(f"Experiment Config: {overrides}")
         experiment_id = self._generate_experiment_id()
         experiment_name = get_config('experiment_name')
         mode = get_config('experiment.mode', 'train')
@@ -416,13 +529,32 @@ class ExperimentManager:
             experiment_name = f"{experiment_name}_{experiment_id}"
 
         overrides['experiment_name'] = experiment_name
-        
-        # Setup logging
+
+        # Setup per-experiment directories and logging BEFORE any log statements
+        self._setup_experiment_dirs(experiment_name)
         self._setup_experiment_logging(experiment_name)
+
+        logger.info(f"Experiment Config: {overrides}")
         logger.info(f"Starting experiment: {experiment_name}")
+
+        # Save full config snapshot
+        self._save_experiment_config(experiment_name, overrides)
 
         # Record experiment start
         self._record_experiment_start(experiment_id, experiment_name, overrides)
+
+        # Setup signal handlers for graceful shutdown
+        old_sigterm = signal.getsignal(signal.SIGTERM)
+        old_sigint = signal.getsignal(signal.SIGINT)
+
+        def _signal_handler(signum, frame):
+            logger.warning(f"Received signal {signum}, marking experiment {experiment_id} as interrupted")
+            self._record_experiment_end(experiment_id, "interrupted", {"signal": signum})
+            self._close_summary_writers()
+            raise SystemExit(1)
+
+        signal.signal(signal.SIGTERM, _signal_handler)
+        signal.signal(signal.SIGINT, _signal_handler)
 
         try:
             # Create environment and model
@@ -493,12 +625,12 @@ class ExperimentManager:
                 results = self._run_evaluation(model, self.eval_env, eval_overrides, full_eval_env)
             else:  # retrain
                 results = self._run_retraining(model, env, overrides, callbacks)
-                
+
             # Record success
             self._record_experiment_end(experiment_id, "completed", results)
-            
+
             return results
-            
+
         except Exception as e:
             logger.error(f"Experiment failed: {str(e)}")
             self._record_experiment_end(experiment_id, "failed", {"error": str(e)})
@@ -507,6 +639,12 @@ class ExperimentManager:
             self.send_email(error_message=str(e), experiment_name=experiment_name)
 
             raise
+        finally:
+            # Restore original signal handlers
+            signal.signal(signal.SIGTERM, old_sigterm)
+            signal.signal(signal.SIGINT, old_sigint)
+            # Close any open writers
+            self._close_summary_writers()
 
     def _run_training(self, model, env, overrides: dict, callbacks):
         """Run training experiment"""
@@ -524,19 +662,29 @@ class ExperimentManager:
         model.learn(
             total_timesteps=total_timesteps,
             callback=callbacks,
-            tb_log_name=experiment_name
+            tb_log_name="train"
         )
 
-        # Save model
-        model_path = self.dirs['models'] / f"{experiment_name}.zip"
+        # Save final model
+        model_path = self.dirs['models'] / "final.zip"
         model.save(str(model_path))
+
+        # Save replay buffer for off-policy algorithms
+        model_type = get_config('experiment.model_type', 'sac')
+        if model_type in ['sac', 'td3', 'ddpg']:
+            buffer_path = self.dirs['models'] / "replay_buffer.pkl"
+            model.save_replay_buffer(str(buffer_path))
+            logger.info(f"Replay buffer saved to {buffer_path}")
+
+        # Cleanup old checkpoints
+        self._cleanup_old_checkpoints()
 
         return {
             "model_path": str(model_path),
             "total_timesteps": total_timesteps
         }
 
-   
+
     def _run_evaluation(self, model, env, overrides: dict, full_eval_env=None):
         """evaluate the model for a specific number of episodes. Create summary writers for the evaluation """
         if overrides is None:
@@ -549,22 +697,22 @@ class ExperimentManager:
         eval_episodes = get_config('training.num_episodes', 100)
         experiment_name = get_config('experiment_name', 'experiment')
 
-        log_dir = f"{str(self.dirs['tensorboard'])}/{experiment_name}"
+        log_dir = str(self.dirs['tensorboard'])
         eval_logger = configure(log_dir, ["tensorboard"])
         model.set_logger(eval_logger)
         rules = self.eval_env.unwrapped.splunk_tools.active_saved_searches.keys()
         event_types = [f"{x[0].lower()}_{x[1]}" for x in self.eval_env.unwrapped.top_logtypes]
         writers = self.create_summary_writers(log_dir, rules, event_types)
+        self._current_writers = writers
         eval_callback = CustomEvalCallback3(
             eval_env=self.eval_env,
-            log_dir=f"{str(self.dirs['tensorboard'])}/{experiment_name}",
+            log_dir=str(self.dirs['tensorboard']),
             rules=rules,
             event_types=event_types,
             n_eval_episodes=get_config('evaluation.n_eval_episodes', 1),
             eval_freq=get_config('evaluation.eval_freq', 1),
             best_model_save_path=self.dirs['models'],
             log_path=self.dirs['logs'],
-            # eval_log_dir=str(self.dirs['tensorboard']/f"eval_{experiment_name}"),
             deterministic=get_config('evaluation.deterministic', True),
             render=get_config('evaluation.render', False),
             verbose=get_config('evaluation.verbose', 1),
@@ -573,25 +721,38 @@ class ExperimentManager:
             additional_percentage=get_config('environment.additional_percentage', 1.0),
             hosts_num=get_config('environment.hosts_percentage', 100),
             is_random_agent=get_config('use_random_agent', False),
+            results_dir=str(self.dirs['results']),
         )
         eval_callback.model = model
         for _ in range(eval_episodes):
             eval_callback.on_step()
 
     def create_summary_writers(self, log_dir, rules, event_types):
+        log_dir = Path(log_dir)
         writers = {
-        rule: SummaryWriter(log_dir=log_dir + f"/{rule}") for rule in rules
+            rule: SummaryWriter(log_dir=str(log_dir / rule)) for rule in rules
         }
         writers.update({
-            event_type: SummaryWriter(log_dir=log_dir + f"/{event_type.replace(':','_')}") for event_type in event_types
+            event_type: SummaryWriter(log_dir=str(log_dir / event_type.replace(':', '_')))
+            for event_type in event_types
         })
         writers.update({
-            f"{event_type}_{is_trigger}": SummaryWriter(log_dir=log_dir + f"/{event_type.replace(':','_')}_{is_trigger}")   for event_type in event_types  for is_trigger in  [0,1]
+            f"{event_type}_{is_trigger}": SummaryWriter(
+                log_dir=str(log_dir / f"{event_type.replace(':', '_')}_{is_trigger}")
+            )
+            for event_type in event_types for is_trigger in [0, 1]
         })
-
         return writers
 
-
+    def _close_summary_writers(self):
+        """Close all SummaryWriter instances to release file handles."""
+        if self._current_writers:
+            for name, writer in self._current_writers.items():
+                try:
+                    writer.close()
+                except Exception as e:
+                    logger.warning(f"Error closing writer {name}: {e}")
+            self._current_writers = None
 
     def _load_existing_model(self, env: gym.Env, overrides: dict = None):
         """Load model from path"""
@@ -612,9 +773,18 @@ class ExperimentManager:
         model = model_cls.load(model_path, env=env)
         logger.info(f"Successfully loaded model from {model_path}")
 
+        # Try to load replay buffer for off-policy algorithms
+        if model_type in ['sac', 'td3', 'ddpg']:
+            buffer_path = Path(model_path).parent / "replay_buffer.pkl"
+            if buffer_path.exists():
+                model.load_replay_buffer(str(buffer_path))
+                logger.info(f"Replay buffer loaded from {buffer_path}")
+            else:
+                logger.warning(f"No replay buffer found at {buffer_path}, starting fresh")
+
         return model
-        
-        
+
+
     def _run_retraining(self, model, env, overrides: dict, callbacks):
         """Run retraining experiment"""
         if overrides is None:
@@ -631,24 +801,36 @@ class ExperimentManager:
         model.learn(
             total_timesteps=total_timesteps,
             callback=callbacks,
-            tb_log_name=experiment_name
+            tb_log_name="train"
         )
-        model_path = self.dirs['models'] / f"{experiment_name}.zip"
+
+        # Save final model
+        model_path = self.dirs['models'] / "final.zip"
         model.save(str(model_path))
+
+        # Save replay buffer for off-policy algorithms
+        model_type = get_config('experiment.model_type', 'sac')
+        if model_type in ['sac', 'td3', 'ddpg']:
+            buffer_path = self.dirs['models'] / "replay_buffer.pkl"
+            model.save_replay_buffer(str(buffer_path))
+            logger.info(f"Replay buffer saved to {buffer_path}")
+
+        # Cleanup old checkpoints
+        self._cleanup_old_checkpoints()
 
         return {
             "model_path": str(model_path),
             "total_timesteps": total_timesteps
         }
-    
+
     def _record_experiment_start(self, experiment_id: str, name: str,
                                overrides: dict):
         """Record experiment start in database"""
         def get_config(key, default=None):
             return overrides.get(key, config.get(key, default))
 
-        # Create serializable config dict
-        serialized_config = overrides.copy()
+        # Capture full config (not just overrides)
+        serialized_config = self._get_full_config(overrides)
         mode = get_config('experiment.mode', 'train')
 
         new_row = {
@@ -656,9 +838,10 @@ class ExperimentManager:
             'name': name,
             'mode': mode,
             'start_time': datetime.datetime.now().isoformat(),
-            'config': json.dumps(serialized_config),
+            'config': json.dumps(serialized_config, default=str),
             'status': 'running',
-            'metrics': None
+            'metrics': None,
+            'git_info': json.dumps(self._get_git_info())
         }
 
         self.experiments_db = pd.concat([
@@ -667,16 +850,16 @@ class ExperimentManager:
         ], ignore_index=True)
 
         self._save_experiments_db()
-        
 
-    def _record_experiment_end(self, experiment_id: str, status: str, 
+
+    def _record_experiment_end(self, experiment_id: str, status: str,
                              metrics: Dict[str, Any]):
         """Record experiment completion in database"""
         idx = self.experiments_db['experiment_id'] == experiment_id
         self.experiments_db.loc[idx, 'status'] = status
         self.experiments_db.loc[idx, 'end_time'] = datetime.datetime.now().isoformat()
         self.experiments_db.loc[idx, 'metrics'] = json.dumps(metrics)
-        
+
         self._save_experiments_db()
 
     def get_experiment_results(self, experiment_id: str) -> Dict[str, Any]:
@@ -684,7 +867,7 @@ class ExperimentManager:
         experiment = self.experiments_db[
             self.experiments_db['experiment_id'] == experiment_id
         ].iloc[0]
-        
+
         return {
             'name': experiment['name'],
             'mode': experiment['mode'],
@@ -694,7 +877,7 @@ class ExperimentManager:
             'metrics': json.loads(experiment['metrics']) if experiment['metrics'] else None,
             'config': json.loads(experiment['config'])
         }
-    
+
     def _setup_callbacks(self, overrides: dict):
         """Setup training/evaluation callbacks"""
         if overrides is None:
@@ -704,47 +887,65 @@ class ExperimentManager:
             return overrides.get(key, config.get(key, default))
 
         experiment_name = get_config('experiment_name', 'experiment')
-        log_dir = f"{str(self.dirs['tensorboard'])}/{experiment_name}"
+        log_dir = str(self.dirs['tensorboard'])
 
         rules = self.eval_env.unwrapped.splunk_tools.active_saved_searches.keys()
         event_types = [f"{x[0].lower()}_{x[1]}" for x in self.eval_env.unwrapped.top_logtypes]
         writers = self.create_summary_writers(log_dir, rules, event_types)
+        self._current_writers = writers
+
         return [
             CustomTensorboardCallback(
-                log_dir=f"{str(self.dirs['tensorboard'])}/{experiment_name}",
+                log_dir=log_dir,
                 rules=rules,
                 event_types=event_types,
                 writers=writers
             ),
-            # HParamsCallback(
-            #     experiment_kwargs=overrides,
-            #     phase=get_config('phase', 'train')
-            # ),
+            HParamsCallback(
+                hparam_dict=overrides,
+                log_dir=log_dir
+            ),
             CheckpointCallback(
                 save_freq=get_config('callbacks.checkpoint.save_freq', 10000),
-                save_path=self.dirs['models'],
-                name_prefix=get_config('callbacks.checkpoint.name_prefix', experiment_name)
+                save_path=self.dirs['checkpoints'],
+                name_prefix="checkpoint"
             ),
 
             CustomEvalCallback3(
                 eval_env=self.eval_env,
-                log_dir=f"{str(self.dirs['tensorboard'])}/{experiment_name}",
+                log_dir=log_dir,
                 rules=rules,
                 event_types=event_types,
                 n_eval_episodes=get_config('evaluation.n_eval_episodes', 1),
                 eval_freq=get_config('callbacks.eval.eval_freq', 600000),
                 best_model_save_path=self.dirs['models'],
                 log_path=self.dirs['logs'],
-                # eval_log_dir=str(self.dirs['tensorboard']/f"eval_{experiment_name}"),
                 deterministic=get_config('callbacks.eval.deterministic', False),
                 render=get_config('callbacks.eval.render', False),
                 verbose=get_config('callbacks.eval.verbose', 1),
                 writers=writers,
+                results_dir=str(self.dirs['results']),
             ),
-            # SplunkLincenceCheckCallback()
 
         ]
-        
+
+    def _cleanup_old_checkpoints(self):
+        """Remove old checkpoint files, keeping only the N most recent."""
+        keep_last_n = config.get('callbacks.checkpoint.keep_last_n', 3)
+        pattern = re.compile(r'^checkpoint_(\d+)_steps\.zip$')
+
+        checkpoints = []
+        for f in self.dirs['checkpoints'].iterdir():
+            match = pattern.match(f.name)
+            if match:
+                checkpoints.append((int(match.group(1)), f))
+
+        checkpoints.sort(key=lambda x: x[0], reverse=True)
+
+        for _, path in checkpoints[keep_last_n:]:
+            logger.info(f"Removing old checkpoint: {path.name}")
+            path.unlink()
+
     def send_email(self, error_message: str = "Experiment has failed",
                    log_file: Optional[str] = None,
                    experiment_name: Optional[str] = None):
@@ -803,4 +1004,3 @@ class ExperimentManager:
         except Exception as e:
             logger.error(f"Failed to send email notification: {e}")
             # Don't re-raise - email failure shouldn't crash the experiment cleanup
-

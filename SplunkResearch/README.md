@@ -73,8 +73,10 @@ The system is built as a [Gymnasium](https://gymnasium.farama.org/) reinforcemen
 
 - **Centralized Configuration**: YAML-based config system with CLI overrides
 - **Clean CLI Interface**: Argparse-based command-line tool with named arguments
-- **Modular Design**: Clear separation between environment, manager, and execution
-- **Better Documentation**: Comprehensive docstrings and configuration guides
+- **Per-Experiment Isolation**: Each experiment gets a self-contained directory under `runs/`
+- **Rotating Logs**: RotatingFileHandler prevents log bloat (50MB max, 3 backups)
+- **Experiment Tracking**: CSV index with git hash, config snapshots, and status tracking
+- **Graceful Shutdown**: Signal handlers mark interrupted experiments; stale runs auto-detected
 - **SLURM Integration**: Production-ready job scripts for cluster execution
 
 ## Project Structure
@@ -94,6 +96,20 @@ GreenSecurityMeasurementAndOptimizationFramework/
     │   ├── section_logtypes.py        # Rule-to-event-code mappings (27 rules)
     │   ├── log_generator_resources.py # Log templates and variations
     │   └── state_span.py              # State space definitions
+    ├── host_{ip}_experiments/         # Per-host experiment root
+    │   ├── baseline/                  # Shared baseline measurements
+    │   ├── experiments.csv            # Experiment index (with git hash)
+    │   └── runs/
+    │       └── {experiment_name}/     # Self-contained experiment
+    │           ├── config.json        # Full config snapshot + git hash
+    │           ├── experiment.log     # Rotating log (50MB max, 3 backups)
+    │           ├── models/
+    │           │   ├── final.zip
+    │           │   ├── best_model.zip
+    │           │   ├── replay_buffer.pkl
+    │           │   └── checkpoints/   # Auto-pruned, keep last 3
+    │           ├── tensorboard/
+    │           └── results/           # Eval CSV files
     └── src/
         ├── .env                       # Environment variables (gitignored)
         ├── config.py                  # Configuration management system
@@ -390,11 +406,28 @@ Jupyter notebooks are provided for post-experiment analysis:
 - [result_analysis.ipynb](SplunkResearch/src/result_analysis.ipynb) — Training results visualization
 - [splunk_tools_notebook.ipynb](SplunkResearch/src/splunk_tools_notebook.ipynb) — Splunk API interaction demos
 
-Training metrics are logged to **TensorBoard**:
+Training metrics are logged to **TensorBoard** (per-experiment):
 
 ```bash
-tensorboard --logdir SplunkResearch/experiments/tensorboard
+# Single experiment
+tensorboard --logdir SplunkResearch/host_X_experiments/runs/{experiment_name}/tensorboard
+
+# All experiments for a host
+tensorboard --logdir SplunkResearch/host_X_experiments/runs/
 ```
+
+### Logging Configuration
+
+Logging verbosity and rotation are controlled in `config/default.yaml` under the `logging` section:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `logging.level` | `INFO` | Log level: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
+| `logging.log_to_console` | `false` | Also print logs to stdout |
+| `logging.max_bytes` | `52428800` | Max log file size before rotation (50MB) |
+| `logging.backup_count` | `3` | Number of rotated log files to keep |
+
+Set `level: DEBUG` to see per-step state vectors, action distributions, and profiling data.
 
 ## Tech Stack
 
