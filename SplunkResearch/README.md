@@ -14,71 +14,100 @@ The framework enables researchers to understand trade-offs between security moni
 
 ## Architecture
 
-The system is built as a [Gymnasium](https://gymnasium.farama.org/) reinforcement learning environment with a wrapper-based composition pattern:
+The system is built as a [Gymnasium](https://gymnasium.farama.org/) reinforcement learning environment with a wrapper-based composition pattern and centralized configuration management:
 
 ```
-┌─────────────────────────────────────────────┐
-│              ExperimentManager               │
-│  (Training orchestration, model selection)   │
-├─────────────────────────────────────────────┤
-│                                             │
-│  ┌─────────────┐  ┌──────────────────────┐  │
-│  │ TimeManager  │  │   Log Generator      │  │
-│  │ (Windows,    │  │   (Template-based    │  │
-│  │  Episodes)   │  │    event creation)   │  │
-│  └──────┬───────┘  └──────────┬───────────┘  │
-│         │                     │              │
-│  ┌──────▼─────────────────────▼───────────┐  │
-│  │           SplunkEnv (Base)             │  │
-│  │  ┌─────────────────────────────────┐   │  │
-│  │  │  Action Wrapper                 │   │  │
-│  │  │  (Quota, distribution, trigger, │   │  │
-│  │  │   diversity control)            │   │  │
-│  │  ├─────────────────────────────────┤   │  │
-│  │  │  Reward Wrapper                 │   │  │
-│  │  │  (Energy + Alert + Distribution │   │  │
-│  │  │   multi-objective reward)       │   │  │
-│  │  ├─────────────────────────────────┤   │  │
-│  │  │  State Wrapper                  │   │  │
-│  │  │  (Real/fake distributions,      │   │  │
-│  │  │   KL divergence, step counter)  │   │  │
-│  │  └─────────────────────────────────┘   │  │
-│  └────────────────┬───────────────────────┘  │
-│                   │                          │
-│  ┌────────────────▼───────────────────────┐  │
-│  │           Splunk Tools                 │  │
-│  │  (REST API, saved searches, metrics)   │  │
-│  └────────────────────────────────────────┘  │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│              CLI (run_experiment.py)              │
+│         Command-line interface with argparse      │
+├──────────────────────────────────────────────────┤
+│                                                  │
+│  ┌─────────────────────────────────────────┐    │
+│  │      Config System (config.py)          │    │
+│  │  default.yaml + secrets.yaml + CLI args │    │
+│  └──────────────────┬──────────────────────┘    │
+│                     │                            │
+│  ┌──────────────────▼──────────────────────┐    │
+│  │         ExperimentManager               │    │
+│  │  (Training orchestration, model mgmt)   │    │
+│  ├─────────────────────────────────────────┤    │
+│  │                                         │    │
+│  │  ┌─────────────┐  ┌──────────────────┐  │    │
+│  │  │TimeManager  │  │  Log Generator   │  │    │
+│  │  │(Windows,    │  │  (Template-based │  │    │
+│  │  │ Episodes)   │  │  event creation) │  │    │
+│  │  └──────┬──────┘  └──────────┬───────┘  │    │
+│  │         │                    │          │    │
+│  │  ┌──────▼────────────────────▼────────┐  │    │
+│  │  │       SplunkEnv (Base)            │  │    │
+│  │  │  ┌────────────────────────────┐   │  │    │
+│  │  │  │  Action Wrapper            │   │  │    │
+│  │  │  │  (Quota, distribution,     │   │  │    │
+│  │  │  │   trigger, diversity)      │   │  │    │
+│  │  │  ├────────────────────────────┤   │  │    │
+│  │  │  │  Reward Wrapper            │   │  │    │
+│  │  │  │  (Energy + Alert +         │   │  │    │
+│  │  │  │   Distribution rewards)    │   │  │    │
+│  │  │  ├────────────────────────────┤   │  │    │
+│  │  │  │  State Wrapper             │   │  │    │
+│  │  │  │  (Distributions, KL div,   │   │  │    │
+│  │  │  │   step counter)            │   │  │    │
+│  │  │  └────────────────────────────┘   │  │    │
+│  │  └────────────────┬──────────────────┘  │    │
+│  │                   │                     │    │
+│  │  ┌────────────────▼──────────────────┐  │    │
+│  │  │       Splunk Tools                │  │    │
+│  │  │  (REST API, saved searches,       │  │    │
+│  │  │   resource profiling)             │  │    │
+│  │  └───────────────────────────────────┘  │    │
+│  └─────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────┘
 ```
+
+### Key Improvements (2026 Refactoring)
+
+- **Centralized Configuration**: YAML-based config system with CLI overrides
+- **Clean CLI Interface**: Argparse-based command-line tool with named arguments
+- **Modular Design**: Clear separation between environment, manager, and execution
+- **Better Documentation**: Comprehensive docstrings and configuration guides
+- **SLURM Integration**: Production-ready job scripts for cluster execution
 
 ## Project Structure
 
 ```
-SplunkEnergyAttack/
+GreenSecurityMeasurementAndOptimizationFramework/
+├── gpu_job_train.sh                   # SLURM training job script
+├── gpu_job_evaluation_80_159.sh       # SLURM evaluation job (host 159)
+├── gpu_job_evaluation_81_184.sh       # SLURM evaluation job (host 184)
 └── SplunkResearch/
+    ├── config/
+    │   ├── README.md                  # Configuration documentation
+    │   ├── default.yaml               # Default configuration values
+    │   └── secrets.yaml.example       # Example secrets template
     ├── resources/
-    │   ├── logtypes.py                 # Log type definitions (38 types)
-    │   ├── section_logtypes.py         # Rule-to-event-code mappings (27 rules)
-    │   ├── log_generator_resources.py  # Log templates and variations
+    │   ├── logtypes.py                # Log type definitions (38 types)
+    │   ├── section_logtypes.py        # Rule-to-event-code mappings (27 rules)
+    │   ├── log_generator_resources.py # Log templates and variations
     │   └── state_span.py              # State space definitions
     └── src/
+        ├── .env                       # Environment variables (gitignored)
+        ├── config.py                  # Configuration management system
+        ├── run_experiment.py          # CLI entry point for experiments
         ├── custom_splunk/             # Gymnasium environment package
         │   ├── custom_splunk/
         │   │   └── envs/
         │   │       └── custom_splunk_env.py  # Base RL environment
         │   └── setup.py
         ├── wrappers/
-        │   ├── action.py              # Action wrappers (Action8, Action11, etc.)
+        │   ├── action.py              # Action wrappers (Action8, Action12, etc.)
         │   ├── reward.py              # Multi-component reward computation
         │   └── state.py               # State normalization and observation
-        ├── experiment_manager_new.py   # Experiment orchestration
+        ├── experiment_manager_new.py  # Experiment orchestration
         ├── splunk_tools.py            # Splunk API integration
         ├── log_generator.py           # Fake log generation and injection
         ├── time_manager.py            # Episode and time window management
         ├── callbacks.py               # Training callbacks and metrics logging
         ├── energy_profile_final.py    # Energy profiling experiments
-        ├── policy.py                  # Custom RL policies
         ├── env_utils.py               # Environment utilities
         ├── cpu_prediction_nb.ipynb    # CPU prediction analysis
         ├── result_analysis.ipynb      # Results visualization
@@ -89,18 +118,19 @@ SplunkEnergyAttack/
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.10+
 - A running Splunk instance with:
   - Security detection rules (saved searches) configured
   - HTTP Event Collector (HEC) enabled
   - Windows Event Log data indexed
+- SLURM cluster (for distributed training jobs) or local execution
 
 ### Setup
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/<owner>/SplunkEnergyAttack.git
-   cd SplunkEnergyAttack
+   git clone https://github.com/sapirani/GreenSecurityMeasurementAndOptimizationFramework.git
+   cd GreenSecurityMeasurementAndOptimizationFramework
    ```
 
 2. Install the custom Gymnasium environment:
@@ -111,60 +141,123 @@ SplunkEnergyAttack/
 
 3. Install dependencies:
    ```bash
-   pip install stable-baselines3 sb3-contrib gymnasium torch splunklib pandas numpy joblib psutil python-dotenv requests elasticsearch
+   pip install stable-baselines3 sb3-contrib gymnasium torch splunklib pandas numpy joblib psutil python-dotenv requests elasticsearch pyyaml
    ```
 
-4. Create an environment file at `SplunkResearch/.env`:
+4. Configure the framework:
+
+   a. **Create secrets file** at `SplunkResearch/src/.env`:
    ```env
-   SPLUNK_HOST=<your_splunk_host>
-   SPLUNK_PORT=<splunk_management_port>
+   # Splunk hosts (IP identifier mapping)
+   SPLUNK_HOST_1=132.72.81.184
+   SPLUNK_HOST_2=132.72.80.159
+   SPLUNK_HOST_3=132.72.81.150
+
+   # Splunk credentials
+   SPLUNK_PORT=8089
    SPLUNK_USERNAME=<username>
    SPLUNK_PASSWORD=<password>
    INDEX_NAME=<target_index>
+
+   # HTTP Event Collector tokens
    HEC_TOKEN1=<hec_token>
    HEC_TOKEN2=<hec_token>
+
+   # Email notifications
    EMAIL=<notification_email>
    EMAIL_PASSWORD=<email_password>
    ```
 
+   b. **Configure experiment settings** in `SplunkResearch/config/default.yaml`:
+   - Adjust model hyperparameters (learning rate, batch size, etc.)
+   - Set reward weights (alpha, beta, gamma)
+   - Configure environment parameters (log rates, time windows)
+   - Customize training/evaluation settings
+
+   c. **Optional: Add personal secrets** in `SplunkResearch/config/secrets.yaml`:
+   ```yaml
+   # Override any default.yaml values here
+   # This file is gitignored and won't be committed
+   email:
+     address: "your-email@example.com"
+     password: "your-app-password"
+   ```
+
 ## Usage
 
-### Running an Experiment
+### Configuration System
 
-Configure and launch a training experiment via `experiment_manager_new.py`:
+The framework uses a hierarchical configuration system with three layers:
 
-```python
-from experiment_manager_new import ExperimentManager, ExperimentConfig
-from custom_splunk.envs.custom_splunk_env import SplunkConfig
+1. **`config/default.yaml`** - Base configuration with all default values
+2. **`config/secrets.yaml`** (optional) - Override sensitive values (gitignored)
+3. **CLI arguments** - Override any config value at runtime
 
-# Define environment configuration
-env_config = SplunkConfig(
-    rule_frequency=60,           # Rule check frequency (minutes)
-    search_window=2880,          # Search window size (minutes)
-    logs_per_minute=150,         # Baseline log ingestion rate
-    additional_percentage=1,     # Extra log injection fraction
-    action_duration=7200,        # Step duration (seconds)
-    num_of_measurements=1,
-    baseline_num_of_measurements=2,
-    env_id="splunk_train-v32",
-    end_time="12/31/2024:23:59:59"
-)
+Configuration values are accessed through the `config.py` module which merges all layers automatically.
 
-# Define experiment configuration
-experiment_config = ExperimentConfig(
-    env_config=env_config,
-    model_type="recurrent_ppo",  # RL algorithm
-    policy_type="MlpLstmPolicy",
-    learning_rate=0.0001,
-    num_episodes=600000,
-    n_steps=256,
-    ent_coef=0.1,
-)
+### Running Experiments
 
-# Run experiment
-manager = ExperimentManager(base_dir="SplunkResearch/experiments")
-results = manager.run_experiment(experiment_config)
+#### Training Mode
+
+**Basic Training (uses defaults from config files):**
+```bash
+python -m SplunkResearch.src.run_experiment \
+    --mode train \
+    --num-episodes 50000 \
+    --ip 1
 ```
+
+**Training with Custom Parameters:**
+```bash
+python -m SplunkResearch.src.run_experiment \
+    --mode train \
+    --model-type sac \
+    --alpha-energy 0.334 \
+    --beta-alert 0.333 \
+    --gamma-dist 0.333 \
+    --hosts-num 100 \
+    --learning-rate 1e-4 \
+    --num-episodes 50000 \
+    --ip 1 \
+    --action-type Action8
+```
+
+#### Evaluation Mode
+
+**Evaluate Trained Model:**
+```bash
+python -m SplunkResearch.src.run_experiment \
+    --model-name "train_20260205101454_600000_steps" \
+    --mode eval_post_training \
+    --alpha-energy 0.334 \
+    --beta-alert 0.333 \
+    --gamma-dist 0.333 \
+    --hosts-num 10 \
+    --additional-percentage 0.1 \
+    --num-episodes 40 \
+    --ip 1
+```
+
+#### SLURM Cluster Usage
+
+For distributed training on SLURM clusters, use the provided job scripts:
+
+**Training:**
+```bash
+sbatch gpu_job_train.sh
+```
+
+**Evaluation:**
+```bash
+sbatch gpu_job_evaluation_80_159.sh
+sbatch gpu_job_evaluation_81_184.sh
+```
+
+These scripts handle:
+- Splunk index reset before each experiment
+- Parameter sweeps across array jobs
+- Environment setup and cleanup
+- Results aggregation
 
 ### Supported RL Algorithms
 
@@ -178,25 +271,68 @@ results = manager.run_experiment(experiment_config)
 | TD3 | `"td3"` | Twin Delayed DDPG |
 | Recurrent PPO | `"recurrent_ppo"` | LSTM-based PPO for temporal patterns |
 
-### Configuration Parameters
+### CLI Arguments
 
-**Environment (`SplunkConfig`):**
+All configuration values from `default.yaml` can be overridden via command-line arguments:
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `rule_frequency` | `60` | How often Splunk rules execute (minutes) |
-| `search_window` | `2880` | Time range for detection searches (minutes) |
-| `action_duration` | `7200` | Step duration in the RL loop (seconds) |
-| `logs_per_minute` | `150` | Baseline log ingestion rate |
-| `additional_percentage` | `1` | Fraction of extra logs to inject |
+**Experiment Configuration:**
+| Argument | Description | Example |
+|----------|-------------|---------|
+| `--mode` | Experiment mode | `train`, `eval_post_training`, `retrain` |
+| `--model-name` | Model to load (for eval/retrain) | `train_20260205101454_600000_steps` |
+| `--model-type` | RL algorithm | `sac`, `ppo`, `a2c`, `dqn`, `td3`, `recurrent_ppo` |
+| `--policy-type` | Policy network | `MlpPolicy`, `MlpLstmPolicy` |
 
-**Reward Weights (`ExperimentConfig`):**
+**Reward Weights:**
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `--alpha-energy` | `0.5` | Weight for energy/CPU reward |
+| `--beta-alert` | `0.3` | Weight for alert accuracy reward |
+| `--gamma-dist` | `0.2` | Weight for distribution fidelity reward |
+| `--alert-epsilon` | `0.1` | Alert reward epsilon |
+| `--normalizer-factor` | `30.0` | Reward normalizer factor |
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `alpha_energy` | `0.5` | Weight for energy/CPU reward |
-| `beta_alert` | `0.3` | Weight for alert accuracy reward |
-| `gamma_dist` | `0.2` | Weight for distribution fidelity reward |
+**Training Parameters:**
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `--learning-rate` | `3e-4` | Learning rate for optimizer |
+| `--num-episodes` | `100` | Number of training episodes |
+
+**Environment Configuration:**
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `--hosts-num` | `100` | Percentage of hosts to use (0-100) |
+| `--additional-percentage` | `1.0` | Fraction of extra logs to inject |
+| `--action-type` | `Action8` | Action space type (`Action8`, `Action12`) |
+| `--ip` | `1` | Splunk host IP identifier (1, 2, 3) |
+
+**Reward Methods:**
+| Argument | Options |
+|----------|---------|
+| `--alert-reward-method` | `AlertRewardWrapper`, `AlertRewardWrapper2` |
+| `--distribution-reward-method` | `DistributionRewardWrapper`, `DistributionRewardWrapper2` |
+
+**Flags:**
+| Flag | Description |
+|------|-------------|
+| `--random-agent` | Use random agent instead of trained model |
+| `--test-experiment` | Run in test mode (disables injection) |
+
+### Configuration Files
+
+**`config/default.yaml`** contains all default values organized by category:
+- `paths.*` - File paths and directories
+- `splunk.*` - Splunk connection and indexing settings
+- `environment.*` - Environment parameters
+- `reward.*` - Reward function weights and methods
+- `training.*` - Model training hyperparameters
+- `model.*` - Neural network architecture
+- `evaluation.*` - Evaluation settings
+- `callbacks.*` - Training callbacks configuration
+- `logging.*` - Logging levels and formats
+- `email.*` - Email notification settings
+
+See [config/README.md](config/README.md) for detailed documentation.
 
 ### Energy Profiling
 
