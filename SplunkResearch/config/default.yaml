@@ -1,0 +1,239 @@
+# Default configuration for SplunkResearch
+# DO NOT put secrets here - use config/secrets.yaml for credentials
+
+# Reward function parameters
+reward:
+  # Tanh scaling factor for normalized alert reward
+  tanh_scale_factor: -2
+  # Standard deviation for reward calculation
+  std: 13
+  # Expected alerts per rule (9 values)
+  expected_alerts_per_rule: [4, 0.7, 0, 4, 0, 0, 0, 0, 0]
+  # Alert threshold
+  alert_threshold: -0.5
+  # Reward weighting factors
+  alpha: 0.5           # Energy reward weight
+  beta: 0.33           # Alert reward weight
+  gamma: 0.33          # Distribution reward weight
+  # Numerical stability epsilon
+  epsilon: 0.00000001
+  # Normalizer factor for tanh
+  normalizer_factor: 10
+  # Energy change target
+  energy_change_target: 1
+  # Normalization factors for fake_dist calculation
+  fake_dist_normalizer: 475796
+  alert_normalizer: 203
+  # Additional tanh scaling
+  tanh_energy_scale: 1.5
+  # Distribution comparison parameters
+  distribution_gamma: 0.2
+  distribution_freq: 3
+  distribution_threshold: 0.22
+  # KL divergence scaling
+  kl_divergence_scale: 4
+  # Reward component flags
+  use_energy_reward: true
+  use_alert_reward: true
+  use_distribution_reward: true
+  # Reward method wrappers
+  alert_method: AlertRewardWrapper
+  distribution_method: DistributionRewardWrapper
+  # Skip execution on low alerts
+  skip_on_low_alert: true
+
+# Action space parameters
+action:
+  # Diversity factor for action space
+  diversity_factor: 30
+  # Step size multiplier
+  step_size_multiplier: 2000
+  # Threading configuration
+  max_workers: 3
+  # Random probability threshold (out of 100000)
+  random_probability_threshold: 10
+
+# State parameters
+state:
+  # Alert normalization factor
+  alert_normalize_factor: 100
+
+# Splunk connection settings (non-sensitive)
+splunk:
+  # Splunk management port
+  port: 8089
+  # Default Splunk binary path
+  binary_path: /opt/splunk/bin/splunk
+  # Default hosts for queries (can be overridden by secrets.yaml)
+  default_host: dt-splunk
+  # Pull interval for data collection (seconds)
+  pull_interval_seconds: 2
+  # Sleep time for specific operations (seconds)
+  operation_sleep_time: 120
+
+# Elasticsearch connection settings (non-sensitive)
+elasticsearch:
+  # Elasticsearch port
+  port: 9200
+
+# File paths (relative to project root or absolute)
+paths:
+  # Model files
+  random_forest_model: /home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src/wrappers/RandomForest3000_NoTimeFeature.joblib
+  logistic_regression_model: /home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src/wrappers/Logistic_Regression_NoTimeFeature.joblib
+
+  # Log files
+  energy_profile_log: /home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/resources/final_logs_for_test.txt
+  experiment_log: /home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/resources/log.txt
+
+  # CSV files
+  event_csv: /home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/resources/events.csv
+
+  # Pickle files
+  state_pickle_alerts: /home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src/wrappers/alerts.pkl
+  state_pickle_false_positive: /home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src/wrappers/false_positive.pkl
+
+  # Connection file
+  splunk_connection: /home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src/splunk_connection.py
+
+  # Additional paths for experiment manager
+  splunk_research_dir: /home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch
+  env_file: /home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src/.env
+  top_logtypes: /home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/resources/top_logtypes.csv
+
+# ============================================================================
+# EXPERIMENT MANAGER CONFIGURATION
+# ============================================================================
+
+# Experiment settings
+experiment:
+  # Default experiment mode (train, eval_post_training, retrain)
+  mode: train
+  # RL algorithm (ppo, a2c, dqn, sac, td3, recurrent_ppo)
+  model_type: sac
+  # Policy type (MlpPolicy, td3_mlp, MlpLstmPolicy)
+  policy_type: MlpPolicy
+
+# Model feature extraction
+model:
+  # Custom feature extractor settings
+  features_dim: 128
+  # Hidden layer architecture
+  hidden_layers: [64, 128]
+  # Dropout rate for regularization
+  dropout_rate: 0.2
+
+# Training hyperparameters
+training:
+  # Learning rate
+  learning_rate: 0.0003
+  # Discount factor
+  gamma: 0.95
+  # Number of training episodes
+  num_episodes: 100
+  # Steps per rollout (for on-policy algorithms)
+  n_steps: 2048
+  # Entropy coefficient
+  ent_coef: 0.05
+  # Device for PyTorch (auto, cuda, cpu)
+  device: auto
+  # Verbose level (0=none, 1=info, 2=debug)
+  verbose: 0
+  # Stats window size for logging
+  stats_window_size: 5
+
+  # PPO/A2C/RecurrentPPO specific parameters
+  ppo:
+    sde_sample_freq: 12
+    use_sde: true
+
+  # SAC/TD3/DDPG specific parameters
+  sac:
+    learning_starts: 60  # (12 steps * 5 episodes)
+    gradient_steps: -1   # -1 means as many as learning_starts
+    train_freq: 4        # Train every 4 episodes
+    train_freq_unit: episode
+    buffer_size: 100000
+    batch_size: 2048
+    ent_coef: auto       # Automatic entropy tuning
+    use_sde: true        # Use state-dependent exploration
+    # Policy network architecture
+    policy_net_arch:
+      pi: [256, 256]     # Actor network
+      qf: [256, 256]     # Critic network
+    log_std_init: -3     # Initial log std for action distribution
+
+# Environment configuration
+environment:
+  # Action space type (Action8, Action12)
+  action_type: Action8
+  # Percentage of hosts to use (0-100)
+  hosts_percentage: 100
+  # Additional percentage for log generation
+  additional_percentage: 1.0
+  # Use mock mode (no real rule execution)
+  is_mock: true
+
+  # Log distribution settings
+  log_types:
+    - wineventlog:security
+    - wineventlog:system
+  max_logtypes: 20
+
+# Evaluation settings
+evaluation:
+  # Number of episodes to evaluate
+  n_eval_episodes: 1
+  # Evaluation frequency (in timesteps)
+  eval_freq: 1
+  # Use deterministic policy for evaluation
+  deterministic: true
+  # Render environment during evaluation
+  render: false
+  # Verbose level for evaluation
+  verbose: 1
+
+  # Full evaluation environment overrides
+  full_eval:
+    hosts_percentage: 100
+    use_energy_reward: false
+    use_alert_reward: false
+    is_mock: true
+
+# Callback settings
+callbacks:
+  # Checkpoint saving
+  checkpoint:
+    save_freq: 10000     # Save every N timesteps
+    name_prefix: model   # Prefix for saved models
+
+  # Evaluation callback
+  eval:
+    eval_freq: 600000    # Evaluate every N timesteps
+    deterministic: false # Use stochastic policy during training eval
+    render: false
+    verbose: 1
+
+# Logging configuration
+logging:
+  # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  level: INFO
+  # Log format string
+  format: "%(asctime)s [%(levelname)s] %(name)s %(message)s"
+  # Whether to log to console in addition to file
+  log_to_console: false
+
+# Splunk configuration (extends existing splunk section above)
+splunk:
+  # Environment-specific settings for ExperimentManager
+  rule_frequency: 120
+  search_window: 2880
+  logs_per_minute: 150
+  action_duration: 14400
+  num_measurements: 1
+  baseline_num_measurements: 1
+  train_env_id: splunk_train-v32
+  eval_env_id: splunk_eval-v32
+  end_time: "08/01/2025:00:00:00"
+  eval_end_time: "09/01/2025:00:00:00"
+  eval_rule_frequency: 2880

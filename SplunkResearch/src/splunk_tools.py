@@ -25,6 +25,7 @@ import os
 import numpy as np
 import pandas as pd
 import requests
+from config import config
 from datetime import datetime
 from datetime import timezone
 from random import randint
@@ -34,10 +35,20 @@ from utils.general_consts import LoggerName
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 import traceback
 
+# Import configuration
+sys_path = os.path.dirname(os.path.abspath(__file__))
+if sys_path not in os.sys.path:
+    os.sys.path.insert(0, sys_path)
+from config import config
 
 CLK_TCK = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
 
-load_dotenv('/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src/.env')
+# Load .env from config base directory
+base_dir = config.get('paths.base_dir', '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch')
+env_path = os.path.join(base_dir, 'src/.env')
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+
 # Precompile the regex pattern
 pattern = re.compile(r"'(.*?)' (\D+) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} IDT) (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \s+(\d+)\s+(\d+\.\d+)") # IDT and IST are changed when the time is changed
 savedsearches_path = '/opt/splunk/etc/users/shouei/search/local/savedsearches.conf'
@@ -45,15 +56,23 @@ APP = 'search'
 HEADERS = {
     "Content-Type": "application/x-www-form-urlencoded"
 }
-PREFIX_PATH = '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/'
+PREFIX_PATH = base_dir + '/'
 import logging
 logger = logging.getLogger(__name__)
 
 from application_logging.logging_utils import get_measurement_logger
-ES_URL = "http://127.0.0.1:9200"
-ES_USER = "elastic"
-ES_PASS = "SwmQNU7y"
-PULL_INTERVAL_SECONDS = 2  # seconds
+
+# Load Elasticsearch configuration from config (SECURITY: No hardcoded credentials)
+ES_PORT = config.get('elasticsearch.port', 9200)
+ES_URL = f"http://127.0.0.1:{ES_PORT}"
+ES_USER = config.get('elasticsearch.username', 'elastic')
+ES_PASS = config.get('elasticsearch.password')  # MUST be in secrets.yaml
+if ES_PASS is None:
+    logger.warning("Elasticsearch password not configured in secrets.yaml")
+    ES_PASS = ""  # Fallback to empty string to avoid crashes
+
+PULL_INTERVAL_SECONDS = config.get('splunk.pull_interval_seconds', 2)
+
 es_logger = get_measurement_logger(
     logger_name=LoggerName.PROCESS_METRICS,
     logger_handler=get_elastic_logging_handler(ES_USER, ES_PASS, ES_URL, "sid"),
@@ -150,14 +169,16 @@ class SplunkTools(object):
             return
         self.mode = mode
         self.pids = []
+        # SPLUNK_HOST_{ip} is dynamic per IP, so it remains in .env
         self.splunk_host = os.getenv(f"SPLUNK_HOST_{ip}")
-        self.splunk_port = os.getenv("SPLUNK_PORT")
+        # Static credentials come from config/secrets.yaml
+        self.splunk_port = config.get('splunk.port', '8089')
         self.base_url = f"https://{self.splunk_host}:{self.splunk_port}"
-        self.splunk_username = os.getenv("SPLUNK_USERNAME")
-        self.splunk_password = os.getenv("SPLUNK_PASSWORD")
-        self.index_name = os.getenv("INDEX_NAME")
-        self.hec_token1 = os.getenv('HEC_TOKEN1')
-        self.hec_token2 = os.getenv('HEC_TOKEN2')
+        self.splunk_username = config.get('splunk.username')
+        self.splunk_password = config.get('splunk.password')
+        self.index_name = config.get('splunk.index_name', 'main')
+        self.hec_token1 = config.get('splunk.hec_token1')
+        self.hec_token2 = config.get('splunk.hec_token2')
         self.auth = requests.auth.HTTPBasicAuth(self.splunk_username, self.splunk_password)
         self.real_logs_distribution = pd.DataFrame(data=None, columns=['source', 'EventCode', '_time', "host", 'count'])
         self.real_logs_distribution['_time'] = pd.to_datetime(self.real_logs_distribution['_time'])
@@ -182,9 +203,10 @@ class SplunkTools(object):
                 break
             except Exception as e:
                 logger.error(f'Failed to connect to Splunk: {str(e)}')
-                time.sleep(120)#TODO: change to 5
+                sleep_time = config.get('splunk.operation_sleep_time', 120)
+                time.sleep(sleep_time)
         self._initialized = True
-        self.log_file_prefix = f'/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/monitor_files_{self.splunk_host}'
+        self.log_file_prefix = f'{base_dir}/monitor_files_{self.splunk_host}'
         self.subset = {}
         self.subset_real_logs_distribution = pd.DataFrame()
         self.full_hosts_list = {}
@@ -255,7 +277,9 @@ class SplunkTools(object):
             # Check events count via BASIC_QUERIES
             eventcode_search = BASIC_QUERIES.get(search_name, None)
             if eventcode_search:
-                eventcode_query = f'search index={self.index_name} {eventcode_search} host IN (132.72.81.150, "dt-splunk", {self.splunk_host})  | stats count'
+                secondary_host = config.get('hosts.secondary', '132.72.81.150')
+                default_host = config.get('splunk.default_host', 'dt-splunk')
+                eventcode_query = f'search index={self.index_name} {eventcode_search} host IN ({secondary_host}, "{default_host}", {self.splunk_host})  | stats count'
                 eventcode_job = self.service.jobs.create(eventcode_query, earliest_time=start_time, latest_time=end_time)
                 while True:
                     eventcode_job.refresh()
@@ -807,10 +831,11 @@ class SplunkTools(object):
 
         def run_delete_query(time_range, condition):
             """Runs the delete query once and returns number of deleted logs."""
-            
+
             # 1. Build Query
             # Note: Ensure IP is quoted in SPL if it causes issues, though usually fine.
-            base_query = f'search index={self.index_name} host=132.72.81.150'
+            secondary_host = config.get('hosts.secondary', '132.72.81.150')
+            base_query = f'search index={self.index_name} host={secondary_host}'
             if condition:
                 query = f'{base_query} {condition} | delete'
             else:

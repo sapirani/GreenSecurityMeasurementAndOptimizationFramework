@@ -23,18 +23,25 @@ from env_utils import *
 import logging
 logger = logging.getLogger(__name__)
 from time_manager import TimeWindow
-std = 13
-expected_alerts = {
-    'Windows Event For Service Disabled': {'alert':4},
-    'Detect New Local Admin Account': {'alert':0.7},
-    'ESCU Network Share Discovery Via Dir Command Rule': {'alert':0},
-    'Known Services Killed by Ransomware': {'alert':4},
-    'Non Chrome Process Accessing Chrome Default Dir': {'alert':0},
-    'Kerberoasting SPN Request With RC4 Encryption': {'alert':0},
-    'Clop Ransomware Known Service Name': {'alert':0},
-    'Windows AD Replication Request Initiated from Unsanctioned Location': {'alert':0},
-    'ESCU Windows Rapid Authentication On Multiple Hosts Rule': {'alert':0}
-}
+from config import config
+
+# Load configuration values
+std = config.get('reward.std', 13)
+
+# Convert expected_alerts from config array to dictionary format
+_expected_alert_values = config.get('reward.expected_alerts_per_rule', [4, 0.7, 0, 4, 0, 0, 0, 0, 0])
+_rule_names = [
+    'Windows Event For Service Disabled',
+    'Detect New Local Admin Account',
+    'ESCU Network Share Discovery Via Dir Command Rule',
+    'Known Services Killed by Ransomware',
+    'Non Chrome Process Accessing Chrome Default Dir',
+    'Kerberoasting SPN Request With RC4 Encryption',
+    'Clop Ransomware Known Service Name',
+    'Windows AD Replication Request Initiated from Unsanctioned Location',
+    'ESCU Windows Rapid Authentication On Multiple Hosts Rule'
+]
+expected_alerts = {rule: {'alert': alert} for rule, alert in zip(_rule_names, _expected_alert_values)}
 class AlertPredictor:
     """Separate class to handle alert prediction logic"""
     
@@ -92,11 +99,19 @@ class AlertPredictor:
 
 class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
     """Enhanced base wrapper with alert prediction capability"""
-    
+
     def __init__(self, env, is_mock: bool = False,
-                 enable_prediction: bool = True, alert_threshold: float = -0.5,
-                 skip_on_low_alert: bool = True, use_energy: bool = True,use_alert: bool = True, is_eval: bool = False, is_train: bool = False, beta: float = 0.33, gamma: float = 0.33):
+                 enable_prediction: bool = True, alert_threshold: float = None,
+                 skip_on_low_alert: bool = True, use_energy: bool = True,use_alert: bool = True, is_eval: bool = False, is_train: bool = False, beta: float = None, gamma: float = None):
         super().__init__(env)
+
+        # Load default values from config if not provided
+        if alert_threshold is None:
+            alert_threshold = config.get('reward.alert_threshold', -0.5)
+        if beta is None:
+            beta = config.get('reward.beta', 0.33)
+        if gamma is None:
+            gamma = config.get('reward.gamma', 0.33)
 
         self.is_mock = is_mock
         
@@ -124,21 +139,21 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         self.execution_decisions = []
         self.is_eval = is_eval
         self.is_train = is_train
-        # lode joblib models for energy consumption for each rule
-        model_path = f"/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src/models_all_rules_cpu.joblib"
-        # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/models_all_rules_cpu.joblib"
-        # model_path = f"/home/shouei/GreenSecurity-FirstExperiment/model_{rule}.joblib"
+
+        # Load joblib models for energy consumption for each rule
+        base_dir = config.get('paths.base_dir', '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch')
+        model_path = path.join(base_dir, 'src/models_all_rules_cpu.joblib')
+
         if path.exists(model_path):
             self.energy_models['all'] = joblib.load(model_path)
-            # self.energy_models[rule] = joblib.load(model_path)
+
         for rule in expected_alerts:
-            self.energy_models[rule] = joblib.load(f"/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src/cpu_model_{rule}.joblib")
-#            for estimator in self.energy_models[rule].estimators_:
-#              if not hasattr(estimator, 'monotonic_cst'):
-#                estimator.monotonic_cst = None
+            rule_model_path = path.join(base_dir, f'src/cpu_model_{rule}.joblib')
+            self.energy_models[rule] = joblib.load(rule_model_path)
+
         self.distributions = []
         self.alerts = []
-        self.epsilon = .00000001
+        self.epsilon = config.get('reward.epsilon', 0.00000001)
 
 
   
@@ -410,8 +425,9 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                             # get the field real_ts of the events in the results of the query to find the mismatch
                             def get_event_times(rule_name, time_range):
                                 # query splunk for the events in the time range
-                                
-                                query = f'index={self.unwrapped.splunk_tools.index_name} host IN ("dt-splunk", 132.72.81.150) EventCode={relevant_log[0][1]}  | stats count by real_ts var_id'
+                                default_host = config.get('splunk.default_host', 'dt-splunk')
+                                secondary_host = config.get('hosts.secondary', '132.72.81.150')
+                                query = f'index={self.unwrapped.splunk_tools.index_name} host IN ("{default_host}", {secondary_host}) EventCode={relevant_log[0][1]}  | stats count by real_ts var_id'
                                 # print(time_range_date)
                                 results = self.unwrapped.splunk_tools.run_search(query, *time_range)
                                 formatted_log = "\n".join([json.dumps(record) for record in results])
@@ -465,15 +481,15 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
 
 class AlertRewardWrapper(RewardWrapper):
     """Wrapper for alert-based rewards"""
-    def __init__(self, env: gym.Env, beta: float = 0.5, epsilon: float = 1e-8, normalizer_factor: float = 10):
+    def __init__(self, env: gym.Env, beta: float = None, epsilon: float = None, normalizer_factor: float = None):
         super().__init__(env)
-        self.beta = beta
-        self.epsilon = epsilon
-        self.normalizer_factor = normalizer_factor
-        
+        self.beta = beta if beta is not None else config.get('reward.beta', 0.5)
+        self.epsilon = epsilon if epsilon is not None else config.get('reward.epsilon', 1e-8)
+        self.normalizer_factor = normalizer_factor if normalizer_factor is not None else config.get('reward.normalizer_factor', 10)
+
     def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
         """Calculate normalized alert reward"""
-        norm_alert_reward = -np.tanh(-predicted_alert_reward/10)
+        norm_alert_reward = -np.tanh(-predicted_alert_reward/self.normalizer_factor)
         return norm_alert_reward
     
     def step(self, action):
@@ -490,11 +506,8 @@ class AlertRewardWrapper(RewardWrapper):
     
 class AlertRewardWrapper1(AlertRewardWrapper):
     """Wrapper for alert-based rewards"""
-    def __init__(self, env: gym.Env, beta: float = 0.5, epsilon: float = 1e-8, normalizer_factor: float = 10):
-        super().__init__(env)
-        self.beta = beta
-        self.epsilon = epsilon
-        self.normalizer_factor = normalizer_factor
+    def __init__(self, env: gym.Env, beta: float = None, epsilon: float = None, normalizer_factor: float = None):
+        super().__init__(env, beta, epsilon, normalizer_factor)
 
     def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
         """Calculate normalized alert reward"""
@@ -503,17 +516,15 @@ class AlertRewardWrapper1(AlertRewardWrapper):
 
 class AlertRewardWrapper2(AlertRewardWrapper):
     """Wrapper for alert-based rewards"""
-    def __init__(self, env: gym.Env, beta: float = 0.5, epsilon: float = 1e-8, normalizer_factor: float = 10):
-        super().__init__(env)
-        self.beta = beta
-        self.epsilon = epsilon
-        self.normalizer_factor = normalizer_factor
-        self.baseline_rules_alerts = {rule: expected_alerts[rule]['alert'] for rule in expected_alerts} 
+    def __init__(self, env: gym.Env, beta: float = None, epsilon: float = None, normalizer_factor: float = None):
+        super().__init__(env, beta, epsilon, normalizer_factor)
+        self.baseline_rules_alerts = {rule: expected_alerts[rule]['alert'] for rule in expected_alerts}
 
     def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
         """Calculate normalized alert reward"""
         # norm_alert_reward = - self.normalizer_factor*((-predicted_alert_reward)**3)
-        norm_alert_reward = -2*np.tanh(-predicted_alert_reward/self.normalizer_factor)
+        tanh_scale = config.get('reward.tanh_scale_factor', -2)
+        norm_alert_reward = tanh_scale*np.tanh(-predicted_alert_reward/self.normalizer_factor)
         return norm_alert_reward
     
     def step(self, action):
@@ -543,9 +554,8 @@ class AlertRewardWrapper2(AlertRewardWrapper):
         return obs, reward, terminated, truncated, info
 
 class AlertRewardWrapper3(AlertRewardWrapper2):
-    def __init__(self, env: gym.Env, beta: float = 0.5):
-        super().__init__(env)
-        self.beta = beta
+    def __init__(self, env: gym.Env, beta: float = None):
+        super().__init__(env, beta=beta)
           
     def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
         """Calculate normalized alert reward"""
@@ -561,14 +571,14 @@ ENUM_ALERT_REWARD_METHODS = {
     }         
 
 class EnergyRewardWrapper(RewardWrapper):
-    ENERGY_CHANGE_TARGET = 1  # Target energy change for normalization
     """Wrapper for energy consumption rewards"""
-    def __init__(self, env: gym.Env, alpha: float = 0.5,is_mock: bool = False):
+    def __init__(self, env: gym.Env, alpha: float = None, is_mock: bool = False):
         super().__init__(env)
-        self.alpha = alpha
+        self.alpha = alpha if alpha is not None else config.get('reward.beta', 0.5)
         self.is_mock = is_mock
         self.energies = []
-        self.epsilon = 1e-8
+        self.epsilon = config.get('reward.epsilon', 1e-8)
+        self.ENERGY_CHANGE_TARGET = config.get('reward.energy_change_target', 1)
     
     def estimate_energy_consumption(self, fake_dist, info):
         # Placeholder for energy consumption estimation logic
@@ -588,8 +598,10 @@ class EnergyRewardWrapper(RewardWrapper):
         # print(fake_dist, rules_alerts[rule])
         # print(fake_dist)
         # print(rules_alerts_array)
-        fake_dist = (fake_dist) /475796
-        rules_alerts_array = (rules_alerts_array - 1) / 203
+        fake_dist_normalizer = config.get('reward.fake_dist_normalizer', 475796)
+        alert_normalizer = config.get('reward.alert_normalizer', 203)
+        fake_dist = (fake_dist) / fake_dist_normalizer
+        rules_alerts_array = (rules_alerts_array - 1) / alert_normalizer
         X = np.concatenate((fake_dist, rules_alerts_array), axis=1)
         # print(X)
 
@@ -626,11 +638,12 @@ class EnergyRewardWrapper(RewardWrapper):
             energy_reward = max((current  - baseline) / (baseline + self.epsilon), 0)
             self.energies.append(energy_reward)
             info['energy_reward'] = energy_reward
-            
+
             # info['norm_energy_reward'] = np.clip(energy_reward, 0, 1)
-            info['norm_energy_reward'] = np.tanh(energy_reward*1.5)
+            tanh_energy_scale = config.get('reward.tanh_energy_scale', 1.5)
+            info['norm_energy_reward'] = np.tanh(energy_reward*tanh_energy_scale)
             # info['norm_energy_reward'] = energy_reward*100
-            # info['norm_energy_reward'] = np.clip(energy_reward/EnergyRewardWrapper.ENERGY_CHANGE_TARGET, 0, 1)
+            # info['norm_energy_reward'] = np.clip(energy_reward/self.ENERGY_CHANGE_TARGET, 0, 1)
             logger.info(f"Energy reward: {energy_reward:.3f}, current: {current:.3f}, baseline: {baseline:.3f}")
             reward += info['norm_energy_reward']
             reward += self.unwrapped.total_steps*self.alpha*info['norm_energy_reward']
@@ -638,13 +651,13 @@ class EnergyRewardWrapper(RewardWrapper):
 
 class DistributionRewardWrapper(RewardWrapper):
     """Wrapper for distribution similarity rewards"""
-    def __init__(self, env: gym.Env, gamma: float = 0.2, epsilon: float = 1e-8, distribution_freq: int = 3, distribution_threshold: float = 0.22):
+    def __init__(self, env: gym.Env, gamma: float = None, epsilon: float = None, distribution_freq: int = None, distribution_threshold: float = None):
         super().__init__(env)
-        self.gamma = gamma
+        self.gamma = gamma if gamma is not None else config.get('reward.distribution_gamma', 0.2)
         # print(f"Gamma: {self.gamma}")
-        self.epsilon = epsilon
-        self.distribution_reward_freq = distribution_freq
-        self.distribution_threshold = distribution_threshold #0.18 #0.22
+        self.epsilon = epsilon if epsilon is not None else config.get('reward.epsilon', 1e-8)
+        self.distribution_reward_freq = distribution_freq if distribution_freq is not None else config.get('reward.distribution_freq', 3)
+        self.distribution_threshold = distribution_threshold if distribution_threshold is not None else config.get('reward.distribution_threshold', 0.22)
         
         
     def step(self, action):
@@ -662,7 +675,8 @@ class DistributionRewardWrapper(RewardWrapper):
     
     def _calculate_distribution_reward(self, distribution_value: float) -> float:
         # return -distribution_value*100
-        return -np.tanh(distribution_value*4)
+        kl_scale = config.get('reward.kl_divergence_scale', 4)
+        return -np.tanh(distribution_value*kl_scale)
 
     def _calculate_distribution_value(self, real_dist, fake_dist):
         # Add epsilon and normalize
@@ -686,12 +700,8 @@ class DistributionRewardWrapper(RewardWrapper):
 
 class DistributionRewardWrapper1(DistributionRewardWrapper):
     """Wrapper for distribution similarity rewards"""
-    def __init__(self, env: gym.Env, gamma: float = 0.2, epsilon: float = 1e-8, distribution_freq: int = 3, distribution_threshold: float = 0.22):
-        super().__init__(env)
-        self.gamma = gamma
-        self.epsilon = epsilon
-        self.distribution_reward_freq = distribution_freq
-        self.distribution_threshold = distribution_threshold #0.18 #0.22
+    def __init__(self, env: gym.Env, gamma: float = None, epsilon: float = None, distribution_freq: int = None, distribution_threshold: float = None):
+        super().__init__(env, gamma, epsilon, distribution_freq, distribution_threshold)
         
     def calculate_distribution_reward(self, distribution_value: float) -> float:
         return -distribution_value

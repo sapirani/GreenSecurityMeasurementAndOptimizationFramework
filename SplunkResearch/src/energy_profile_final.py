@@ -17,15 +17,20 @@ from resources.section_logtypes import section_logtypes
 from SplunkResearch.src.splunk_tools import *
 from SplunkResearch.src.env_utils import *
 from datetime import datetime, timedelta
+from config import config
 
 sys.stdout.reconfigure(line_buffering=True)
 
+# Load configuration
+base_dir = config.get('paths.base_dir', '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch')
+log_file_path = config.get('paths.energy_profile_log', f'{base_dir}/energy_profile_final.log')
+
 # sys.path.insert(1, '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/application_logging/handlers')
-logging.basicConfig(filename='/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/energy_profile_final.log',
+logging.basicConfig(filename=log_file_path,
                     level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 # add elastic handler to logger
-SPLUNK_BINARY_PATH = "/opt/splunk/bin/splunk"
+SPLUNK_BINARY_PATH = config.get('splunk.binary_path', '/opt/splunk/bin/splunk')
 
 # logger = logging.getLogger()
 
@@ -43,7 +48,8 @@ def inject_episodic_logs():
 def flush_logs(log_file_path, log_type="Security"):
     # Configuration
     # Default management URI is localhost:8089. Change IP if Splunk is remote.
-    splunk_mgmt_uri = f"https://{splunk_tools.splunk_host}:8089"
+    splunk_port = config.get('splunk.port', 8089)
+    splunk_mgmt_uri = f"https://{splunk_tools.splunk_host}:{splunk_port}"
     endpoint = f"{splunk_mgmt_uri}/services/receivers/stream"
     print(endpoint)
     # Credentials and Metadata from your existing object
@@ -53,10 +59,11 @@ def flush_logs(log_file_path, log_type="Security"):
     sourcetype = "WinEventLog:" + log_type
 
     # 1. Prepare Parameters (Query String)
+    secondary_host = config.get('hosts.secondary', '132.72.81.150')
     params = {
         "index": index,
         "sourcetype": sourcetype,
-        "host": "132.72.81.150"
+        "host": secondary_host
     }
     
     # 2. Prepare Headers (Equivalent to -H "x-splunk-input-mode: streaming")
@@ -126,7 +133,9 @@ def check_logs_flushed(earliest_time, latest_time, expected_count, timeout=100):
     splunk_tools = SplunkTools()
     start_time = time.time()
     while time.time() - start_time < timeout:
-        search_query = f'index="main" host IN (132.72.81.150, "dt-splunk", {splunk_tools.splunk_host}) '
+        secondary_host = config.get('hosts.secondary', '132.72.81.150')
+        default_host = config.get('splunk.default_host', 'dt-splunk')
+        search_query = f'index="main" host IN ({secondary_host}, "{default_host}", {splunk_tools.splunk_host}) '
         results = splunk_tools.run_search(search_query, earliest_time, latest_time)
         if results and int(results[0]['log_count']) >= expected_count:
             logging.info(f'All {expected_count} logs have been flushed to Splunk.')
@@ -200,7 +209,9 @@ def overload_profile(savedsearches,experimented_savedsearches=None, splunk_tools
                             attempt = 0
                             while quantity > results and attempt < 7:
                                 sleep(2)
-                                query = f'index=main host IN (132.72.81.150, "dt-splunk", {splunk_tools.splunk_host})  | stats count'
+                                secondary_host = config.get('hosts.secondary', '132.72.81.150')
+                                default_host = config.get('splunk.default_host', 'dt-splunk')
+                                query = f'index=main host IN ({secondary_host}, "{default_host}", {splunk_tools.splunk_host})  | stats count'
                                 # query = f'index=main host="dt-splunk" Injection_id={injection_id} | stats count'
                                 results = splunk_tools.run_search(query, start_date, end_date)            
                                 results = int(results[0]['count'])

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --partition "RTX 3090"
+#SBATCH --partition main
 #SBATCH --time 1-00:00:00
 #SBATCH --job-name my_job
 #SBATCH --output job-%A_%a.out
@@ -24,21 +24,25 @@ IPs=("132.72.81.184" "132.72.80.159")
 ###############################################################
 ### PARAMETER CONFIGURATION
 ###############################################################
+# Arrays for parameter sweeps across SLURM array jobs
+# Use SLURM_ARRAY_TASK_ID to index into these arrays
 
-# 1. IP
+# IP identifier (1=132.72.81.184, 2=132.72.80.159)
 ARGS_1=(
 2
 )
-# 2. Action type
+
+# Action space type (Action8 or Action12)
 ARGS_2=(
 "Action8"
 )
 
-
+# Learning rate
 ARGS_3=(
 "1e-4"
 )
 
+# Reward weights: alpha (energy), beta (alert), gamma (distribution)
 ARGS_4=(
 0.334
 )
@@ -67,19 +71,18 @@ echo "Running: $CURR_ARG1 with params $CURR_ARG2 $CURR_ARG3 $CURR_ARG4 $CURR_ARG
 ### EXECUTION
 ###############################################################
 
-# Note: I replaced the hardcoded 'DistributionRewardWrapper' with $CURR_ARG4
-/home/shouei/.conda/envs/py310_modelenv/bin/python3 -m SplunkResearch.src.experiment_manager_new \
-    "train_20260111202046_360000_steps" \
-    $CURR_ARG4 $CURR_ARG5 $CURR_ARG6 \
-    "100" \
-    "1" \
-    "AlertRewardWrapper2" \
-    "DistributionRewardWrapper" \
-    $CURR_ARG3 \
-    0 \
-    "train" \
-    50000 \
-    $CURR_ARG1 \
-    1 \
-    2 \
-    $CURR_ARG2
+# NEW: Using run_experiment.py with named arguments
+# Config files provide defaults, CLI args override when needed
+# Note: --model-name is not needed for train mode (creates new model)
+/home/shouei/.conda/envs/py310_modelenv/bin/python3 -m SplunkResearch.src.run_experiment \
+    --alpha-energy $CURR_ARG4 \
+    --beta-alert $CURR_ARG5 \
+    --gamma-dist $CURR_ARG6 \
+    --hosts-num 100 \
+    --alert-reward-method "AlertRewardWrapper2" \
+    --distribution-reward-method "DistributionRewardWrapper" \
+    --learning-rate $CURR_ARG3 \
+    --mode "train" \
+    --num-episodes 50000 \
+    --ip $CURR_ARG1 \
+    --action-type $CURR_ARG2

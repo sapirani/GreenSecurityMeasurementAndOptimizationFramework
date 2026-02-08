@@ -15,8 +15,11 @@ import urllib3
 # Suppress insecure request warnings (equivalent to curl -k silent mode)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+sys.path.insert(1, '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src')
+from config import config
+
 logger = logging.getLogger(__name__)
-SPLUNK_BINARY_PATH = "/opt/splunk/bin/splunk"
+SPLUNK_BINARY_PATH = config.get('splunk.binary_path', '/opt/splunk/bin/splunk')
 class Action(ActionWrapper):
     """Wrapper for managing log injection actions"""
     
@@ -41,7 +44,7 @@ class Action(ActionWrapper):
         self.episode_logs = {f"{key[0]}_{key[1]}_{istrigger}":0 for key in self.unwrapped.relevant_logtypes for istrigger in [0, 1]}
         self.remaining_quota = 0
         self.inserted_logs = 0
-        self.diversity_factor = 30
+        self.diversity_factor = config.get('action.diversity_factor', 30)
         self.diversity_episode_logs = {f"{key[0]}_{key[1]}_1":0 for key in self.unwrapped.relevant_logtypes}
         self.info = {}
         self._disable_injection = False
@@ -67,8 +70,8 @@ class Action(ActionWrapper):
 
     def _calculate_quota(self) -> None:
         """Calculate injection quotas"""
-
-        self.step_size = int((self.unwrapped.time_manager.step_size//3600) * 2000 * self.unwrapped.config.additional_percentage)
+        step_size_multiplier = config.get('action.step_size_multiplier', 2000)
+        self.step_size = int((self.unwrapped.time_manager.step_size//3600) * step_size_multiplier * self.unwrapped.config.additional_percentage)
         self.remaining_quota = self.step_size
     
             
@@ -208,7 +211,7 @@ class Action(ActionWrapper):
 
         # 2. Parallel Execution
         # WARNING: Keep max_workers low (2-4). High numbers will crash Splunk or cause data loss.
-        MAX_WORKERS = 3
+        MAX_WORKERS = config.get('action.max_workers', 3)
         
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             futures = []
@@ -382,7 +385,9 @@ class Action(ActionWrapper):
         attempts = 0
         while (logs_count - results) /  logs_count > 0.01 :
             sleep(2)
-            query = f'index={self.unwrapped.splunk_tools.index_name} host IN ("dt-splunk", 132.72.81.150) | stats count'
+            default_host = config.get('splunk.default_host', 'dt-splunk')
+            secondary_host = config.get('hosts.secondary', '132.72.81.150')
+            query = f'index={self.unwrapped.splunk_tools.index_name} host IN ("{default_host}", {secondary_host}) | stats count'
             # query = f'index=main host="dt-splunk" Injection_id={injection_id} | stats count'
             results = self.unwrapped.splunk_tools.run_search(query, all_start_date, all_end_date)            
             results = int(results[0]['count'])
@@ -460,7 +465,8 @@ class Action(ActionWrapper):
     def flush_logs(self, log_file_path, log_type="Security"):
         # Configuration
         # Default management URI is localhost:8089. Change IP if Splunk is remote.
-        splunk_mgmt_uri = f"https://{self.unwrapped.splunk_tools.splunk_host}:8089"
+        splunk_port = config.get('splunk.port', 8089)
+        splunk_mgmt_uri = f"https://{self.unwrapped.splunk_tools.splunk_host}:{splunk_port}"
         endpoint = f"{splunk_mgmt_uri}/services/receivers/stream"
         print(endpoint)
         # Credentials and Metadata from your existing object
@@ -470,10 +476,11 @@ class Action(ActionWrapper):
         sourcetype = "WinEventLog:" + log_type
 
         # 1. Prepare Parameters (Query String)
+        secondary_host = config.get('hosts.secondary', '132.72.81.150')
         params = {
             "index": index,
             "sourcetype": sourcetype,
-            "host": "132.72.81.150"
+            "host": secondary_host
         }
         
         # 2. Prepare Headers (Equivalent to -H "x-splunk-input-mode: streaming")

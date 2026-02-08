@@ -16,6 +16,7 @@ green_sec_env
 visualization*
 screenlog.*
 .env
+SplunkResearch/config/secrets.yaml
 SplunkResearch/unused_folders
 SplunkResearch/src/unused_scripts
 config.json

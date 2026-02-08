@@ -45,17 +45,16 @@ ssh -n -o StrictHostKeyChecking=no splunk@132.72.81.184 "sudo /opt/splunk_data/r
 echo "Running Experiment with: Arg2=$CURR_ARG2 Arg3=$CURR_ARG3"
 
 # --- STEP 3: EXECUTION ---
-/home/shouei/.conda/envs/py310_modelenv/bin/python3 -m SplunkResearch.src.experiment_manager_new \
-    "train_20260205095228_600000_steps" \
-    0.334 0.333 0.333 \
-    $CURR_ARG2 \
-    $CURR_ARG3 \
-    "AlertRewardWrapper2" \
-    "DistributionRewardWrapper" \
-    "1e-4" \
-    0 \
-    "eval_post_training" \
-    40 \
-    1 \
-    1 \
-    1
+/home/shouei/.conda/envs/py310_modelenv/bin/python3 -m SplunkResearch.src.run_experiment \
+    --model-name "train_20260205095228_600000_steps" \
+    --mode "eval_post_training" \
+    --alpha-energy 0.334 \
+    --beta-alert 0.333 \
+    --gamma-dist 0.333 \
+    --hosts-num $CURR_ARG2 \
+    --additional-percentage $CURR_ARG3 \
+    --alert-reward-method "AlertRewardWrapper2" \
+    --distribution-reward-method "DistributionRewardWrapper" \
+    --learning-rate "1e-4" \
+    --num-episodes 40 \
+    --ip 1

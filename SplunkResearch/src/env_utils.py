@@ -4,13 +4,16 @@ import os
 import subprocess
 import json
 import numpy as np
+from config import config
 
 # Factory functions to generate paths
 def get_system_monitor_path(host):
-    return f"/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/monitor_files_{host}/wineventlog:system.txt"
+    base_dir = config.get('paths.splunk_research_dir')
+    return f"{base_dir}/monitor_files_{host}/wineventlog:system.txt"
 
 def get_security_monitor_path(host):
-    return f"/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/monitor_files_{host}/wineventlog:security.txt"
+    base_dir = config.get('paths.splunk_research_dir')
+    return f"{base_dir}/monitor_files_{host}/wineventlog:security.txt"
 
 logger = logging.getLogger(__name__)
 class NpEncoder(json.JSONEncoder):

@@ -12,9 +12,14 @@ import logging
 from gymnasium.core import ActionWrapper
 import pandas as pd
 from torch import normal
+import sys
+
+# Add src to path if needed
+sys.path.insert(1, '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src')
+from config import config
 
 logger = logging.getLogger(__name__)
-ALERT_NORMALIZE_FACTOR = 100  # based on max alerts observed in training data
+ALERT_NORMALIZE_FACTOR = config.get('state.alert_normalize_factor', 100)  # based on max alerts observed in training data
 # ignore warnings
 logging.getLogger('sklearn').setLevel(logging.ERROR)
 
@@ -368,8 +373,12 @@ class StateWrapper5(StateWrapper):
             # shape=(len(self.unwrapped.top_logtypes),),  # +1 for 'other' category
             dtype=np.float64
         )
-        self.baseline_alerts = self._load_pickle("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/baseline/baseline_alerts.pkl", default={})
-        self.ac_baseline_alerts = self._load_pickle("/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/baseline/ac_baseline_alerts.pkl", default={})
+        # Load pickle paths from config
+        alerts_pkl = config.get('paths.state_pickle_alerts', '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/baseline/baseline_alerts.pkl')
+        false_positive_pkl = config.get('paths.state_pickle_false_positive', '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/baseline/ac_baseline_alerts.pkl')
+
+        self.baseline_alerts = self._load_pickle(alerts_pkl, default={})
+        self.ac_baseline_alerts = self._load_pickle(false_positive_pkl, default={})
     
     def _load_pickle(self, filename, default):
         if os.path.exists(filename):
@@ -490,9 +499,11 @@ class StateWrapper5(StateWrapper):
 
                 # --- Only dump if we created new entries ---
                 if created_new_baseline:
-                    self._dump_pickle(self.baseline_alerts, "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/baseline/baseline_alerts.pkl")
+                    alerts_pkl = config.get('paths.state_pickle_alerts', '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/baseline/baseline_alerts.pkl')
+                    self._dump_pickle(self.baseline_alerts, alerts_pkl)
                 if created_new_baseline:
-                    self._dump_pickle(self.ac_baseline_alerts, "/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/baseline/ac_baseline_alerts.pkl")
+                    false_positive_pkl = config.get('paths.state_pickle_false_positive', '/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/experiments/baseline/ac_baseline_alerts.pkl')
+                    self._dump_pickle(self.ac_baseline_alerts, false_positive_pkl)
         state = np.append(state, expected_normal_alert_rates)
         state = np.append(state, expected_fake_alert_rates)
 
