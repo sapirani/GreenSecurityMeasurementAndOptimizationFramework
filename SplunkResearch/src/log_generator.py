@@ -1,3 +1,4 @@
+import atexit
 import re
 import random
 import concurrent.futures
@@ -7,6 +8,7 @@ import os
 import pickle
 from datetime import datetime, timedelta
 from functools import lru_cache
+import numpy as np
 import logging
 logger = logging.getLogger(__name__)
 PREFIX_PATH = '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/'
@@ -53,6 +55,10 @@ class LogGenerator:
         self._init_variation_templates()
         self.fake_splunk_state = {} # a dict of time range to event codes and variation ids quantities
         self.logs_to_delete = {}
+
+        # Persistent process pool for _process_batch
+        self._executor = concurrent.futures.ProcessPoolExecutor()
+        atexit.register(self._executor.shutdown, wait=False)
         # logger.info(f"LogGenerator initialization completed in {time.time() - start_time:.3f} seconds")
         
     def _init_variation_templates(self):
@@ -156,30 +162,22 @@ class LogGenerator:
         return self.logs_to_duplicate_dict[key][0]
     
     def _generate_timestamp_pool(self, start_date, end_date, size=1000):
-        """Pre-generate a pool of timestamps for better performance"""
-        format_start = time.time()
-        
+        """Pre-generate a pool of timestamps using numpy for bulk random generation."""
         if isinstance(start_date, str):
             start_date = datetime.strptime(start_date, '%m/%d/%Y:%H:%M:%S')
         if isinstance(end_date, str):
             end_date = datetime.strptime(end_date, '%m/%d/%Y:%H:%M:%S')
-        
-        calc_start = time.time()
-        time_delta = end_date - start_date
-        total_seconds = time_delta.days * 86400 + time_delta.seconds
-        # logger.info(f"Time delta calculation completed in {time.time() - calc_start:.3f} seconds")
-        
-        generate_start = time.time()
-        timestamp_pool = []
-        for _ in range(size):
-            random_seconds = random.randint(0, total_seconds)
-            random_date_time = start_date + timedelta(seconds=random_seconds)
-            timestamp_pool.append(random_date_time.strftime("%m/%d/%Y %I:%M:%S %p"))
-        
-        # logger.info(f"Timestamp generation completed in {time.time() - generate_start:.3f} seconds")
-        # logger.info(f"Total timestamp pool generation completed in {time.time() - format_start:.3f} seconds")
-        
-        return timestamp_pool
+
+        total_seconds = int((end_date - start_date).total_seconds())
+        if total_seconds <= 0:
+            total_seconds = 1
+        random_offsets = np.random.randint(0, total_seconds + 1, size=size)
+        base_ts = start_date.timestamp()
+        timestamps = []
+        for offset in random_offsets:
+            dt = datetime.fromtimestamp(base_ts + offset)
+            timestamps.append(dt.strftime("%m/%d/%Y %I:%M:%S %p"))
+        return timestamps
 
     def _apply_variations(self, log, logsource, eventcode, variation_id):
         """Apply variations to a log template and cache the result"""
@@ -651,14 +649,14 @@ class LogGenerator:
         # Check if tasks is empty to avoid errors
         if not tasks:
             return []
-            
-        # Use ProcessPool for CPU bound regex
-        # Chunksize optimization
+
+        # Use persistent ProcessPool for CPU bound regex
         chunk = max(1, len(tasks) // (os.cpu_count() * 4))
-        
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            # Calls the global function, not a nested one
-            return executor.map(_worker_generate_log, tasks, chunksize=chunk)
+        return self._executor.map(_worker_generate_log, tasks, chunksize=chunk)
+
+    def shutdown(self):
+        """Explicitly shut down the process pool."""
+        self._executor.shutdown(wait=False)
             
 
     

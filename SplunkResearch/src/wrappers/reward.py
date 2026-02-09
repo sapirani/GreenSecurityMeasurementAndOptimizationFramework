@@ -139,6 +139,8 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         self.execution_decisions = []
         self.is_eval = is_eval
         self.is_train = is_train
+        self._episode_counter = 0
+        self._measurement_frequency = config.get('reward.measurement_frequency', 10000)
 
         # Load joblib models for energy consumption for each rule
         base_dir = config.get('paths.base_dir', '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch')
@@ -154,13 +156,23 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         self.distributions = []
         self.alerts = []
         self.epsilon = config.get('reward.epsilon', 0.00000001)
+        self._baseline_cache = {}  # {(start_time, end_time): DataFrame}
 
 
   
+    def _get_cached_baseline(self, time_range):
+        """Return baseline rows for *time_range*, using a dict cache to avoid O(n) filter."""
+        key = (time_range[0], time_range[1])
+        if key not in self._baseline_cache:
+            mask = ((self.unwrapped.baseline_df['start_time'] == key[0]) &
+                    (self.unwrapped.baseline_df['end_time'] == key[1]))
+            self._baseline_cache[key] = self.unwrapped.baseline_df[mask]
+        return self._baseline_cache[key]
+
     def get_baseline_data(self, time_range: TimeWindow, rerun=False) -> Dict:
         """Get baseline data - execute after cleaning if needed"""
         num_of_measurements = self.unwrapped.config.baseline_num_of_measurements
-        relevant_rows = self.unwrapped.baseline_df[(self.unwrapped.baseline_df['start_time'] == time_range[0]) & (self.unwrapped.baseline_df['end_time'] == time_range[1])]
+        relevant_rows = self._get_cached_baseline(time_range)
         actual_num_of_measurements = relevant_rows.groupby(['start_time', 'end_time', 'search_name']).size().values[0] if not relevant_rows.empty else 0
         needed_measurements = num_of_measurements - actual_num_of_measurements
         
@@ -194,46 +206,50 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                         # remove existing rows for the time range
                         self.unwrapped.baseline_df = self.unwrapped.baseline_df[~((self.unwrapped.baseline_df['start_time'] == time_range[0]) & (self.unwrapped.baseline_df['end_time'] == time_range[1]))]
                     self.unwrapped.baseline_df = pd.concat([self.unwrapped.baseline_df, pd.DataFrame(new_lines)])
-                self.baseline_measured = True            
+                    # Invalidate cache for this time range since data changed
+                    self._baseline_cache.pop((time_range[0], time_range[1]), None)
+                self.baseline_measured = True
 
-                
         random_val = np.random.randint(0, 10)
         if random_val % 3 == 0 and not self.is_mock:
             self.unwrapped.baseline_df.to_csv(self.unwrapped.baseline_path, index=False)
-            
-        relevant_rows = self.unwrapped.baseline_df[(self.unwrapped.baseline_df['start_time'] == time_range[0]) & (self.unwrapped.baseline_df['end_time'] == time_range[1])]
-        
-        return relevant_rows
+
+        return self._get_cached_baseline(time_range)
     
-    def predict_and_decide_execution(self, time_range: TimeWindow, diversity_logs: Dict, distribution_value: float) -> Tuple[bool, float, Dict]:
-        """Predict alert reward and decide whether to execute rules"""
+    def predict_and_decide_execution(self, time_range: TimeWindow, diversity_logs: Dict, distribution_value: float) -> Tuple[bool, float, Dict, pd.DataFrame]:
+        """Predict alert reward and decide whether to execute rules.
+
+        Returns:
+            (should_execute, predicted_reward, raw_baseline_metrics, baseline_data)
+            The caller can reuse *baseline_data* instead of querying again.
+        """
         # First get baseline data (this might trigger cleaning and baseline execution)
         baseline_data = self.get_baseline_data(time_range)
-        
+
         if baseline_data.empty:
             # No baseline data, must execute
-            return True, None, {}
-            
+            return True, None, {}, baseline_data
+
         # Process baseline metrics
         grouped_baseline = baseline_data.groupby('search_name')
         raw_baseline_metrics, _ = self.process_metrics(grouped_baseline)
-        
+
         # Predict alert reward
         predicted_reward = self.alert_predictor.predict_overall_alert_reward(
-            raw_baseline_metrics, 
+            raw_baseline_metrics,
             diversity_logs,
             self.unwrapped.section_logtypes,
-            self.is_mock, 
+            self.is_mock,
         )
-        
+
         # Decide whether to execute
         should_execute = True
         if self.enable_prediction and self.skip_on_low_alert:
             # should_execute =  ((predicted_reward <= (sum(expected_alerts.values()) + (self.alert_threshold*std))) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval
             should_execute = ((predicted_reward >= self.alert_threshold) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval or True # TRY!!!!!!!
-            
-            # self.unwrapped.should_delete = should_execute and not self.is_mock and not self.measuring 
-            
+
+            # self.unwrapped.should_delete = should_execute and not self.is_mock and not self.measuring
+
         # Log decision
         self.execution_decisions.append({
             'time_range': time_range,
@@ -241,10 +257,10 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             'should_execute': should_execute,
             'threshold': self.alert_threshold
         })
-        
+
         logger.info(f"Alert prediction: reward={predicted_reward:.3f}, " f"threshold={self.alert_threshold}, execute={should_execute}")
-        
-        return should_execute, predicted_reward, raw_baseline_metrics
+
+        return should_execute, predicted_reward, raw_baseline_metrics, baseline_data
     
     def mock_rules_metrics(self, time_range: TimeWindow) -> Dict:
         """Mock rules metrics for the given time range"""
@@ -341,8 +357,8 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             diversity_logs = info.get('diversity_episode_logs', {})
             
             # Predict and decide whether to execute
-            should_execute, predicted_alert_reward, raw_baseline_metrics = self.predict_and_decide_execution(
-                info['current_window'], 
+            should_execute, predicted_alert_reward, raw_baseline_metrics, cached_baseline_data = self.predict_and_decide_execution(
+                info['current_window'],
                 diversity_logs,
                 info.get('ac_distribution_value', 0)
             )
@@ -362,7 +378,8 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # Store prediction info
             info['predicted_alert_reward'] = predicted_alert_reward
             # info['execution_skipped'] = not should_execute and False # TRY!!!!!!!
-            if  ((random.randint(0, 100000) < 10 or self.is_eval) and should_execute and not self.is_mock):
+            self._episode_counter += 1
+            if  ((self._episode_counter % self._measurement_frequency == 0 or self.is_eval) and should_execute and not self.is_mock):
                 logger.info(f"Measuring")
                 self.measuring = True
             else:
@@ -371,8 +388,9 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             self.unwrapped.should_delete = should_execute and (not self.is_mock or self.measuring)
                 
             # self.unwrapped.is_mock = (not should_execute or not self.use_energy or not self.use_alert) 
-            time_range = info['current_window']
-            time_range_date = (datetime.datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S'))
+            time_window = info['current_window']
+            time_range_start_epoch = time_window.start_epoch
+            time_range_end_epoch = time_window.end_epoch
             # inject logs if not is_mock
             if (not self.is_mock  or self.measuring) and should_execute and self.use_energy and self.use_alert:
                 if self.baseline_measured:
@@ -380,7 +398,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                     self.unwrapped.log_generator.logs_to_delete = {}
                     for t_r in self.unwrapped.log_generator.fake_splunk_state:
                         t_r_datetime = (datetime.datetime.strptime(t_r[0], '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(t_r[1], '%m/%d/%Y:%H:%M:%S'))
-                        if t_r_datetime[0] >= time_range_date[0] and t_r_datetime[1] <= time_range_date[1]:
+                        if t_r_datetime[0].timestamp() >= time_range_start_epoch and t_r_datetime[1].timestamp() <= time_range_end_epoch:
                             self.unwrapped.log_generator.fake_splunk_state[t_r] = {}
                 self.env.env.inject_episodic_logs(self.injection_id) # access to action wrapper0
                 self.injection_id += 1
@@ -402,7 +420,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             # logger.info(f"Raw metrics: {raw_metrics}")
             should_run = False
             baseline_raw_metrics, combined_baseline_metrics = self.process_metrics(
-                self.get_baseline_data(info['current_window'], rerun).groupby('search_name')
+                cached_baseline_data.groupby('search_name')
             )
                 # if rerun or self.is_mock:
                 #     stop_loop = True
@@ -432,7 +450,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                                 results = self.unwrapped.splunk_tools.run_search(query, *time_range)
                                 formatted_log = "\n".join([json.dumps(record) for record in results])
                                 logger.info(f"Event times for {rule_name} in {time_range}: {formatted_log}")
-                            get_event_times(rule, (time_range_date[0].timestamp(), time_range_date[1].timestamp()))
+                            get_event_times(rule, (time_range_start_epoch, time_range_end_epoch))
                         else:
                             logger.info(f"Alert difference match for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
                         
