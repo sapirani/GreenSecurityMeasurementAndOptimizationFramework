@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --partition main
+#SBATCH --partition "rtx 3090"
 #SBATCH --time 1-00:00:00
 #SBATCH --job-name my_job
 #SBATCH --output job-%A_%a.out
@@ -83,6 +83,7 @@ echo "Running: $CURR_ARG1 with params $CURR_ARG2 $CURR_ARG3 $CURR_ARG4 $CURR_ARG
     --distribution-reward-method "DistributionRewardWrapper" \
     --learning-rate $CURR_ARG3 \
     --mode "train" \
-    --num-episodes 50000 \
+    --num-episodes 50 \
     --ip $CURR_ARG1 \
-    --action-type $CURR_ARG2
+    --action-type $CURR_ARG2 \
+    --log-level "DEBUG"
