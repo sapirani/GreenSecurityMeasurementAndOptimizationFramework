@@ -329,8 +329,11 @@ class SplunkTools(object):
     async def run_saved_searches(self,time_range = None, max_parallel: int = 10) -> List[QueryMetrics]:
         # self.clear_os_cache()
         sem = asyncio.Semaphore(max_parallel)
-        earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
-        latest_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').timestamp()
+        if isinstance(time_range[0], (int, float)):
+            earliest_time, latest_time = time_range[0], time_range[1]
+        else:
+            earliest_time = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S').timestamp()
+            latest_time = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S').timestamp()
         async def wrapped(name):
             async with sem:
                 return await self.run_saved_search(name, start_time=earliest_time, end_time=latest_time)
@@ -772,9 +775,19 @@ class SplunkTools(object):
         Returns:
             dict: Dictionary of log types and their counts
         """
-        # Convert string times to timezone-aware datetime objects
-        start_dt = datetime.strptime(start_time, '%m/%d/%Y:%H:%M:%S')
-        end_dt = datetime.strptime(end_time, '%m/%d/%Y:%H:%M:%S')
+        # Convert to datetime objects if strings are passed
+        if isinstance(start_time, str):
+            start_dt = datetime.strptime(start_time, '%m/%d/%Y:%H:%M:%S')
+        elif isinstance(start_time, (int, float)):
+            start_dt = datetime.fromtimestamp(start_time)
+        else:
+            start_dt = start_time
+        if isinstance(end_time, str):
+            end_dt = datetime.strptime(end_time, '%m/%d/%Y:%H:%M:%S')
+        elif isinstance(end_time, (int, float)):
+            end_dt = datetime.fromtimestamp(end_time)
+        else:
+            end_dt = end_time
         logger.debug(f"start_dt: {start_dt}, end_dt: {end_dt}")
         # Load real logs distribution
         relevant_logs = self.get_releveant_distribution(start_dt, end_dt, hosts_percentage)
@@ -849,19 +862,21 @@ class SplunkTools(object):
 
             if time_range is None:
                 # Default to all time or specific window if needed
-                kwargs["earliest_time"] = "0" 
+                kwargs["earliest_time"] = "0"
             elif isinstance(time_range, str):
                 # Relative time (e.g., "15m") is safe to pass as string
                 kwargs["earliest_time"] = f"-{time_range}"
                 kwargs["latest_time"] = "now"
             else:
                 # Absolute time: Convert to Epoch (Float)
-                t_start = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S')
-                t_end = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S')
-                
-                # .timestamp() converts to epoch based on local machine time
-                kwargs["earliest_time"] = t_start.timestamp()
-                kwargs["latest_time"] = t_end.timestamp()
+                if isinstance(time_range[0], (int, float)):
+                    kwargs["earliest_time"] = time_range[0]
+                    kwargs["latest_time"] = time_range[1]
+                else:
+                    t_start = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S')
+                    t_end = datetime.strptime(time_range[1], '%m/%d/%Y:%H:%M:%S')
+                    kwargs["earliest_time"] = t_start.timestamp()
+                    kwargs["latest_time"] = t_end.timestamp()
 
             # 3. Create Job
             # We removed 'time_format' as it's unnecessary with Epoch

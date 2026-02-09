@@ -1,4 +1,3 @@
-from calendar import month
 from dataclasses import dataclass
 import random
 from typing import Tuple, Optional, List
@@ -11,22 +10,62 @@ from splunk_tools import SplunkTools
 
 logger = logging.getLogger(__name__)
 
-@dataclass
+_TIME_FMT = '%m/%d/%Y:%H:%M:%S'
+
+
+@dataclass(frozen=False)
 class TimeWindow:
-    """Represents a time window with start and end times"""
-    start: str
-    end: str
-    
+    """Represents a time window with start and end times.
+
+    Primary representation is ``datetime`` objects.  String and epoch
+    forms are computed lazily and cached so repeated accesses are free.
+    """
+    start_dt: datetime.datetime
+    end_dt: datetime.datetime
+
+    # Cached string representations (computed on first access)
+    _start_str: Optional[str] = None
+    _end_str: Optional[str] = None
+
+    @property
+    def start(self) -> str:
+        if self._start_str is None:
+            object.__setattr__(self, '_start_str', self.start_dt.strftime(_TIME_FMT))
+        return self._start_str
+
+    @property
+    def end(self) -> str:
+        if self._end_str is None:
+            object.__setattr__(self, '_end_str', self.end_dt.strftime(_TIME_FMT))
+        return self._end_str
+
+    @property
+    def start_epoch(self) -> float:
+        return self.start_dt.timestamp()
+
+    @property
+    def end_epoch(self) -> float:
+        return self.end_dt.timestamp()
+
     @property
     def duration_minutes(self) -> int:
-        """Get duration in minutes"""
-        start_dt = datetime.datetime.strptime(self.start, '%m/%d/%Y:%H:%M:%S')
-        end_dt = datetime.datetime.strptime(self.end, '%m/%d/%Y:%H:%M:%S')
-        return int((end_dt - start_dt).total_seconds() / 60)
-    
+        return int((self.end_dt - self.start_dt).total_seconds() / 60)
+
     def to_tuple(self) -> Tuple[str, str]:
-        """Convert to tuple format"""
+        """Convert to string tuple format (backward compatible)."""
         return (self.start, self.end)
+
+    def to_epoch_tuple(self) -> Tuple[float, float]:
+        """Convert to epoch tuple format."""
+        return (self.start_epoch, self.end_epoch)
+
+    # Support indexing like time_range[0], time_range[1] for backward compat
+    def __getitem__(self, index):
+        if index == 0:
+            return self.start
+        elif index == 1:
+            return self.end
+        raise IndexError(f"TimeWindow index {index} out of range")
 
 class TimeManager:
     """Manages all time-related aspects of the environment"""
@@ -104,27 +143,27 @@ class TimeManager:
             
         return starts
 
-    def _create_episode_window(self, start_datetime: str) -> TimeWindow:
+    def _create_episode_window(self, start_datetime) -> TimeWindow:
         """Create episode time window (The 'State' window)"""
-        start_dt = datetime.datetime.strptime(start_datetime, self.fmt)
+        if isinstance(start_datetime, str):
+            start_dt = datetime.datetime.strptime(start_datetime, self.fmt)
+        else:
+            start_dt = start_datetime
         end_dt = start_dt + datetime.timedelta(minutes=self.window_size)
-        return TimeWindow(
-            start=start_dt.strftime(self.fmt),
-            end=end_dt.strftime(self.fmt)
-        )
-        
-    def _create_action_window(self, start_datetime: str) -> TimeWindow:
+        return TimeWindow(start_dt=start_dt, end_dt=end_dt)
+
+    def _create_action_window(self, start_datetime) -> TimeWindow:
         """Create action window (The 'Step' window)"""
-        start_dt = datetime.datetime.strptime(start_datetime, self.fmt)
+        if isinstance(start_datetime, str):
+            start_dt = datetime.datetime.strptime(start_datetime, self.fmt)
+        else:
+            start_dt = start_datetime
         end_dt = start_dt + datetime.timedelta(seconds=self.step_size)
-        return TimeWindow(
-            start=start_dt.strftime(self.fmt),
-            end=end_dt.strftime(self.fmt)
-        )
+        return TimeWindow(start_dt=start_dt, end_dt=end_dt)
     
     def step(self) -> TimeWindow:
         """Move forward one step WITHIN the current episode"""
-        self.action_window = self._create_action_window(self.get_current_time())        
+        self.action_window = self._create_action_window(self.get_current_dt())
         return self.action_window
         
     def advance_window(self, global_step, violation: bool = False, should_delete: bool = False, logs_qnt = None) -> TimeWindow:
@@ -138,7 +177,7 @@ class TimeManager:
         self.is_delete = False
         # Optional: Handle explicit deletion requests if needed
         if not self.is_test and should_delete:
-           clean_env(self.splunk_tools, time_range=self.current_window.to_tuple(), logs_qnt=logs_qnt, host=host)
+           clean_env(self.splunk_tools, time_range=self.current_window, logs_qnt=logs_qnt, host=host)
            self.is_delete = True
            
         if violation:
@@ -161,11 +200,10 @@ class TimeManager:
 
         # Get next random (but unique) start time
         next_start_dt = self.unvisited_starts.pop()
-        next_start_str = next_start_dt.strftime(self.fmt)
 
         # Update State
-        self.current_window = self._create_episode_window(next_start_str)
-        self.action_window = self._create_action_window(next_start_str)
+        self.current_window = self._create_episode_window(next_start_dt)
+        self.action_window = self._create_action_window(next_start_dt)
         
         logger.info(f"Advanced window to {self.current_window.start} - {self.current_window.end} (Remaining in queue: {len(self.unvisited_starts)})")
         
@@ -174,24 +212,27 @@ class TimeManager:
         return self.current_window
         
     def get_current_time(self) -> str:
-        """Get current time (end of action window or current window start)"""
+        """Get current time as string (end of action window or current window start)"""
+        return self.get_current_dt().strftime(self.fmt)
+
+    def get_current_dt(self) -> datetime.datetime:
+        """Get current time as datetime (end of action window or current window start)"""
         if self.action_window:
-            return self.action_window.end
-        return self.current_window.start
-        
+            return self.action_window.end_dt
+        return self.current_window.start_dt
+
     def get_previous_time(self, seconds: int) -> str:
         """Get time n seconds before current time"""
-        current = datetime.datetime.strptime(self.get_current_time(), self.fmt)
-        previous = current - datetime.timedelta(seconds=seconds)
+        previous = self.get_current_dt() - datetime.timedelta(seconds=seconds)
         return previous.strftime(self.fmt)
-        
+
     def get_time_info(self) -> dict:
         """Get time information for current state"""
-        current_dt = datetime.datetime.strptime(self.get_current_time(), self.fmt)
+        current_dt = self.get_current_dt()
         return {
-            'current_time': self.get_current_time(),
-            'current_window': self.current_window.to_tuple(),
-            'action_window': self.action_window.to_tuple() if self.action_window else None,
+            'current_time': current_dt.strftime(self.fmt),
+            'current_window': self.current_window,
+            'action_window': self.action_window if self.action_window else None,
             'week_day': current_dt.weekday(),
             'hour': current_dt.hour
         }

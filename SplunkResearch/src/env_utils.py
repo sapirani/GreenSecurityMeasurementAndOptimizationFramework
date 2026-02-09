@@ -67,15 +67,22 @@ def clean_env(splunk_tools_instance, time_range=None,logs_qnt=None, host='host1'
         empty_monitored_files(get_security_monitor_path(host))
         return time_range
         
-    # date = time_range[1].split(':')[0]
-    # time_range = (f'{date}:00:00:00', f'{date}:23:59:59')
-    # add small mergine to the time range
-    if not type(time_range) is str: 
-        start_time = datetime.datetime.strptime(time_range[0], "%m/%d/%Y:%H:%M:%S")
-        end_time = datetime.datetime.strptime(time_range[1], "%m/%d/%Y:%H:%M:%S")
+    # add small margin to the time range
+    if not type(time_range) is str:
+        # Support TimeWindow objects (have start_dt/end_dt), epoch tuples, or string tuples
+        if hasattr(time_range, 'start_dt'):
+            start_time = time_range.start_dt
+            end_time = time_range.end_dt
+        elif isinstance(time_range[0], (int, float)):
+            start_time = datetime.datetime.fromtimestamp(time_range[0])
+            end_time = datetime.datetime.fromtimestamp(time_range[1])
+        else:
+            start_time = datetime.datetime.strptime(time_range[0], "%m/%d/%Y:%H:%M:%S")
+            end_time = datetime.datetime.strptime(time_range[1], "%m/%d/%Y:%H:%M:%S")
         start_time = start_time - datetime.timedelta(minutes=5)
         end_time = end_time + datetime.timedelta(minutes=5)
-        time_range = (start_time.strftime("%m/%d/%Y:%H:%M:%S"), end_time.strftime("%m/%d/%Y:%H:%M:%S"))
+        # Pass epoch tuple to avoid re-parsing in delete_fake_logs
+        time_range = (start_time.timestamp(), end_time.timestamp())
         logger.info(f'update time range to {time_range}')
         empty_monitored_files(get_system_monitor_path(host))
         empty_monitored_files(get_security_monitor_path(host))
