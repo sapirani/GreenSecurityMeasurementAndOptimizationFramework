@@ -67,7 +67,7 @@ if __name__ == '__main__':
     container.config.drl.storage.model_path.from_value(Path("trained_ppo"))
     container.config.drl.storage.save_freq.from_value(10)
     container.config.drl.env.max_episode_steps.from_value(50)
-    container.config.drl.learning_total_timestamps.from_value(100)
+    container.config.drl.learning_total_timestamps.from_value(2000)
     container.config.drl.reward.alpha_hyperparam.from_value(1)
     container.config.drl.reward.beta_hyperparam.from_value(1)
     container.config.drl.reward.lambda_hyperparam.from_value(50)
