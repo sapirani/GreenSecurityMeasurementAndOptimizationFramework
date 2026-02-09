@@ -7,7 +7,7 @@ from dependency_injector.wiring import inject, Provide
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.callbacks import CheckpointCallback
 
-from elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
+from elastic_reader.elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
 from elastic_reader.consts import ElasticIndex
 from elastic_reader_parameters import ES_URL, ES_PASS, ES_USER
 from hadoop_optimizer.drl_telemetry.energy_tracker import EnergyTracker

@@ -13,7 +13,7 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 from DTOs.hadoop.drl_training.episode_context import EpisodeContext
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 from application_logging.logging_utils import get_measurement_logger
-from elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
+from elastic_reader.elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
 from elastic_reader.consts import TimePickerInputStrategy
 from hadoop_optimizer.drl_envs.training_env import OptimizerTrainingEnv
 from hadoop_optimizer.drl_envs.training_progress_tracker import TrainingProgressTracker

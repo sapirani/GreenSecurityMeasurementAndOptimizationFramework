@@ -9,7 +9,7 @@ from DTOs.aggregated_results_dtos.energy_model_result import EnergyModelResult
 from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationAggregatedResults
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
 from DTOs.aggregation_types import AggregationType
-from elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
+from elastic_reader.elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
 from hadoop_optimizer.drl_telemetry.config.telemetry_fields import FIELD_NAMES_TO_AVERAGE, FIELD_NAMES_TO_SUM
 from hadoop_optimizer.drl_telemetry.consts.general import HOSTNAME_FIELD, SYSTEM_PREFIX
 from hadoop_optimizer.drl_telemetry.consts.telemetry_types import DRLTelemetryType

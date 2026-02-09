@@ -7,7 +7,7 @@ from DTOs.aggregated_results_dtos.iteration_aggregated_results import IterationA
 from DTOs.hadoop.drl_training.episode_context import EpisodeContext
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
 from DTOs.aggregation_types import AggregationType
-from elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
+from elastic_reader.elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
 from hadoop_optimizer.erros import NoEnergyMeasurements
 
 
