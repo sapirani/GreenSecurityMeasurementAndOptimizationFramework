@@ -46,6 +46,12 @@ reward:
 action:
   # Diversity factor for action space
   diversity_factor: 30
+  # Softmax temperature for distribution scaling
+  softmax_temperature: 20
+  # Base log count for injection volume
+  base_log_count: 20000
+  # Sigmoid sharpness for smooth trigger (Phase 4)
+  sigmoid_sharpness: 10
   # Step size multiplier
   step_size_multiplier: 2000
   # Threading configuration
@@ -167,6 +173,8 @@ training:
 environment:
   # Action space type (Action8, Action12)
   action_type: Action8
+  # State observation type (StateWrapper7, StateWrapper6, StateWrapper3, SparseStep, KLDivergence, AccumulatedLogVolume)
+  state_type: StateWrapper7
   # Percentage of hosts to use (0-100)
   hosts_percentage: 100
   # Additional percentage for log generation

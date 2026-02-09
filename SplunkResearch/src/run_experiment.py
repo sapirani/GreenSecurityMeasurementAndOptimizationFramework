@@ -78,7 +78,7 @@ def parse_arguments():
     parser.add_argument('--additional-percentage', type=float,
                         help='Additional percentage for log generation (default: from config)')
     parser.add_argument('--action-type', type=str,
-                        choices=['Action8', 'Action12'],
+                        choices=['Action8', 'Action12', 'SoftmaxDistribution', 'SmoothTriggerVolume'],
                         help='Action space type (default: from config)')
     parser.add_argument('--ip', type=int,
                         help='Splunk host IP identifier 1,2,3... (default: 1)')
@@ -88,6 +88,11 @@ def parse_arguments():
                         help='Use random agent instead of trained model')
     parser.add_argument('--test-experiment', action='store_true',
                         help='Run in test mode (disables injection)')
+
+    # Logging
+    parser.add_argument('--log-level', type=str,
+                        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+                        help='Logging level (default: from config)')
 
     return parser.parse_args()
 
@@ -170,6 +175,10 @@ def create_overrides_from_args(args, model_path=None):
     # Flags
     if args.random_agent:
         overrides['use_random_agent'] = True
+
+    # Logging
+    if args.log_level is not None:
+        overrides['logging.level'] = args.log_level
 
     return overrides
 

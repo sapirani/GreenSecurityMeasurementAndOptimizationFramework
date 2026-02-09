@@ -40,7 +40,7 @@ from stable_baselines3.ppo.policies import MlpPolicy
 from sb3_contrib import RecurrentPPO
 
 from wrappers.reward import *
-from wrappers.state import *
+from wrappers.state import StateWrapper, create_state_wrapper
 from wrappers.action import *
 from callbacks import *
 from time_manager import TimeWrapper
@@ -248,11 +248,7 @@ class ExperimentManager:
         # Configure action space
         action_type = get_config('environment.action_type', 'Action8')
         use_random_agent = get_config('use_random_agent', False)
-
-        if action_type == "Action8":
-            env = Action8(env, use_random_agent)
-        elif action_type == "Action12":
-            env = Action12(env, use_random_agent)
+        env = create_action_wrapper(env, action_type, use_random_agent)
 
         # Add reward wrappers
         use_distribution_reward = get_config('reward.use_distribution_reward', True)
@@ -301,7 +297,8 @@ class ExperimentManager:
         env = TimeWrapper(env)
         hosts_num = get_config('environment.hosts_percentage', 100)
         logger.info(f"Using {hosts_num}% of hosts")
-        env = StateWrapper7(env, hosts_percentage=hosts_num)
+        state_type = get_config('environment.state_type', 'StateWrapper7')
+        env = create_state_wrapper(env, state_type, hosts_num)
 
         return env
 
@@ -429,9 +426,9 @@ class ExperimentManager:
         """Generate unique experiment ID"""
         return datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
-    def _setup_experiment_logging(self, experiment_name: str):
+    def _setup_experiment_logging(self, experiment_name: str, overrides: dict = None):
         """Setup logging for experiment with proper handler management and rotation."""
-        log_level_str = config.get('logging.level', 'INFO')
+        log_level_str = (overrides or {}).get('logging.level', config.get('logging.level', 'INFO'))
         log_level = getattr(logging, log_level_str.upper(), logging.INFO)
         log_format = config.get('logging.format',
                                "%(asctime)s [%(levelname)s] %(name)s %(message)s")
@@ -532,7 +529,7 @@ class ExperimentManager:
 
         # Setup per-experiment directories and logging BEFORE any log statements
         self._setup_experiment_dirs(experiment_name)
-        self._setup_experiment_logging(experiment_name)
+        self._setup_experiment_logging(experiment_name, overrides=overrides)
 
         logger.info(f"Experiment Config: {overrides}")
         logger.info(f"Starting experiment: {experiment_name}")
@@ -599,9 +596,9 @@ class ExperimentManager:
             else:
                 action_env = env
                 action_eval_env = self.eval_env
-                while not isinstance(action_env, Action8):
+                while not isinstance(action_env, Action):
                     action_env = action_env.env
-                while not isinstance(action_eval_env, Action8):
+                while not isinstance(action_eval_env, Action):
                     action_eval_env = action_eval_env.env
 
                 action_env.disable_injection()
