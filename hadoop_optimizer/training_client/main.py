@@ -9,7 +9,7 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 
 from elastic_reader.elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
 from elastic_reader.consts import ElasticIndex
-from elastic_reader_parameters import ES_URL, ES_PASS, ES_USER
+from elastic_reader.elastic_reader_parameters import ES_URL, ES_PASS, ES_USER
 from hadoop_optimizer.drl_telemetry.energy_tracker import EnergyTracker
 from hadoop_optimizer.training_server.container.training_container import TrainingContainer
 from elastic_reader.main import run_elastic_reader
