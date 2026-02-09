@@ -29,6 +29,7 @@ import concurrent.futures
 from wrappers.reward import *
 from wrappers.state import *
 from wrappers.action import *
+from wrappers.shared_state import EpisodeSharedState
 
 
 from dataclasses import dataclass
@@ -79,7 +80,9 @@ class SplunkEnv(gym.Env):
         """Initialize environment."""
         super().__init__()
         self.splunk_tools  = SplunkTools(savedsearches, config.rule_frequency, ip=config.ip)#, mode=Mode.PROFILE)
-        self.episodic_inserted_logs = 0
+        # Shared mutable episode state (accessed by wrappers via property aliases)
+        self.shared = EpisodeSharedState()
+
         self.all_data = []
         self.all_data_path = "/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/resources/all_data.csv"
         self.all_baseline_data = []
@@ -117,8 +120,9 @@ class SplunkEnv(gym.Env):
         self.section_logtypes = section_logtypes
         self.relevant_logtypes = sorted(list({logtype  for rule in savedsearches for logtype  in section_logtypes[rule]}))
         # concat top_logtypes and relevant_logtypes, while removing duplicates and keeping order
-        top_logtypes = sorted(list(dict.fromkeys(self.relevant_logtypes + top_logtypes)))       
+        top_logtypes = sorted(list(dict.fromkeys(self.relevant_logtypes + top_logtypes)))
         self.top_logtypes = top_logtypes
+        self.logtype_key_cache = {lt: "_".join(lt) for lt in self.top_logtypes}
         
         self.savedsearches = savedsearches
         # Initialize tools and strategies
@@ -130,39 +134,164 @@ class SplunkEnv(gym.Env):
         self.total_steps = self.config.search_window * 60 // self.config.action_duration
         
         # Initialize episode tracking
-        self.step_counter = 0
         self.all_steps_counter = 0
         self.action_auditor = []
         self.step_violation = False
-        self.done = False
-        self.obs = None
-        self.real_state = np.array([])
-        self.fake_state = np.array([])
-        self.ac_real_state = np.array([])
-        self.ac_fake_state = np.array([])
-        self.fake_distribution = {logtype: 0 for logtype in self.top_logtypes}
-        self.fake_distribution['other'] = 0
-        self.fake_relevant_distribution = {"_".join(logtype): 0 for logtype in self.top_logtypes}
-        self.real_distribution = {logtype: 0 for logtype in self.top_logtypes}
-        self.real_distribution['other'] = 0
-        self.ac_real_distribution = {logtype: 0 for logtype in self.top_logtypes}
-        self.ac_real_distribution['other'] = 0
-        self.ac_fake_distribution = {logtype: 0 for logtype in self.top_logtypes}
-        self.ac_fake_distribution['other'] = 0
-        self.real_relevant_distribution = {"_".join(logtype): 0 for logtype in self.top_logtypes}
-        self.relevant_logtypes_indices = {logtype: i for i, logtype in enumerate(self.top_logtypes) if logtype in self.top_logtypes}        
-        self.rules_rel_diff_alerts = {rule : 0 for rule in self.relevant_logtypes}
+
+        # Initialise shared state distributions
+        self.shared.init_distributions(self.top_logtypes, self.relevant_logtypes, self.logtype_key_cache)
+
+        self.relevant_logtypes_indices = {logtype: i for i, logtype in enumerate(self.top_logtypes) if logtype in self.top_logtypes}
         self.is_mock = False
-        self.should_delete = False
         self.baseline_dir = Path(baseline_dir)
         self.baseline_dir.mkdir(parents=True, exist_ok=True)
         # Load or create baseline table
         self.baseline_path = self._get_baseline_path()
         print("Baseline path:", self.baseline_path)
-        self.baseline_df = self._load_baseline_table() 
-        self.episodic_fake_logs_qnt = 0  
-        
-          
+        self.baseline_df = self._load_baseline_table()
+
+    # ------------------------------------------------------------------
+    # Property aliases: backward-compatible access to shared state.
+    # Wrappers use ``env.unwrapped.<attr>`` which now delegates to
+    # ``env.unwrapped.shared.<attr>``.
+    # ------------------------------------------------------------------
+
+    @property
+    def episodic_inserted_logs(self):
+        return self.shared.episodic_inserted_logs
+
+    @episodic_inserted_logs.setter
+    def episodic_inserted_logs(self, value):
+        self.shared.episodic_inserted_logs = value
+
+    @property
+    def episodic_fake_logs_qnt(self):
+        return self.shared.episodic_fake_logs_qnt
+
+    @episodic_fake_logs_qnt.setter
+    def episodic_fake_logs_qnt(self, value):
+        self.shared.episodic_fake_logs_qnt = value
+
+    @property
+    def fake_distribution(self):
+        return self.shared.fake_distribution
+
+    @fake_distribution.setter
+    def fake_distribution(self, value):
+        self.shared.fake_distribution = value
+
+    @property
+    def ac_fake_distribution(self):
+        return self.shared.ac_fake_distribution
+
+    @ac_fake_distribution.setter
+    def ac_fake_distribution(self, value):
+        self.shared.ac_fake_distribution = value
+
+    @property
+    def real_distribution(self):
+        return self.shared.real_distribution
+
+    @real_distribution.setter
+    def real_distribution(self, value):
+        self.shared.real_distribution = value
+
+    @property
+    def ac_real_distribution(self):
+        return self.shared.ac_real_distribution
+
+    @ac_real_distribution.setter
+    def ac_real_distribution(self, value):
+        self.shared.ac_real_distribution = value
+
+    @property
+    def fake_relevant_distribution(self):
+        return self.shared.fake_relevant_distribution
+
+    @fake_relevant_distribution.setter
+    def fake_relevant_distribution(self, value):
+        self.shared.fake_relevant_distribution = value
+
+    @property
+    def real_relevant_distribution(self):
+        return self.shared.real_relevant_distribution
+
+    @real_relevant_distribution.setter
+    def real_relevant_distribution(self, value):
+        self.shared.real_relevant_distribution = value
+
+    @property
+    def real_state(self):
+        return self.shared.real_state
+
+    @real_state.setter
+    def real_state(self, value):
+        self.shared.real_state = value
+
+    @property
+    def fake_state(self):
+        return self.shared.fake_state
+
+    @fake_state.setter
+    def fake_state(self, value):
+        self.shared.fake_state = value
+
+    @property
+    def ac_real_state(self):
+        return self.shared.ac_real_state
+
+    @ac_real_state.setter
+    def ac_real_state(self, value):
+        self.shared.ac_real_state = value
+
+    @property
+    def ac_fake_state(self):
+        return self.shared.ac_fake_state
+
+    @ac_fake_state.setter
+    def ac_fake_state(self, value):
+        self.shared.ac_fake_state = value
+
+    @property
+    def rules_rel_diff_alerts(self):
+        return self.shared.rules_rel_diff_alerts
+
+    @rules_rel_diff_alerts.setter
+    def rules_rel_diff_alerts(self, value):
+        self.shared.rules_rel_diff_alerts = value
+
+    @property
+    def done(self):
+        return self.shared.done
+
+    @done.setter
+    def done(self, value):
+        self.shared.done = value
+
+    @property
+    def obs(self):
+        return self.shared.obs
+
+    @obs.setter
+    def obs(self, value):
+        self.shared.obs = value
+
+    @property
+    def should_delete(self):
+        return self.shared.should_delete
+
+    @should_delete.setter
+    def should_delete(self, value):
+        self.shared.should_delete = value
+
+    @property
+    def step_counter(self):
+        return self.shared.step_counter
+
+    @step_counter.setter
+    def step_counter(self, value):
+        self.shared.step_counter = value
+
     def _get_baseline_path(self) -> Path:
         """Get path for baseline data based on environment config"""
         env_id = self.unwrapped.config.env_id
@@ -172,12 +301,20 @@ class SplunkEnv(gym.Env):
      
     def _load_baseline_table(self) -> pd.DataFrame:
         """Load existing baseline table or create new one"""
+        empty = pd.DataFrame(columns=['start_time', 'end_time', 'time_range', 'search_name', 'alert', 'duration_values'])
         if self.baseline_path.exists():
-            df = pd.read_csv(self.baseline_path)
+            if self.baseline_path.stat().st_size == 0:
+                logger.warning(f"Empty baseline file {self.baseline_path}, treating as new")
+                return empty
+            try:
+                df = pd.read_csv(self.baseline_path)
+            except (pd.errors.EmptyDataError, pd.errors.ParserError) as e:
+                logger.warning(f"Corrupt baseline file {self.baseline_path}: {e}, treating as new")
+                return empty
             # create a time_range column
             df['time_range'] = list(zip(pd.to_datetime(df['start_time'], format="%m/%d/%Y:%H:%M:%S"), pd.to_datetime(df['end_time'], format="%m/%d/%Y:%H:%M:%S")))
             return df
-        return pd.DataFrame(columns=['start_time', 'end_time', 'time_range', 'search_name', 'alert', 'duration_values'])
+        return empty
    
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
         """Execute environment step."""
