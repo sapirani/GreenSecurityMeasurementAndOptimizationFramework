@@ -51,3 +51,4 @@ scikit-learn==1.7.1
 fastapi==0.120.4
 uvicorn==0.38.0
 stable-baselines3[extra]==2.7.1
+river==0.22.0

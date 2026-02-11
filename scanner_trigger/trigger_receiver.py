@@ -34,6 +34,7 @@ def start_measurement(python_path: str, scanner_path: str, nice: int, start_args
         popen_args = ["nice", "-n", str(nice)] + popen_args
 
     scanner_process = subprocess.Popen(popen_args)
+    logging.debug(f"Started scanner process, pid = {scanner_process.pid}")
 
 
 def stop_measurement():
@@ -44,21 +45,35 @@ def stop_measurement():
         return
 
     if os.name == 'nt':  # Check if the OS is Windows
-        logging.debug("Sending Windows style SIGNIT to the scanner")
+        logging.debug(
+            "Sending Windows style SIGINT to the scanner "
+            f"(pid = {scanner_process.pid}, poll = {scanner_process.poll()})"
+        )
         scanner_process.send_signal(signal.CTRL_C_EVENT)  # CTRL_C_EVENT on Windows
     else:
-        logging.debug("Sending LINUX style SIGNIT to the scanner")
+        logging.debug(
+            f"Sending LINUX style SIGINT to the scanner "
+            f"(pid = {scanner_process.pid}, poll = {scanner_process.poll()})"
+        )
         scanner_process.send_signal(signal.SIGINT)  # SIGINT on UNIX-like systems
 
     try:
-        logging.debug(f"Waiting for scanner to terminate for {SCANNER_TERMINATION_WAITING_SECONDS} seconds")
+        logging.debug(
+            f"Waiting for scanner to terminate for {SCANNER_TERMINATION_WAITING_SECONDS} seconds "
+            f"(pid = {scanner_process.pid})"
+        )
         scanner_process.wait(SCANNER_TERMINATION_WAITING_SECONDS)
     except subprocess.TimeoutExpired:
-        logging.warning(f"Scanner did not terminate after {SCANNER_TERMINATION_WAITING_SECONDS} seconds, skipping ...")
+        logging.warning(
+            f"Scanner did not terminate after {SCANNER_TERMINATION_WAITING_SECONDS} seconds "
+            f"(pid = {scanner_process.pid}), skipping ..."
+        )
     except KeyboardInterrupt:
+        logging.info("Received KeyboardInterrupt")
         pass
 
     scanner_process = None
+    logging.debug("Finished stopping measurement")
 
 
 def main(host: str, port: int, python_path: str, scanner_path: str, nice: int):
