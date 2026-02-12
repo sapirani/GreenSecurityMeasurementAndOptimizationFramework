@@ -563,7 +563,9 @@ class LogGenerator:
     #     return generation_tasks
     
     def prepare_tasks(self, logsource, eventcode, istrigger, time_range, num_logs, diversity=1, injection_id=0, max_workers=12):
-        
+        if num_logs <= 0 or diversity <= 0:
+            return []
+
         # --- 1. Time Parsing ---
         if isinstance(time_range[0], str):
             start_date = datetime.strptime(time_range[0], '%m/%d/%Y:%H:%M:%S')
