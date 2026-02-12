@@ -172,11 +172,10 @@ class TimeManager:
         Prioritizes unvisited time windows by popping from the shuffled queue.
         """
         host = self.splunk_tools.splunk_host
-        empty_monitored_files(get_system_monitor_path(host))
-        empty_monitored_files(get_security_monitor_path(host))
         self.is_delete = False
-        # Optional: Handle explicit deletion requests if needed
         if not self.is_test and should_delete:
+           empty_monitored_files(get_system_monitor_path(host))
+           empty_monitored_files(get_security_monitor_path(host))
            clean_env(self.splunk_tools, time_range=self.current_window, logs_qnt=logs_qnt, host=host)
            self.is_delete = True
            
