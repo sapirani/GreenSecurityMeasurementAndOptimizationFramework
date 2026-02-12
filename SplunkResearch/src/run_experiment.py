@@ -78,7 +78,8 @@ def parse_arguments():
     parser.add_argument('--additional-percentage', type=float,
                         help='Additional percentage for log generation (default: from config)')
     parser.add_argument('--action-type', type=str,
-                        choices=['Action8', 'Action12', 'SoftmaxDistribution', 'SmoothTriggerVolume'],
+                        choices=['Action8', 'Action12', 'SoftmaxDistribution', 'SmoothTrigger',
+                                 'SmoothTriggerVolume', 'SoftmaxDistributionVolume'],
                         help='Action space type (default: from config)')
     parser.add_argument('--ip', type=int,
                         help='Splunk host IP identifier 1,2,3... (default: 1)')
@@ -150,7 +151,7 @@ def create_overrides_from_args(args, model_path=None):
     if args.gamma_dist is not None:
         overrides['reward.gamma'] = args.gamma_dist
     if args.alert_epsilon is not None:
-        overrides['reward.alert_epsilon'] = args.alert_epsilon
+        overrides['reward.epsilon'] = args.alert_epsilon
     if args.normalizer_factor is not None:
         overrides['reward.normalizer_factor'] = args.normalizer_factor
     if args.alert_reward_method is not None:
@@ -188,7 +189,7 @@ def print_experiment_summary(args, overrides):
     mode = overrides.get('experiment.mode', config.get('experiment.mode', 'train'))
     model_type = overrides.get('experiment.model_type', config.get('experiment.model_type', 'sac'))
     alpha = overrides.get('reward.alpha', config.get('reward.alpha', 0.5))
-    beta = overrides.get('reward.beta', config.get('reward.beta', 0.3))
+    beta = overrides.get('reward.beta', config.get('reward.beta', 0.5))
     gamma = overrides.get('reward.gamma', config.get('reward.gamma', 0.2))
     hosts = overrides.get('environment.hosts_percentage', config.get('environment.hosts_percentage', 100))
     action_type = overrides.get('environment.action_type', config.get('environment.action_type', 'Action8'))

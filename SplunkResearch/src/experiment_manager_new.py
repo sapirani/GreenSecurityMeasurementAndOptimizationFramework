@@ -39,7 +39,15 @@ from stable_baselines3 import A2C, PPO, DQN, DDPG, TD3, SAC
 from stable_baselines3.ppo.policies import MlpPolicy
 from sb3_contrib import RecurrentPPO
 
-from wrappers.reward import *
+from wrappers.reward import (
+    BaseRuleExecutionWrapperWithPrediction,
+    EnergyRewardWrapper,
+    create_alert_reward_wrapper,
+    ENUM_ALERT_REWARD_METHODS,
+    ENUM_DISTRIBUTION_REWARD_METHODS,
+    DistributionRewardWrapper,
+    DistributionRewardWrapper1,
+)
 from wrappers.state import StateWrapper, create_state_wrapper
 from wrappers.action import *
 from callbacks import *
@@ -257,7 +265,8 @@ class ExperimentManager:
             env = ENUM_DISTRIBUTION_REWARD_METHODS[distribution_method](
                 env,
                 gamma=get_config('reward.gamma', 0.2),
-                epsilon=get_config('reward.epsilon', 1e-8),
+                epsilon=get_config('reward.distribution_epsilon',
+                                   get_config('reward.epsilon', 1e-8)),
                 distribution_freq=get_config('reward.distribution_freq', 1),
                 distribution_threshold=get_config('reward.distribution_threshold', 0.22)
             )
@@ -267,30 +276,30 @@ class ExperimentManager:
         env = BaseRuleExecutionWrapperWithPrediction(
             env,
             is_mock=get_config('environment.is_mock', True),
-            enable_prediction=True,
-            alert_threshold=get_config('reward.alert_threshold', -10),
-            skip_on_low_alert=get_config('reward.skip_on_low_alert', True),
             use_energy=get_config('reward.use_energy_reward', True),
             use_alert=get_config('reward.use_alert_reward', True),
             is_train='train' in mode,
             is_eval=(mode == "eval_post_training"),
-            beta=get_config('reward.beta', 0.3),
-            gamma=get_config('reward.gamma', 0.2)
         )
 
         # Energy and alert reward wrappers
+        use_stationary_scaling = get_config('reward.use_stationary_scaling', False)
         if get_config('reward.use_energy_reward', True):
             env = EnergyRewardWrapper(
                 env,
                 alpha=get_config('reward.alpha', 0.5),
                 is_mock=get_config('environment.is_mock', True),
+                use_stationary_scaling=use_stationary_scaling,
             )
             alert_method = get_config('reward.alert_method', 'AlertRewardWrapper')
-            env = ENUM_ALERT_REWARD_METHODS[alert_method](
+            env = create_alert_reward_wrapper(
                 env,
-                beta=get_config('reward.beta', 0.3),
-                epsilon=get_config('reward.alert_epsilon', 0.1),
-                normalizer_factor=get_config('reward.normalizer_factor', 30.0)
+                method_name=alert_method,
+                beta=get_config('reward.beta', 0.5),
+                epsilon=get_config('reward.alert_epsilon',
+                                   get_config('reward.epsilon', 1e-8)),
+                normalizer_factor=get_config('reward.normalizer_factor', 10),
+                use_stationary_scaling=use_stationary_scaling,
             )
 
         # Time and state wrappers
