@@ -9,11 +9,11 @@ from config import config
 # Factory functions to generate paths
 def get_system_monitor_path(host):
     base_dir = config.get('paths.splunk_research_dir')
-    return f"{base_dir}/monitor_files_{host}/wineventlog:system.txt"
+    return f"{base_dir}/eval_monitor_files_{host}/wineventlog:system.txt" #FIX remove eval in the end of running current training
 
 def get_security_monitor_path(host):
     base_dir = config.get('paths.splunk_research_dir')
-    return f"{base_dir}/monitor_files_{host}/wineventlog:security.txt"
+    return f"{base_dir}/eval_monitor_files_{host}/wineventlog:security.txt" #FIX remove eval in the end of running current training
 
 logger = logging.getLogger(__name__)
 class NpEncoder(json.JSONEncoder):
