@@ -19,8 +19,9 @@ from config import config
 from wrappers.action_interpreters import (
     ActionContext,
     ActionInterpreter,
+    LearnableVolumeDecorator,
     SoftmaxDistributionInterpreter,
-    SmoothTriggerVolumeInterpreter,
+    SmoothTriggerInterpreter,
 )
 
 logger = logging.getLogger(__name__)
@@ -58,8 +59,9 @@ class Action(ActionWrapper):
         self.inserted_logs = 0
         self.diversity_factor = config.get('action.diversity_factor', 30)
         self.diversity_episode_logs = {
-            f"{key[0]}_{key[1]}_1": 1
+            f"{key[0]}_{key[1]}_{istrigger}": 0
             for key in self.unwrapped.top_logtypes
+            for istrigger in ([0, 1] if key in self.unwrapped.relevant_logtypes else [0])
         }
         self.info = {}
         self._disable_injection = False
@@ -184,6 +186,8 @@ class Action(ActionWrapper):
         for logtype, log_info in logs_to_inject.items():
             logsource, eventcode, is_trigger = logtype.split('_')
             count, diversity = log_info['count'], log_info['diversity']
+            if count == 0:
+                continue
             configs.append({
                 'logsource': logsource,
                 'eventcode': eventcode,
@@ -344,7 +348,7 @@ class Action(ActionWrapper):
         self.diversity_episode_logs = {
             f"{key[0]}_{key[1]}_{istrigger}": 0
             for key in self.unwrapped.top_logtypes
-            for istrigger in [0, 1]
+            for istrigger in ([0, 1] if key in self.unwrapped.relevant_logtypes else [0])
         }
         self.episodic_logs_to_inject = []
         self.logs_to_delete = {}
@@ -364,10 +368,12 @@ class Action(ActionWrapper):
 ACTION_INTERPRETER_REGISTRY = {
     # Backward-compatible names
     'Action8': SoftmaxDistributionInterpreter,
-    'Action12': SmoothTriggerVolumeInterpreter,
+    'Action12': lambda: LearnableVolumeDecorator(SmoothTriggerInterpreter()),
     # Descriptive names
     'SoftmaxDistribution': SoftmaxDistributionInterpreter,
-    'SmoothTriggerVolume': SmoothTriggerVolumeInterpreter,
+    'SmoothTrigger': SmoothTriggerInterpreter,
+    'SmoothTriggerVolume': lambda: LearnableVolumeDecorator(SmoothTriggerInterpreter()),
+    'SoftmaxDistributionVolume': lambda: LearnableVolumeDecorator(SoftmaxDistributionInterpreter()),
 }
 
 
@@ -387,5 +393,6 @@ def create_action_wrapper(env, action_type: str, test_random: bool = False) -> A
             f"Unknown action type '{action_type}'. "
             f"Available: {list(ACTION_INTERPRETER_REGISTRY.keys())}"
         )
-    interpreter = ACTION_INTERPRETER_REGISTRY[action_type]()
+    entry = ACTION_INTERPRETER_REGISTRY[action_type]
+    interpreter = entry() if callable(entry) else entry()
     return Action(env, interpreter, test_random)

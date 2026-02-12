@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Dict, List, Tuple
 
 import numpy as np
@@ -120,7 +120,10 @@ class SoftmaxDistributionInterpreter(ActionInterpreter):
                 if log_count == 0:
                     diversity = 0
                 is_trigger = int(np.ceil(diversity))
-                diversity = int(diversity * ctx.diversity_factor)
+                if is_trigger:
+                    diversity = int(diversity * ctx.diversity_factor)
+                else:
+                    diversity = 0  # Not triggering → no malicious variants
 
             diversity = max(1, min(diversity, log_count))
 
@@ -130,7 +133,7 @@ class SoftmaxDistributionInterpreter(ActionInterpreter):
             if logtype in ctx.relevant_logtypes:
                 opp_trigger = 1 - is_trigger
                 opp_key = f"{logtype[0]}_{logtype[1]}_{opp_trigger}"
-                logs_to_inject[opp_key] = {'count': 0, 'diversity': 1}
+                logs_to_inject[opp_key] = {'count': 0, 'diversity': 0}
 
         return InjectionPlan(
             logs_to_inject=logs_to_inject,
@@ -139,23 +142,22 @@ class SoftmaxDistributionInterpreter(ActionInterpreter):
 
 
 # ---------------------------------------------------------------------------
-# Concrete: SmoothTriggerVolumeInterpreter  (new default)
+# Concrete: SmoothTriggerInterpreter  (sigmoid trigger, fixed volume)
 # ---------------------------------------------------------------------------
 
-class SmoothTriggerVolumeInterpreter(ActionInterpreter):
-    """Smooth trigger + learnable volume.
+class SmoothTriggerInterpreter(ActionInterpreter):
+    """Sigmoid trigger with fixed volume (same as SoftmaxDistribution).
 
-    Space: Box([0,1]^(N+M+1))
-    - First N dims  → softmax(temperature * x) distribution
-    - Next  M dims  → diversity per relevant logtype (sigmoid trigger)
-    - Last  1 dim   → volume multiplier  (0–1)
+    Space: Box([0,1]^(N+M))  where N = len(top), M = len(relevant)
+    - First N dims → softmax(temperature * x) distribution over top_logtypes
+    - Last M dims  → diversity per relevant logtype (sigmoid trigger)
+    - Fixed volume: additional_percentage * base_log_count
 
     Trigger: sigmoid(sharpness * (diversity - 0.5)) > 0.5
-    Volume:  additional_percentage * base_log_count * action[-1]
     """
 
     def get_action_space(self, top_logtypes, relevant_logtypes):
-        n = len(top_logtypes) + len(relevant_logtypes) + 1
+        n = len(top_logtypes) + len(relevant_logtypes)
         return spaces.Box(
             low=np.zeros(n, dtype=np.float32),
             high=np.ones(n, dtype=np.float32),
@@ -172,10 +174,8 @@ class SmoothTriggerVolumeInterpreter(ActionInterpreter):
         exp_vals = np.exp(scaled - np.max(scaled))
         distribution = exp_vals / exp_vals.sum()
 
-        diversity_list = raw_action[n_top:-1]
-        volume_pct = float(raw_action[-1])
-
-        num_logs = ctx.additional_percentage * ctx.base_log_count * volume_pct
+        diversity_list = raw_action[n_top:]
+        num_logs = ctx.additional_percentage * ctx.base_log_count
 
         logs_to_inject: Dict[str, Dict] = {}
         total_inserted = 0
@@ -195,7 +195,10 @@ class SmoothTriggerVolumeInterpreter(ActionInterpreter):
                 # Smooth sigmoid trigger
                 trigger_prob = 1.0 / (1.0 + np.exp(-ctx.sigmoid_sharpness * (raw_div - 0.5)))
                 is_trigger = int(trigger_prob > 0.5)
-                diversity = int(raw_div * ctx.diversity_factor)
+                if is_trigger:
+                    diversity = int(raw_div * ctx.diversity_factor)
+                else:
+                    diversity = 0  # Not triggering → no malicious variants
 
             diversity = max(1, min(diversity, log_count))
 
@@ -205,9 +208,47 @@ class SmoothTriggerVolumeInterpreter(ActionInterpreter):
             if logtype in ctx.relevant_logtypes:
                 opp_trigger = 1 - is_trigger
                 opp_key = f"{logtype[0]}_{logtype[1]}_{opp_trigger}"
-                logs_to_inject[opp_key] = {'count': 0, 'diversity': 1}
+                logs_to_inject[opp_key] = {'count': 0, 'diversity': 0}
 
         return InjectionPlan(
             logs_to_inject=logs_to_inject,
             total_inserted=total_inserted,
         )
+
+
+# ---------------------------------------------------------------------------
+# Decorator: LearnableVolumeDecorator  (composable with any interpreter)
+# ---------------------------------------------------------------------------
+
+class LearnableVolumeDecorator(ActionInterpreter):
+    """Wraps any interpreter, appending a learnable volume dimension.
+
+    Adds +1 to the action space. The last dimension is a volume multiplier
+    in [0, 1] that scales ``additional_percentage`` before delegating to the
+    inner interpreter.
+
+    This keeps volume control orthogonal to distribution/trigger semantics.
+    """
+
+    def __init__(self, inner: ActionInterpreter):
+        self._inner = inner
+
+    def get_action_space(self, top_logtypes, relevant_logtypes):
+        inner_space = self._inner.get_action_space(top_logtypes, relevant_logtypes)
+        n = inner_space.shape[0] + 1
+        return spaces.Box(
+            low=np.zeros(n, dtype=np.float32),
+            high=np.ones(n, dtype=np.float32),
+            shape=(n,),
+            dtype=np.float32,
+        )
+
+    def interpret(self, raw_action: np.ndarray, ctx: ActionContext) -> InjectionPlan:
+        volume_pct = float(raw_action[-1])
+        inner_action = raw_action[:-1]
+
+        scaled_ctx = replace(
+            ctx,
+            additional_percentage=ctx.additional_percentage * volume_pct,
+        )
+        return self._inner.interpret(inner_action, scaled_ctx)
