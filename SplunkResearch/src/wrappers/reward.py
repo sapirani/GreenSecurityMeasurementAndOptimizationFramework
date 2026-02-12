@@ -1,23 +1,16 @@
-from ast import Tuple
 import asyncio
-from curses import raw
+import datetime
+import json
 from os import path
-import pickle
 import random
 from time import sleep
 import gymnasium as gym
 from gymnasium.core import RewardWrapper
 import numpy as np
 from typing import Dict, Tuple, Optional
-from pathlib import Path
 
 import pandas as pd
-import numpy as np
 import joblib
-import sys
-
-from traitlets import Bool
-sys.path.insert(1, '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/src')
 
 from env_utils import *
 import logging
@@ -28,37 +21,42 @@ from config import config
 # Load configuration values
 std = config.get('reward.std', 13)
 
-# Convert expected_alerts from config array to dictionary format
-_expected_alert_values = config.get('reward.expected_alerts_per_rule', [4, 0.7, 0, 4, 0, 0, 0, 0, 0])
-_rule_names = [
-    'Windows Event For Service Disabled',
-    'Detect New Local Admin Account',
-    'ESCU Network Share Discovery Via Dir Command Rule',
-    'Known Services Killed by Ransomware',
-    'Non Chrome Process Accessing Chrome Default Dir',
-    'Kerberoasting SPN Request With RC4 Encryption',
-    'Clop Ransomware Known Service Name',
-    'Windows AD Replication Request Initiated from Unsanctioned Location',
-    'ESCU Windows Rapid Authentication On Multiple Hosts Rule'
-]
-expected_alerts = {rule: {'alert': alert} for rule, alert in zip(_rule_names, _expected_alert_values)}
+
+def _load_expected_alerts() -> Dict[str, Dict[str, float]]:
+    """Build the expected_alerts dict from config keys."""
+    rule_names = config.get('reward.rule_names', [
+        'Windows Event For Service Disabled',
+        'Detect New Local Admin Account',
+        'ESCU Network Share Discovery Via Dir Command Rule',
+        'Known Services Killed by Ransomware',
+        'Non Chrome Process Accessing Chrome Default Dir',
+        'Kerberoasting SPN Request With RC4 Encryption',
+        'Clop Ransomware Known Service Name',
+        'Windows AD Replication Request Initiated from Unsanctioned Location',
+        'ESCU Windows Rapid Authentication On Multiple Hosts Rule',
+    ])
+    alert_values = config.get('reward.expected_alerts_per_rule', [4, 0.7, 0, 4, 0, 0, 0, 0, 0])
+    return {rule: {'alert': alert} for rule, alert in zip(rule_names, alert_values)}
+
+
+expected_alerts = _load_expected_alerts()
 class AlertPredictor:
     """Separate class to handle alert prediction logic"""
-    
-    def __init__(self, expected_alerts: Dict, epsilon: float = 1):
-        expected_alerts = expected_alerts
-        self.epsilon = epsilon
+
+    def __init__(self, epsilon: float = None):
+        self.epsilon = epsilon if epsilon is not None else config.get('reward.alert_epsilon',
+                                                                       config.get('reward.epsilon', 1e-8))
         self.current_alerts = {}
         
-    def predict_alert_reward(self, rule_name: str, baseline_alert: float, 
-                           diversity_logs: Dict, section_logtypes: Dict, 
-                           is_mock: bool = False) -> float:
-        """Predict alert reward for a specific rule"""
+    def predict_alert_reward(self, rule_name: str, baseline_alert: float,
+                           diversity_logs: Dict, section_logtypes: Dict,
+                           is_mock: bool = False) -> None:
+        """Predict current alert count for a specific rule and store in self.current_alerts."""
         relevant_log = section_logtypes.get(rule_name, None)
         if relevant_log:
             relevant_log = "_".join(relevant_log[0]) + "_1"
             diversity = diversity_logs.get(relevant_log, 0)
-            
+
             if rule_name in ['ESCU Windows Rapid Authentication On Multiple Hosts Rule']:
                 predicted_current = baseline_alert
             else:
@@ -66,77 +64,39 @@ class AlertPredictor:
         else:
             predicted_current = baseline_alert
 
-        
         self.current_alerts[rule_name] = predicted_current
-        expected = expected_alerts.get(rule_name, 0).get('alert', 0)
-        gap = max(0, predicted_current - expected)
-        reward = -(gap) / (expected + self.epsilon)
-        
-        return reward
     
     def predict_overall_alert_reward(self, baseline_metrics: Dict, diversity_logs: Dict,
                                    section_logtypes: Dict, is_mock: bool = False, normalized_distribution: Optional[np.ndarray] = np.array([0.0])) -> float:
         """Predict overall alert reward for all rules"""
-        rewards = []
         for rule_name, expected in expected_alerts.items():
             baseline_alert = baseline_metrics.get(rule_name, {}).get('alert', 0)
-            reward = self.predict_alert_reward(
-                rule_name, baseline_alert, diversity_logs, 
+            self.predict_alert_reward(
+                rule_name, baseline_alert, diversity_logs,
                 section_logtypes, is_mock
             )
-            rewards.append(reward)
-            
-        # return np.mean(rewards) if rewards else 0
-        # return sum(self.current_alerts.values())
+
         baseline_alerts = {rule: expected_alerts.get(rule, {}).get('alert', 0) for rule in expected_alerts}
-        
         normal_alert_rate = sum(baseline_alerts.values())
-        # normal_alert_rate = sum(baseline_alerts.values())
-        return min(-(sum(self.current_alerts.values()) - normal_alert_rate  + self.epsilon)/ (normal_alert_rate + self.epsilon), 0)
-        # return min(-(sum(self.current_alerts.values()) - 7 )/ (7 + self.epsilon), 0)
-        # return min(-(sum(self.current_alerts.values()) - sum(expected_alerts.values()))/ (sum(expected_alerts.values()) + self.epsilon), 0)
+        return min(-(sum(self.current_alerts.values()) - normal_alert_rate + self.epsilon) / (normal_alert_rate + self.epsilon), 0)
 
 
 class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
     """Enhanced base wrapper with alert prediction capability"""
 
     def __init__(self, env, is_mock: bool = False,
-                 enable_prediction: bool = True, alert_threshold: float = None,
-                 skip_on_low_alert: bool = True, use_energy: bool = True,use_alert: bool = True, is_eval: bool = False, is_train: bool = False, beta: float = None, gamma: float = None):
+                 use_energy: bool = True, use_alert: bool = True,
+                 is_eval: bool = False, is_train: bool = False):
         super().__init__(env)
 
-        # Load default values from config if not provided
-        if alert_threshold is None:
-            alert_threshold = config.get('reward.alert_threshold', -0.5)
-        if beta is None:
-            beta = config.get('reward.beta', 0.33)
-        if gamma is None:
-            gamma = config.get('reward.gamma', 0.33)
-
         self.is_mock = is_mock
-        
-        # Prediction configuration
-        self.enable_prediction = enable_prediction
-        self.alert_threshold = alert_threshold
-        self.skip_on_low_alert = skip_on_low_alert
-        
-
         self.use_energy = use_energy
         self.use_alert = use_alert
         self.energy_models = {}
-        self.beta = beta
-        self.gamma = gamma
         self.injection_id = 0
         self.baseline_measured = False
-        # if is_mock:
-        #     for rule in self.unwrapped.splunk_tools.active_saved_searches:
-        #         self.energy_models[rule] = pickle.load(open(f"/home/shouei/GreenSecurity-FirstExperiment/baseline_splunk_train-v32_2880_cpu_regressor_results/RandomForestRegressor_{rule}_with alert = 0.pkl", "rb"))
-        
-        # Initialize alert predictor
-
         self.measuring = False
-        self.alert_predictor = AlertPredictor(expected_alerts)
-        self.execution_decisions = []
+        self.alert_predictor = AlertPredictor()
         self.is_eval = is_eval
         self.is_train = is_train
         self._episode_counter = 0
@@ -155,7 +115,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
 
         self.distributions = []
         self.alerts = []
-        self.epsilon = config.get('reward.epsilon', 0.00000001)
+        self.epsilon = config.get('reward.alert_epsilon', config.get('reward.epsilon', 1e-8))
         self._baseline_cache = {}  # {(start_time, end_time): DataFrame}
 
 
@@ -216,25 +176,20 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
 
         return self._get_cached_baseline(time_range)
     
-    def predict_and_decide_execution(self, time_range: TimeWindow, diversity_logs: Dict, distribution_value: float) -> Tuple[bool, float, Dict, pd.DataFrame]:
-        """Predict alert reward and decide whether to execute rules.
+    def compute_baseline_and_prediction(self, time_range: TimeWindow, diversity_logs: Dict) -> Tuple[float, Dict, pd.DataFrame]:
+        """Fetch baseline data and compute predicted alert reward.
 
         Returns:
-            (should_execute, predicted_reward, raw_baseline_metrics, baseline_data)
-            The caller can reuse *baseline_data* instead of querying again.
+            (predicted_reward, raw_baseline_metrics, baseline_data)
         """
-        # First get baseline data (this might trigger cleaning and baseline execution)
         baseline_data = self.get_baseline_data(time_range)
 
         if baseline_data.empty:
-            # No baseline data, must execute
-            return True, None, {}, baseline_data
+            return None, {}, baseline_data
 
-        # Process baseline metrics
         grouped_baseline = baseline_data.groupby('search_name')
         raw_baseline_metrics, _ = self.process_metrics(grouped_baseline)
 
-        # Predict alert reward
         predicted_reward = self.alert_predictor.predict_overall_alert_reward(
             raw_baseline_metrics,
             diversity_logs,
@@ -242,34 +197,18 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
             self.is_mock,
         )
 
-        # Decide whether to execute
-        should_execute = True
-        if self.enable_prediction and self.skip_on_low_alert:
-            # should_execute =  ((predicted_reward <= (sum(expected_alerts.values()) + (self.alert_threshold*std))) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval
-            should_execute = ((predicted_reward >= self.alert_threshold) and (distribution_value < self.env.distribution_threshold) and self.use_energy) or self.is_eval or True # TRY!!!!!!!
+        logger.info(f"Alert prediction: reward={predicted_reward:.3f}")
 
-            # self.unwrapped.should_delete = should_execute and not self.is_mock and not self.measuring
-
-        # Log decision
-        self.execution_decisions.append({
-            'time_range': time_range,
-            'predicted_reward': predicted_reward,
-            'should_execute': should_execute,
-            'threshold': self.alert_threshold
-        })
-
-        logger.info(f"Alert prediction: reward={predicted_reward:.3f}, " f"threshold={self.alert_threshold}, execute={should_execute}")
-
-        return should_execute, predicted_reward, raw_baseline_metrics, baseline_data
+        return predicted_reward, raw_baseline_metrics, baseline_data
     
     def mock_rules_metrics(self, time_range: TimeWindow) -> Dict:
         """Mock rules metrics for the given time range"""
         rules_metrics = self.unwrapped.splunk_tools.mock_run_saved_searches(time_range)
         return rules_metrics
     
-    def get_current_reward_values(self, time_range: TimeWindow, should_execute: Bool) -> Tuple[pd.DataFrame, Dict]:
+    def get_current_reward_values(self, time_range: TimeWindow) -> Tuple[pd.DataFrame, Dict]:
         """Get current reward values"""
-        if (self.is_mock and not self.measuring) or not should_execute or not self.use_energy or not self.use_alert:
+        if (self.is_mock and not self.measuring) or not self.use_energy or not self.use_alert:
             rules_metrics = self.mock_rules_metrics(time_range)
         else:
             rules_metrics = asyncio.run(self.unwrapped.splunk_tools.run_saved_searches(
@@ -286,7 +225,6 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         return self.process_metrics(grouped)
     
     def convert_metrics(self, time_range, rules_metrics):
-        # logger.info(f"rules_metrics: {rules_metrics}")
         return [{
             'search_name': metric.search_name,
             'alert': metric.results_count,
@@ -302,7 +240,6 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         } for metric in rules_metrics]
 
     def process_metrics(self, grouped):
-        # print(grouped)
         raw_metrics = {}
         for search_name, group in grouped:
             raw_metrics[search_name] = {
@@ -317,16 +254,9 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 
             if raw_metrics[search_name]['alert'] != round(raw_metrics[search_name]['alert']):
                 logger.info(f"Alert value is not an integer: {search_name}, {raw_metrics[search_name]['alert']}, {group['alert']}")
-                # choose the measurement with the highest alert value
-                max_alert = group['alert'].max()
-                max_alert_index = group['alert'].idxmax()
-                raw_metrics[search_name]['alert'] = max_alert
-                raw_metrics[search_name]['duration'] = group['duration'].loc[max_alert_index]
-                raw_metrics[search_name]['cpu'] = group['cpu'].loc[max_alert_index]
-                raw_metrics[search_name]['read_count'] = group['read_count'].loc[max_alert_index]
-                raw_metrics[search_name]['write_count'] = group['write_count'].loc[max_alert_index]
-                raw_metrics[search_name]['read_bytes'] = group['read_bytes'].loc[max_alert_index]
-                raw_metrics[search_name]['write_bytes'] = group['write_bytes'].loc[max_alert_index]
+                max_idx = group['alert'].idxmax()
+                for col in ['alert', 'duration', 'cpu', 'read_count', 'write_count', 'read_bytes', 'write_bytes']:
+                    raw_metrics[search_name][col] = group[col].loc[max_idx]
 
         combined_metrics = {
             'duration': sum([metric['duration'] for metric in raw_metrics.values()]),
@@ -344,268 +274,243 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
        
     def reward(self, reward: float) -> float:
         return reward
-      
+
+    def _validate_alert_consistency(self, alerts_diff, diversity_logs, time_range_start_epoch, time_range_end_epoch):
+        """Check compatibility of alerts_diff with diversity info."""
+        for rule in expected_alerts:
+            if rule == 'ESCU Windows Rapid Authentication On Multiple Hosts Rule':
+                continue
+            relevant_log = self.unwrapped.section_logtypes.get(rule, None)
+            if relevant_log:
+                log_type = "_".join(relevant_log[0]) + "_1"
+                diversity_value = diversity_logs.get(log_type, 0)
+                if alerts_diff[rule] != diversity_value:
+                    logger.warning(f"Alert difference mismatch for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
+                    self._log_event_times(rule, relevant_log, time_range_start_epoch, time_range_end_epoch)
+                else:
+                    logger.info(f"Alert difference match for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
+
+    def _log_event_times(self, rule_name, relevant_log, start_epoch, end_epoch):
+        """Query Splunk for event times to diagnose alert mismatches."""
+        default_host = config.get('splunk.default_host', 'dt-splunk')
+        secondary_host = config.get('hosts.secondary', '132.72.81.150')
+        query = f'index={self.unwrapped.splunk_tools.index_name} host IN ("{default_host}", {secondary_host}) EventCode={relevant_log[0][1]}  | stats count by real_ts var_id'
+        results = self.unwrapped.splunk_tools.run_search(query, start_epoch, end_epoch)
+        formatted_log = "\n".join([json.dumps(record) for record in results])
+        logger.info(f"Event times for {rule_name} in ({start_epoch}, {end_epoch}): {formatted_log}")
+
+    def _persist_baseline_snapshot(self, info, raw_baseline_metrics):
+        """Append baseline metrics once per time-range, flush when buffer is full."""
+        if len(self.unwrapped.all_baseline_data) < len(self.unwrapped.baseline_df.time_range.unique()):
+            self.unwrapped.all_baseline_data.append({
+                'time_range': info['current_window'],
+                'ac_real_distribution': self.unwrapped.ac_real_distribution,
+                'raw_metrics': raw_baseline_metrics,
+            })
+        else:
+            all_baseline_data_df = pd.json_normalize(self.unwrapped.all_baseline_data, sep='_')
+            all_baseline_data_df.to_csv(self.unwrapped.all_baseline_data_path, index=False, mode='w')
+            self.unwrapped.all_baseline_data = []
+
+    def _update_measurement_state(self):
+        """Advance episode counter and decide whether to take real measurements."""
+        self._episode_counter += 1
+        if (self._episode_counter % self._measurement_frequency == 0 or self.is_eval) and not self.is_mock:
+            logger.info("Measuring")
+            self.measuring = True
+        else:
+            self.measuring = False
+        self.unwrapped.should_delete = not self.is_mock or self.measuring
+
+    def _inject_logs_if_needed(self, time_range_start_epoch, time_range_end_epoch):
+        """Inject episodic logs into Splunk when running in live mode."""
+        if (not self.is_mock or self.measuring) and self.use_energy and self.use_alert:
+            if self.baseline_measured:
+                logger.info("Empty deletion dict of log generator and relevant fake_splunk_state")
+                self.unwrapped.log_generator.logs_to_delete = {}
+                for t_r in self.unwrapped.log_generator.fake_splunk_state:
+                    t_r_datetime = (datetime.datetime.strptime(t_r[0], '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(t_r[1], '%m/%d/%Y:%H:%M:%S'))
+                    if t_r_datetime[0].timestamp() >= time_range_start_epoch and t_r_datetime[1].timestamp() <= time_range_end_epoch:
+                        self.unwrapped.log_generator.fake_splunk_state[t_r] = {}
+            self.env.env.inject_episodic_logs(self.injection_id)
+            self.injection_id += 1
+
+    def _apply_mock_overrides(self, info, raw_metrics, combined_metrics):
+        """In mock mode, substitute predicted alerts for measured ones."""
+        if self.is_mock and self.measuring:
+            combined_metrics['real_cpu'] = combined_metrics['cpu']
+
+        if self.is_mock and (self.use_alert or self.use_energy):
+            current_alerts = self.alert_predictor.current_alerts
+            for rule in expected_alerts:
+                raw_metrics[rule]['alert'] = current_alerts[rule]
+            info['combined_metrics']['alert'] = sum(current_alerts.values())
+
+    def _persist_experiment_data(self, info, raw_metrics):
+        """Buffer and periodically flush experiment data to CSV."""
+        if not self.is_mock and self.use_energy and self.use_alert:
+            self.unwrapped.all_data.append({
+                'time_range': info['current_window'],
+                'ac_fake_distribution': self.unwrapped.ac_fake_distribution,
+                'raw_metrics': raw_metrics,
+            })
+            if random.randint(0, 1000) % 10 == 0:
+                if self.unwrapped.all_data:
+                    all_data_df = pd.json_normalize(self.unwrapped.all_data, sep='_')
+                    all_data_df.to_csv(self.unwrapped.all_data_path, index=False, mode='a', header=not path.exists(self.unwrapped.all_data_path))
+                self.unwrapped.all_data = []
+
     def step(self, action):
-        """Override step to properly handle info updates with prediction"""
+        """Orchestrate episode-end reward computation."""
         obs, reward, terminated, truncated, info = super().step(action)
-        if info.get('done', True) and info.get('distribution_reward') == 0:
-            reward = 0
 
         if info.get('done', True):
             self.baseline_measured = False
-            inserted_logs = info.get('inserted_logs', 0)
             diversity_logs = info.get('diversity_episode_logs', {})
-            
-            # Predict and decide whether to execute
-            should_execute, predicted_alert_reward, raw_baseline_metrics, cached_baseline_data = self.predict_and_decide_execution(
-                info['current_window'],
-                diversity_logs,
-                info.get('ac_distribution_value', 0)
+
+            predicted_alert_reward, raw_baseline_metrics, cached_baseline_data = self.compute_baseline_and_prediction(
+                info['current_window'], diversity_logs
             )
-            # dump baseline metrics to all data (once)
-            if len(self.unwrapped.all_baseline_data) < len(self.unwrapped.baseline_df.time_range.unique()):
-                self.unwrapped.all_baseline_data.append({
-                    'time_range': info['current_window'],
-                    'ac_real_distribution': self.unwrapped.ac_real_distribution,
-                    'raw_metrics':raw_baseline_metrics,
-                })
-            else:
-                # dump and empty the all_data to csv in path if exists
-                all_baseline_data_df = pd.json_normalize(self.unwrapped.all_baseline_data, sep='_')
-                all_baseline_data_df.to_csv(self.unwrapped.all_baseline_data_path, index=False, mode='w')          
-                self.unwrapped.all_baseline_data = []
-            
-            # Store prediction info
+
+            self._persist_baseline_snapshot(info, raw_baseline_metrics)
+
             info['predicted_alert_reward'] = predicted_alert_reward
-            # info['execution_skipped'] = not should_execute and False # TRY!!!!!!!
-            self._episode_counter += 1
-            if  ((self._episode_counter % self._measurement_frequency == 0 or self.is_eval) and should_execute and not self.is_mock):
-                logger.info(f"Measuring")
-                self.measuring = True
-            else:
-                self.measuring = False
-                
-            self.unwrapped.should_delete = should_execute and (not self.is_mock or self.measuring)
-                
-            # self.unwrapped.is_mock = (not should_execute or not self.use_energy or not self.use_alert) 
+            self._update_measurement_state()
+
             time_window = info['current_window']
-            time_range_start_epoch = time_window.start_epoch
-            time_range_end_epoch = time_window.end_epoch
-            # inject logs if not is_mock
-            if (not self.is_mock  or self.measuring) and should_execute and self.use_energy and self.use_alert:
-                if self.baseline_measured:
-                    logger.info(f"Empty deletion dict of log generator and relvant fake_splunk_state")
-                    self.unwrapped.log_generator.logs_to_delete = {}
-                    for t_r in self.unwrapped.log_generator.fake_splunk_state:
-                        t_r_datetime = (datetime.datetime.strptime(t_r[0], '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(t_r[1], '%m/%d/%Y:%H:%M:%S'))
-                        if t_r_datetime[0].timestamp() >= time_range_start_epoch and t_r_datetime[1].timestamp() <= time_range_end_epoch:
-                            self.unwrapped.log_generator.fake_splunk_state[t_r] = {}
-                self.env.env.inject_episodic_logs(self.injection_id) # access to action wrapper0
-                self.injection_id += 1
-                # wait for the logs to be injected
-                # sleep(4)
-            should_run = True
-            attempt = 0
-            stop_loop = False
-            # while should_run and not stop_loop:
-            #     rerun = False
-            #     if attempt > 4:
-            #         logger.info(f"Re-running due to mismatch in alerts difference")
-            rerun = False
-                    
-            #     attempt += 1
-                # Normal execution flow
-                
-            raw_metrics, combined_metrics = self.get_current_reward_values(info['current_window'], should_execute)
-            # logger.info(f"Raw metrics: {raw_metrics}")
-            should_run = False
+            self._inject_logs_if_needed(time_window.start_epoch, time_window.end_epoch)
+
+            raw_metrics, combined_metrics = self.get_current_reward_values(info['current_window'])
             baseline_raw_metrics, combined_baseline_metrics = self.process_metrics(
                 cached_baseline_data.groupby('search_name')
             )
-                # if rerun or self.is_mock:
-                #     stop_loop = True
 
-            # find the difference of alerts between raw_metrics and baseline_raw_metrics
             alerts_diff = {rule: raw_metrics[rule]['alert'] - baseline_raw_metrics.get(rule, {}).get('alert', 0) for rule in expected_alerts}
-            
-            if (not self.is_mock  or self.measuring) and should_execute and self.use_energy and self.use_alert:
-                # check compatibility of alerts_diff with diversity info
-                for rule in expected_alerts:
-                    if rule == 'ESCU Windows Rapid Authentication On Multiple Hosts Rule':
-                        continue
-                    relevant_log = self.unwrapped.section_logtypes.get(rule, None)
-                    if relevant_log:
-                        log_type = "_".join(relevant_log[0]) + "_1"
-                        diversity_value = diversity_logs.get(log_type, 0)
-                        if alerts_diff[rule] != diversity_value:
-                            
-                            logger.warning(f"Alert difference mismatch for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
-                            # get the field real_ts of the events in the results of the query to find the mismatch
-                            def get_event_times(rule_name, time_range):
-                                # query splunk for the events in the time range
-                                default_host = config.get('splunk.default_host', 'dt-splunk')
-                                secondary_host = config.get('hosts.secondary', '132.72.81.150')
-                                query = f'index={self.unwrapped.splunk_tools.index_name} host IN ("{default_host}", {secondary_host}) EventCode={relevant_log[0][1]}  | stats count by real_ts var_id'
-                                # print(time_range_date)
-                                results = self.unwrapped.splunk_tools.run_search(query, *time_range)
-                                formatted_log = "\n".join([json.dumps(record) for record in results])
-                                logger.info(f"Event times for {rule_name} in {time_range}: {formatted_log}")
-                            get_event_times(rule, (time_range_start_epoch, time_range_end_epoch))
-                        else:
-                            logger.info(f"Alert difference match for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
-                        
-            if self.is_mock and self.measuring and should_execute:  
-                combined_metrics['real_cpu'] = combined_metrics['cpu'] 
+            if (not self.is_mock or self.measuring) and self.use_energy and self.use_alert:
+                self._validate_alert_consistency(alerts_diff, diversity_logs, time_window.start_epoch, time_window.end_epoch)
 
             info['combined_metrics'] = combined_metrics
             info['combined_baseline_metrics'] = combined_baseline_metrics
-            if self.is_mock and (self.use_alert or self.use_energy):
-                current_alerts = self.alert_predictor.current_alerts
-                # baseline_alerts = {rule: raw_baseline_metrics[rule]['alert'] for rule in expected_alerts}
-                for rule in expected_alerts:
-                    raw_metrics[rule]['alert'] = current_alerts[rule]
-                    
-                    # raw_baseline_metrics[rule]['cpu'] = 0
-                    # raw_baseline_metrics[rule]['duration'] = 0
-                info['combined_metrics']['alert'] = sum(current_alerts.values())# + sum(baseline_alerts.values())
-                # sleep(2)
+            self._apply_mock_overrides(info, raw_metrics, combined_metrics)
+            self._persist_experiment_data(info, raw_metrics)
 
-                
-            if should_execute and not self.is_mock and self.use_energy and self.use_alert:
-                self.unwrapped.all_data.append({
-                    'time_range': info['current_window'],
-                    'ac_fake_distribution': self.unwrapped.ac_fake_distribution,
-                    'raw_metrics':raw_metrics,
-                })
-                if random.randint(0, 1000) % 10 == 0:
-                    # dump and empty the all_data to csv in path if exists
-                    if self.unwrapped.all_data:
-                        all_data_df = pd.json_normalize(self.unwrapped.all_data, sep='_')
-                        all_data_df.to_csv(self.unwrapped.all_data_path, index=False, mode='a', header=not path.exists(self.unwrapped.all_data_path))
-                    
-                    self.unwrapped.all_data = []
-            # Set a penalty reward for skipping
-            # info['alert_reward'] = predicted_alert_reward
             if not self.use_alert:
                 predicted_alert_reward = 0
 
             info['raw_metrics'] = raw_metrics
             info['raw_baseline_metrics'] = raw_baseline_metrics
-            
+
         return obs, reward, terminated, truncated, info
 
 
+
+
+from wrappers.reward_interpreters import (
+    AlertSignal, AlertNormalizer,
+    PredictedAlertSignal, RelativeDiffAlertSignal, ExpectedDiffAlertSignal,
+    TanhNormalizer, IdentityNormalizer, ScaledTanhNormalizer,
+    ALERT_REWARD_REGISTRY,
+    ENERGY_NORMALIZER_REGISTRY, TanhEnergyNormalizer,
+)
 
 
 class AlertRewardWrapper(RewardWrapper):
-    """Wrapper for alert-based rewards"""
-    def __init__(self, env: gym.Env, beta: float = None, epsilon: float = None, normalizer_factor: float = None):
+    """Unified alert reward wrapper composing a signal strategy and a normalizer."""
+
+    def __init__(self, env: gym.Env, signal: AlertSignal, normalizer: AlertNormalizer,
+                 beta: float = None, epsilon: float = None, normalizer_factor: float = None,
+                 use_stationary_scaling: bool = False):
         super().__init__(env)
+        self.signal = signal
+        self.normalizer = normalizer
         self.beta = beta if beta is not None else config.get('reward.beta', 0.5)
-        self.epsilon = epsilon if epsilon is not None else config.get('reward.epsilon', 1e-8)
+        self.epsilon = epsilon if epsilon is not None else config.get('reward.alert_epsilon',
+                                                                       config.get('reward.epsilon', 1e-8))
         self.normalizer_factor = normalizer_factor if normalizer_factor is not None else config.get('reward.normalizer_factor', 10)
+        self.use_stationary_scaling = use_stationary_scaling
 
-    def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
-        """Calculate normalized alert reward"""
-        norm_alert_reward = -np.tanh(-predicted_alert_reward/self.normalizer_factor)
-        return norm_alert_reward
-    
     def step(self, action):
-        """Override step to properly handle info updates"""
         obs, reward, terminated, truncated, info = self.env.step(action)
         if info.get('done', True):
-            predicted_alert_reward = info.get('predicted_alert_reward', 0)
-            info['alert_reward'] = predicted_alert_reward
-            info['norm_alert_reward'] = self.calculate_alert_reward(predicted_alert_reward)
-            ############### Total reward ##############
-            reward += self.unwrapped.total_steps*self.beta*info['norm_alert_reward']
-            logger.info(f"Alert reward: {predicted_alert_reward:.3f}, norm_alert_reward: {info['norm_alert_reward']:.3f}")
-        return obs, reward, terminated, truncated, info
-    
-class AlertRewardWrapper1(AlertRewardWrapper):
-    """Wrapper for alert-based rewards"""
-    def __init__(self, env: gym.Env, beta: float = None, epsilon: float = None, normalizer_factor: float = None):
-        super().__init__(env, beta, epsilon, normalizer_factor)
-
-    def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
-        """Calculate normalized alert reward"""
-        norm_alert_reward = predicted_alert_reward
-        return norm_alert_reward
-
-class AlertRewardWrapper2(AlertRewardWrapper):
-    """Wrapper for alert-based rewards"""
-    def __init__(self, env: gym.Env, beta: float = None, epsilon: float = None, normalizer_factor: float = None):
-        super().__init__(env, beta, epsilon, normalizer_factor)
-        self.baseline_rules_alerts = {rule: expected_alerts[rule]['alert'] for rule in expected_alerts}
-
-    def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
-        """Calculate normalized alert reward"""
-        # norm_alert_reward = - self.normalizer_factor*((-predicted_alert_reward)**3)
-        tanh_scale = config.get('reward.tanh_scale_factor', -2)
-        norm_alert_reward = tanh_scale*np.tanh(-predicted_alert_reward/self.normalizer_factor)
-        return norm_alert_reward
-    
-    def step(self, action):
-        """Override step to properly handle info updates"""
-        obs, reward, terminated, truncated, info = self.env.step(action)
-        if info.get('done', True):
-            current_rules_alerts = {rule: info['raw_metrics'][rule]['alert'] for rule in expected_alerts}
-            # print(f"Current rules alerts: {current_rules_alerts}")
-            
-            # print(f"Baseline rules alerts: {baseline_rules_alerts}")
-            # average relative diff of alerts by rule
-            alert_diffs = []
-            for rule in expected_alerts:
-                baseline_alert = self.baseline_rules_alerts.get(rule, 0)
-                alert_diff = (current_rules_alerts[rule] - baseline_alert) / (baseline_alert + self.epsilon)
-                alert_diffs.append(alert_diff)
-            if alert_diffs:
-                # print(f"Alert diffs: {alert_diffs}")
-                reward_alert = min(0, -np.mean(alert_diffs))
-                
-            else:
-                reward_alert = 0
-            info['alert_reward'] = reward_alert
-            info['norm_alert_reward'] = self.calculate_alert_reward(reward_alert)
-            # reward += info['norm_alert_reward']
-            reward += self.unwrapped.total_steps*self.beta*info['norm_alert_reward']
+            raw_alert = self.signal.compute(info, expected_alerts, self.epsilon)
+            info['alert_reward'] = raw_alert
+            info['norm_alert_reward'] = self.normalizer.normalize(raw_alert, self.normalizer_factor)
+            scale = 1.0 if self.use_stationary_scaling else self.unwrapped.total_steps
+            reward += scale * self.beta * info['norm_alert_reward']
+            logger.info(f"Alert reward: {raw_alert:.3f}, norm_alert_reward: {info['norm_alert_reward']:.3f}")
         return obs, reward, terminated, truncated, info
 
-class AlertRewardWrapper3(AlertRewardWrapper2):
-    def __init__(self, env: gym.Env, beta: float = None):
-        super().__init__(env, beta=beta)
-          
-    def calculate_alert_reward(self, predicted_alert_reward: float) -> float:
-        """Calculate normalized alert reward"""
-        norm_alert_reward = predicted_alert_reward
-        return norm_alert_reward  
-    
-# enum for different alert reward calculation methods     
+
+def create_alert_reward_wrapper(env, method_name: str, beta: float = None,
+                                epsilon: float = None, normalizer_factor: float = None,
+                                use_stationary_scaling: bool = False) -> AlertRewardWrapper:
+    """Factory: build an AlertRewardWrapper from a registry name.
+
+    Args:
+        method_name: Key in ``ALERT_REWARD_REGISTRY`` (e.g. ``'AlertRewardWrapper2'``).
+    """
+    if method_name not in ALERT_REWARD_REGISTRY:
+        raise ValueError(f"Unknown alert reward method: {method_name!r}. "
+                         f"Available: {list(ALERT_REWARD_REGISTRY.keys())}")
+
+    signal_cls, normalizer_cls = ALERT_REWARD_REGISTRY[method_name]
+
+    # RelativeDiffAlertSignal needs fallback_baseline_alerts
+    if signal_cls is RelativeDiffAlertSignal:
+        fallback = {rule: expected_alerts[rule]['alert'] for rule in expected_alerts}
+        signal = signal_cls(fallback)
+    else:
+        signal = signal_cls()
+
+    normalizer = normalizer_cls()
+
+    return AlertRewardWrapper(
+        env, signal=signal, normalizer=normalizer,
+        beta=beta, epsilon=epsilon, normalizer_factor=normalizer_factor,
+        use_stationary_scaling=use_stationary_scaling,
+    )
+
+
+# Backward-compatible alias (maps names → lambdas that call the factory)
 ENUM_ALERT_REWARD_METHODS = {
-    'AlertRewardWrapper': AlertRewardWrapper,
-    'AlertRewardWrapper1': AlertRewardWrapper1,
-    'AlertRewardWrapper2': AlertRewardWrapper2,
-    'AlertRewardWrapper3': AlertRewardWrapper3,
-    }         
+    name: lambda env, beta=None, epsilon=None, normalizer_factor=None, _n=name: (
+        create_alert_reward_wrapper(env, _n, beta=beta, epsilon=epsilon,
+                                    normalizer_factor=normalizer_factor)
+    )
+    for name in ['AlertRewardWrapper', 'AlertRewardWrapper1',
+                 'AlertRewardWrapper2', 'AlertRewardWrapper3']
+}         
 
 class EnergyRewardWrapper(RewardWrapper):
     """Wrapper for energy consumption rewards"""
-    def __init__(self, env: gym.Env, alpha: float = None, is_mock: bool = False):
+    def __init__(self, env: gym.Env, alpha: float = None, is_mock: bool = False,
+                 use_stationary_scaling: bool = False, energy_normalizer=None):
         super().__init__(env)
-        self.alpha = alpha if alpha is not None else config.get('reward.beta', 0.5)
+        self.alpha = alpha if alpha is not None else config.get('reward.alpha', 0.5)
         self.is_mock = is_mock
+        self.use_stationary_scaling = use_stationary_scaling
+        self.energy_normalizer = energy_normalizer or self._build_normalizer()
         self.energies = []
-        self.epsilon = config.get('reward.epsilon', 1e-8)
+        self.epsilon = config.get('reward.energy_epsilon', config.get('reward.epsilon', 1e-8))
         self.ENERGY_CHANGE_TARGET = config.get('reward.energy_change_target', 1)
+
+    def _build_normalizer(self):
+        """Build energy normalizer from config."""
+        name = config.get('reward.energy_normalizer', 'tanh')
+        cls = ENERGY_NORMALIZER_REGISTRY.get(name, TanhEnergyNormalizer)
+        if name == 'tanh':
+            return cls(scale=config.get('reward.tanh_energy_scale', 1.5))
+        elif name == 'log1p':
+            return cls(
+                scale=config.get('reward.energy_normalizer_scale', 1.0),
+                ceiling=config.get('reward.energy_normalizer_ceiling', 10.0),
+            )
+        return cls()
     
     def estimate_energy_consumption(self, fake_dist, info):
-        # Placeholder for energy consumption estimation logic
-        # This should return the estimated energy consumption for the current state
-        # Use the energy model to estimate energy consumption
-        rules_alerts = {rule: info['raw_metrics'][rule]['alert'] for rule in self.unwrapped.splunk_tools.active_saved_searches} 
-        
-        model = self.env.energy_models["all"]
-        # normalize the fake distribution and rule alert
+        """Estimate energy consumption using per-rule regression models."""
+        rules_alerts = {rule: info['raw_metrics'][rule]['alert'] for rule in self.unwrapped.splunk_tools.active_saved_searches}
+
         if not isinstance(fake_dist, np.ndarray):
             fake_dist = np.array(list(fake_dist)[:-1])
         rules_alerts_array = np.array(list(rules_alerts.values()))
@@ -613,20 +518,11 @@ class EnergyRewardWrapper(RewardWrapper):
             fake_dist = fake_dist.reshape(1, -1)
         if rules_alerts_array.ndim == 1:
             rules_alerts_array = rules_alerts_array.reshape(1, -1)
-        # print(fake_dist, rules_alerts[rule])
-        # print(fake_dist)
-        # print(rules_alerts_array)
         fake_dist_normalizer = config.get('reward.fake_dist_normalizer', 475796)
         alert_normalizer = config.get('reward.alert_normalizer', 203)
-        fake_dist = (fake_dist) / fake_dist_normalizer
+        fake_dist = fake_dist / fake_dist_normalizer
         rules_alerts_array = (rules_alerts_array - 1) / alert_normalizer
-        X = np.concatenate((fake_dist, rules_alerts_array), axis=1)
-        # print(X)
 
-        # print(X)
-        # estimated_energy_all_model = model.predict(X)[0]
-        
-        # calculate estimated energy consumption using individual models and sum them
         estimated_energy = 0
         for i, rule in enumerate(expected_alerts):
             rule_model = self.env.energy_models[rule]
@@ -642,9 +538,7 @@ class EnergyRewardWrapper(RewardWrapper):
         """Override step to properly handle info updates"""
         obs, reward, terminated, truncated, info = self.env.step(action)
         if info.get('done', True):
-            if self.is_mock:  
-                # print(rules_alerts)
-                # print(self.unwrapped.ac_fake_distribution)                                        
+            if self.is_mock:
                 estimated_energy = self.estimate_energy_consumption(
                     self.unwrapped.ac_fake_distribution.values(),
                     info
@@ -656,31 +550,36 @@ class EnergyRewardWrapper(RewardWrapper):
             energy_reward = max((current  - baseline) / (baseline + self.epsilon), 0)
             self.energies.append(energy_reward)
             info['energy_reward'] = energy_reward
-
-            # info['norm_energy_reward'] = np.clip(energy_reward, 0, 1)
-            tanh_energy_scale = config.get('reward.tanh_energy_scale', 1.5)
-            info['norm_energy_reward'] = np.tanh(energy_reward*tanh_energy_scale)
-            # info['norm_energy_reward'] = energy_reward*100
-            # info['norm_energy_reward'] = np.clip(energy_reward/self.ENERGY_CHANGE_TARGET, 0, 1)
+            info['norm_energy_reward'] = self.energy_normalizer.normalize(energy_reward)
             logger.info(f"Energy reward: {energy_reward:.3f}, current: {current:.3f}, baseline: {baseline:.3f}")
-            reward += info['norm_energy_reward']
-            reward += self.unwrapped.total_steps*self.alpha*info['norm_energy_reward']
+            scale = 1.0 if self.use_stationary_scaling else self.unwrapped.total_steps
+            reward += scale * self.alpha * info['norm_energy_reward']
         return obs, reward, terminated, truncated, info
 
 class DistributionRewardWrapper(RewardWrapper):
-    """Wrapper for distribution similarity rewards"""
-    def __init__(self, env: gym.Env, gamma: float = None, epsilon: float = None, distribution_freq: int = None, distribution_threshold: float = None):
+    """Wrapper for distribution similarity rewards.
+
+    Unlike energy and alert rewards (applied once at episode end when
+    ``info['done']`` is True), distribution reward is applied on every step.
+    This is intentional: continuous per-step feedback steers the agent toward
+    realistic log distributions throughout the episode, rather than only
+    penalizing the final divergence.
+    """
+    def __init__(self, env: gym.Env, gamma: float = None, epsilon: float = None,
+                 distribution_freq: int = None, distribution_threshold: float = None,
+                 normalize_to_episode: bool = None):
         super().__init__(env)
         self.gamma = gamma if gamma is not None else config.get('reward.distribution_gamma', 0.2)
-        # print(f"Gamma: {self.gamma}")
-        self.epsilon = epsilon if epsilon is not None else config.get('reward.epsilon', 1e-8)
+        self.epsilon = epsilon if epsilon is not None else config.get('reward.distribution_epsilon',
+                                                                       config.get('reward.epsilon', 1e-8))
         self.distribution_reward_freq = distribution_freq if distribution_freq is not None else config.get('reward.distribution_freq', 3)
         self.distribution_threshold = distribution_threshold if distribution_threshold is not None else config.get('reward.distribution_threshold', 0.22)
+        self.normalize_to_episode = normalize_to_episode if normalize_to_episode is not None \
+            else config.get('reward.normalize_distribution_to_episode', True)
         
         
     def step(self, action):
-        obs, reward, terminated, truncated, info = self.env.step(action)    
-        # if terminated:
+        obs, reward, terminated, truncated, info = self.env.step(action)
         dist_value = self._calculate_distribution_value(
             self.unwrapped.ac_real_state,
             self.unwrapped.ac_fake_state
@@ -688,40 +587,38 @@ class DistributionRewardWrapper(RewardWrapper):
         info['ac_distribution_value'] = dist_value
         info['full_ac_distribution_value'] = dist_value
         info['ac_distribution_reward'] = self._calculate_distribution_reward(dist_value)
-        reward = self.gamma*info['ac_distribution_reward']
+        dist_reward = self.gamma * info['ac_distribution_reward']
+        if self.normalize_to_episode:
+            dist_reward /= self.unwrapped.total_steps
+        reward += dist_reward
         return obs, reward, terminated, truncated, info
     
     def _calculate_distribution_reward(self, distribution_value: float) -> float:
-        # return -distribution_value*100
         kl_scale = config.get('reward.kl_divergence_scale', 4)
-        return -np.tanh(distribution_value*kl_scale)
+        return -np.tanh(distribution_value * kl_scale)
 
     def _calculate_distribution_value(self, real_dist, fake_dist):
         # Add epsilon and normalize
         real_dist = (real_dist + self.epsilon) / np.sum(real_dist + self.epsilon)
         fake_dist = (fake_dist + self.epsilon) / np.sum(fake_dist + self.epsilon)
         
-        # Calculate JSD
-        # m = (real_dist + fake_dist) / 2
-        # jsd = (self._kl_divergence(real_dist, m) + 
-        #        self._kl_divergence(fake_dist, m)) / 2
-        # return jsd
-        # Calculate KL divergence
-        return self._kl_divergence(real_dist , fake_dist)
-        # return self.chi_square(fake_dist, real_dist)
+        return self._kl_divergence(real_dist, fake_dist)
         
     def _kl_divergence(self, p, q):
-        return np.sum(p * np.log(p / q))
+        return np.sum(p * np.log(np.clip(p / q, 1e-10, 1e10)))
     
     def chi_square(self, p, q):
         return np.sum((p - q) ** 2 / (p + q + self.epsilon))
 
 class DistributionRewardWrapper1(DistributionRewardWrapper):
     """Wrapper for distribution similarity rewards"""
-    def __init__(self, env: gym.Env, gamma: float = None, epsilon: float = None, distribution_freq: int = None, distribution_threshold: float = None):
-        super().__init__(env, gamma, epsilon, distribution_freq, distribution_threshold)
+    def __init__(self, env: gym.Env, gamma: float = None, epsilon: float = None,
+                 distribution_freq: int = None, distribution_threshold: float = None,
+                 normalize_to_episode: bool = None):
+        super().__init__(env, gamma, epsilon, distribution_freq, distribution_threshold,
+                         normalize_to_episode)
         
-    def calculate_distribution_reward(self, distribution_value: float) -> float:
+    def _calculate_distribution_reward(self, distribution_value: float) -> float:
         return -distribution_value
     
 ENUM_DISTRIBUTION_REWARD_METHODS = {
