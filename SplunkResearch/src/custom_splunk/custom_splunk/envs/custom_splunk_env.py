@@ -142,7 +142,7 @@ class SplunkEnv(gym.Env):
         # Initialise shared state distributions
         self.shared.init_distributions(self.top_logtypes, self.relevant_logtypes, self.logtype_key_cache)
 
-        self.relevant_logtypes_indices = {logtype: i for i, logtype in enumerate(self.top_logtypes) if logtype in self.top_logtypes}
+        self.top_logtypes_indices = {logtype: i for i, logtype in enumerate(self.top_logtypes)}
         self.is_mock = False
         self.baseline_dir = Path(baseline_dir)
         self.baseline_dir.mkdir(parents=True, exist_ok=True)

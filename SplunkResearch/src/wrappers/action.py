@@ -163,7 +163,7 @@ class Action(ActionWrapper):
         ])
         cache = self.unwrapped.logtype_key_cache
         self.unwrapped.fake_relevant_distribution = {
-            cache[logtype]: self.unwrapped.ac_fake_state[self.unwrapped.relevant_logtypes_indices[logtype]]
+            cache[logtype]: self.unwrapped.ac_fake_state[self.unwrapped.top_logtypes_indices[logtype]]
             for logtype in self.unwrapped.top_logtypes
         }
 
@@ -243,7 +243,7 @@ class Action(ActionWrapper):
         while (logs_count - results) / logs_count > 0.01:
             sleep(2)
             default_host = config.get('splunk.default_host', 'dt-splunk')
-            secondary_host = config.get('hosts.secondary', '132.72.81.150')
+            secondary_host = config.get('hosts.secondary', '132.72.81.150') # No hosts.secondary in yaml
             query = f'index={self.unwrapped.splunk_tools.index_name} host IN ("{default_host}", {secondary_host}) | stats count'
             results = self.unwrapped.splunk_tools.run_search(query, all_start_date, all_end_date)
             results = int(results[0]['count'])
@@ -394,5 +394,5 @@ def create_action_wrapper(env, action_type: str, test_random: bool = False) -> A
             f"Available: {list(ACTION_INTERPRETER_REGISTRY.keys())}"
         )
     entry = ACTION_INTERPRETER_REGISTRY[action_type]
-    interpreter = entry() if callable(entry) else entry()
+    interpreter = entry()
     return Action(env, interpreter, test_random)
