@@ -9,14 +9,14 @@ reward:
   std: 13
   # Expected alerts per rule (9 values)
   expected_alerts_per_rule: [4, 0.7, 0, 4, 0, 0, 0, 0, 0]
-  # Alert threshold
-  alert_threshold: -0.5
   # Reward weighting factors
   alpha: 0.5           # Energy reward weight
-  beta: 0.33           # Alert reward weight
-  gamma: 0.33          # Distribution reward weight
-  # Numerical stability epsilon
-  epsilon: 0.00000001
+  beta: 0.5            # Alert reward weight
+  gamma: 0.5           # Distribution reward weight
+  # Per-component numerical stability epsilons
+  alert_epsilon: 0.1           # Alert reward division stability
+  energy_epsilon: 0.00000001   # Energy reward: (baseline + eps) prevents div-by-zero
+  distribution_epsilon: 0.00000001  # Distribution: KL divergence smoothing, prevents log(0)
   # Normalizer factor for tanh
   normalizer_factor: 10
   # Energy change target
@@ -39,8 +39,26 @@ reward:
   # Reward method wrappers
   alert_method: AlertRewardWrapper
   distribution_method: DistributionRewardWrapper
-  # Skip execution on low alerts
-  skip_on_low_alert: true
+  # Use stationary (constant) reward scaling instead of total_steps
+  use_stationary_scaling: true
+  # Normalize per-step distribution reward by total_steps so cumulative
+  # contribution is comparable to episode-end energy/alert rewards
+  normalize_distribution_to_episode: true
+  # Energy normalizer: 'tanh' (original, saturates fast) or 'log1p' (gradient preserved)
+  energy_normalizer: log1p
+  energy_normalizer_scale: 1.0    # log1p scale param
+  energy_normalizer_ceiling: 2.0 # log1p ceiling param
+  # Rule names for expected alerts (order must match expected_alerts_per_rule)
+  rule_names:
+    - Windows Event For Service Disabled
+    - Detect New Local Admin Account
+    - ESCU Network Share Discovery Via Dir Command Rule
+    - Known Services Killed by Ransomware
+    - Non Chrome Process Accessing Chrome Default Dir
+    - Kerberoasting SPN Request With RC4 Encryption
+    - Clop Ransomware Known Service Name
+    - Windows AD Replication Request Initiated from Unsanctioned Location
+    - ESCU Windows Rapid Authentication On Multiple Hosts Rule
 
 # Action space parameters
 action:
@@ -160,7 +178,7 @@ training:
     train_freq: 4        # Train every 4 episodes
     train_freq_unit: episode
     buffer_size: 100000
-    batch_size: 2048
+    batch_size: 1024
     ent_coef: auto       # Automatic entropy tuning
     use_sde: true        # Use state-dependent exploration
     # Policy network architecture
