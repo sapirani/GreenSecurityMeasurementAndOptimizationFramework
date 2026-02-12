@@ -104,7 +104,7 @@ class MetricsLoggerCallback:
         # Log episodic policy
         for event_type in info.get('episode_logs', {}):
             self.writers[f"{event_type}"].add_scalar(f'{self.phase}/episodic_policy', info['episode_logs'][f"{event_type}"], global_step=info['n_calls'])
-            self.writers[f"{event_type}"].add_scalar(f'{self.phase}/diversity_policy', info['diversity_episode_logs'][f"{event_type}"], global_step=info['n_calls'])
+            self.writers[f"{event_type}"].add_scalar(f'{self.phase}/diversity_policy', info['diversity_episode_logs'].get(f"{event_type}", 0), global_step=info['n_calls'])
 
         if 'episodic_inserted_logs' in info:
             self._log_metrics('episodic_inserted_logs', info['episodic_inserted_logs'], exclude_from_csv=True)
