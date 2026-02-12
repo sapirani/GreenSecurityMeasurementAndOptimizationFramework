@@ -368,7 +368,9 @@ class SplunkTools(object):
             for col in df.select_dtypes(include=['int64']).columns:
                 df[col] = df[col].astype('int32')
             self.real_logs_distribution  = df
-            self.real_logs_distribution['source'].str.contains('Security|System', case=False, regex=True)
+            self.real_logs_distribution = self.real_logs_distribution[
+                self.real_logs_distribution['source'].str.contains('Security|System', case=False, regex=True)
+            ]
             
             self.real_logs_distribution = self.real_logs_distribution.set_index('_time').sort_index()  
             self.full_hosts_list = self.real_logs_distribution['host'].unique().tolist()
