@@ -213,7 +213,7 @@ evaluation:
   # Evaluation frequency (in timesteps)
   eval_freq: 1
   # Use deterministic policy for evaluation
-  deterministic: true
+  deterministic: false
   # Render environment during evaluation
   render: false
   # Verbose level for evaluation
@@ -236,6 +236,7 @@ callbacks:
 
   # Evaluation callback
   eval:
+    enabled: true        # Run eval during training (--no-eval-during-training to disable)
     eval_freq: 600000    # Evaluate every N timesteps
     deterministic: false # Use stochastic policy during training eval
     render: false

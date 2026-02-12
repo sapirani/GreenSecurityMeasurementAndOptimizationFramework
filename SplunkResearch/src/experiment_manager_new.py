@@ -12,7 +12,6 @@ of reinforcement learning experiments including:
 For CLI usage, see run_experiment.py
 """
 import inspect
-from operator import is_
 import ssl
 import signal
 import subprocess
@@ -565,56 +564,76 @@ class ExperimentManager:
         try:
             # Create environment and model
             env = self.create_environment(env_config, overrides)
+            # Load real log distribution for the training env so that
+            # StateWrapper.update_real_distribution() returns actual data.
+            train_start = datetime.datetime.strptime(
+                env.unwrapped.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'
+            )
+            train_end = datetime.datetime.now()
+            env.unwrapped.splunk_tools.load_real_logs_distribution_bucket(train_start, train_end)
+
             model = self.create_model(env, overrides)
 
-            # Create eval environment
-            eval_env_config = SplunkConfig(
-                rule_frequency=config.get('splunk.eval_rule_frequency', 2880),
-                search_window=config.get('splunk.search_window', 2880),
-                logs_per_minute=config.get('splunk.logs_per_minute', 150),
-                additional_percentage=get_config('environment.additional_percentage', 1.0),
-                action_duration=config.get('splunk.action_duration', 14400),
-                num_of_measurements=config.get('splunk.num_measurements', 1),
-                baseline_num_of_measurements=config.get('splunk.baseline_num_measurements', 1),
-                env_id=config.get('splunk.eval_env_id', 'splunk_eval-v32'),
-                end_time=config.get('splunk.eval_end_time', '09/01/2025:00:00:00'),
-                ip=env_config.ip
-            )
-            eval_overrides = overrides.copy()
-            eval_overrides['experiment.mode'] = 'eval'
-            eval_overrides['environment.is_mock'] = False
+            # Determine whether to create eval environment
+            eval_enabled = get_config('callbacks.eval.enabled', True)
+            need_eval_env = (mode == 'eval_post_training') or eval_enabled
 
-            self.eval_env = self.create_environment(eval_env_config, eval_overrides)
-            self.eval_env.unwrapped.splunk_tools.load_real_logs_distribution_bucket(
-                datetime.datetime.strptime(env.unwrapped.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'),
-                datetime.datetime.strptime(self.eval_env.unwrapped.time_manager.end_time, '%m/%d/%Y:%H:%M:%S')
-            )
+            if need_eval_env:
+                # Create eval environment
+                eval_env_config = SplunkConfig(
+                    rule_frequency=config.get('splunk.eval_rule_frequency', 2880),
+                    search_window=config.get('splunk.search_window', 2880),
+                    logs_per_minute=config.get('splunk.logs_per_minute', 150),
+                    additional_percentage=get_config('environment.additional_percentage', 1.0),
+                    action_duration=config.get('splunk.action_duration', 14400),
+                    num_of_measurements=config.get('splunk.num_measurements', 1),
+                    baseline_num_of_measurements=config.get('splunk.baseline_num_measurements', 1),
+                    env_id=config.get('splunk.eval_env_id', 'splunk_eval-v32'),
+                    end_time=config.get('splunk.eval_end_time', '09/01/2025:00:00:00'),
+                    ip=env_config.ip
+                )
+                eval_overrides = overrides.copy()
+                eval_overrides['experiment.mode'] = 'eval'
+                eval_overrides['environment.is_mock'] = False
+
+                self.eval_env = self.create_environment(eval_env_config, eval_overrides)
+                self.eval_env.unwrapped.splunk_tools.load_real_logs_distribution_bucket(
+                    datetime.datetime.strptime(env.unwrapped.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'),
+                    datetime.datetime.strptime(self.eval_env.unwrapped.time_manager.end_time, '%m/%d/%Y:%H:%M:%S')
+                )
+            else:
+                logger.info("Eval during training disabled, skipping eval environment creation")
 
             host = os.getenv(f'SPLUNK_HOST_{env_config.ip}', 'localhost')
-            empty_monitored_files(get_system_monitor_path(host))
-            empty_monitored_files(get_security_monitor_path(host))
+            is_mock = get_config('environment.is_mock', True)
+
+            if not is_mock:
+                empty_monitored_files(get_system_monitor_path(host))
+                empty_monitored_files(get_security_monitor_path(host))
 
             if "test_experiment" not in experiment_name:
-                # clean and warm up the env
-                logger.info("Cleaning and warming up the environment")
-                clean_env(env.unwrapped.splunk_tools,
-                         (env.unwrapped.time_manager.first_start_datetime,
-                          datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")),
-                         host=host)
+                if not is_mock or get_config('experiment.mode') == 'eval_post_training' or eval_enabled:
+                    # clean and warm up the env
+                    logger.info("Cleaning and warming up the environment")
+                    clean_env(env.unwrapped.splunk_tools,
+                             (env.unwrapped.time_manager.first_start_datetime,
+                              datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")),
+                             host=host)
                 env.unwrapped.warmup()
             else:
                 action_env = env
-                action_eval_env = self.eval_env
                 while not isinstance(action_env, Action):
                     action_env = action_env.env
-                while not isinstance(action_eval_env, Action):
-                    action_eval_env = action_eval_env.env
-
                 action_env.disable_injection()
-                action_eval_env.disable_injection()
+
+                if self.eval_env is not None:
+                    action_eval_env = self.eval_env
+                    while not isinstance(action_eval_env, Action):
+                        action_eval_env = action_eval_env.env
+                    action_eval_env.disable_injection()
 
             # Setup callbacks
-            callbacks = self._setup_callbacks(overrides)
+            callbacks = self._setup_callbacks(env, overrides)
 
             # Run experiment
             if mode == "train":
@@ -884,8 +903,13 @@ class ExperimentManager:
             'config': json.loads(experiment['config'])
         }
 
-    def _setup_callbacks(self, overrides: dict):
-        """Setup training/evaluation callbacks"""
+    def _setup_callbacks(self, env, overrides: dict):
+        """Setup training/evaluation callbacks.
+
+        Args:
+            env: Training environment (used for rules/event_types when eval_env is None)
+            overrides: Dict of config overrides from CLI args
+        """
         if overrides is None:
             overrides = {}
 
@@ -895,12 +919,14 @@ class ExperimentManager:
         experiment_name = get_config('experiment_name', 'experiment')
         log_dir = str(self.dirs['tensorboard'])
 
-        rules = self.eval_env.unwrapped.splunk_tools.active_saved_searches.keys()
-        event_types = [f"{x[0].lower()}_{x[1]}" for x in self.eval_env.unwrapped.top_logtypes]
+        # Get rules and event_types from eval env if available, else training env
+        source_env = self.eval_env if self.eval_env is not None else env
+        rules = source_env.unwrapped.splunk_tools.active_saved_searches.keys()
+        event_types = [f"{x[0].lower()}_{x[1]}" for x in source_env.unwrapped.top_logtypes]
         writers = self.create_summary_writers(log_dir, rules, event_types)
         self._current_writers = writers
 
-        return [
+        callbacks = [
             CustomTensorboardCallback(
                 log_dir=log_dir,
                 rules=rules,
@@ -916,24 +942,31 @@ class ExperimentManager:
                 save_path=self.dirs['checkpoints'],
                 name_prefix="checkpoint"
             ),
-
-            CustomEvalCallback3(
-                eval_env=self.eval_env,
-                log_dir=log_dir,
-                rules=rules,
-                event_types=event_types,
-                n_eval_episodes=get_config('evaluation.n_eval_episodes', 1),
-                eval_freq=get_config('callbacks.eval.eval_freq', 600000),
-                best_model_save_path=self.dirs['models'],
-                log_path=self.dirs['logs'],
-                deterministic=get_config('callbacks.eval.deterministic', False),
-                render=get_config('callbacks.eval.render', False),
-                verbose=get_config('callbacks.eval.verbose', 1),
-                writers=writers,
-                results_dir=str(self.dirs['results']),
-            ),
-
         ]
+
+        # Only add eval callback if eval is enabled and eval_env exists
+        if get_config('callbacks.eval.enabled', True) and self.eval_env is not None:
+            callbacks.append(
+                CustomEvalCallback3(
+                    eval_env=self.eval_env,
+                    log_dir=log_dir,
+                    rules=rules,
+                    event_types=event_types,
+                    n_eval_episodes=get_config('evaluation.n_eval_episodes', 1),
+                    eval_freq=get_config('callbacks.eval.eval_freq', 600000),
+                    best_model_save_path=self.dirs['models'],
+                    log_path=self.dirs['logs'],
+                    deterministic=get_config('callbacks.eval.deterministic', False),
+                    render=get_config('callbacks.eval.render', False),
+                    verbose=get_config('callbacks.eval.verbose', 1),
+                    writers=writers,
+                    results_dir=str(self.dirs['results']),
+                ),
+            )
+        elif not get_config('callbacks.eval.enabled', True):
+            logger.info("Eval callback disabled via config, skipping CustomEvalCallback3")
+
+        return callbacks
 
     def _cleanup_old_checkpoints(self):
         """Remove old checkpoint files, keeping only the N most recent."""

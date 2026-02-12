@@ -243,6 +243,15 @@ python -m SplunkResearch.src.run_experiment \
     --action-type Action8
 ```
 
+**Training Without Eval Overhead:**
+```bash
+python -m SplunkResearch.src.run_experiment \
+    --mode train \
+    --num-episodes 50000 \
+    --ip 1 \
+    --no-eval-during-training
+```
+
 #### Evaluation Mode
 
 **Evaluate Trained Model:**
@@ -338,6 +347,7 @@ All configuration values from `default.yaml` can be overridden via command-line 
 |------|-------------|
 | `--random-agent` | Use random agent instead of trained model |
 | `--test-experiment` | Run in test mode (disables injection) |
+| `--eval-during-training` / `--no-eval-during-training` | Enable/disable eval callback and eval env during training (default: enabled) |
 
 ### Configuration Files
 

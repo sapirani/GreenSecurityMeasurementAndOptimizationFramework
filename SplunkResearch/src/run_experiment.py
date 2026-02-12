@@ -11,6 +11,7 @@ Usage:
 """
 
 import argparse
+from argparse import BooleanOptionalAction
 import logging
 import os
 from pathlib import Path
@@ -89,6 +90,9 @@ def parse_arguments():
                         help='Use random agent instead of trained model')
     parser.add_argument('--test-experiment', action='store_true',
                         help='Run in test mode (disables injection)')
+    parser.add_argument('--eval-during-training', action=BooleanOptionalAction,
+                        help='Enable/disable eval callback during training '
+                             '(use --no-eval-during-training to disable)')
 
     # Logging
     parser.add_argument('--log-level', type=str,
@@ -176,6 +180,8 @@ def create_overrides_from_args(args, model_path=None):
     # Flags
     if args.random_agent:
         overrides['use_random_agent'] = True
+    if args.eval_during_training is not None:
+        overrides['callbacks.eval.enabled'] = args.eval_during_training
 
     # Logging
     if args.log_level is not None:
