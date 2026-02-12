@@ -67,7 +67,7 @@ class AlertPredictor:
         self.current_alerts[rule_name] = predicted_current
     
     def predict_overall_alert_reward(self, baseline_metrics: Dict, diversity_logs: Dict,
-                                   section_logtypes: Dict, is_mock: bool = False, normalized_distribution: Optional[np.ndarray] = np.array([0.0])) -> float:
+                                   section_logtypes: Dict, is_mock: bool = False) -> float:
         """Predict overall alert reward for all rules"""
         for rule_name, expected in expected_alerts.items():
             baseline_alert = baseline_metrics.get(rule_name, {}).get('alert', 0)
@@ -94,6 +94,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         self.use_alert = use_alert
         self.energy_models = {}
         self.injection_id = 0
+        self._action_wrapper = self._find_action_wrapper()
         self.baseline_measured = False
         self.measuring = False
         self.alert_predictor = AlertPredictor()
@@ -115,11 +116,19 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
 
         self.distributions = []
         self.alerts = []
+
         self.epsilon = config.get('reward.alert_epsilon', config.get('reward.epsilon', 1e-8))
         self._baseline_cache = {}  # {(start_time, end_time): DataFrame}
 
+    def _find_action_wrapper(self):
+        """Traverse the wrapper stack to find the Action wrapper."""
+        env = self.env
+        while env is not None:
+            if hasattr(env, 'inject_episodic_logs'):
+                return env
+            env = getattr(env, 'env', None)
+        return None
 
-  
     def _get_cached_baseline(self, time_range):
         """Return baseline rows for *time_range*, using a dict cache to avoid O(n) filter."""
         key = (time_range[0], time_range[1])
@@ -332,7 +341,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                     t_r_datetime = (datetime.datetime.strptime(t_r[0], '%m/%d/%Y:%H:%M:%S'), datetime.datetime.strptime(t_r[1], '%m/%d/%Y:%H:%M:%S'))
                     if t_r_datetime[0].timestamp() >= time_range_start_epoch and t_r_datetime[1].timestamp() <= time_range_end_epoch:
                         self.unwrapped.log_generator.fake_splunk_state[t_r] = {}
-            self.env.env.inject_episodic_logs(self.injection_id)
+            self._action_wrapper.inject_episodic_logs(self.injection_id)
             self.injection_id += 1
 
     def _apply_mock_overrides(self, info, raw_metrics, combined_metrics):
