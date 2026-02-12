@@ -5,11 +5,9 @@ from enum import Enum
 import json
 import logging
 from multiprocessing import Pool
-from pyexpat import model
 import random
 import re
 import time
-from xxlimited import Str
 import splunklib.client as client
 import splunklib.results as splunk_results
 import splunklib.binding
@@ -206,7 +204,7 @@ class SplunkTools(object):
                 sleep_time = config.get('splunk.operation_sleep_time', 120)
                 time.sleep(sleep_time)
         self._initialized = True
-        self.log_file_prefix = f'{base_dir}/monitor_files_{self.splunk_host}'
+        self.log_file_prefix = f'{base_dir}/eval_monitor_files_{self.splunk_host}' #FIX remove eval in the end of running current training
         self.subset = {}
         self.subset_real_logs_distribution = pd.DataFrame()
         self.full_hosts_list = {}
@@ -730,39 +728,21 @@ class SplunkTools(object):
         start_ts = pd.Timestamp(start_time, unit='s')
         end_ts = pd.Timestamp(end_time, unit='s')
         if hosts_percentage >= 100:
-            relevant_logs = self.real_logs_distribution.loc[start_ts:end_ts]
-            
-            # Check if we have full coverage
-            # if len(relevant_logs) == 0 or \
-            # relevant_logs.index.min() > start_time or \
-            # relevant_logs.index.max() < end_time:
-                # logger.info('Loading missing distribution data from disk.')
-                # self.load_real_logs_distribution_bucket(start_time, end_time)
-                # new_logs = self.real_logs_distribution.loc[
-                #     pd.Timestamp(start_time, unit='s'):pd.Timestamp(end_time, unit='s')
-                # ]
-
-                # # Concatenate with existing
-            
-                # relevant_logs = pd.concat([relevant_logs, new_logs])
-                # logger.info('No relevant logs found for the given time range.')
-                # logger.info(f'Start time: {start_time}, End time: {end_time}')
-                # logger.info(f'Relevant logs shape: {relevant_logs.shape}')
-                # logger.info(f'Relevant logs index range: {relevant_logs.index.min()} - {relevant_logs.index.max()}')
-            relevant_logs.loc[:, 'count'] = relevant_logs['count'].astype(int)
+            relevant_logs = self.real_logs_distribution.loc[start_ts:end_ts].copy()
+            relevant_logs['count'] = relevant_logs['count'].astype(int)
         else:
             # check if subset is empty or time range is outside current subset
             if not self.subset:
                 # get random hosts
-                random_hosts = random.sample(self.full_hosts_list, 
+                random_hosts = random.sample(self.full_hosts_list,
                                             int(len(self.full_hosts_list) * hosts_percentage / 100))
                 self.subset = set(random_hosts)
                 self.subset_real_logs_distribution = self.real_logs_distribution[
                     self.real_logs_distribution['host'].isin(self.subset)
                 ]
-                
-            relevant_logs = self.subset_real_logs_distribution.loc[start_ts:end_ts]
-            relevant_logs.loc[:, 'count'] = relevant_logs['count'].astype(int)
+
+            relevant_logs = self.subset_real_logs_distribution.loc[start_ts:end_ts].copy()
+            relevant_logs['count'] = relevant_logs['count'].astype(int)
         
         return relevant_logs       
               
