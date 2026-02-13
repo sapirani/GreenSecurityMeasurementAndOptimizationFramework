@@ -53,21 +53,53 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         print("Current Job Performance:", self.__current_step_performance)
         print("Current Step Reward:", self.__current_step_reward)
 
+    def __get_episode_context(self, *, is_baseline: bool = False):
+        return EpisodeContext(
+            episode_num=self.episode_counter,
+            episode_step=self.step_count,
+            is_baseline=is_baseline
+        )
+
+    def __log_results(
+            self,
+            job_config: HadoopJobExecutionConfig,
+            job_performance: JobExecutionPerformance,
+            step_reward: Optional[float] = None,
+            *,
+            is_baseline: bool = False,
+    ):
+        if is_baseline and step_reward:
+            raise ValueError("Reward values are not expected when logging the baseline performance")
+
+        progress_context = self.training_progress_tracker.get_progress_context(
+            self.__episodic_job_descriptor,
+            is_baseline=is_baseline
+        )
+
+        episode_context = self.__get_episode_context(is_baseline=is_baseline)
+
+        training_step_results = TrainingStepResults(
+            training_id=self.train_id,
+            job_descriptor=self.__episodic_job_descriptor,
+            job_config=job_config,
+            training_metadata=TrainingMetadata(episode_context=episode_context, progress_context=progress_context),
+            job_performance=job_performance,
+            step_reward=step_reward,
+        )
+
+        self.training_results_logger.info(
+            "Summarized Training Step Results",
+            extra=training_step_results.dict()
+        )
+
     def __run_job_and_measure_performance(
             self,
             job_config: HadoopJobExecutionConfig,
             *,
             is_baseline: bool = False
     ) -> JobExecutionPerformance:
-        progress_context = self.training_progress_tracker.get_progress_context(
-            self.__episodic_job_descriptor,
-            is_baseline=is_baseline
-        )
-        episode_context = EpisodeContext(
-            episode_num=self.episode_counter,
-            episode_step=self.step_count,
-            is_baseline=is_baseline
-        )
+        episode_context = self.__get_episode_context(is_baseline=is_baseline)
+
         self.energy_tracker.reset_tracker(self.train_id, episode_context)
         result = self.training_client.run_job(
             job_descriptor=self.__episodic_job_descriptor,
@@ -77,25 +109,11 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         )
         # TODO: SHOULD WE USE PER-HOST ENERGY CONSUMPTION HERE?
         energy_consumption = sum(self.energy_tracker.get_energy_consumption().values())
-        job_performance = JobExecutionPerformance(
+
+        return JobExecutionPerformance(
             running_time_sec=result.runtime_sec,
             energy_use_mwh=energy_consumption
         )
-
-        training_step_results = TrainingStepResults(
-            job_descriptor=self.__episodic_job_descriptor,
-            job_config=job_config,
-            training_metadata=TrainingMetadata(episode_context=episode_context, progress_context=progress_context),
-            job_performance=job_performance,
-            training_id=self.train_id,
-        )
-
-        self.training_results_logger.info(
-            "Summarized Training Step Results",
-            extra=training_step_results.dict()
-        )
-
-        return job_performance
 
     def _init_episodic_job(self, options: dict[str, Any] | None) -> JobProperties:
         if options:
@@ -107,6 +125,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
 
         default_execution_configuration = HadoopJobExecutionConfig()
         job_performance = self.__run_job_and_measure_performance(default_execution_configuration, is_baseline=True)
+        self.__log_results(default_execution_configuration, job_performance, is_baseline=True)
         self.reward_calculator.update_baseline_performance(job_performance)
 
         return SupportedJobsConfig.extract_job_properties(self.__episodic_job_descriptor)
@@ -118,6 +137,8 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             self.__current_step_performance,
             terminated or truncated
         )
+
+        self.__log_results(job_config, self.__current_step_performance, self.__current_step_reward, is_baseline=False)
 
         self.render()
         return self.__current_step_reward

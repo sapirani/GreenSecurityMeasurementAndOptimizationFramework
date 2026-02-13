@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 from DTOs.hadoop.drl_training.training_metadata import TrainingMetadata
@@ -7,11 +9,12 @@ from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
 
 
 class TrainingStepResults(BaseModel):
+    training_id: str
     job_descriptor: JobDescriptor
     job_config: HadoopJobExecutionConfig
     training_metadata: TrainingMetadata
     job_performance: JobExecutionPerformance
-    training_id: str
+    step_reward: Optional[float]
 
     model_config = {
         "frozen": True  # ensures that this class is immutable
