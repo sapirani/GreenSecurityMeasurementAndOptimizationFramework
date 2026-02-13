@@ -1,3 +1,4 @@
+import os
 import threading
 from contextlib import contextmanager
 from pathlib import Path
@@ -48,7 +49,7 @@ def main(
 ) -> None:
     checkpoint_callback = CheckpointCallback(
         save_freq=save_freq,  # save every 'save_freq' steps
-        save_path="./models/",
+        save_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "models"),
         name_prefix="ppo"
     )
 
