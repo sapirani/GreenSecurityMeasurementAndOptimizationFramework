@@ -85,6 +85,10 @@ def parse_arguments():
     parser.add_argument('--ip', type=int,
                         help='Splunk host IP identifier 1,2,3... (default: 1)')
 
+    parser.add_argument('--num-envs', type=int,
+                        help='Number of parallel environments for training (default: from config). '
+                             'Values >1 use SubprocVecEnv; requires mock mode or multiple Splunk hosts.')
+
     # Flags
     parser.add_argument('--random-agent', action='store_true',
                         help='Use random agent instead of trained model')
@@ -170,6 +174,8 @@ def create_overrides_from_args(args, model_path=None):
         overrides['training.num_episodes'] = args.num_episodes
 
     # Environment configuration
+    if args.num_envs is not None:
+        overrides['training.n_envs'] = args.num_envs
     if args.hosts_num is not None:
         overrides['environment.hosts_percentage'] = args.hosts_num
     if args.additional_percentage is not None:

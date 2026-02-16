@@ -54,6 +54,8 @@ from time_manager import TimeWrapper
 import smtplib
 from email.message import EmailMessage
 from stable_baselines3.common.logger import configure
+from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
+from functools import partial
 logger = logging.getLogger(__name__)
 import torch as th
 import torch.nn as nn
@@ -105,6 +107,86 @@ class CustomExtractor(BaseFeaturesExtractor):
 
     def forward(self, x):
         return self.net(x)
+
+
+def _build_splunk_env(env_config, overrides, baseline_dir):
+    """Module-level env factory — must be picklable for SubprocVecEnv workers.
+
+    Mirrors the logic of ExperimentManager.create_environment() without
+    requiring an ExperimentManager instance.
+    """
+    def get_config(key, default=None):
+        return overrides.get(key, config.get(key, default))
+
+    top_logtypes = pd.read_csv(config.get('paths.top_logtypes'))
+    log_types = get_config('environment.log_types', ['wineventlog:security', 'wineventlog:system'])
+    max_logtypes = get_config('environment.max_logtypes', 20)
+    top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(log_types)]
+    top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', 'EventCode']].values.tolist()[:max_logtypes]
+    top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
+
+    experiment_name = get_config('experiment_name')
+    if experiment_name and 'test_experiment' in experiment_name:
+        env_config.is_test = True
+
+    env = make(
+        id=env_config.env_id,
+        config=env_config,
+        top_logtypes=top_logtypes,
+        baseline_dir=baseline_dir
+    )
+
+    action_type = get_config('environment.action_type', 'Action8')
+    use_random_agent = get_config('use_random_agent', False)
+    env = create_action_wrapper(env, action_type, use_random_agent)
+
+    use_distribution_reward = get_config('reward.use_distribution_reward', True)
+    if use_distribution_reward:
+        distribution_method = get_config('reward.distribution_method', 'DistributionRewardWrapper')
+        env = ENUM_DISTRIBUTION_REWARD_METHODS[distribution_method](
+            env,
+            gamma=get_config('reward.gamma', 0.2),
+            epsilon=get_config('reward.distribution_epsilon',
+                               get_config('reward.epsilon', 1e-8)),
+            distribution_freq=get_config('reward.distribution_freq', 1),
+            distribution_threshold=get_config('reward.distribution_threshold', 0.22)
+        )
+
+    mode = get_config('experiment.mode', 'train')
+    env = BaseRuleExecutionWrapperWithPrediction(
+        env,
+        is_mock=get_config('environment.is_mock', True),
+        use_energy=get_config('reward.use_energy_reward', True),
+        use_alert=get_config('reward.use_alert_reward', True),
+        is_train='train' in mode,
+        is_eval=(mode == 'eval_post_training'),
+    )
+
+    use_stationary_scaling = get_config('reward.use_stationary_scaling', False)
+    if get_config('reward.use_energy_reward', True):
+        env = EnergyRewardWrapper(
+            env,
+            alpha=get_config('reward.alpha', 0.5),
+            is_mock=get_config('environment.is_mock', True),
+            use_stationary_scaling=use_stationary_scaling,
+        )
+        alert_method = get_config('reward.alert_method', 'AlertRewardWrapper')
+        env = create_alert_reward_wrapper(
+            env,
+            method_name=alert_method,
+            beta=get_config('reward.beta', 0.5),
+            epsilon=get_config('reward.alert_epsilon',
+                               get_config('reward.epsilon', 1e-8)),
+            normalizer_factor=get_config('reward.normalizer_factor', 10),
+            use_stationary_scaling=use_stationary_scaling,
+        )
+
+    env = TimeWrapper(env)
+    hosts_num = get_config('environment.hosts_percentage', 100)
+    state_type = get_config('environment.state_type', 'StateWrapper7')
+    env = create_state_wrapper(env, state_type, hosts_num)
+
+    return env
 
 
 class ExperimentManager:
@@ -219,7 +301,11 @@ class ExperimentManager:
                 logger.info(f"Migrated {old_path.name} -> {new_path.name}")
 
     def create_environment(self, env_config: SplunkConfig, overrides: dict = None) -> gym.Env:
-        """Create and configure environment with reward wrappers
+        """Create and configure environment with reward wrappers.
+
+        When training.n_envs > 1, returns a SubprocVecEnv (parallel envs in
+        separate processes). Each worker calls _build_splunk_env(), which is a
+        module-level picklable factory that mirrors the single-env build logic.
 
         Args:
             env_config: SplunkConfig instance
@@ -228,87 +314,16 @@ class ExperimentManager:
         if overrides is None:
             overrides = {}
 
-        # Helper function to get value from overrides or config
-        def get_config(key, default=None):
-            return overrides.get(key, config.get(key, default))
+        n_envs = overrides.get('training.n_envs', config.get('training.n_envs', 1))
 
-        # Load and filter top log types from CSV
-        top_logtypes = pd.read_csv(config.get('paths.top_logtypes'))
-        # Include only configured log types (default: system and security logs)
-        log_types = get_config('environment.log_types', ['wineventlog:security', 'wineventlog:system'])
-        max_logtypes = get_config('environment.max_logtypes', 20)
-        top_logtypes = top_logtypes[top_logtypes['source'].str.lower().isin(log_types)]
-        top_logtypes = top_logtypes.sort_values(by='count', ascending=False)[['source', "EventCode"]].values.tolist()[:max_logtypes]
-        top_logtypes = [(x[0].lower(), str(x[1])) for x in top_logtypes]
+        if n_envs > 1:
+            logger.info(f"Creating {n_envs} parallel environments (SubprocVecEnv)")
+            fns = [partial(_build_splunk_env, env_config, overrides, self.baseline_dir)
+                   for _ in range(n_envs)]
+            return SubprocVecEnv(fns)
 
-        experiment_name = get_config('experiment_name')
-        if experiment_name and "test_experiment" in experiment_name:
-            env_config.is_test = True
-
-        env = make(
-            id=env_config.env_id,
-            config=env_config,
-            top_logtypes=top_logtypes,
-            baseline_dir=self.baseline_dir
-        )
-
-        # Configure action space
-        action_type = get_config('environment.action_type', 'Action8')
-        use_random_agent = get_config('use_random_agent', False)
-        env = create_action_wrapper(env, action_type, use_random_agent)
-
-        # Add reward wrappers
-        use_distribution_reward = get_config('reward.use_distribution_reward', True)
-        if use_distribution_reward:
-            distribution_method = get_config('reward.distribution_method', 'DistributionRewardWrapper')
-            env = ENUM_DISTRIBUTION_REWARD_METHODS[distribution_method](
-                env,
-                gamma=get_config('reward.gamma', 0.2),
-                epsilon=get_config('reward.distribution_epsilon',
-                                   get_config('reward.epsilon', 1e-8)),
-                distribution_freq=get_config('reward.distribution_freq', 1),
-                distribution_threshold=get_config('reward.distribution_threshold', 0.22)
-            )
-
-        # Base rule execution wrapper
-        mode = get_config('experiment.mode', 'train')
-        env = BaseRuleExecutionWrapperWithPrediction(
-            env,
-            is_mock=get_config('environment.is_mock', True),
-            use_energy=get_config('reward.use_energy_reward', True),
-            use_alert=get_config('reward.use_alert_reward', True),
-            is_train='train' in mode,
-            is_eval=(mode == "eval_post_training"),
-        )
-
-        # Energy and alert reward wrappers
-        use_stationary_scaling = get_config('reward.use_stationary_scaling', False)
-        if get_config('reward.use_energy_reward', True):
-            env = EnergyRewardWrapper(
-                env,
-                alpha=get_config('reward.alpha', 0.5),
-                is_mock=get_config('environment.is_mock', True),
-                use_stationary_scaling=use_stationary_scaling,
-            )
-            alert_method = get_config('reward.alert_method', 'AlertRewardWrapper')
-            env = create_alert_reward_wrapper(
-                env,
-                method_name=alert_method,
-                beta=get_config('reward.beta', 0.5),
-                epsilon=get_config('reward.alert_epsilon',
-                                   get_config('reward.epsilon', 1e-8)),
-                normalizer_factor=get_config('reward.normalizer_factor', 10),
-                use_stationary_scaling=use_stationary_scaling,
-            )
-
-        # Time and state wrappers
-        env = TimeWrapper(env)
-        hosts_num = get_config('environment.hosts_percentage', 100)
-        logger.info(f"Using {hosts_num}% of hosts")
-        state_type = get_config('environment.state_type', 'StateWrapper7')
-        env = create_state_wrapper(env, state_type, hosts_num)
-
-        return env
+        logger.info(f"Using {overrides.get('environment.hosts_percentage', config.get('environment.hosts_percentage', 100))}% of hosts")
+        return _build_splunk_env(env_config, overrides, self.baseline_dir)
 
 
     def create_model(self, env: gym.Env, overrides: dict = None):
@@ -410,6 +425,13 @@ class ExperimentManager:
             # Get SAC-specific config values
             train_freq_value = get_config('training.sac.train_freq', 4)
             train_freq_unit = get_config('training.sac.train_freq_unit', 'episode')
+            n_envs = get_config('training.n_envs', 1)
+            # SubprocVecEnv does not support train_freq unit='episode'; convert to steps.
+            if n_envs > 1 and train_freq_unit == 'episode':
+                steps_per_episode = get_config('training.sac.steps_per_episode', 12)
+                train_freq_value = train_freq_value * steps_per_episode
+                train_freq_unit = 'step'
+                logger.info(f"VecEnv: converted train_freq to ({train_freq_value}, 'step')")
             pi_arch = get_config('training.sac.policy_net_arch.pi', [256, 256])
             qf_arch = get_config('training.sac.policy_net_arch.qf', [256, 256])
 
@@ -564,13 +586,15 @@ class ExperimentManager:
         try:
             # Create environment and model
             env = self.create_environment(env_config, overrides)
-            # Load real log distribution for the training env so that
-            # StateWrapper.update_real_distribution() returns actual data.
-            train_start = datetime.datetime.strptime(
-                env.unwrapped.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'
-            )
-            train_end = datetime.datetime.now()
-            env.unwrapped.splunk_tools.load_real_logs_distribution_bucket(train_start, train_end)
+            is_mock_train = overrides.get('environment.is_mock', config.get('environment.is_mock', True))
+            # Load real log distribution only when connected to a real Splunk instance.
+            # Skip in mock mode and for VecEnv (no direct .unwrapped access).
+            if not is_mock_train and not isinstance(env, SubprocVecEnv):
+                train_start = datetime.datetime.strptime(
+                    env.unwrapped.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'
+                )
+                train_end = datetime.datetime.now()
+                env.unwrapped.splunk_tools.load_real_logs_distribution_bucket(train_start, train_end)
 
             model = self.create_model(env, overrides)
 
@@ -595,10 +619,17 @@ class ExperimentManager:
                 eval_overrides = overrides.copy()
                 eval_overrides['experiment.mode'] = 'eval'
                 eval_overrides['environment.is_mock'] = False
+                eval_overrides['training.n_envs'] = 1  # eval env is always single
 
                 self.eval_env = self.create_environment(eval_env_config, eval_overrides)
+                # Retrieve first_start_datetime from training env regardless of whether
+                # it is a plain env or a SubprocVecEnv.
+                if isinstance(env, SubprocVecEnv):
+                    train_first_start = env.get_attr('time_manager')[0].first_start_datetime
+                else:
+                    train_first_start = env.unwrapped.time_manager.first_start_datetime
                 self.eval_env.unwrapped.splunk_tools.load_real_logs_distribution_bucket(
-                    datetime.datetime.strptime(env.unwrapped.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'),
+                    datetime.datetime.strptime(train_first_start, '%m/%d/%Y:%H:%M:%S'),
                     datetime.datetime.strptime(self.eval_env.unwrapped.time_manager.end_time, '%m/%d/%Y:%H:%M:%S')
                 )
             else:
@@ -615,11 +646,15 @@ class ExperimentManager:
                 if not is_mock or get_config('experiment.mode') == 'eval_post_training' or eval_enabled:
                     # clean and warm up the env
                     logger.info("Cleaning and warming up the environment")
-                    clean_env(env.unwrapped.splunk_tools,
-                             (env.unwrapped.time_manager.first_start_datetime,
-                              datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")),
-                             host=host)
-                env.unwrapped.warmup()
+                    if not isinstance(env, SubprocVecEnv):
+                        clean_env(env.unwrapped.splunk_tools,
+                                 (env.unwrapped.time_manager.first_start_datetime,
+                                  datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")),
+                                 host=host)
+                if isinstance(env, SubprocVecEnv):
+                    env.env_method('warmup')
+                else:
+                    env.unwrapped.warmup()
             else:
                 action_env = env
                 while not isinstance(action_env, Action):
@@ -682,7 +717,9 @@ class ExperimentManager:
         num_episodes = get_config('training.num_episodes', 100)
         experiment_name = get_config('experiment_name', 'experiment')
 
-        total_timesteps = env.unwrapped.total_steps * num_episodes
+        total_steps = (env.get_attr('total_steps')[0] if isinstance(env, SubprocVecEnv)
+                       else env.unwrapped.total_steps)
+        total_timesteps = total_steps * num_episodes
 
         model.learn(
             total_timesteps=total_timesteps,
@@ -821,7 +858,9 @@ class ExperimentManager:
         num_episodes = get_config('training.num_episodes', 100)
         experiment_name = get_config('experiment_name', 'experiment')
 
-        total_timesteps = env.unwrapped.total_steps * num_episodes
+        total_steps = (env.get_attr('total_steps')[0] if isinstance(env, SubprocVecEnv)
+                       else env.unwrapped.total_steps)
+        total_timesteps = total_steps * num_episodes
 
         model.learn(
             total_timesteps=total_timesteps,
@@ -919,10 +958,18 @@ class ExperimentManager:
         experiment_name = get_config('experiment_name', 'experiment')
         log_dir = str(self.dirs['tensorboard'])
 
-        # Get rules and event_types from eval env if available, else training env
+        # Get rules and event_types from eval env if available, else training env.
+        # eval_env is always a plain env (n_envs=1); training env may be SubprocVecEnv.
+        # splunk_tools holds thread locks and is not picklable — never send it through a
+        # SubprocVecEnv pipe. Use config for rule names and get_attr only for top_logtypes
+        # (a list of plain strings, always picklable).
         source_env = self.eval_env if self.eval_env is not None else env
-        rules = source_env.unwrapped.splunk_tools.active_saved_searches.keys()
-        event_types = [f"{x[0].lower()}_{x[1]}" for x in source_env.unwrapped.top_logtypes]
+        if isinstance(source_env, SubprocVecEnv):
+            rules = config.get('reward.rule_names', [])
+            event_types = [f"{x[0].lower()}_{x[1]}" for x in source_env.get_attr('top_logtypes')[0]]
+        else:
+            rules = source_env.unwrapped.splunk_tools.active_saved_searches.keys()
+            event_types = [f"{x[0].lower()}_{x[1]}" for x in source_env.unwrapped.top_logtypes]
         writers = self.create_summary_writers(log_dir, rules, event_types)
         self._current_writers = writers
 
