@@ -562,6 +562,205 @@ class EnergyRewardWrapper(RewardWrapper):
             reward += scale * self.alpha * info['norm_energy_reward']
         return obs, reward, terminated, truncated, info
 
+
+class ConstrainedRewardWrapper(RewardWrapper):
+    """Constrained reward: maximize energy under alert/KL/quota budgets.
+
+    Reward:
+        R = alpha * log1p(energy_raw)
+            - lambda_alert * alert_penalty
+            - lambda_dist * distribution_penalty
+            - lambda_quota * quota_penalty
+    """
+    def __init__(self, env: gym.Env, alpha: float = None,
+                 use_stationary_scaling: bool = None):
+        super().__init__(env)
+        self.alpha = alpha if alpha is not None else config.get('reward.alpha', 0.5)
+        self.use_stationary_scaling = (
+            use_stationary_scaling
+            if use_stationary_scaling is not None
+            else config.get('reward.use_stationary_scaling', True)
+        )
+
+        self.energy_epsilon = config.get('reward.energy_epsilon', config.get('reward.epsilon', 1e-8))
+        self.distribution_epsilon = config.get('reward.distribution_epsilon', config.get('reward.epsilon', 1e-8))
+
+        self.use_energy_reward = config.get('reward.use_energy_reward', True)
+        self.use_alert_reward = config.get('reward.use_alert_reward', True)
+        self.use_distribution_reward = config.get('reward.use_distribution_reward', True)
+        self.use_quota_penalty = config.get('reward.use_quota_penalty', True)
+
+        self.alert_floor = config.get('reward.alert_floor', 1.0)
+        self.tau_alert = config.get('reward.tau_alert', 0.25)
+        self.tau_kl = config.get('reward.tau_kl', 0.22)
+        self.tau_quota = config.get('reward.tau_quota', 0.35)
+
+        self.scale_alert = config.get('reward.scale_alert', 0.25)
+        self.scale_kl = config.get('reward.scale_kl', 0.1)
+        self.scale_quota = config.get('reward.scale_quota', 0.1)
+
+        self.use_adaptive_lagrange = config.get('reward.use_adaptive_lagrange', True)
+        self.lambda_alert = config.get('reward.lambda_alert_init', 1.0)
+        self.lambda_dist = config.get('reward.lambda_distribution_init', 1.0)
+        self.lambda_quota = config.get('reward.lambda_quota_init', 1.0)
+        self.lambda_max = config.get('reward.lambda_max', 100.0)
+        self.eta_alert = config.get('reward.lambda_alert_eta', 0.01)
+        self.eta_dist = config.get('reward.lambda_distribution_eta', 0.01)
+        self.eta_quota = config.get('reward.lambda_quota_eta', 0.01)
+        self.is_mock = getattr(self.env, 'is_mock', False)
+
+    def _estimate_energy_consumption(self, fake_dist, info: Dict) -> float:
+        """Reuse legacy mock-time CPU estimation so TB gets meaningful CPU values."""
+        rules_alerts = {
+            rule: info['raw_metrics'][rule]['alert']
+            for rule in self.unwrapped.splunk_tools.active_saved_searches
+        }
+
+        if not isinstance(fake_dist, np.ndarray):
+            fake_dist = np.array(list(fake_dist)[:-1])
+        rules_alerts_array = np.array(list(rules_alerts.values()))
+        if fake_dist.ndim == 1:
+            fake_dist = fake_dist.reshape(1, -1)
+        if rules_alerts_array.ndim == 1:
+            rules_alerts_array = rules_alerts_array.reshape(1, -1)
+
+        fake_dist_normalizer = config.get('reward.fake_dist_normalizer', 475796)
+        alert_normalizer = config.get('reward.alert_normalizer', 203)
+        fake_dist = fake_dist / fake_dist_normalizer
+        rules_alerts_array = (rules_alerts_array - 1) / alert_normalizer
+
+        estimated_energy = 0.0
+        for i, rule in enumerate(expected_alerts):
+            rule_model = self.env.energy_models[rule]
+            rule_alert = rules_alerts_array[:, i].reshape(1, -1)
+            rule_x = np.concatenate((fake_dist, rule_alert), axis=1)
+            rule_cpu = rule_model.predict(rule_x)[0]
+            info['raw_metrics'][rule]['cpu'] = rule_cpu
+            estimated_energy += rule_cpu
+        return float(estimated_energy)
+
+    def _compute_kl(self) -> float:
+        real_dist = self.unwrapped.ac_real_state
+        fake_dist = self.unwrapped.ac_fake_state
+        real_dist = (real_dist + self.distribution_epsilon) / np.sum(real_dist + self.distribution_epsilon)
+        fake_dist = (fake_dist + self.distribution_epsilon) / np.sum(fake_dist + self.distribution_epsilon)
+        return float(np.sum(real_dist * np.log(np.clip(real_dist / fake_dist, 1e-10, 1e10))))
+
+    @staticmethod
+    def _positive_hinge_squared(metric: float, threshold: float, scale: float) -> float:
+        s = scale if scale > 0 else 1.0
+        return float(max((metric - threshold) / s, 0.0) ** 2)
+
+    def _compute_alert_metrics(self, info: Dict) -> Tuple[float, float]:
+        if not self.use_alert_reward:
+            return 0.0, 0.0
+
+        raw_metrics = info.get('raw_metrics', {})
+        raw_baseline = info.get('raw_baseline_metrics', {})
+        rel_increases = []
+        penalties = []
+        for rule in expected_alerts:
+            current_alert = raw_metrics.get(rule, {}).get('alert', 0.0)
+            baseline_alert = raw_baseline.get(rule, {}).get('alert', 0.0)
+            denom = max(float(baseline_alert), self.alert_floor)
+            rel_increase = max((float(current_alert) - float(baseline_alert)) / denom, 0.0)
+            rel_increases.append(rel_increase)
+            penalties.append(self._positive_hinge_squared(rel_increase, self.tau_alert, self.scale_alert))
+
+        if not rel_increases:
+            return 0.0, 0.0
+        return float(np.mean(rel_increases)), float(np.mean(penalties))
+
+    def step(self, action):
+        obs, reward, terminated, truncated, info = self.env.step(action)
+        if not info.get('done', True):
+            return obs, reward, terminated, truncated, info
+
+        if self.is_mock:
+            measured_cpu = info.get('combined_metrics', {}).get('cpu')
+            estimated_cpu = self._estimate_energy_consumption(
+                self.unwrapped.ac_fake_distribution.values(),
+                info,
+            )
+            info['combined_metrics']['real_cpu'] = measured_cpu
+            info['combined_metrics']['cpu'] = estimated_cpu
+
+        current_cpu = info.get('combined_metrics', {}).get('cpu', 0.0)
+        baseline_cpu = info.get('combined_baseline_metrics', {}).get('cpu', 0.0)
+        energy_raw = max((current_cpu - baseline_cpu) / (baseline_cpu + self.energy_epsilon), 0.0)
+        energy_term = np.log1p(energy_raw) if self.use_energy_reward else 0.0
+
+        alert_metric, alert_penalty = self._compute_alert_metrics(info)
+        kl_value = self._compute_kl()
+        distribution_penalty = (
+            self._positive_hinge_squared(kl_value, self.tau_kl, self.scale_kl)
+            if self.use_distribution_reward else 0.0
+        )
+
+        total_episode_logs = float(info.get('total_episode_logs', 0.0))
+        inserted_logs = float(info.get('episodic_inserted_logs', 0.0))
+        # Match state semantics (see state_interpreters.AccumulatedLogVolumeInterpreter):
+        # total simulated episode volume = real + injected.
+        simulated_total_logs = total_episode_logs + inserted_logs
+        quota_ratio = inserted_logs / (simulated_total_logs + 1e-8)
+        quota_penalty = (
+            self._positive_hinge_squared(quota_ratio, self.tau_quota, self.scale_quota)
+            if self.use_quota_penalty else 0.0
+        )
+
+        if self.use_adaptive_lagrange:
+            self.lambda_alert = float(np.clip(
+                self.lambda_alert + self.eta_alert * (alert_metric - self.tau_alert),
+                0.0, self.lambda_max
+            ))
+            self.lambda_dist = float(np.clip(
+                self.lambda_dist + self.eta_dist * (kl_value - self.tau_kl),
+                0.0, self.lambda_max
+            ))
+            self.lambda_quota = float(np.clip(
+                self.lambda_quota + self.eta_quota * (quota_ratio - self.tau_quota),
+                0.0, self.lambda_max
+            ))
+
+        constrained_reward = (
+            self.alpha * energy_term
+            - self.lambda_alert * alert_penalty
+            - self.lambda_dist * distribution_penalty
+            - self.lambda_quota * quota_penalty
+        )
+
+        scale = 1.0 if self.use_stationary_scaling else self.unwrapped.total_steps
+        reward += scale * constrained_reward
+
+        # Backward-compatible metrics + constrained diagnostics
+        info['energy_reward'] = energy_raw
+        info['norm_energy_reward'] = energy_term
+        info['alert_reward'] = -alert_metric
+        info['norm_alert_reward'] = -alert_penalty
+        info['ac_distribution_value'] = kl_value
+        info['full_ac_distribution_value'] = kl_value
+        info['ac_distribution_reward'] = -distribution_penalty
+
+        info['constrained_reward'] = constrained_reward
+        info['constrained_energy_term'] = float(energy_term)
+        info['constrained_alert_metric'] = float(alert_metric)
+        info['constrained_distribution_metric'] = float(kl_value)
+        info['constrained_quota_metric'] = float(quota_ratio)
+        info['constrained_simulated_total_logs'] = float(simulated_total_logs)
+        info['constrained_alert_penalty'] = float(alert_penalty)
+        info['constrained_distribution_penalty'] = float(distribution_penalty)
+        info['constrained_quota_penalty'] = float(quota_penalty)
+        info['lambda_alert'] = float(self.lambda_alert)
+        info['lambda_distribution'] = float(self.lambda_dist)
+        info['lambda_quota'] = float(self.lambda_quota)
+
+        logger.info(
+            "Constrained reward: total=%.3f energy=%.3f alert_pen=%.3f kl_pen=%.3f quota_pen=%.3f",
+            constrained_reward, energy_term, alert_penalty, distribution_penalty, quota_penalty
+        )
+        return obs, reward, terminated, truncated, info
+
+
 class DistributionRewardWrapper(RewardWrapper):
     """Wrapper for distribution similarity rewards.
 

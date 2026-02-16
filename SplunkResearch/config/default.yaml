@@ -3,6 +3,10 @@
 
 # Reward function parameters
 reward:
+  # Reward aggregation mode:
+  # - legacy: existing independent wrappers (energy/alert/distribution)
+  # - constrained: Lagrangian-style objective with alert/KL/quota constraints
+  reward_mode: constrained
   # Tanh scaling factor for normalized alert reward
   tanh_scale_factor: -2
   # Standard deviation for reward calculation
@@ -40,6 +44,7 @@ reward:
   use_energy_reward: true
   use_alert_reward: true
   use_distribution_reward: true
+  use_quota_penalty: true
   # Reward method wrappers.
   # ExpectedDiffPower: convex penalty -(|raw|/T)^p, threshold at normalized=1.
   # Use AlertRewardWrapper (PredictedTanh) for the old bounded [-1,0] behavior.
@@ -61,6 +66,22 @@ reward:
   # Power-law distribution normalizer: -(KL/T)^p
   distribution_power_threshold: 0.22  # T: KL=0.22 = normalized=1
   power_distribution_exponent: 2.0    # p: quadratic, gradient grows with KL
+  # Constrained reward parameters
+  alert_floor: 1.0         # Prevents huge relative alert changes when baseline alerts are near zero
+  tau_alert: 0.25          # Allowed mean positive relative alert increase
+  tau_kl: 0.22             # Allowed KL divergence budget
+  tau_quota: 0.35          # Allowed injected_logs / real_logs budget
+  scale_alert: 0.25        # Hinge scale for alert budget violation
+  scale_kl: 0.10           # Hinge scale for KL budget violation
+  scale_quota: 0.10        # Hinge scale for quota budget violation
+  use_adaptive_lagrange: true
+  lambda_alert_init: 1.0
+  lambda_distribution_init: 1.0
+  lambda_quota_init: 1.0
+  lambda_alert_eta: 0.01
+  lambda_distribution_eta: 0.01
+  lambda_quota_eta: 0.01
+  lambda_max: 100.0
   # Rule names for expected alerts (order must match expected_alerts_per_rule)
   rule_names:
     - Windows Event For Service Disabled
