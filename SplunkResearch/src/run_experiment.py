@@ -66,6 +66,9 @@ def parse_arguments():
                         help='Alert reward calculation method (default: from config)')
     parser.add_argument('--distribution-reward-method', type=str,
                         help='Distribution reward calculation method (default: from config)')
+    parser.add_argument('--reward-mode', type=str,
+                        choices=['legacy', 'constrained'],
+                        help='Reward aggregation mode (default: from config)')
 
     # Training parameters
     parser.add_argument('--learning-rate', type=float,
@@ -176,6 +179,8 @@ def create_overrides_from_args(args, model_path=None):
         overrides['reward.alert_method'] = args.alert_reward_method
     if args.distribution_reward_method is not None:
         overrides['reward.distribution_method'] = args.distribution_reward_method
+    if args.reward_mode is not None:
+        overrides['reward.reward_mode'] = args.reward_mode
 
     # Training parameters
     if args.learning_rate is not None:
