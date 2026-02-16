@@ -17,8 +17,12 @@ reward:
   alert_epsilon: 0.1           # Alert reward division stability
   energy_epsilon: 0.00000001   # Energy reward: (baseline + eps) prevents div-by-zero
   distribution_epsilon: 0.00000001  # Distribution: KL divergence smoothing, prevents log(0)
-  # Normalizer factor for tanh
-  normalizer_factor: 10
+  # Threshold T for alert normalizer.
+  # For PowerAlertNormalizer: raw=-T → normalized=-1 (threshold).
+  # For TanhNormalizer: -tanh(-raw/T), so T=1 maps 100% violation → -0.76.
+  normalizer_factor: 1
+  # Exponent for PowerAlertNormalizer (>1 = convex = growing gradient beyond threshold)
+  power_alert_exponent: 2.0
   # Energy change target
   energy_change_target: 1
   # Normalization factors for fake_dist calculation
@@ -36,18 +40,27 @@ reward:
   use_energy_reward: true
   use_alert_reward: true
   use_distribution_reward: true
-  # Reward method wrappers
-  alert_method: AlertRewardWrapper
-  distribution_method: DistributionRewardWrapper
+  # Reward method wrappers.
+  # ExpectedDiffPower: convex penalty -(|raw|/T)^p, threshold at normalized=1.
+  # Use AlertRewardWrapper (PredictedTanh) for the old bounded [-1,0] behavior.
+  alert_method: ExpectedDiffPower
+  distribution_method: DistributionRewardWrapper2
   # Use stationary (constant) reward scaling instead of total_steps
   use_stationary_scaling: true
   # Normalize per-step distribution reward by total_steps so cumulative
   # contribution is comparable to episode-end energy/alert rewards
   normalize_distribution_to_episode: true
-  # Energy normalizer: 'tanh' (original, saturates fast) or 'log1p' (gradient preserved)
-  energy_normalizer: log1p
-  energy_normalizer_scale: 1.0    # log1p scale param
-  energy_normalizer_ceiling: 2.0 # log1p ceiling param
+  # Energy normalizer: 'tanh' (original, saturates fast), 'log1p' (gradient preserved),
+  #   'clip_squared' (x^2 clipped at ceiling), or 'power' (convex, unbounded, growing gradient)
+  energy_normalizer: power
+  energy_normalizer_scale: 2.0    # log1p scale param
+  energy_normalizer_ceiling: 2.0  # clip_squared / log1p ceiling param
+  # Power-law energy normalizer: (raw/T)^p
+  energy_power_threshold: 1.0     # T: raw=1 (100% CPU increase) = normalized=1
+  power_energy_exponent: 2.0      # p: quadratic, gradient grows with raw
+  # Power-law distribution normalizer: -(KL/T)^p
+  distribution_power_threshold: 0.22  # T: KL=0.22 = normalized=1
+  power_distribution_exponent: 2.0    # p: quadratic, gradient grows with KL
   # Rule names for expected alerts (order must match expected_alerts_per_rule)
   rule_names:
     - Windows Event For Service Disabled
@@ -171,12 +184,17 @@ training:
     sde_sample_freq: 12
     use_sde: true
 
+  # Number of parallel environments (SubprocVecEnv). 1 = no parallelism.
+  # In mock mode any value >=1 works; for real Splunk use one env per host.
+  n_envs: 1
+
   # SAC/TD3/DDPG specific parameters
   sac:
     learning_starts: 60  # (12 steps * 5 episodes)
     gradient_steps: -1   # -1 means as many as learning_starts
-    train_freq: 4        # Train every 4 episodes
+    train_freq: 4        # Train every 4 episodes (or steps when n_envs>1)
     train_freq_unit: episode
+    steps_per_episode: 12  # Used to convert episode→step when n_envs>1
     buffer_size: 100000
     batch_size: 1024
     ent_coef: auto       # Automatic entropy tuning

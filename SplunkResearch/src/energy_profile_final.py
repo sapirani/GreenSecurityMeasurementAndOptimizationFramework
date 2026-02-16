@@ -287,26 +287,8 @@ if __name__ == "__main__":
     # read host from command line argument
     host = sys.argv[1] if len(sys.argv) > 1 else '1'
     # Your existing setup
-    savedsearches = [
-        "Windows Event For Service Disabled",
-                 "Detect New Local Admin Account",
-                 "ESCU Network Share Discovery Via Dir Command Rule",
-                 "Known Services Killed by Ransomware",
-                 "Non Chrome Process Accessing Chrome Default Dir",
-                 "Kerberoasting SPN Request With RC4 Encryption",
-                 "Clop Ransomware Known Service Name",
-                 'Windows AD Replication Request Initiated from Unsanctioned Location',
-                 'ESCU Windows Rapid Authentication On Multiple Hosts Rule']
-    experimented_savedsearches = [
-        "Windows Event For Service Disabled",
-                 "Detect New Local Admin Account",
-                 "ESCU Network Share Discovery Via Dir Command Rule",
-                 "Known Services Killed by Ransomware",
-                 "Non Chrome Process Accessing Chrome Default Dir",
-                 "Kerberoasting SPN Request With RC4 Encryption",
-                 "Clop Ransomware Known Service Name",
-                 'Windows AD Replication Request Initiated from Unsanctioned Location',
-                 'ESCU Windows Rapid Authentication On Multiple Hosts Rule']
+    savedsearches = config.get('reward.rule_names', [])
+    experimented_savedsearches = config.get('reward.rule_names', [])
     splunk_tools = SplunkTools(active_saved_searches=savedsearches, mode=Mode.PROFILE, ip=host)
     global log_file_prefix 
     log_file_prefix = f"/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/monitor_files_{splunk_tools.splunk_host}/"
