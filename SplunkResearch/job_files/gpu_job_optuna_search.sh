@@ -32,21 +32,20 @@ NUM_ENVS=14
 # Number of Optuna trials
 N_TRIALS=50
 
-# Fraction of full training episodes per trial (budget reduction)
-TRIAL_FRACTION=0.2
-
-# Full training episode count (trials use TRIAL_FRACTION of this)
+# Full training episode count (used for best-trial retrain only;
+# each trial runs a fixed 50K episodes = 600K steps)
 NUM_EPISODES=150000
 
 # Study name — reuse the same name to resume an interrupted search
-STUDY_NAME="optuna_hpo_ip${IP_ID}"
+STUDY_NAME="optuna_hpo_v2_ip${IP_ID}"
 
 # Set to "--no-retrain-best" to skip automatic retraining of the best trial
 RETRAIN_FLAG=""
 
-echo "Running Optuna HPO search"
-echo "  IP_ID=$IP_ID, NUM_ENVS=$NUM_ENVS, N_TRIALS=$N_TRIALS, TRIAL_FRACTION=$TRIAL_FRACTION"
-echo "  NUM_EPISODES=$NUM_EPISODES (trials use $(echo "$NUM_EPISODES * $TRIAL_FRACTION" | bc | cut -d. -f1))"
+echo "Running Optuna HPO search (multi-model, multi-reward)"
+echo "  IP_ID=$IP_ID, NUM_ENVS=$NUM_ENVS, N_TRIALS=$N_TRIALS"
+echo "  Trial budget: 50K episodes (600K steps) each"
+echo "  Retrain budget: $NUM_EPISODES episodes"
 echo "  STUDY_NAME=$STUDY_NAME"
 
 ###############################################################
@@ -59,8 +58,8 @@ echo "  STUDY_NAME=$STUDY_NAME"
     --num-envs $NUM_ENVS \
     --num-episodes $NUM_EPISODES \
     --n-trials $N_TRIALS \
-    --trial-episodes-fraction $TRIAL_FRACTION \
     --optuna-study-name $STUDY_NAME \
     --hosts-num 100 \
     --action-type "SmoothTrigger" \
+    --reward-mode legacy \
     $RETRAIN_FLAG
