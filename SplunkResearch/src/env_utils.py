@@ -9,11 +9,11 @@ from config import config
 # Factory functions to generate paths
 def get_system_monitor_path(host):
     base_dir = config.get('paths.splunk_research_dir')
-    return f"{base_dir}/eval_monitor_files_{host}/wineventlog:system.txt" #FIX remove eval in the end of running current training
+    return f"{base_dir}/monitor_files_{host}/wineventlog:system.txt" #FIX remove eval in the end of running current training
 
 def get_security_monitor_path(host):
     base_dir = config.get('paths.splunk_research_dir')
-    return f"{base_dir}/eval_monitor_files_{host}/wineventlog:security.txt" #FIX remove eval in the end of running current training
+    return f"{base_dir}/monitor_files_{host}/wineventlog:security.txt" #FIX remove eval in the end of running current training
 
 logger = logging.getLogger(__name__)
 class NpEncoder(json.JSONEncoder):
@@ -32,17 +32,6 @@ def update_running_time(running_time, env_file_path):
     logger.info(res.stdout)
     logger.error(res.stderr)
 
-def choose_random_rules(splunk_tools_instance, num_of_searches, is_get_only_enabled=True):
-    logger.info('enable random rules')
-    savedsearches = splunk_tools_instance.get_saved_search_names(get_only_enabled=is_get_only_enabled)
-    # random_savedsearch = random.sample(savedsearches, num_of_searches)
-    random_savedsearch = ['ESCU Network Share Discovery Via Dir Command Rule', 'Detect New Local Admin account',"Known Services Killed by Ransomware", "Non Chrome Process Accessing Chrome Default Dir"]
-    for savedsearch in savedsearches:
-        if savedsearch not in random_savedsearch:
-            splunk_tools_instance.disable_search(savedsearch)
-        else:
-            splunk_tools_instance.enable_search(savedsearch)
-    return random_savedsearch
 
 def update_rules_frequency_and_time_range(splunk_tools_instance, time_range):
     logger.info('update rules frequency')

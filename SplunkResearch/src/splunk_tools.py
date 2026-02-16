@@ -204,7 +204,7 @@ class SplunkTools(object):
                 sleep_time = config.get('splunk.operation_sleep_time', 120)
                 time.sleep(sleep_time)
         self._initialized = True
-        self.log_file_prefix = f'{base_dir}/eval_monitor_files_{self.splunk_host}' #FIX remove eval in the end of running current training
+        self.log_file_prefix = f'{base_dir}/monitor_files_{self.splunk_host}' #FIX remove eval in the end of running current training
         self.subset = {}
         self.subset_real_logs_distribution = pd.DataFrame()
         self.full_hosts_list = {}
