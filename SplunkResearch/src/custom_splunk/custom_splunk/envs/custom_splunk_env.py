@@ -401,6 +401,14 @@ class SplunkEnv(gym.Env):
             time_range = self.time_manager.current_window.to_tuple()
             asyncio.run(self.splunk_tools.run_saved_searches(time_range))
 
+    def load_real_logs_distribution(self, start_time, end_time):
+        """Load real log distribution CSV into splunk_tools.
+
+        Thin wrapper so SubprocVecEnv workers can be initialised via
+        ``env.env_method('load_real_logs_distribution', start, end)``.
+        """
+        self.splunk_tools.load_real_logs_distribution_bucket(start_time, end_time)
+
 # Example usage:
 if __name__ == "__main__":
     # Create configuration
