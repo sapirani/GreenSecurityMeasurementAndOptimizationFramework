@@ -68,6 +68,17 @@ class MetricsLoggerCallback:
         self._log_metrics('norm_energy_reward', info.get('norm_energy_reward'))
         self._log_metrics('alert_reward', info.get('alert_reward'))
         self._log_metrics('norm_alert_reward', info.get('norm_alert_reward'))
+        self._log_metrics('constrained_reward', info.get('constrained_reward'))
+        self._log_metrics('constrained_energy_term', info.get('constrained_energy_term'))
+        self._log_metrics('constrained_alert_metric', info.get('constrained_alert_metric'))
+        self._log_metrics('constrained_distribution_metric', info.get('constrained_distribution_metric'))
+        self._log_metrics('constrained_quota_metric', info.get('constrained_quota_metric'))
+        self._log_metrics('constrained_alert_penalty', info.get('constrained_alert_penalty'))
+        self._log_metrics('constrained_distribution_penalty', info.get('constrained_distribution_penalty'))
+        self._log_metrics('constrained_quota_penalty', info.get('constrained_quota_penalty'))
+        self._log_metrics('lambda_alert', info.get('lambda_alert'))
+        self._log_metrics('lambda_distribution', info.get('lambda_distribution'))
+        self._log_metrics('lambda_quota', info.get('lambda_quota'))
 
         self._log_metrics('total_episode_logs', info.get('total_episode_logs'))
 
@@ -244,7 +255,10 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
         mean_metrics = defaultdict(list)
         for info in infos:
             for metric in ['distribution_reward', 'energy_reward', 'alert_reward',
-                         'distribution_value', 'inserted_logs', 'total_current_logs']:
+                         'distribution_value', 'inserted_logs', 'total_current_logs',
+                         'constrained_reward', 'constrained_energy_term',
+                         'constrained_alert_metric', 'constrained_distribution_metric',
+                         'constrained_quota_metric']:
                 if metric in info:
                     mean_metrics[metric].append(info[metric])
 
