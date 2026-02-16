@@ -1013,6 +1013,10 @@ class ExperimentManager:
         elif not get_config('callbacks.eval.enabled', True):
             logger.info("Eval callback disabled via config, skipping CustomEvalCallback3")
 
+        # Append any extra callbacks injected via overrides (e.g. Optuna reporting)
+        extra = overrides.get('_extra_callbacks', [])
+        callbacks.extend(extra)
+
         return callbacks
 
     def _cleanup_old_checkpoints(self):

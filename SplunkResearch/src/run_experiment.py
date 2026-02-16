@@ -43,7 +43,7 @@ def parse_arguments():
     parser.add_argument('--model-name', type=str,
                         help='Name of the model to load (without .zip extension)')
     parser.add_argument('--mode', type=str,
-                        choices=['train', 'eval_post_training', 'retrain'],
+                        choices=['train', 'eval_post_training', 'retrain', 'optuna_search'],
                         help='Experiment mode (default: from config)')
     parser.add_argument('--model-type', type=str,
                         choices=['ppo', 'a2c', 'dqn', 'sac', 'td3', 'recurrent_ppo'],
@@ -102,6 +102,16 @@ def parse_arguments():
     parser.add_argument('--log-level', type=str,
                         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help='Logging level (default: from config)')
+
+    # Optuna HPO arguments
+    parser.add_argument('--n-trials', type=int, default=50,
+                        help='Number of Optuna trials (default: 50)')
+    parser.add_argument('--optuna-study-name', type=str, default=None,
+                        help='Optuna study name (for resuming). Auto-generated if not set.')
+    parser.add_argument('--trial-episodes-fraction', type=float, default=0.2,
+                        help='Fraction of full episodes per trial (default: 0.2)')
+    parser.add_argument('--no-retrain-best', action='store_true',
+                        help='Skip automatic retraining of the best trial')
 
     return parser.parse_args()
 
@@ -266,6 +276,21 @@ def main():
     base_dir = config.get('paths.splunk_research_dir')
     experiment_dir = f"{base_dir}/host_{host}_experiments"
     logger.info(f"Experiment directory: {experiment_dir}")
+
+    # Handle Optuna search mode separately
+    if mode == 'optuna_search':
+        from optuna_search import run_optuna_search
+        study = run_optuna_search(
+            env_config=env_config,
+            base_overrides=overrides,
+            experiment_dir=experiment_dir,
+            n_trials=args.n_trials,
+            study_name=args.optuna_study_name,
+            trial_episodes_fraction=args.trial_episodes_fraction,
+            retrain_best=not args.no_retrain_best,
+        )
+        logger.info(f"Optuna search complete. Pareto front: {len(study.best_trials)} trials")
+        return
 
     manager = ExperimentManager(base_dir=experiment_dir)
 

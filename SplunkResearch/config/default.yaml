@@ -286,3 +286,14 @@ splunk:
   end_time: "08/01/2025:00:00:00"
   eval_end_time: "09/01/2025:00:00:00"
   eval_rule_frequency: 2880
+
+# Optuna hyperparameter optimization settings
+optuna:
+  # Number of search trials
+  n_trials: 50
+  # Fraction of full training episodes used per trial (budget reduction)
+  trial_episodes_fraction: 0.2
+  # Automatically retrain the best trial at full episode budget
+  retrain_best: true
+  # Sampler: NSGAIISampler for multi-objective
+  sampler: NSGAIISampler
