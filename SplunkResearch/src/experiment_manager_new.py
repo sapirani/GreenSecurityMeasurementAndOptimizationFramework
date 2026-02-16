@@ -40,6 +40,7 @@ from sb3_contrib import RecurrentPPO
 
 from wrappers.reward import (
     BaseRuleExecutionWrapperWithPrediction,
+    ConstrainedRewardWrapper,
     EnergyRewardWrapper,
     create_alert_reward_wrapper,
     ENUM_ALERT_REWARD_METHODS,
@@ -140,18 +141,7 @@ def _build_splunk_env(env_config, overrides, baseline_dir):
     use_random_agent = get_config('use_random_agent', False)
     env = create_action_wrapper(env, action_type, use_random_agent)
 
-    use_distribution_reward = get_config('reward.use_distribution_reward', True)
-    if use_distribution_reward:
-        distribution_method = get_config('reward.distribution_method', 'DistributionRewardWrapper')
-        env = ENUM_DISTRIBUTION_REWARD_METHODS[distribution_method](
-            env,
-            gamma=get_config('reward.gamma', 0.2),
-            epsilon=get_config('reward.distribution_epsilon',
-                               get_config('reward.epsilon', 1e-8)),
-            distribution_freq=get_config('reward.distribution_freq', 1),
-            distribution_threshold=get_config('reward.distribution_threshold', 0.22)
-        )
-
+    reward_mode = get_config('reward.reward_mode', 'legacy')
     mode = get_config('experiment.mode', 'train')
     env = BaseRuleExecutionWrapperWithPrediction(
         env,
@@ -163,23 +153,43 @@ def _build_splunk_env(env_config, overrides, baseline_dir):
     )
 
     use_stationary_scaling = get_config('reward.use_stationary_scaling', False)
-    if get_config('reward.use_energy_reward', True):
-        env = EnergyRewardWrapper(
+    if reward_mode == 'constrained':
+        env = ConstrainedRewardWrapper(
             env,
             alpha=get_config('reward.alpha', 0.5),
-            is_mock=get_config('environment.is_mock', True),
             use_stationary_scaling=use_stationary_scaling,
         )
-        alert_method = get_config('reward.alert_method', 'AlertRewardWrapper')
-        env = create_alert_reward_wrapper(
-            env,
-            method_name=alert_method,
-            beta=get_config('reward.beta', 0.5),
-            epsilon=get_config('reward.alert_epsilon',
-                               get_config('reward.epsilon', 1e-8)),
-            normalizer_factor=get_config('reward.normalizer_factor', 10),
-            use_stationary_scaling=use_stationary_scaling,
-        )
+    else:
+        use_distribution_reward = get_config('reward.use_distribution_reward', True)
+        if use_distribution_reward:
+            distribution_method = get_config('reward.distribution_method', 'DistributionRewardWrapper')
+            env = ENUM_DISTRIBUTION_REWARD_METHODS[distribution_method](
+                env,
+                gamma=get_config('reward.gamma', 0.2),
+                epsilon=get_config('reward.distribution_epsilon',
+                                   get_config('reward.epsilon', 1e-8)),
+                distribution_freq=get_config('reward.distribution_freq', 1),
+                distribution_threshold=get_config('reward.distribution_threshold', 0.22)
+            )
+
+        if get_config('reward.use_energy_reward', True):
+            env = EnergyRewardWrapper(
+                env,
+                alpha=get_config('reward.alpha', 0.5),
+                is_mock=get_config('environment.is_mock', True),
+                use_stationary_scaling=use_stationary_scaling,
+            )
+        if get_config('reward.use_alert_reward', True):
+            alert_method = get_config('reward.alert_method', 'AlertRewardWrapper')
+            env = create_alert_reward_wrapper(
+                env,
+                method_name=alert_method,
+                beta=get_config('reward.beta', 0.5),
+                epsilon=get_config('reward.alert_epsilon',
+                                   get_config('reward.epsilon', 1e-8)),
+                normalizer_factor=get_config('reward.normalizer_factor', 10),
+                use_stationary_scaling=use_stationary_scaling,
+            )
 
     env = TimeWrapper(env)
     hosts_num = get_config('environment.hosts_percentage', 100)
@@ -414,15 +424,19 @@ class ExperimentManager:
         }
 
         if model_type in ['recurrent_ppo', 'ppo', 'a2c']:
-            model_kwargs.update({
+            ppo_policy_kwargs = get_config('training.ppo.policy_kwargs', None)
+            ppo_update = {
                 'n_steps': get_config('training.n_steps', 2048),
                 'ent_coef': get_config('training.ent_coef', 0.05),
                 'sde_sample_freq': get_config('training.ppo.sde_sample_freq', 12),
                 'use_sde': get_config('training.ppo.use_sde', True),
-            })
+            }
+            if ppo_policy_kwargs is not None:
+                ppo_update['policy_kwargs'] = ppo_policy_kwargs
+            model_kwargs.update(ppo_update)
 
         elif model_type in ['sac', 'td3', 'ddpg']:
-            # Get SAC-specific config values
+            # Get off-policy config values (shared keys under training.sac.*)
             train_freq_value = get_config('training.sac.train_freq', 4)
             train_freq_unit = get_config('training.sac.train_freq_unit', 'episode')
             n_envs = get_config('training.n_envs', 1)
@@ -441,13 +455,16 @@ class ExperimentManager:
                 'train_freq': (train_freq_value, train_freq_unit),
                 'buffer_size': get_config('training.sac.buffer_size', 100_000),
                 'batch_size': get_config('training.sac.batch_size', 2048),
-                'ent_coef': get_config('training.sac.ent_coef', 'auto'),
-                'use_sde': get_config('training.sac.use_sde', True),
                 "policy_kwargs": {
                     "net_arch": dict(pi=pi_arch, qf=qf_arch),
                     "log_std_init": get_config('training.sac.log_std_init', -3),
                 },
             })
+
+            # SAC-only params (TD3/DDPG don't support ent_coef or use_sde)
+            if model_type == 'sac':
+                model_kwargs['ent_coef'] = get_config('training.sac.ent_coef', 'auto')
+                model_kwargs['use_sde'] = get_config('training.sac.use_sde', True)
 
 
         return model_cls(**model_kwargs)
@@ -587,13 +604,23 @@ class ExperimentManager:
             # Create environment and model
             env = self.create_environment(env_config, overrides)
             is_mock_train = overrides.get('environment.is_mock', config.get('environment.is_mock', True))
-            # Load real log distribution only when connected to a real Splunk instance.
-            # Skip in mock mode and for VecEnv (no direct .unwrapped access).
-            if not is_mock_train and not isinstance(env, SubprocVecEnv):
+            # Load real log distribution from CSV.  Required for distribution
+            # reward in both mock and live modes.
+            # Note: load_real_logs_distribution_bucket reads the whole CSV regardless
+            # of the time args, but we pass them for API consistency.
+            train_end = datetime.datetime.now()
+            if isinstance(env, SubprocVecEnv):
+                # Cannot use get_attr('time_manager') — time_manager holds
+                # references with thread locks that are not picklable.
+                # Use env_config.end_time as a safe proxy from the main process.
+                train_start = datetime.datetime.strptime(
+                    env_config.end_time, '%m/%d/%Y:%H:%M:%S'
+                )
+                env.env_method('load_real_logs_distribution', train_start, train_end)
+            else:
                 train_start = datetime.datetime.strptime(
                     env.unwrapped.time_manager.first_start_datetime, '%m/%d/%Y:%H:%M:%S'
                 )
-                train_end = datetime.datetime.now()
                 env.unwrapped.splunk_tools.load_real_logs_distribution_bucket(train_start, train_end)
 
             model = self.create_model(env, overrides)
