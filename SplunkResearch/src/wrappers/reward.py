@@ -24,17 +24,7 @@ std = config.get('reward.std', 13)
 
 def _load_expected_alerts() -> Dict[str, Dict[str, float]]:
     """Build the expected_alerts dict from config keys."""
-    rule_names = config.get('reward.rule_names', [
-        'Windows Event For Service Disabled',
-        'Detect New Local Admin Account',
-        'ESCU Network Share Discovery Via Dir Command Rule',
-        'Known Services Killed by Ransomware',
-        'Non Chrome Process Accessing Chrome Default Dir',
-        'Kerberoasting SPN Request With RC4 Encryption',
-        'Clop Ransomware Known Service Name',
-        'Windows AD Replication Request Initiated from Unsanctioned Location',
-        'ESCU Windows Rapid Authentication On Multiple Hosts Rule',
-    ])
+    rule_names = config.get('reward.rule_names', [])
     alert_values = config.get('reward.expected_alerts_per_rule', [4, 0.7, 0, 4, 0, 0, 0, 0, 0])
     return {rule: {'alert': alert} for rule, alert in zip(rule_names, alert_values)}
 
@@ -417,9 +407,9 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
 from wrappers.reward_interpreters import (
     AlertSignal, AlertNormalizer,
     PredictedAlertSignal, RelativeDiffAlertSignal, ExpectedDiffAlertSignal,
-    TanhNormalizer, IdentityNormalizer, ScaledTanhNormalizer,
+    TanhNormalizer, IdentityNormalizer, ScaledTanhNormalizer, PowerAlertNormalizer,
     ALERT_REWARD_REGISTRY,
-    ENERGY_NORMALIZER_REGISTRY, TanhEnergyNormalizer,
+    ENERGY_NORMALIZER_REGISTRY, TanhEnergyNormalizer, PowerEnergyNormalizer,
 )
 
 
@@ -513,6 +503,13 @@ class EnergyRewardWrapper(RewardWrapper):
             return cls(
                 scale=config.get('reward.energy_normalizer_scale', 1.0),
                 ceiling=config.get('reward.energy_normalizer_ceiling', 10.0),
+            )
+        elif name == 'clip_squared':
+            return cls(ceiling=config.get('reward.energy_normalizer_ceiling', 2.0))
+        elif name == 'power':
+            return cls(
+                threshold=config.get('reward.energy_power_threshold', 1.0),
+                exponent=config.get('reward.power_energy_exponent', 2.0),
             )
         return cls()
     
@@ -626,11 +623,28 @@ class DistributionRewardWrapper1(DistributionRewardWrapper):
                  normalize_to_episode: bool = None):
         super().__init__(env, gamma, epsilon, distribution_freq, distribution_threshold,
                          normalize_to_episode)
-        
+
     def _calculate_distribution_reward(self, distribution_value: float) -> float:
         return -distribution_value
-    
+
+
+class DistributionRewardWrapper2(DistributionRewardWrapper):
+    """Convex distribution penalty: ``-(KL / T)^p``.
+
+    Reuses ``distribution_threshold`` (default 0.22) as T.
+    Config keys: ``reward.distribution_power_threshold``, ``reward.power_distribution_exponent``.
+    """
+
+    def _calculate_distribution_reward(self, distribution_value: float) -> float:
+        T = config.get('reward.distribution_power_threshold',
+                       config.get('reward.distribution_threshold', 0.22))
+        p = config.get('reward.power_distribution_exponent', 2.0)
+        T = T if T != 0 else 1e-8
+        return -(distribution_value / T) ** p
+
+
 ENUM_DISTRIBUTION_REWARD_METHODS = {
     'DistributionRewardWrapper': DistributionRewardWrapper,
     'DistributionRewardWrapper1': DistributionRewardWrapper1,
+    'DistributionRewardWrapper2': DistributionRewardWrapper2,
     }

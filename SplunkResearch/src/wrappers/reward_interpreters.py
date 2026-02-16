@@ -140,6 +140,35 @@ class IdentityNormalizer(AlertNormalizer):
         return raw_reward
 
 
+class PowerAlertNormalizer(AlertNormalizer):
+    """Convex (super-linear) penalty: ``-(|raw| / T)^p``.
+
+    Unlike tanh which saturates, gradient here **grows** with ``|raw|``,
+    giving the agent increasing incentive to reduce large violations.
+
+    Semantics:
+      - ``|normalized| < 1``  →  acceptable zone (below threshold)
+      - ``|normalized| = 1``  →  threshold (raw = ±T)
+      - ``|normalized| > 1``  →  unacceptable; gradient = ``p * |raw|^(p-1) / T^p``
+
+    ``normalizer_factor`` is used as the threshold ``T`` (the raw value at
+    which normalized = 1).  For example, ``normalizer_factor=1`` means a
+    100 % relative alert increase triggers exactly normalized = 1.
+
+    Args:
+        exponent: Power ``p`` (must be > 1 for convex shape, default 2.0).
+                  Config key: ``reward.power_alert_exponent``.
+    """
+
+    def __init__(self, exponent: float = None):
+        self.exponent = exponent if exponent is not None else config.get('reward.power_alert_exponent', 2.0)
+
+    def normalize(self, raw_reward: float, normalizer_factor: float) -> float:
+        # normalizer_factor acts as threshold T
+        T = normalizer_factor if normalizer_factor != 0 else 1.0
+        return -(abs(raw_reward) / T) ** self.exponent
+
+
 # ---------------------------------------------------------------------------
 # Energy Normalizer ABCs
 # ---------------------------------------------------------------------------
@@ -176,9 +205,46 @@ class Log1pEnergyNormalizer(EnergyNormalizer):
         return np.log1p(raw * self.scale) / self._denom
 
 
+class ClipSquaredEnergyNormalizer(EnergyNormalizer):
+    """clip(x^2, 0, ceiling): quadratic growth clipped at ``ceiling``.
+
+    Provides stronger gradient signal than tanh for small values while
+    bounding the output at ``ceiling`` (default 2.0).
+    """
+
+    def __init__(self, ceiling: float = 2.0):
+        self.ceiling = ceiling
+
+    def normalize(self, raw: float) -> float:
+        return float(np.clip(raw ** 2, 0, self.ceiling))
+
+
+class PowerEnergyNormalizer(EnergyNormalizer):
+    """Convex (super-linear) reward: ``(raw / T)^p``.
+
+    - raw < T: normalized < 1 (acceptable)
+    - raw = T: normalized = 1 (threshold, e.g. 100% CPU increase)
+    - raw > T: normalized > 1, gradient = ``p * raw^(p-1) / T^p`` (grows)
+
+    Args:
+        threshold: T, config key ``reward.energy_power_threshold`` (default 1.0)
+        exponent: p, config key ``reward.power_energy_exponent`` (default 2.0)
+    """
+
+    def __init__(self, threshold: float = None, exponent: float = None):
+        self.threshold = threshold if threshold is not None else config.get('reward.energy_power_threshold', 1.0)
+        self.exponent = exponent if exponent is not None else config.get('reward.power_energy_exponent', 2.0)
+
+    def normalize(self, raw: float) -> float:
+        T = self.threshold if self.threshold != 0 else 1.0
+        return (raw / T) ** self.exponent
+
+
 ENERGY_NORMALIZER_REGISTRY = {
     'tanh': TanhEnergyNormalizer,
     'log1p': Log1pEnergyNormalizer,
+    'clip_squared': ClipSquaredEnergyNormalizer,
+    'power': PowerEnergyNormalizer,
 }
 
 
@@ -205,4 +271,8 @@ ALERT_REWARD_REGISTRY: Dict[str, tuple] = {
     'RelativeDiffIdentity':      (RelativeDiffAlertSignal, IdentityNormalizer),
     'ExpectedDiffScaledTanh':    (ExpectedDiffAlertSignal, ScaledTanhNormalizer),
     'ExpectedDiffIdentity':      (ExpectedDiffAlertSignal, IdentityNormalizer),
+    # Convex (growing-gradient) normalizer — threshold at normalized=1
+    'PredictedPower':        (PredictedAlertSignal,    PowerAlertNormalizer),
+    'RelativeDiffPower':     (RelativeDiffAlertSignal, PowerAlertNormalizer),
+    'ExpectedDiffPower':     (ExpectedDiffAlertSignal, PowerAlertNormalizer),
 }
