@@ -127,11 +127,11 @@ class StateWrapper(ObservationWrapper):
         # Relevant-distribution dicts (written to shared state for reward wrappers)
         cache = self.unwrapped.logtype_key_cache
         self.unwrapped.real_relevant_distribution = {
-            cache[lt]: self.unwrapped.ac_real_state[self.unwrapped.relevant_logtypes_indices[lt]]
+            cache[lt]: self.unwrapped.ac_real_state[self.unwrapped.top_logtypes_indices[lt]]
             for lt in self.unwrapped.top_logtypes
         }
         self.unwrapped.fake_relevant_distribution = {
-            cache[lt]: self.unwrapped.ac_fake_state[self.unwrapped.relevant_logtypes_indices[lt]]
+            cache[lt]: self.unwrapped.ac_fake_state[self.unwrapped.top_logtypes_indices[lt]]
             for lt in self.unwrapped.top_logtypes
         }
 
