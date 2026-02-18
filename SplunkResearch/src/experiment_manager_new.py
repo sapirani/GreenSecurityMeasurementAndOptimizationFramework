@@ -600,6 +600,7 @@ class ExperimentManager:
         signal.signal(signal.SIGTERM, _signal_handler)
         signal.signal(signal.SIGINT, _signal_handler)
 
+        env = None
         try:
             # Create environment and model
             env = self.create_environment(env_config, overrides)
@@ -732,6 +733,18 @@ class ExperimentManager:
             signal.signal(signal.SIGINT, old_sigint)
             # Close any open writers
             self._close_summary_writers()
+            # Close environments to terminate SubprocVecEnv workers and free memory
+            if env is not None:
+                try:
+                    env.close()
+                except Exception as e:
+                    logger.warning(f"Error closing training env: {e}")
+            if self.eval_env is not None:
+                try:
+                    self.eval_env.close()
+                except Exception as e:
+                    logger.warning(f"Error closing eval env: {e}")
+                self.eval_env = None
 
     def _run_training(self, model, env, overrides: dict, callbacks):
         """Run training experiment"""
