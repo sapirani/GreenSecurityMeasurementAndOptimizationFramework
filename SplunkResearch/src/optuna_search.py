@@ -1,10 +1,11 @@
 """
 Optuna-based multi-objective hyperparameter optimization for DRL experiments.
 
-Uses NSGA-II to search for Pareto-optimal configurations across energy,
-alert, and distribution reward objectives. Each trial runs a fixed-budget
-experiment (600K steps) via ExperimentManager, and the best configuration
-can be automatically retrained at full budget.
+Uses NSGA-II to search for Pareto-optimal configurations across three
+objectives: maximize energy_reward, minimize alert_gap, minimize
+distribution_value (KL divergence). Each trial runs a fixed-budget
+experiment via ExperimentManager, and the best configuration can be
+automatically retrained at full budget.
 
 Usage (via run_experiment.py):
     python -m SplunkResearch.src.run_experiment \
@@ -12,20 +13,22 @@ Usage (via run_experiment.py):
 """
 
 import datetime
+import gc
 import logging
 import os
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 import optuna
+import torch as th
 from stable_baselines3.common.callbacks import BaseCallback
 
 from config import config
 
 logger = logging.getLogger(__name__)
 
-# Fixed trial budget: 600K timesteps = 50,000 episodes * 12 steps/episode
-TRIAL_EPISODES = 50_000
+# Fixed trial budget
+TRIAL_EPISODES = 40_000
 
 
 def define_search_space(trial: optuna.Trial) -> dict:
@@ -45,18 +48,19 @@ def define_search_space(trial: optuna.Trial) -> dict:
     overrides['experiment.model_type'] = model_type
 
     # ---- Shared hyperparameters ----
+    # Range tightened to practical RL values (1e-5/1e-2 wastes trials on
+    # clearly broken configs)
     overrides['training.learning_rate'] = trial.suggest_float(
-        'learning_rate', 1e-5, 1e-2, log=True)
-    overrides['training.gamma'] = trial.suggest_float(
-        'gamma', 0.9, 0.999, log=True)
+        'learning_rate', 1e-4, 5e-3, log=True)
 
     # Network architecture
     n_layers = trial.suggest_int('n_layers', 1, 3)
-    layer_size = trial.suggest_categorical('layer_size', [64, 128, 256, 512])
+    layer_size = trial.suggest_categorical('layer_size', [128, 256, 512])
     arch = [layer_size] * n_layers
 
     # ---- Algorithm-specific hyperparameters ----
     if model_type in ('sac', 'td3'):
+        # TD3 and SAC share the training.sac.* config namespace in ExperimentManager
         overrides['training.sac.batch_size'] = trial.suggest_categorical(
             'batch_size', [256, 512, 1024, 2048])
         overrides['training.sac.buffer_size'] = trial.suggest_categorical(
@@ -72,8 +76,10 @@ def define_search_space(trial: optuna.Trial) -> dict:
             overrides['training.sac.use_sde'] = use_sde
 
     elif model_type in ('ppo', 'a2c'):
+        # 4096 removed: with a fixed trial budget, very large n_steps gives
+        # too few gradient updates per trial to learn anything useful
         overrides['training.n_steps'] = trial.suggest_categorical(
-            'n_steps', [512, 1024, 2048, 4096])
+            'n_steps', [512, 1024, 2048])
         overrides['training.ent_coef'] = trial.suggest_float(
             'on_policy_ent_coef', 0.001, 0.2, log=True)
         overrides['training.ppo.use_sde'] = trial.suggest_categorical(
@@ -94,33 +100,30 @@ def define_search_space(trial: optuna.Trial) -> dict:
          'DistributionRewardWrapper2'])
     overrides['reward.distribution_method'] = distribution_method
 
-    # ---- Reward weights ----
-    overrides['reward.alpha'] = trial.suggest_float('alpha', 0.1, 2.0)
-    overrides['reward.beta'] = trial.suggest_float('beta', 0.1, 2.0)
-    overrides['reward.gamma'] = trial.suggest_float('gamma_reward', 0.1, 2.0)
+    # ---- Power-law exponents (conditional on method) ----
+    # Only sample when the chosen method actually uses the exponent;
+    # sampling unconditionally wastes search dimensions and misleads NSGA-II.
+    if alert_method in ('ExpectedDiffPower', 'RelativeDiffPower'):
+        overrides['reward.power_alert_exponent'] = trial.suggest_float(
+            'power_alert_exponent', 1.0, 4.0)
 
-    # Power-law exponents (relevant for Power normalizers)
-    overrides['reward.power_alert_exponent'] = trial.suggest_float(
-        'power_alert_exponent', 1.0, 4.0)
+    # Energy power exponent: always relevant (energy normalizer type is not
+    # searched over, so the default may be the power normalizer)
     overrides['reward.power_energy_exponent'] = trial.suggest_float(
         'power_energy_exponent', 1.0, 4.0)
-    overrides['reward.power_distribution_exponent'] = trial.suggest_float(
-        'power_distribution_exponent', 1.0, 4.0)
 
-    # ---- Action parameters ----
-    overrides['action.softmax_temperature'] = trial.suggest_float(
-        'softmax_temperature', 5.0, 50.0)
-    overrides['action.base_log_count'] = trial.suggest_int(
-        'base_log_count', 5000, 50000, step=5000)
+    if distribution_method == 'DistributionRewardWrapper2':
+        overrides['reward.power_distribution_exponent'] = trial.suggest_float(
+            'power_distribution_exponent', 1.0, 4.0)
 
     return overrides
 
 
 class OptunaReportCallback(BaseCallback):
-    """SB3 callback that collects episode rewards for Optuna multi-objective trials.
+    """SB3 callback that collects episode metrics for Optuna multi-objective trials.
 
-    Collects per-episode reward components from ``info`` dicts at episode
-    boundaries. On training end, stores tail-20% averages as trial user attrs.
+    Collects per-episode values from ``info`` dicts at episode boundaries.
+    On training end, stores tail-20% averages as trial user attrs.
 
     Note: ``trial.report()`` / ``trial.should_prune()`` are not supported for
     multi-objective studies, so pruning is not used here.
@@ -130,8 +133,8 @@ class OptunaReportCallback(BaseCallback):
         super().__init__(verbose)
         self.trial = trial
         self._episode_energy: list[float] = []
-        self._episode_alert: list[float] = []
-        self._episode_dist: list[float] = []
+        self._episode_alert_gap: list[float] = []
+        self._episode_dist_value: list[float] = []
         self._episode_count = 0
 
     def _on_step(self) -> bool:
@@ -143,23 +146,26 @@ class OptunaReportCallback(BaseCallback):
         # Collect from all envs (supports both single and SubprocVecEnv)
         for i, info in enumerate(infos):
             if i < len(dones) and dones[i] and info:
-                energy = info.get('norm_energy_reward', 0.0)
-                alert = info.get('norm_alert_reward', 0.0)
-                dist = info.get('ac_distribution_reward', 0.0)
+                energy = info.get('energy_reward', 0.0)
+                alert_gap = (
+                    info.get('combined_metrics', {}).get('alert', 0.0)
+                    - info.get('combined_baseline_metrics', {}).get('alert', 0.0)
+                )
+                dist_value = info.get('ac_distribution_value', 0.0)
 
                 self._episode_energy.append(float(energy))
-                self._episode_alert.append(float(alert))
-                self._episode_dist.append(float(dist))
+                self._episode_alert_gap.append(float(alert_gap))
+                self._episode_dist_value.append(float(dist_value))
                 self._episode_count += 1
 
         return True
 
     def _store_final_attrs(self):
-        """Store tail-20% average rewards as trial user attributes."""
+        """Store tail-20% average values as trial user attributes."""
         for name, history in [
             ('final_energy_reward', self._episode_energy),
-            ('final_alert_reward', self._episode_alert),
-            ('final_distribution_reward', self._episode_dist),
+            ('final_alert_gap', self._episode_alert_gap),
+            ('final_distribution_value', self._episode_dist_value),
         ]:
             if history:
                 tail_n = max(1, len(history) // 5)
@@ -188,7 +194,8 @@ def objective(
         trial_episodes: Number of episodes per trial (fixed budget).
 
     Returns:
-        Tuple of (energy_reward, alert_reward, distribution_reward).
+        Tuple of (energy_reward, alert_gap, distribution_value).
+        Directions: maximize energy, minimize alert_gap, minimize distribution_value.
     """
     from experiment_manager_new import ExperimentManager
 
@@ -212,31 +219,45 @@ def objective(
     # Tag the sub-experiment
     merged['experiment_name'] = f'optuna_trial_{trial.number}'
 
+    manager = ExperimentManager(base_dir=experiment_dir)
     try:
-        manager = ExperimentManager(base_dir=experiment_dir)
         manager.run_experiment(env_config, merged)
     except optuna.TrialPruned:
         raise
     except Exception as e:
         logger.warning(f"Trial {trial.number} failed: {e}")
         raise optuna.TrialPruned(f"Trial failed: {e}")
+    finally:
+        # Flush whatever was collected — _on_training_end may not fire on
+        # interruption (SIGTERM, exception mid-training), so we store here too.
+        # _store_final_attrs is idempotent: safe to call twice.
+        report_cb._store_final_attrs()
+        # Release manager (closes open handles) and force memory reclamation
+        # between Optuna trials to prevent OOM accumulation.
+        del manager
+        gc.collect()
+        if th.cuda.is_available():
+            th.cuda.empty_cache()
 
     energy = trial.user_attrs.get('final_energy_reward', 0.0)
-    alert = trial.user_attrs.get('final_alert_reward', 0.0)
-    dist = trial.user_attrs.get('final_distribution_reward', 0.0)
+    alert_gap = trial.user_attrs.get('final_alert_gap', 0.0)
+    dist_value = trial.user_attrs.get('final_distribution_value', 0.0)
 
     logger.info(
         f"Trial {trial.number} finished: energy={energy:.4f}, "
-        f"alert={alert:.4f}, dist={dist:.4f}"
+        f"alert_gap={alert_gap:.4f}, dist_value={dist_value:.4f}"
     )
-    return energy, alert, dist
+    return energy, alert_gap, dist_value
 
 
 def _select_best_trial(study: optuna.Study) -> optuna.trial.FrozenTrial:
     """Select best trial from Pareto front using normalized-sum heuristic.
 
-    Normalizes each objective to [0, 1] across the Pareto front and picks
-    the trial with highest sum (balanced trade-off).
+    Objectives: maximize energy (idx 0), minimize alert_gap (idx 1),
+    minimize distribution_value (idx 2).
+
+    Normalizes each objective to [0, 1] and inverts minimize-direction
+    objectives so that higher score always means better.
     """
     pareto = study.best_trials
     if len(pareto) == 1:
@@ -248,15 +269,25 @@ def _select_best_trial(study: optuna.Study) -> optuna.trial.FrozenTrial:
     ranges = maxs - mins
     # Avoid division by zero for constant objectives
     ranges[ranges == 0] = 1.0
-    normalized = (values - mins) / ranges
-    scores = normalized.sum(axis=1)
+    normalized = (values - mins) / ranges  # 0=min, 1=max for each column
+
+    # Directions: [maximize, minimize, minimize]
+    # For minimize objectives, lower raw value is better → invert normalized score
+    directions = np.array([1.0, -1.0, -1.0])  # +1 = keep, -1 = invert
+    quality = np.where(directions > 0, normalized, 1.0 - normalized)
+    scores = quality.sum(axis=1)
     best_idx = int(np.argmax(scores))
     return pareto[best_idx]
 
 
 def _rebuild_overrides_from_trial(best: optuna.trial.FrozenTrial,
                                   base_overrides: dict) -> dict:
-    """Reconstruct config overrides from a completed trial's params."""
+    """Reconstruct config overrides from a completed trial's params.
+
+    Only sets keys that were actually sampled in define_search_space.
+    Conditional params (power exponents, SAC-specific) use .get() to
+    avoid KeyError when the param was not sampled for that trial.
+    """
     p = best.params
     overrides = {**base_overrides}
 
@@ -266,7 +297,6 @@ def _rebuild_overrides_from_trial(best: optuna.trial.FrozenTrial,
 
     # Shared
     overrides['training.learning_rate'] = p['learning_rate']
-    overrides['training.gamma'] = p['gamma']
 
     n_layers = p['n_layers']
     layer_size = p['layer_size']
@@ -292,17 +322,13 @@ def _rebuild_overrides_from_trial(best: optuna.trial.FrozenTrial,
     overrides['reward.alert_method'] = p['alert_method']
     overrides['reward.distribution_method'] = p['distribution_method']
 
-    # Reward weights & exponents
-    overrides['reward.alpha'] = p['alpha']
-    overrides['reward.beta'] = p['beta']
-    overrides['reward.gamma'] = p['gamma_reward']
-    overrides['reward.power_alert_exponent'] = p['power_alert_exponent']
-    overrides['reward.power_energy_exponent'] = p['power_energy_exponent']
-    overrides['reward.power_distribution_exponent'] = p['power_distribution_exponent']
-
-    # Action
-    overrides['action.softmax_temperature'] = p['softmax_temperature']
-    overrides['action.base_log_count'] = p['base_log_count']
+    # Power-law exponents — only set if they were sampled (conditional on method)
+    if 'power_alert_exponent' in p:
+        overrides['reward.power_alert_exponent'] = p['power_alert_exponent']
+    if 'power_energy_exponent' in p:
+        overrides['reward.power_energy_exponent'] = p['power_energy_exponent']
+    if 'power_distribution_exponent' in p:
+        overrides['reward.power_distribution_exponent'] = p['power_distribution_exponent']
 
     return overrides
 
@@ -325,7 +351,7 @@ def run_optuna_search(
         n_trials: Number of Optuna trials.
         study_name: Study name (also used for SQLite DB filename).
         trial_episodes_fraction: Unused (kept for CLI compatibility).
-            Trials always run TRIAL_EPISODES (600K steps).
+            Trials always run TRIAL_EPISODES episodes.
         retrain_best: Whether to retrain the best trial at full budget.
 
     Returns:
@@ -342,12 +368,12 @@ def run_optuna_search(
 
     logger.info(f"Starting Optuna search: {n_trials} trials, study={study_name}")
     logger.info(f"Storage: {storage}")
-    logger.info(f"Trial budget: {TRIAL_EPISODES} episodes ({TRIAL_EPISODES * 12} steps)")
+    logger.info(f"Trial budget: {TRIAL_EPISODES} episodes")
 
     study = optuna.create_study(
         study_name=study_name,
         storage=storage,
-        directions=["maximize", "maximize", "maximize"],
+        directions=["maximize", "minimize", "minimize"],
         sampler=optuna.samplers.NSGAIISampler(),
         load_if_exists=True,
     )
@@ -366,7 +392,7 @@ def run_optuna_search(
     for t in pareto:
         logger.info(
             f"  Trial {t.number}: energy={t.values[0]:.4f}, "
-            f"alert={t.values[1]:.4f}, dist={t.values[2]:.4f} "
+            f"alert_gap={t.values[1]:.4f}, dist_value={t.values[2]:.4f} "
             f"[{t.params.get('model_type', '?')}, {t.params.get('alert_method', '?')}]"
         )
 
