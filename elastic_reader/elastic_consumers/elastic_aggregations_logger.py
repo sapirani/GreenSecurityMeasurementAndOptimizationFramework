@@ -23,11 +23,11 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
             queued_iterations_num_max: int = 15     # used as an optimization for in offline mode
     ):
         self.logger = get_measurement_logger(
-            logger_name=LoggerName.METRICS_AGGREGATIONS,
+            logger_name=LoggerName.SAPIR_AGGREGATIONS,
             logger_handler=get_elastic_bulk_handler(
                 ES_USER,
                 ES_PASS, ES_URL,
-                IndexName.METRICS_AGGREGATIONS,
+                IndexName.ENERGY_AGGREGATIONS_SAPIR,
                 pipeline_name=custom_pipeline_name
             ),
         )
