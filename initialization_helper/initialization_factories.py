@@ -5,17 +5,18 @@ import psutil
 from scapy.interfaces import get_working_ifaces
 
 from custom_process_filter.abstarct_process_filter import AbstractProcessFilter
+from custom_process_filter.filter_for_python import FilterForPythonProcesses
 from custom_process_filter.filter_out_cmd import FilterOutCMDProcesses
 from custom_process_filter.filter_out_python import FilterOutPythonProcesses
-
-from custom_process_filter.filter_for_python import FilterForPythonProcesses
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from operating_systems.os_linux import LinuxOS
 from operating_systems.os_windows import WindowsOS
 from program_parameters import antivirus_type, scan_type, custom_scan_path, recursive, should_optimize, \
     should_mitigate_timestomping, ids_type, interface_name, pcap_list_dirs, log_path, configuration_file_path, \
     model_name, model_action, script_relative_path, installation_dir, cpu_percent_to_consume, RUNNING_TIME, \
-    dummy_task_rate, dummy_task_unit_size, tasks_to_run_in_parallel
+    dummy_task_rate, dummy_task_unit_size, tasks_to_run_in_parallel, messages_to_decrypt_file, security_algorithm_type, \
+    algorithm_key_file, min_key_value, messages_to_encrypt_file, results_file_for_decryption, block_cipher_mode, \
+    max_key_value, results_file_for_encryption
 from resource_usage_recorder.processes_recorder.process_network_usage_recorder import ProcessNetworkUsageRecorder
 from resource_usage_recorder.processes_recorder.strategies.abstract_processes_recorder import \
     AbstractProcessResourceUsageRecorder
@@ -28,30 +29,35 @@ from resource_usage_recorder.processes_recorder.strategies.process_of_interest_o
 from resource_usage_recorder.system_recorder.battery.battery_usage_recorder import SystemBatteryUsageRecorder
 from resource_usage_recorder.system_recorder.battery.null_battery_recorder import NullBatteryUsageRecorder
 from summary_builder import SystemResourceIsolationSummaryBuilder, NativeSummaryBuilder
-from tasks.program_classes.resources_consumers_programs.disk_io_read_program import DiskIOReadConsumer
-from tasks.program_classes.resources_consumers_programs.disk_io_write_program import DiskIOWriteConsumer
-from tasks.program_classes.resources_consumers_programs.memory_releaser_program import MemoryReleaser
-from tasks.program_classes.resources_consumers_programs.multiple_resource_consumers_program import \
-    MultipleResourceConsumer
-from utils.general_consts import SummaryType, ProgramToScan, AntivirusType, IDSType, ProcessMonitorType, \
-    BatteryMonitorType, CustomFilterType
 from tasks.program_classes.abstract_program import ProgramInterface
 from tasks.program_classes.antiviruses.clam_av_program import ClamAVProgram
 from tasks.program_classes.antiviruses.defender_program import DefenderProgram
 from tasks.program_classes.antiviruses.dummy_antivirus_program import DummyAntivirusProgram
 from tasks.program_classes.antiviruses.sophos_av_program import SophosAVProgram
-from tasks.program_classes.resources_consumers_programs.cpu_consumer_program import CPUConsumer
-from tasks.program_classes.resources_consumers_programs.memory_consumer_program import MemoryConsumer
+from tasks.program_classes.baseline_measurement_program import BaselineMeasurementProgram
+from tasks.program_classes.confidential_computing.encryption_pipeline_executor import EncryptionPipelineExecutor
+from tasks.program_classes.confidential_computing.message_adder import MessageAdder
+from tasks.program_classes.confidential_computing.message_decryptor import MessageDecryptor
+from tasks.program_classes.confidential_computing.message_encryptor import MessageEncryptor
+from tasks.program_classes.confidential_computing.message_multiplier import MessageMultiplier
 from tasks.program_classes.ids.snort_program import SnortProgram
 from tasks.program_classes.ids.suricata_program import SuricataProgram
 from tasks.program_classes.log_anomaly_detection_program import LogAnomalyDetection
+from tasks.program_classes.perfmon_monitoring_program import PerfmonProgram
+from tasks.program_classes.resources_consumers_programs.cpu_consumer_program import CPUConsumer
+from tasks.program_classes.resources_consumers_programs.disk_io_read_program import DiskIOReadConsumer
+from tasks.program_classes.resources_consumers_programs.disk_io_write_program import DiskIOWriteConsumer
+from tasks.program_classes.resources_consumers_programs.memory_consumer_program import MemoryConsumer
+from tasks.program_classes.resources_consumers_programs.memory_releaser_program import MemoryReleaser
+from tasks.program_classes.resources_consumers_programs.multiple_resource_consumers_program import \
+    MultipleResourceConsumer
 from tasks.program_classes.resources_consumers_programs.network_receiver_program import NetworkReceiver
 from tasks.program_classes.resources_consumers_programs.network_sender_program import NetworkSender
-from tasks.program_classes.baseline_measurement_program import BaselineMeasurementProgram
-from tasks.program_classes.perfmon_monitoring_program import PerfmonProgram
 from tasks.program_classes.server_program import PythonServer
 from tasks.program_classes.splunk_program import SplunkProgram
 from tasks.program_classes.user_activity_program import UserActivityProgram
+from utils.general_consts import SummaryType, ProgramToScan, AntivirusType, IDSType, ProcessMonitorType, \
+    BatteryMonitorType, CustomFilterType
 
 
 def running_os_factory(is_inside_container: bool) -> AbstractOSFuncs:
@@ -185,6 +191,29 @@ def program_to_scan_factory(program_type: ProgramToScan) -> ProgramInterface:
     if program_type == ProgramToScan.NetworkSender:
         return NetworkSender(rate=dummy_task_rate, packet_size=dummy_task_unit_size)
     if program_type == ProgramToScan.MultipleResourceConsumer:
-        return MultipleResourceConsumer(tasks_to_run=tasks_to_run_in_parallel, consumption_speed=dummy_task_rate, chunk_size=dummy_task_unit_size)
+        return MultipleResourceConsumer(tasks_to_run=tasks_to_run_in_parallel, consumption_speed=dummy_task_rate,
+                                        chunk_size=dummy_task_unit_size)
+    if program_type == ProgramToScan.MessageEncryptor:
+        return MessageEncryptor(messages_file=messages_to_encrypt_file, results_file=results_file_for_encryption,
+                                security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
+                                key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
+    if program_type == ProgramToScan.MessageDecryptor:
+        return MessageDecryptor(messages_file=messages_to_decrypt_file, results_file=results_file_for_decryption,
+                                security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
+                                key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
+    if program_type == ProgramToScan.MessageAddition:
+        return MessageAdder(messages_file=messages_to_encrypt_file, results_file=results_file_for_decryption,
+                            security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
+                            key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
+    if program_type == ProgramToScan.MessageMultiplication:
+        return MessageMultiplier(messages_file=messages_to_encrypt_file, results_file=results_file_for_decryption,
+                                 security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
+                                 key_file=algorithm_key_file, min_key_value=min_key_value, max_key_value=max_key_value)
+    if program_type == ProgramToScan.EncryptionPipelineExecutor:
+        return EncryptionPipelineExecutor(messages_file=messages_to_encrypt_file,
+                                          results_file=results_file_for_decryption,
+                                          security_algorithm=security_algorithm_type, block_mode=block_cipher_mode,
+                                          key_file=algorithm_key_file, min_key_value=min_key_value,
+                                          max_key_value=max_key_value)
 
     raise Exception("choose program to scan from ProgramToScan enum")
