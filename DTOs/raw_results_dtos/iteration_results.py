@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any
 from DTOs.process_info import ProcessIdentity
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
-from elastic_reader.consts import ElasticIndex
+from DTOs.logging.consts import IndexName
 
 
 @dataclass
@@ -12,10 +12,10 @@ class IterationResults:
     system_result: Optional[SystemRawResults] = None
     process_results: Dict[ProcessIdentity, ProcessRawResults] = field(default_factory=dict)
 
-    def add_result(self, index: ElasticIndex, raw_results: Dict[str, Any]):
-        if index == ElasticIndex.SYSTEM:
+    def add_result(self, index: IndexName, raw_results: Dict[str, Any]):
+        if index == IndexName.SYSTEM_METRICS:
             self.__set_system_result(SystemRawResults.from_dict(raw_results))
-        elif index == ElasticIndex.PROCESS:
+        elif index == IndexName.PROCESS_METRICS:
             self.__add_process_result(ProcessRawResults.from_dict(raw_results))
         else:
             raise ValueError(f"Received unexpected index: {index}")

@@ -21,10 +21,10 @@ from hadoop_optimizer.drl_telemetry.energy_tracker import EnergyTracker
 from hadoop_optimizer.env_composition_config.env_builder import build_env
 from hadoop_optimizer.env_composition_config.env_wrapper_spec import EnvWrappersParams
 from hadoop_optimizer.reward.reward_calculator import RewardCalculator
-from hadoop_optimizer.training_client.client import HadoopOptimizerTrainingClient
+from hadoop_optimizer.training.client.hadoop_optimizer_training_client import HadoopOptimizerTrainingClient
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
-from utils.general_consts import LoggerName, IndexName
+from DTOs.logging.consts import LoggerName, IndexName
 
 
 class TrainingContainer(containers.DeclarativeContainer):
@@ -71,12 +71,12 @@ class TrainingContainer(containers.DeclarativeContainer):
 
     reward_calculator: Provider[EnergyTracker] = providers.Factory(
         RewardCalculator,
-        alpha_hyperparam=config.drl.reward.alpha_hyperparam,
-        beta_hyperparam=config.drl.reward.beta_hyperparam,
-        lambda_hyperparam=config.drl.reward.lambda_hyperparam,
-        epsilon_hyperparam=config.drl.reward.epsilon_hyperparam,
-        tau_hyperparam=config.drl.reward.tau_hyperparam,
-        delta_hyperparam=config.drl.reward.delta_hyperparam,
+        alpha=config.drl.reward.alpha,
+        beta=config.drl.reward.beta,
+        lambda_=config.drl.reward.lambda_,
+        epsilon=config.drl.reward.epsilon,
+        tau=config.drl.reward.tau,
+        delta=config.drl.reward.delta,
     )
 
     # todo: think about what to do with the telemetry aggregator, is it necessary?

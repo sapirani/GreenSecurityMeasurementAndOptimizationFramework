@@ -7,9 +7,9 @@ from elasticsearch import Elasticsearch
 from elasticsearch.dsl.response import Hit
 from elasticsearch.dsl import Search
 import time
-
-from elastic_reader.consts import ElasticIndex, MAX_INDEXING_TIME_SECONDS, PULL_PAGE_SIZE, \
-    NON_GRACEFUL_TERMINATION_DETECTION_WINDOW_SECONDS, PULL_INTERVAL_SECONDS
+from DTOs.logging.consts import IndexName, SCANNER_FINISHED_MESSAGE
+from elastic_reader.consts import MAX_INDEXING_TIME_SECONDS, PULL_PAGE_SIZE, \
+    NON_GRACEFUL_TERMINATION_DETECTION_WINDOW_SECONDS, PULL_INTERVAL_SECONDS, IndexRetrievalOrder
 from DTOs.raw_results_dtos.iteration_results import IterationResults
 from DTOs.raw_results_dtos.iteration_info import IterationMetadata, IterationRawResults
 from elastic_reader.elastic_reader_parameters import ES_USER, ES_PASS, ES_URL
@@ -20,14 +20,14 @@ class ElasticReader:
     def __init__(
             self,
             time_picker_input: TimePickerChosenInput,
-            indices: list[ElasticIndex],
+            indices: list[IndexName],
             *,
             should_terminate_event: Optional[threading.Event] = None
     ):
         self.time_picker_input = time_picker_input
         self.indices = indices
-        if ElasticIndex.APPLICATION_FLOW not in self.indices:
-            self.indices.append(ElasticIndex.APPLICATION_FLOW)
+        if IndexName.APPLICATION_FLOW not in self.indices:
+            self.indices.append(IndexName.APPLICATION_FLOW)
 
         self.should_terminate_event = should_terminate_event
         self.es = Elasticsearch(ES_URL, basic_auth=(ES_USER, ES_PASS), verify_certs=False)
@@ -76,11 +76,11 @@ class ElasticReader:
                     "script": {
                         "lang": "painless",
                         "source": f"""
-                              if (doc['_index'].value == '{ElasticIndex.PROCESS}') return 1;
-                              if (doc['_index'].value == '{ElasticIndex.SYSTEM}') return 2;
-                              if (doc['_index'].value == '{ElasticIndex.APPLICATION_FLOW}') return 3;
-                              return 999;
-                            """
+                          if (doc['_index'].value == '{IndexName.PROCESS_METRICS}') return {IndexRetrievalOrder.FIRST};
+                          if (doc['_index'].value == '{IndexName.SYSTEM_METRICS}') return {IndexRetrievalOrder.SECOND};
+                          if (doc['_index'].value == '{IndexName.APPLICATION_FLOW}') return {IndexRetrievalOrder.THIRD};
+                          return {IndexRetrievalOrder.LAST};
+                        """
                     }
                 }
             },
@@ -153,7 +153,7 @@ class ElasticReader:
 
     @staticmethod
     def __is_scanner_terminated(raw_data):
-        return raw_data.get('message') == "The scanner has finished measuring"
+        return raw_data.get('message') == SCANNER_FINISHED_MESSAGE
 
     def read(self) -> Iterator[IterationRawResults]:
         """
@@ -185,7 +185,7 @@ class ElasticReader:
                 raw_data = examined_doc.to_dict()
                 current_doc_iteration_metadata = IterationMetadata.from_dict(raw_data)
 
-                if examined_doc.meta.index == ElasticIndex.APPLICATION_FLOW:
+                if examined_doc.meta.index == IndexName.APPLICATION_FLOW:
                     if self.__is_scanner_terminated(raw_data):
                         # yield the last iteration results right away (when we receive the termination message)
                         yield from self.__yield_iteration_per_session_host(

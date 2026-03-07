@@ -6,7 +6,8 @@ import psutil
 
 from resource_usage_recorder import MetricResult
 from resource_usage_recorder.processes_recorder.process_network_usage_recorder import ProcessNetworkUsageRecorder
-from utils.general_consts import MB, KB, NUMBER_OF_CORES, LoggerName
+from utils.general_consts import MB, KB, NUMBER_OF_CORES
+from DTOs.logging.consts import LoggerName
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 
 logger = logging.getLogger(LoggerName.PROCESS_METRICS)

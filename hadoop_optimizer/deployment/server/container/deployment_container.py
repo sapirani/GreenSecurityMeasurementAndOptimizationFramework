@@ -6,7 +6,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.policies import ActorCriticPolicy
 from elastic_reader.consts import TimePickerInputStrategy
-from hadoop_optimizer.deployment_server.drl_deployment_manager import DRLDeploymentManager
+from hadoop_optimizer.deployment.server.drl_deployment_manager import DRLDeploymentManager
 from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
 from hadoop_optimizer.env_composition_config.env_builder import build_env

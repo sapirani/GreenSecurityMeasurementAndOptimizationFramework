@@ -1,3 +1,4 @@
+# TODO: MOVE THE SCANNER INTO A SEPARATE PACKAGE
 import argparse
 import json
 import logging
@@ -15,6 +16,7 @@ from prettytable import PrettyTable
 from threading import Thread, Timer
 import pandas as pd
 
+from DTOs.logging.consts import LoggerName, IndexName, SCANNER_FINISHED_MESSAGE
 from application_logging.handlers.abstract_elastic_handler import TIMESTAMP_FIELD_NAME
 from application_logging.handlers.elastic_bulk_handler import get_elastic_bulk_handler
 from application_logging.logging_utils import get_measurement_logger
@@ -89,7 +91,7 @@ def handle_sigint(signum, frame):
 
 def log_scanner_termination():
     application_flow_logger.info(
-        "The scanner has finished measuring",
+        SCANNER_FINISHED_MESSAGE,
         extra={TIMESTAMP_FIELD_NAME: last_iteration_timestamp}
     )
 

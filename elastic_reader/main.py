@@ -7,7 +7,7 @@ from elastic_reader.elastic_consumers.abstract_elastic_consumer import AbstractE
 from elastic_reader.elastic_consumers.consumer_factory import get_consumers
 from elastic_reader.elastic_reader import ElasticReader
 from elastic_reader.elastic_reader_parameters import *
-from elastic_reader.consts import ElasticIndex
+from DTOs.logging.consts import IndexName
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 
@@ -43,7 +43,7 @@ def trigger_post_processing(consumers: List[AbstractElasticConsumer]):
 def run_elastic_reader(
     time_picker_input: TimePickerChosenInput,
     consumers: List[AbstractElasticConsumer],
-    indices_to_read_from: List[ElasticIndex],
+    indices_to_read_from: List[IndexName],
     *,
     should_terminate_event: Optional[threading.Event] = None
 ):
@@ -67,5 +67,5 @@ if __name__ == '__main__':
         time_picker_input=time_picker_input,
         consumers=get_consumers(consumer_types, time_picker_input.mode, verbosity),
         # TODO: SUPPORT COMBINATIONS OF INDICES TO READ FROM (as a user input in the elastic_reader_parameters.py)
-        indices_to_read_from=[ElasticIndex.PROCESS, ElasticIndex.SYSTEM]
+        indices_to_read_from=[IndexName.PROCESS_METRICS, IndexName.SYSTEM_METRICS]
     )

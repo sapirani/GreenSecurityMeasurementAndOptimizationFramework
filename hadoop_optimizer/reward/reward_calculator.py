@@ -19,30 +19,30 @@ class RewardCalculator:
     """
     def __init__(
             self,
-            alpha_hyperparam: float,
-            beta_hyperparam: float,
-            lambda_hyperparam: float,
-            epsilon_hyperparam: float,
-            tau_hyperparam: float = 0.5,
-            delta_hyperparam: float = 0.5,
+            alpha: float,
+            beta: float,
+            lambda_: float,     # lambda is a reserved word
+            epsilon: float,
+            tau: float = 0.5,
+            delta: float = 0.5,
     ):
-        if not (alpha_hyperparam > 0 and beta_hyperparam > 0 and lambda_hyperparam > 0 and epsilon_hyperparam > 0 and
-                tau_hyperparam > 0 and delta_hyperparam > 0):
+        if not (alpha > 0 and beta > 0 and lambda_ > 0 and epsilon > 0 and
+                tau > 0 and delta > 0):
             raise ValueError("Selected reward hyper parameters must be positive")
 
-        if not (lambda_hyperparam > LAST_REWARD_MIN_IMPORTANCE_FACTOR * epsilon_hyperparam > alpha_hyperparam):
+        if not (lambda_ > LAST_REWARD_MIN_IMPORTANCE_FACTOR * epsilon > alpha):
             raise ValueError("Selected reward hyper parameters correlation violate constraints")
 
         self.baseline_performance: Optional[JobExecutionPerformance] = None
-        self.__alpha = alpha_hyperparam
-        self.__beta = beta_hyperparam
-        self.__lambda = lambda_hyperparam
-        self.__epsilon = epsilon_hyperparam
-        self.__tau = tau_hyperparam
-        self.__delta = delta_hyperparam
+        self.__alpha = alpha
+        self.__beta = beta
+        self.__lambda = lambda_
+        self.__epsilon = epsilon
+        self.__tau = tau
+        self.__delta = delta
 
-    def update_baseline_performance(self, job_performance: JobExecutionPerformance):
-        self.baseline_performance = job_performance
+    def update_baseline_performance(self, baseline_job_performance: JobExecutionPerformance):
+        self.baseline_performance = baseline_job_performance
 
     def __compute_step_gain(self, job_performance: JobExecutionPerformance) -> float:
         runtime_improvement_sec = self.baseline_performance.running_time_sec - job_performance.running_time_sec

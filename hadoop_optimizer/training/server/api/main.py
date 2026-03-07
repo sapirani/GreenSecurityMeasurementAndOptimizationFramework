@@ -14,7 +14,7 @@ from DTOs.hadoop.drl_training.episode_context import EpisodeContext
 from DTOs.hadoop.drl_training.training_run_job_response import TrainingJobRunResponse
 from hadoop_optimizer.nodes_trigger_sender import HadoopClusterTriggerSender
 from hadoop_optimizer.supported_jobs.supported_jobs_config import SupportedJobsConfig
-from hadoop_optimizer.training_server.api.config import MAX_JOB_RUNTIME
+from hadoop_optimizer.training.server.api.config import MAX_JOB_RUNTIME
 
 
 app = FastAPI()

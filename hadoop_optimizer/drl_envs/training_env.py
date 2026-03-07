@@ -14,7 +14,7 @@ from hadoop_optimizer.drl_telemetry.energy_tracker import EnergyTracker
 from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 from hadoop_optimizer.reward.reward_calculator import RewardCalculator
 from hadoop_optimizer.supported_jobs.supported_jobs_config import SupportedJobsConfig
-from hadoop_optimizer.training_client.client import HadoopOptimizerTrainingClient
+from hadoop_optimizer.training.client.hadoop_optimizer_training_client import HadoopOptimizerTrainingClient
 import numpy as np
 from logging import Logger
 
@@ -98,6 +98,11 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             *,
             is_baseline: bool = False
     ) -> JobExecutionPerformance:
+        # TODO: IMPORTANT OPTIMIZATION OF CHECKING IF SOME RESULTS FOR THE SAME CONFIGURATION AND INPUT SIZE ALREADY
+        #   EXIST IN THE TRAINING_DRL INDEX, AND RETURN THOSE RESULTS IMMEDIATELY
+        #   NOTE: WE MAY ADD INTENTIONAL NOISE FOR THOSE RESULTS, AND WE SHOULD IMPLEMENT "SIMILARITY" MECHANISM
+        #   (AS IF WE HAVE A VERY SIMILAR CONFIGURATION BUT NOT EXACTLY THE SAME IN THE DRL_TRAINING INDEX)
+        #   THAT IS BEING MORE GRANULAR OVER STEPS.
         episode_context = self.__get_episode_context(is_baseline=is_baseline)
 
         self.energy_tracker.reset_tracker(self.train_id, episode_context)

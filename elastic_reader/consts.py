@@ -1,12 +1,11 @@
 from enum import Enum
 
 
-# TODO: UNIFY WITH THE SAME ENUM CLASS FROM SCANNER'S GENERAL CONSTS
-class ElasticIndex(str, Enum):
-    SYSTEM = "system_metrics"
-    PROCESS = "process_metrics"
-    AGGREGATIONS = "metrics_aggregations"
-    APPLICATION_FLOW = "application_flow"
+class IndexRetrievalOrder:
+    FIRST = 1
+    SECOND = 2
+    THIRD = 3
+    LAST = 999
 
 
 class ElasticConsumerType(str, Enum):

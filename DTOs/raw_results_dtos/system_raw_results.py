@@ -79,7 +79,6 @@ class SystemRawResults(AbstractRawResults):
         }
         init_kwargs["extras"] = extra_fields
 
-        # Create object and compute duration
         system_raw_results = cls(**init_kwargs)
         system_raw_results.core_percents = get_cores_metrics(data)
 

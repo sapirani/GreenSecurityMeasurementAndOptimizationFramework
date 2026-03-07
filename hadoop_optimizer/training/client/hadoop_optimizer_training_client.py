@@ -5,7 +5,7 @@ from urllib.parse import urljoin
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from hadoop_optimizer.drl_envs.training_env import EpisodeContext
-from hadoop_optimizer.training_client.consts import DEFAULT_CHOOSE_CONFIG_ENDPOINT_NAME, DEFAULT_SERVER_PORT, \
+from hadoop_optimizer.training.client.consts import DEFAULT_CHOOSE_CONFIG_ENDPOINT_NAME, DEFAULT_SERVER_PORT, \
     DEFAULT_SERVER_IP, SESSION_ID_PARAM_NAME
 from DTOs.hadoop.drl_training.training_run_job_response import TrainingJobRunResponse
 

@@ -7,7 +7,13 @@ from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOpti
 
 
 class OptimizerDeploymentEnv(AbstractOptimizerEnvInterface):
+    DEFAULT_REWARD = 0
+
     def _init_episodic_job(self, options: dict[str, Any] | None) -> JobProperties:
+        """
+        :param options: Should contain the job properties that we want to optimize its Hadoop config params
+            through this episode
+        """
         if not options:
             raise ValueError("Expected to retrieve the job properties on reset")
 
@@ -21,9 +27,9 @@ class OptimizerDeploymentEnv(AbstractOptimizerEnvInterface):
 
     def _compute_reward(self, job_config: HadoopJobExecutionConfig, terminated: bool, truncated: bool) -> float:
         """
-        :return: 0, since upon deployment there is no need to compute rewards
+        :return: some default reward, since there is no need to compute rewards in the deployment phase
         """
-        return 0
+        return OptimizerDeploymentEnv.DEFAULT_REWARD
 
     def _custom_rendering(self):
         pass

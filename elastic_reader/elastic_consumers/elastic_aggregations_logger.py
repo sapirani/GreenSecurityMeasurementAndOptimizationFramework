@@ -11,7 +11,7 @@ from elastic_reader.consts import Verbosity
 from elastic_reader.elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
 from elastic_reader.elastic_reader_parameters import ES_USER, ES_PASS, ES_URL, custom_pipeline_name
 from user_input.elastic_reader_input.abstract_date_picker import ReadingMode
-from utils.general_consts import LoggerName, IndexName
+from DTOs.logging.consts import LoggerName, IndexName
 
 
 class ElasticAggregationsLogger(AbstractElasticConsumer):
