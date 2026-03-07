@@ -11,6 +11,8 @@ from energy_model.dataset_creation.raw_telemetry_readers.raw_telemetry_reader im
 from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
 
 
+DEFAULT_DURATIONS_BETWEEN_SAMPLES = []
+
 class DatasetCreator(ABC):
     """
     Class for processing the telemetry data and calculating the energy usage of each sample.
@@ -21,6 +23,7 @@ class DatasetCreator(ABC):
         if batch_time_intervals is None:
             batch_time_intervals = DEFAULT_BATCH_INTERVAL_SECONDS
 
+        self.__durations_between_samples = DEFAULT_DURATIONS_BETWEEN_SAMPLES
         self.__batch_time_intervals = batch_time_intervals
         self.__target_calculator = target_calculator
         self.__dataset_reader = dataset_reader
@@ -31,7 +34,20 @@ class DatasetCreator(ABC):
 
         full_df = pd.DataFrame()
         for batch_interval in self.__batch_time_intervals:
-            full_df_for_interval = self.__process_single_time_interval(df, batch_interval)
+            if len(self.__durations_between_samples) > 0:
+                previous_duration_threshold = 0
+                full_df_for_interval = pd.DataFrame()
+                for current_duration_threshold in self.__durations_between_samples:
+                    duration_based_df = df[(df[SystemColumns.DURATION_COL] > previous_duration_threshold) &
+                                           (df[SystemColumns.DURATION_COL] <= current_duration_threshold)]
+                    previous_duration_threshold = current_duration_threshold
+                    full_df_for_duration = self.__process_single_time_interval(duration_based_df, batch_interval)
+                    full_df_for_interval = pd.concat([full_df_for_interval, full_df_for_duration], ignore_index=True)
+
+
+            else:
+                full_df_for_interval = self.__process_single_time_interval(df, batch_interval)
+
             full_df = pd.concat([full_df, full_df_for_interval], ignore_index=True)
 
         return full_df

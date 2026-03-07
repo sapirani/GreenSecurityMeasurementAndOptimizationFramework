@@ -7,8 +7,11 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 class BestModelConfig:
     MODEL_NAME = HistGradientBoostingRegressor
     MODEL_HYPER_PARAMETERS = {
-        "max_depth": 11,
-        "min_samples_leaf": 10
+        "max_depth": 8,
+        "l2_regularization": 1.0,
+        "loss": "quantile",
+        "max_iter": 600,
+        "quantile": 0.7
     }
 
 

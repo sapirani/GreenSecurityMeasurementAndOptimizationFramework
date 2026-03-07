@@ -24,8 +24,8 @@ DEFAULT_EVALUATION_METRICS = [SymmetricMeanAbsolutePercentageError(), RelativeRo
                               PercentileSquaredErrorMetric(95), TailRootMeanSquaredErrorMetric(),
                               RootMeanSquaredErrorRatioMetric()]
 
-DEFAULT_BEST_MODEL_METRIC = EvaluationMetricType.SMAPE
-BEST_SYSTEM_MODEL_METRIC = EvaluationMetricType.RMSERatio
+DEFAULT_BEST_MODEL_METRIC = EvaluationMetricType.RRMSE
+BEST_SYSTEM_MODEL_METRIC = EvaluationMetricType.RRMSE
 BEST_PROCESS_MODEL_METRIC = DEFAULT_BEST_MODEL_METRIC
 
 NON_NEGATIVE_COLUMNS = [SystemColumns.DURATION_COL, SystemColumns.DISK_READ_BYTES_SYSTEM_COL,

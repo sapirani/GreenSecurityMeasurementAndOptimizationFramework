@@ -32,32 +32,26 @@ class SecurityAlgorithm(ABC, Generic[T]):
 
     def load_encrypted_messages(self, file_name: str, starting_index: int) -> Generator[T, None, None]:
         try:
-            file_idx = 1
-            while True:
-                file_parts = file_name.split(".")
-                current_file = f"{file_parts[0]}{file_idx}{file_idx}.{file_parts[1]}"
-                if os.path.exists(current_file):
-                    with open(f"{current_file}", 'rb') as messages_file:
-                        while True:
-                            try:
-                                encrypted_messages_portion = pickle.load(messages_file)
-                                print("LEN: {}".format(len(encrypted_messages_portion)))
-                                if len(encrypted_messages_portion) > starting_index:
-                                    encrypted_messages_portion = encrypted_messages_portion[starting_index:]
-                                    starting_index = 0
-                                    for encrypted_msg in encrypted_messages_portion:
-                                        deserialized_message = self.deserialize_message(encrypted_msg)
-                                        yield deserialized_message
-                                else:
-                                    starting_index -= len(encrypted_messages_portion)
-                            except EOFError:
-                                break
-
-                        file_idx += 1
-                        if file_idx == 4:
+            if os.path.exists(file_name):
+                with open(f"{file_name}", 'rb') as messages_file:
+                    while True:
+                        try:
+                            encrypted_messages_portion = pickle.load(messages_file)
+                            print("LEN: {}".format(len(encrypted_messages_portion)))
+                            if len(encrypted_messages_portion) > starting_index:
+                                encrypted_messages_portion = encrypted_messages_portion[starting_index:]
+                                starting_index = 0
+                                for encrypted_msg in encrypted_messages_portion:
+                                    deserialized_message = self.deserialize_message(encrypted_msg)
+                                    yield deserialized_message
+                            else:
+                                starting_index -= len(encrypted_messages_portion)
+                        except EOFError:
                             break
-                else:
-                    break
+
+
+            else:
+                raise RuntimeError("No message found")
 
         except Exception as e:
             print("Something went wrong with loading the encrypted messages", e)
