@@ -16,8 +16,8 @@ PROCESS_SYSTEM_DF_PATH = r"C:\Users\Administrator\Desktop\GreenSecurityAll\frame
 # For saving the energy model
 DEFAULT_ENERGY_MODEL_PATH = r"energy_model_elements"
 BASE_MODEL_DIR = Path(__file__).parent
-PROCESS_ENERGY_MODEL_FILE_NAME = os.path.join(BASE_MODEL_DIR, r"process_energy_prediction_model.pkl")
-SYSTEM_ENERGY_MODEL_FILE_NAME = os.path.join(BASE_MODEL_DIR, r"system_energy_prediction_model.pkl")
+PROCESS_ENERGY_MODEL_FILE_NAME = os.path.join(BASE_MODEL_DIR, r"process_final_model.pkl")
+SYSTEM_ENERGY_MODEL_FILE_NAME = os.path.join(BASE_MODEL_DIR, r"system_final_model.pkl")
 
 # For grid search
 GRID_SEARCH_TEST_RESULTS_PATH_PREFIX = os.path.join(BASE_MODEL_DIR, DEFAULT_ENERGY_MODEL_PATH)
