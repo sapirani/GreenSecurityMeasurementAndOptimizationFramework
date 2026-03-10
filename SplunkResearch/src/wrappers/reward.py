@@ -398,6 +398,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
 
             info['raw_metrics'] = raw_metrics
             info['raw_baseline_metrics'] = raw_baseline_metrics
+            info['alerts_diff'] = alerts_diff
 
         return obs, reward, terminated, truncated, info
 
@@ -566,11 +567,19 @@ class EnergyRewardWrapper(RewardWrapper):
 class ConstrainedRewardWrapper(RewardWrapper):
     """Constrained reward: maximize energy under alert/KL/quota budgets.
 
-    Reward:
-        R = alpha * log1p(energy_raw)
-            - lambda_alert * alert_penalty
-            - lambda_dist * distribution_penalty
-            - lambda_quota * quota_penalty
+    Per-step reward (KL penalty — gives the agent continuous feedback):
+        R_step = -(lambda_dist / T) * hinge²(KL - tau_kl)
+
+    Episode-end reward (energy objective + alert/quota penalties):
+        R_end = alpha * log1p(energy_raw)
+              - lambda_alert * mean_r[hinge²(rel_alert_r - tau_alert)]
+              - lambda_quota * hinge²(quota - tau_quota)
+
+    Adaptive Lagrange multipliers (updated at episode end):
+        lambda += eta * (metric - tau),  clipped to [0, lambda_max]
+
+    Optional curriculum: tau values anneal from relaxed initial values to
+    final values over a configurable warmup fraction of training.
     """
     def __init__(self, env: gym.Env, alpha: float = None,
                  use_stationary_scaling: bool = None):
@@ -588,26 +597,45 @@ class ConstrainedRewardWrapper(RewardWrapper):
         self.use_energy_reward = config.get('reward.use_energy_reward', True)
         self.use_alert_reward = config.get('reward.use_alert_reward', True)
         self.use_distribution_reward = config.get('reward.use_distribution_reward', True)
-        self.use_quota_penalty = config.get('reward.use_quota_penalty', True)
+        self.use_quota_penalty = config.get('reward.use_quota_penalty', False)  # Disabled: not controllable by agent
 
         self.alert_floor = config.get('reward.alert_floor', 1.0)
         self.tau_alert = config.get('reward.tau_alert', 0.25)
         self.tau_kl = config.get('reward.tau_kl', 0.22)
-        self.tau_quota = config.get('reward.tau_quota', 0.35)
+        self.tau_quota = config.get('reward.tau_quota', 0.35)  # Unused when use_quota_penalty=False
 
         self.scale_alert = config.get('reward.scale_alert', 0.25)
         self.scale_kl = config.get('reward.scale_kl', 0.1)
         self.scale_quota = config.get('reward.scale_quota', 0.1)
 
         self.use_adaptive_lagrange = config.get('reward.use_adaptive_lagrange', True)
-        self.lambda_alert = config.get('reward.lambda_alert_init', 1.0)
-        self.lambda_dist = config.get('reward.lambda_distribution_init', 1.0)
-        self.lambda_quota = config.get('reward.lambda_quota_init', 1.0)
+        self.lambda_alert = config.get('reward.lambda_alert_init', 0.1)
+        self.lambda_dist = config.get('reward.lambda_distribution_init', 0.1)
+        self.lambda_quota = config.get('reward.lambda_quota_init', 0.1)
         self.lambda_max = config.get('reward.lambda_max', 100.0)
-        self.eta_alert = config.get('reward.lambda_alert_eta', 0.01)
-        self.eta_dist = config.get('reward.lambda_distribution_eta', 0.01)
-        self.eta_quota = config.get('reward.lambda_quota_eta', 0.01)
+        self.eta_alert = config.get('reward.lambda_alert_eta', 0.001)
+        self.eta_dist = config.get('reward.lambda_distribution_eta', 0.001)
+        self.eta_quota = config.get('reward.lambda_quota_eta', 0.001)
+
+        # Tanh-hinge sensitivity: controls how fast penalty saturates past threshold.
+        # Bounded to [0, 1] unlike _positive_hinge_squared which is unbounded.
+        self.alert_sensitivity = config.get('reward.alert_sensitivity', self.scale_alert)
+        self.kl_sensitivity = config.get('reward.kl_sensitivity', self.scale_kl)
+        self.quota_sensitivity = config.get('reward.quota_sensitivity', self.scale_quota)
         self.is_mock = getattr(self.env, 'is_mock', False)
+
+        # Curriculum: anneal tau from relaxed initial values to final values
+        self.curriculum_enabled = config.get('reward.curriculum_enabled', False)
+        self.tau_alert_initial = config.get('reward.tau_alert_initial', self.tau_alert * 4)
+        self.tau_kl_initial = config.get('reward.tau_kl_initial', self.tau_kl * 4)
+        self.tau_quota_initial = config.get('reward.tau_quota_initial', self.tau_quota * 4)
+        self.curriculum_warmup_fraction = config.get('reward.curriculum_warmup_fraction', 0.5)
+        self.total_training_episodes = config.get('training.num_episodes', 50000)
+        self._episode_counter = 0
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
 
     def _estimate_energy_consumption(self, fake_dist, info: Dict) -> float:
         """Reuse legacy mock-time CPU estimation so TB gets meaningful CPU values."""
@@ -642,6 +670,8 @@ class ConstrainedRewardWrapper(RewardWrapper):
     def _compute_kl(self) -> float:
         real_dist = self.unwrapped.ac_real_state
         fake_dist = self.unwrapped.ac_fake_state
+        if real_dist.size == 0 or fake_dist.size == 0:
+            return 0.0
         real_dist = (real_dist + self.distribution_epsilon) / np.sum(real_dist + self.distribution_epsilon)
         fake_dist = (fake_dist + self.distribution_epsilon) / np.sum(fake_dist + self.distribution_epsilon)
         return float(np.sum(real_dist * np.log(np.clip(real_dist / fake_dist, 1e-10, 1e10))))
@@ -651,7 +681,31 @@ class ConstrainedRewardWrapper(RewardWrapper):
         s = scale if scale > 0 else 1.0
         return float(max((metric - threshold) / s, 0.0) ** 2)
 
-    def _compute_alert_metrics(self, info: Dict) -> Tuple[float, float]:
+    @staticmethod
+    def _tanh_hinge(metric: float, threshold: float, sensitivity: float) -> float:
+        """Tanh-bounded hinge penalty: tanh(max(0, metric - threshold) / sensitivity).
+
+        Always in [0, 1] regardless of violation magnitude, unlike the unbounded
+        _positive_hinge_squared. sensitivity controls how fast the penalty saturates
+        beyond threshold (e.g. sensitivity=0.25 means ~0.76 at threshold+0.25, ~1.0 at threshold+0.75).
+        """
+        s = sensitivity if sensitivity > 0 else 1.0
+        return float(np.tanh(max(metric - threshold, 0.0) / s))
+
+    def _get_effective_tau(self) -> Tuple[float, float, float]:
+        """Return (tau_alert, tau_kl, tau_quota), annealed if curriculum is enabled."""
+        if not self.curriculum_enabled:
+            return self.tau_alert, self.tau_kl, self.tau_quota
+
+        warmup_episodes = self.total_training_episodes * self.curriculum_warmup_fraction
+        progress = min(self._episode_counter / max(warmup_episodes, 1), 1.0)
+        tau_a = self.tau_alert_initial + (self.tau_alert - self.tau_alert_initial) * progress
+        tau_k = self.tau_kl_initial + (self.tau_kl - self.tau_kl_initial) * progress
+        tau_q = self.tau_quota_initial + (self.tau_quota - self.tau_quota_initial) * progress
+        return tau_a, tau_k, tau_q
+
+    def _compute_alert_metrics(self, info: Dict,
+                               tau_alert: float) -> Tuple[float, float]:
         if not self.use_alert_reward:
             return 0.0, 0.0
 
@@ -665,17 +719,50 @@ class ConstrainedRewardWrapper(RewardWrapper):
             denom = max(float(baseline_alert), self.alert_floor)
             rel_increase = max((float(current_alert) - float(baseline_alert)) / denom, 0.0)
             rel_increases.append(rel_increase)
-            penalties.append(self._positive_hinge_squared(rel_increase, self.tau_alert, self.scale_alert))
+            penalties.append(self._tanh_hinge(rel_increase, tau_alert, self.alert_sensitivity))
 
         if not rel_increases:
             return 0.0, 0.0
         return float(np.mean(rel_increases)), float(np.mean(penalties))
 
+    def _compute_quota(self) -> float:
+        """Compute quota ratio from shared state (fixes stale info dict bug)."""
+        total_real = sum(
+            v for k, v in self.unwrapped.ac_real_distribution.items()
+            if k != 'other'
+        )
+        inserted = float(self.unwrapped.episodic_inserted_logs)
+        simulated_total = total_real + inserted
+        return inserted / (simulated_total + 1e-8)
+
+    # ------------------------------------------------------------------
+    # Step
+    # ------------------------------------------------------------------
+
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)
+        total_steps = self.unwrapped.total_steps
+        scale = 1.0 if self.use_stationary_scaling else total_steps
+
+        # --- Per-step: KL penalty (continuous distribution feedback) ---
+        kl_value = 0.0
+        if self.use_distribution_reward:
+            kl_value = self._compute_kl()
+            _, tau_kl, _ = self._get_effective_tau()
+            kl_penalty = self._tanh_hinge(kl_value, tau_kl, self.kl_sensitivity)
+            # Spread over episode so cumulative ≈ episode-end magnitude
+            reward += -self.lambda_dist * kl_penalty * scale / total_steps
+            info['ac_distribution_value'] = kl_value
+            info['ac_distribution_reward'] = -kl_penalty
+
         if not info.get('done', True):
             return obs, reward, terminated, truncated, info
 
+        # --- Episode end: energy + alert + quota + lambda updates ---
+        self._episode_counter += 1
+        tau_alert, tau_kl, tau_quota = self._get_effective_tau()
+
+        # Energy objective
         if self.is_mock:
             measured_cpu = info.get('combined_metrics', {}).get('cpu')
             estimated_cpu = self._estimate_energy_consumption(
@@ -690,47 +777,39 @@ class ConstrainedRewardWrapper(RewardWrapper):
         energy_raw = max((current_cpu - baseline_cpu) / (baseline_cpu + self.energy_epsilon), 0.0)
         energy_term = np.log1p(energy_raw) if self.use_energy_reward else 0.0
 
-        alert_metric, alert_penalty = self._compute_alert_metrics(info)
-        kl_value = self._compute_kl()
+        # Alert constraint (per-rule, averaged)
+        alert_metric, alert_penalty = self._compute_alert_metrics(info, tau_alert)
+
+        # Recompute final KL for episode-end diagnostics
+        kl_value = self._compute_kl() if self.use_distribution_reward else 0.0
         distribution_penalty = (
-            self._positive_hinge_squared(kl_value, self.tau_kl, self.scale_kl)
+            self._tanh_hinge(kl_value, tau_kl, self.kl_sensitivity)
             if self.use_distribution_reward else 0.0
         )
 
-        total_episode_logs = float(info.get('total_episode_logs', 0.0))
-        inserted_logs = float(info.get('episodic_inserted_logs', 0.0))
-        # Match state semantics (see state_interpreters.AccumulatedLogVolumeInterpreter):
-        # total simulated episode volume = real + injected.
-        simulated_total_logs = total_episode_logs + inserted_logs
-        quota_ratio = inserted_logs / (simulated_total_logs + 1e-8)
+        # Quota constraint (from shared state, not stale info)
+        quota_ratio = self._compute_quota()
         quota_penalty = (
-            self._positive_hinge_squared(quota_ratio, self.tau_quota, self.scale_quota)
+            self._tanh_hinge(quota_ratio, tau_quota, self.quota_sensitivity)
             if self.use_quota_penalty else 0.0
         )
 
-        if self.use_adaptive_lagrange:
-            self.lambda_alert = float(np.clip(
-                self.lambda_alert + self.eta_alert * (alert_metric - self.tau_alert),
-                0.0, self.lambda_max
-            ))
-            self.lambda_dist = float(np.clip(
-                self.lambda_dist + self.eta_dist * (kl_value - self.tau_kl),
-                0.0, self.lambda_max
-            ))
-            self.lambda_quota = float(np.clip(
-                self.lambda_quota + self.eta_quota * (quota_ratio - self.tau_quota),
-                0.0, self.lambda_max
-            ))
+        # Fixed Lagrange multipliers — adaptive updates removed (unstable per-episode)
 
-        constrained_reward = (
+        # Episode-end reward (KL penalty already applied per-step above)
+        episode_end_reward = (
             self.alpha * energy_term
             - self.lambda_alert * alert_penalty
-            - self.lambda_dist * distribution_penalty
             - self.lambda_quota * quota_penalty
         )
+        reward += scale * episode_end_reward
 
-        scale = 1.0 if self.use_stationary_scaling else self.unwrapped.total_steps
-        reward += scale * constrained_reward
+        reward_clip = config.get('reward.reward_clip', None)
+        if reward_clip is not None:
+            reward = float(np.clip(reward, -abs(reward_clip), abs(reward_clip)))
+
+        # Full constrained reward for diagnostics (includes KL for logging)
+        constrained_reward = episode_end_reward - self.lambda_dist * distribution_penalty
 
         # Backward-compatible metrics + constrained diagnostics
         info['energy_reward'] = energy_raw
@@ -746,17 +825,26 @@ class ConstrainedRewardWrapper(RewardWrapper):
         info['constrained_alert_metric'] = float(alert_metric)
         info['constrained_distribution_metric'] = float(kl_value)
         info['constrained_quota_metric'] = float(quota_ratio)
-        info['constrained_simulated_total_logs'] = float(simulated_total_logs)
+        info['constrained_simulated_total_logs'] = float(
+            sum(v for k, v in self.unwrapped.ac_real_distribution.items() if k != 'other')
+            + float(self.unwrapped.episodic_inserted_logs)
+        )
         info['constrained_alert_penalty'] = float(alert_penalty)
         info['constrained_distribution_penalty'] = float(distribution_penalty)
         info['constrained_quota_penalty'] = float(quota_penalty)
         info['lambda_alert'] = float(self.lambda_alert)
         info['lambda_distribution'] = float(self.lambda_dist)
         info['lambda_quota'] = float(self.lambda_quota)
+        info['tau_alert_effective'] = float(tau_alert)
+        info['tau_kl_effective'] = float(tau_kl)
+        info['tau_quota_effective'] = float(tau_quota)
 
         logger.info(
-            "Constrained reward: total=%.3f energy=%.3f alert_pen=%.3f kl_pen=%.3f quota_pen=%.3f",
-            constrained_reward, energy_term, alert_penalty, distribution_penalty, quota_penalty
+            "Constrained reward: total=%.3f energy=%.3f alert_pen=%.3f kl_pen=%.3f quota_pen=%.3f "
+            "λ=[%.3f, %.3f, %.3f] τ=[%.3f, %.3f, %.3f]",
+            constrained_reward, energy_term, alert_penalty, distribution_penalty, quota_penalty,
+            self.lambda_alert, self.lambda_dist, self.lambda_quota,
+            tau_alert, tau_kl, tau_quota,
         )
         return obs, reward, terminated, truncated, info
 
@@ -811,7 +899,8 @@ class DistributionRewardWrapper(RewardWrapper):
         
     def _kl_divergence(self, p, q):
         return np.sum(p * np.log(np.clip(p / q, 1e-10, 1e10)))
-    
+
+
     def chi_square(self, p, q):
         return np.sum((p - q) ** 2 / (p + q + self.epsilon))
 
