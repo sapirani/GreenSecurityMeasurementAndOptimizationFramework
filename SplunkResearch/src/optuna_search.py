@@ -16,6 +16,7 @@ import datetime
 import gc
 import logging
 import os
+import csv
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
@@ -27,12 +28,22 @@ from config import config
 
 logger = logging.getLogger(__name__)
 
-# Fixed trial budget
-TRIAL_EPISODES = 40_000
+# Fixed trial budget (20k episodes = 240k steps with 12 steps per episode)
+TRIAL_EPISODES = 20_000
 
 
 def define_search_space(trial: optuna.Trial) -> dict:
     """Sample hyperparameters and return a config override dict.
+
+    Simplified 5D search space focusing on the most impactful parameters:
+    - Model type: {sac, td3, ppo, a2c} (4 choices)
+    - Learning rate: continuous (1e-4 to 5e-3, log scale)
+    - State type: {StateWrapper7, StateWrapper8} (2 choices)
+    - Alert sensitivity: continuous (0.05 to 0.5, log scale)
+    - KL sensitivity: continuous (0.05 to 0.2, log scale)
+
+    Network architecture, algorithm-specific params, and power-law exponents
+    are fixed to default config values to reduce search dimensionality.
 
     Args:
         trial: Optuna trial object used for sampling.
@@ -42,79 +53,35 @@ def define_search_space(trial: optuna.Trial) -> dict:
     """
     overrides: Dict[str, Any] = {}
 
-    # ---- Model type ----
+    # ---- Model type (4 choices) ----
     model_type = trial.suggest_categorical(
         'model_type', ['sac', 'td3', 'ppo', 'a2c'])
     overrides['experiment.model_type'] = model_type
 
-    # ---- Shared hyperparameters ----
-    # Range tightened to practical RL values (1e-5/1e-2 wastes trials on
-    # clearly broken configs)
+    # ---- Learning rate (log scale) ----
     overrides['training.learning_rate'] = trial.suggest_float(
         'learning_rate', 1e-4, 5e-3, log=True)
 
-    # Network architecture
-    n_layers = trial.suggest_int('n_layers', 1, 3)
-    layer_size = trial.suggest_categorical('layer_size', [128, 256, 512])
-    arch = [layer_size] * n_layers
+    # ---- State type (observation space variant) ----
+    # StateWrapper7: standard distributed state (default)
+    # StateWrapper8: alert-aware state with additional alert features
+    state_type = trial.suggest_categorical(
+        'state_type', ['StateWrapper7', 'StateWrapper8'])
+    overrides['environment.state_type'] = state_type
 
-    # ---- Algorithm-specific hyperparameters ----
-    if model_type in ('sac', 'td3'):
-        # TD3 and SAC share the training.sac.* config namespace in ExperimentManager
-        overrides['training.sac.batch_size'] = trial.suggest_categorical(
-            'batch_size', [256, 512, 1024, 2048])
-        overrides['training.sac.buffer_size'] = trial.suggest_categorical(
-            'buffer_size', [50_000, 100_000, 200_000])
-        overrides['training.sac.policy_net_arch'] = {'pi': arch, 'qf': arch}
+    # ---- Constrained reward sensitivity parameters ----
+    # These control how fast the tanh penalties saturate past their thresholds.
+    # Higher sensitivity = slower saturation (softer penalty), lower = faster (harder penalty)
+    overrides['reward.alert_sensitivity'] = trial.suggest_float(
+        'alert_sensitivity', 0.05, 0.5, log=True)
+    overrides['reward.kl_sensitivity'] = trial.suggest_float(
+        'kl_sensitivity', 0.05, 0.2, log=True)
 
-        if model_type == 'sac':
-            ent_coef = trial.suggest_categorical(
-                'ent_coef', ['auto', '0.01', '0.05', '0.1', '0.2'])
-            overrides['training.sac.ent_coef'] = (
-                ent_coef if ent_coef == 'auto' else float(ent_coef))
-            use_sde = trial.suggest_categorical('use_sde', [True, False])
-            overrides['training.sac.use_sde'] = use_sde
-
-    elif model_type in ('ppo', 'a2c'):
-        # 4096 removed: with a fixed trial budget, very large n_steps gives
-        # too few gradient updates per trial to learn anything useful
-        overrides['training.n_steps'] = trial.suggest_categorical(
-            'n_steps', [512, 1024, 2048])
-        overrides['training.ent_coef'] = trial.suggest_float(
-            'on_policy_ent_coef', 0.001, 0.2, log=True)
-        overrides['training.ppo.use_sde'] = trial.suggest_categorical(
-            'on_policy_use_sde', [True, False])
-        # PPO/A2C use policy_kwargs differently — set net_arch as a flat list
-        overrides['training.ppo.policy_kwargs'] = {'net_arch': arch}
-
-    # ---- Reward method ----
-    alert_method = trial.suggest_categorical(
-        'alert_method',
-        ['ExpectedDiffPower', 'PredictedTanh', 'RelativeDiffPower',
-         'RelativeDiffScaledTanh', 'ExpectedDiffScaledTanh'])
-    overrides['reward.alert_method'] = alert_method
-
-    distribution_method = trial.suggest_categorical(
-        'distribution_method',
-        ['DistributionRewardWrapper', 'DistributionRewardWrapper1',
-         'DistributionRewardWrapper2'])
-    overrides['reward.distribution_method'] = distribution_method
-
-    # ---- Power-law exponents (conditional on method) ----
-    # Only sample when the chosen method actually uses the exponent;
-    # sampling unconditionally wastes search dimensions and misleads NSGA-II.
-    if alert_method in ('ExpectedDiffPower', 'RelativeDiffPower'):
-        overrides['reward.power_alert_exponent'] = trial.suggest_float(
-            'power_alert_exponent', 1.0, 4.0)
-
-    # Energy power exponent: always relevant (energy normalizer type is not
-    # searched over, so the default may be the power normalizer)
-    overrides['reward.power_energy_exponent'] = trial.suggest_float(
-        'power_energy_exponent', 1.0, 4.0)
-
-    if distribution_method == 'DistributionRewardWrapper2':
-        overrides['reward.power_distribution_exponent'] = trial.suggest_float(
-            'power_distribution_exponent', 1.0, 4.0)
+    # All other parameters use default config values:
+    # - Network architecture: from config/default.yaml (training.ppo.policy_kwargs, training.sac.policy_net_arch)
+    # - Algorithm-specific params: from config/default.yaml (batch_size, buffer_size, ent_coef, use_sde, n_steps)
+    # - Power-law exponents: from config/default.yaml (reward.power_*_exponent)
+    # - Reward methods: from config/default.yaml (reward.alert_method, reward.distribution_method)
 
     return overrides
 
@@ -125,17 +92,22 @@ class OptunaReportCallback(BaseCallback):
     Collects per-episode values from ``info`` dicts at episode boundaries.
     On training end, stores tail-20% averages as trial user attrs.
 
+    Also logs global metrics (fps, step count) to a shared CSV for cross-trial analysis.
+
     Note: ``trial.report()`` / ``trial.should_prune()`` are not supported for
     multi-objective studies, so pruning is not used here.
     """
 
-    def __init__(self, trial: optuna.Trial, verbose: int = 0):
+    def __init__(self, trial: optuna.Trial, verbose: int = 0, global_metrics_file: str = None):
         super().__init__(verbose)
         self.trial = trial
         self._episode_energy: list[float] = []
         self._episode_alert_gap: list[float] = []
         self._episode_dist_value: list[float] = []
         self._episode_count = 0
+        self.global_metrics_file = global_metrics_file
+        self._step_start_time = datetime.datetime.now()
+        self._step_start_count = 0
 
     def _on_step(self) -> bool:
         infos = self.locals.get('infos', [])
@@ -232,6 +204,13 @@ def objective(
         # interruption (SIGTERM, exception mid-training), so we store here too.
         # _store_final_attrs is idempotent: safe to call twice.
         report_cb._store_final_attrs()
+        # Break the report_cb → model reference so the SB3 model (and its
+        # TensorBoardOutputFormat / SummaryWriter background thread) can be
+        # GC'd before the next trial.  Without this, report_cb keeps the model
+        # alive via a straight reference path that gc.collect() cannot break,
+        # causing SummaryWriter instances to accumulate and silently fail for
+        # trial 1+ (no FPS / ep_rew_mean / loss in TensorBoard).
+        report_cb.model = None
         # Release manager (closes open handles) and force memory reclamation
         # between Optuna trials to prevent OOM accumulation.
         del manager
@@ -284,51 +263,27 @@ def _rebuild_overrides_from_trial(best: optuna.trial.FrozenTrial,
                                   base_overrides: dict) -> dict:
     """Reconstruct config overrides from a completed trial's params.
 
-    Only sets keys that were actually sampled in define_search_space.
-    Conditional params (power exponents, SAC-specific) use .get() to
-    avoid KeyError when the param was not sampled for that trial.
+    Only sets the keys that were actually sampled in define_search_space:
+    - model_type
+    - learning_rate
+    - state_type
+    - alert_sensitivity
+    - kl_sensitivity
+
+    All other parameters (network arch, algo-specific, power exponents, reward methods)
+    use default config values and are not overridden.
     """
     p = best.params
     overrides = {**base_overrides}
 
-    # Model type
-    model_type = p['model_type']
-    overrides['experiment.model_type'] = model_type
-
-    # Shared
+    # Sampled parameters
+    overrides['experiment.model_type'] = p['model_type']
     overrides['training.learning_rate'] = p['learning_rate']
+    overrides['environment.state_type'] = p['state_type']
+    overrides['reward.alert_sensitivity'] = p['alert_sensitivity']
+    overrides['reward.kl_sensitivity'] = p['kl_sensitivity']
 
-    n_layers = p['n_layers']
-    layer_size = p['layer_size']
-    arch = [layer_size] * n_layers
-
-    # Algorithm-specific
-    if model_type in ('sac', 'td3'):
-        overrides['training.sac.batch_size'] = p['batch_size']
-        overrides['training.sac.buffer_size'] = p['buffer_size']
-        overrides['training.sac.policy_net_arch'] = {'pi': arch, 'qf': arch}
-        if model_type == 'sac':
-            ent_coef = p.get('ent_coef', 'auto')
-            overrides['training.sac.ent_coef'] = (
-                ent_coef if ent_coef == 'auto' else float(ent_coef))
-            overrides['training.sac.use_sde'] = p.get('use_sde', True)
-    elif model_type in ('ppo', 'a2c'):
-        overrides['training.n_steps'] = p.get('n_steps', 2048)
-        overrides['training.ent_coef'] = p.get('on_policy_ent_coef', 0.05)
-        overrides['training.ppo.use_sde'] = p.get('on_policy_use_sde', True)
-        overrides['training.ppo.policy_kwargs'] = {'net_arch': arch}
-
-    # Reward method
-    overrides['reward.alert_method'] = p['alert_method']
-    overrides['reward.distribution_method'] = p['distribution_method']
-
-    # Power-law exponents — only set if they were sampled (conditional on method)
-    if 'power_alert_exponent' in p:
-        overrides['reward.power_alert_exponent'] = p['power_alert_exponent']
-    if 'power_energy_exponent' in p:
-        overrides['reward.power_energy_exponent'] = p['power_energy_exponent']
-    if 'power_distribution_exponent' in p:
-        overrides['reward.power_distribution_exponent'] = p['power_distribution_exponent']
+    # All other parameters come from config/default.yaml (not sampled)
 
     return overrides
 

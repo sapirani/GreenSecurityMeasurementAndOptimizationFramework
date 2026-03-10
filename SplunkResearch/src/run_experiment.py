@@ -85,6 +85,12 @@ def parse_arguments():
                         choices=['Action8', 'Action12', 'SoftmaxDistribution', 'SmoothTrigger',
                                  'SmoothTriggerVolume', 'SoftmaxDistributionVolume'],
                         help='Action space type (default: from config)')
+    parser.add_argument('--state-type', type=str,
+                        help='State wrapper type (e.g. StateWrapper7, StateWrapper8) (default: from config)')
+    parser.add_argument('--alert-sensitivity', type=float,
+                        help='Alert sensitivity for constrained reward (default: from config)')
+    parser.add_argument('--kl-sensitivity', type=float,
+                        help='KL sensitivity for constrained reward (default: from config)')
     parser.add_argument('--ip', type=int,
                         help='Splunk host IP identifier 1,2,3... (default: 1)')
 
@@ -197,6 +203,12 @@ def create_overrides_from_args(args, model_path=None):
         overrides['environment.additional_percentage'] = args.additional_percentage
     if args.action_type is not None:
         overrides['environment.action_type'] = args.action_type
+    if args.state_type is not None:
+        overrides['environment.state_type'] = args.state_type
+    if args.alert_sensitivity is not None:
+        overrides['reward.alert_sensitivity'] = args.alert_sensitivity
+    if args.kl_sensitivity is not None:
+        overrides['reward.kl_sensitivity'] = args.kl_sensitivity
 
     # Flags
     if args.random_agent:
