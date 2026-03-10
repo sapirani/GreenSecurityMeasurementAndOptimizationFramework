@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Optional
 
 import numpy as np
 from gymnasium import spaces
@@ -37,6 +38,10 @@ class StateContext:
     step_counter: int
     total_steps: int
     n_logtypes: int
+
+    # Alert-aware features (optional, used by AlertAwareInterpreter)
+    expected_baseline: Optional[np.ndarray] = None   # (n_rules,) normalized expected alerts
+    max_trigger_exposure: Optional[np.ndarray] = None # (n_rules,) max diversity / diversity_factor
 
 
 # ---------------------------------------------------------------------------
@@ -162,4 +167,42 @@ class AccumulatedLogVolumeInterpreter(StateInterpreter):
         )
         if self.include_step_ratio:
             state = np.append(state, ctx.step_counter / ctx.total_steps)
+        return state
+
+
+# ---------------------------------------------------------------------------
+# Concrete: AlertAwareInterpreter  (== StateWrapper8)
+# ---------------------------------------------------------------------------
+
+class AlertAwareInterpreter(AccumulatedLogVolumeInterpreter):
+    """Extends AccumulatedLogVolumeInterpreter with alert-related features.
+
+    Appends two blocks to the SW7 observation:
+
+    1. **Expected baseline** (n_rules): normalized expected alert rate per rule
+       — static prior knowledge (reconnaissance), tells the agent what is normal.
+    2. **Max trigger exposure** (n_rules): ``max_diversity / diversity_factor``
+       per rule — the agent's self-computed exposure, how much it has committed
+       to triggering each rule via its own diversity choices.
+
+    Space: ``(n_logtypes*2 + 3 + n_rules*2,)``
+    """
+
+    def __init__(self, n_rules: int, include_step_ratio: bool = True):
+        super().__init__(include_step_ratio=include_step_ratio)
+        self.n_rules = n_rules
+
+    def get_observation_space(self, n_logtypes, total_steps):
+        base_extra = 3 if self.include_step_ratio else 2
+        alert_extra = self.n_rules * 2  # expected_baseline + exposure
+        return spaces.Box(
+            low=0, high=1,
+            shape=(n_logtypes * 2 + base_extra + alert_extra,),
+            dtype=np.float64,
+        )
+
+    def build_state(self, ctx: StateContext) -> np.ndarray:
+        state = super().build_state(ctx)
+        state = np.append(state, ctx.expected_baseline)
+        state = np.append(state, ctx.max_trigger_exposure)
         return state

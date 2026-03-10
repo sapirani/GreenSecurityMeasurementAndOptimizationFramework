@@ -17,6 +17,7 @@ sys.path.insert(1, '/home/shouei/GreenSecurityMeasurementAndOptimizationFramewor
 from config import config
 from wrappers.state_interpreters import (
     AccumulatedLogVolumeInterpreter,
+    AlertAwareInterpreter,
     KLDivergenceInterpreter,
     SparseStepInterpreter,
     StateContext,
@@ -44,6 +45,9 @@ class StateWrapper(ObservationWrapper):
 
         self.total_current_logs = 0
         self.total_episode_logs = 0
+        self._max_trigger_exposure_episode = np.zeros(
+            len(config.get('reward.rule_names', [])), dtype=np.float64
+        )
 
         n_logtypes = len(self.unwrapped.top_logtypes)
         total_steps = self.unwrapped.total_steps
@@ -100,6 +104,9 @@ class StateWrapper(ObservationWrapper):
         ctx = self._build_context()
         state = self.interpreter.build_state(ctx)
 
+        # Ensure float32 dtype (gym expects float32, not float64)
+        state = np.asarray(state, dtype=np.float32)
+
         logger.debug(f"State: {state}")
         self.unwrapped.obs = state
         return state
@@ -135,6 +142,12 @@ class StateWrapper(ObservationWrapper):
             for lt in self.unwrapped.top_logtypes
         }
 
+        # Alert-aware features (only computed for AlertAwareInterpreter)
+        expected_baseline = None
+        max_trigger_exposure = None
+        if isinstance(self.interpreter, AlertAwareInterpreter):
+            expected_baseline, max_trigger_exposure = self._build_alert_features()
+
         return StateContext(
             real_state=self.unwrapped.real_state,
             fake_state=self.unwrapped.fake_state,
@@ -146,6 +159,8 @@ class StateWrapper(ObservationWrapper):
             step_counter=self.unwrapped.step_counter,
             total_steps=self.unwrapped.total_steps,
             n_logtypes=len(self.unwrapped.top_logtypes),
+            expected_baseline=expected_baseline,
+            max_trigger_exposure=max_trigger_exposure,
         )
 
     # ------------------------------------------------------------------
@@ -155,6 +170,47 @@ class StateWrapper(ObservationWrapper):
     def _get_state_vector(self, distribution):
         """Convert distribution dict to numpy vector (top_logtypes order)."""
         return np.array([distribution[lt] for lt in self.unwrapped.top_logtypes])
+
+    def _build_alert_features(self):
+        """Build expected-baseline and max-trigger-exposure vectors for AlertAwareInterpreter.
+
+        Returns:
+            (expected_baseline, max_trigger_exposure): Both np.ndarray of shape (n_rules,).
+        """
+        rule_names = config.get('reward.rule_names', [])
+        n_rules = len(rule_names)
+
+        # Expected baseline: static prior from config (raw alert counts)
+        expected_values = config.get('reward.expected_alerts_per_rule',
+                                     [0.0] * n_rules)
+        expected_baseline = np.array(expected_values, dtype=np.float64)
+
+        # Max trigger exposure: running maximum across the episode of
+        # diversity_episode_logs[rule_logtype_1].
+        # We track the max so that a high-exposure step is not forgotten if
+        # the agent switches to a lower-diversity action in a later step.
+        if self.unwrapped.step_counter == 0:
+            self._max_trigger_exposure_episode = np.zeros(n_rules, dtype=np.float64)
+        else:
+            section_lt = self.unwrapped.section_logtypes
+            diversity_logs = self.action_wrapper.diversity_episode_logs
+            for i, rule in enumerate(rule_names):
+                relevant_lts = section_lt.get(rule, [])
+                if relevant_lts:
+                    key = "_".join(relevant_lts[0]) + "_1"
+                    current = diversity_logs.get(key, 0)
+                    self._max_trigger_exposure_episode[i] = max(
+                        self._max_trigger_exposure_episode[i], current
+                    )
+
+        # Normalize both vectors by a single shared factor (the global max
+        # across both) so they are on the same scale for the policy network.
+        trigger_exposure = self._max_trigger_exposure_episode.copy()
+        normalizer_factor = 40
+        expected_baseline = expected_baseline / normalizer_factor
+        trigger_exposure = trigger_exposure / normalizer_factor
+
+        return expected_baseline, trigger_exposure
 
     def update_fake_distribution_from_real(self):
         """Mirror real counts into fake accumulated distribution."""
@@ -194,6 +250,9 @@ class StateWrapper(ObservationWrapper):
         """Reset wrapper state for a new episode."""
         logger.info("Resetting StateWrapper")
         self.total_episode_logs = 0
+        self._max_trigger_exposure_episode = np.zeros(
+            len(config.get('reward.rule_names', [])), dtype=np.float64
+        )
         self.unwrapped.done = False
         self.unwrapped.step_counter = 0
 
@@ -226,15 +285,22 @@ class StateWrapper(ObservationWrapper):
 # Registry & factory
 # ======================================================================
 
+def _make_alert_aware():
+    n_rules = len(config.get('reward.rule_names', []))
+    return AlertAwareInterpreter(n_rules=n_rules, include_step_ratio=True)
+
+
 STATE_INTERPRETER_REGISTRY = {
     # Backward-compatible class names
     'StateWrapper7': lambda: AccumulatedLogVolumeInterpreter(include_step_ratio=True),
     'StateWrapper6': lambda: AccumulatedLogVolumeInterpreter(include_step_ratio=False),
     'StateWrapper3': lambda: KLDivergenceInterpreter(),
     'SparseStep':    lambda: SparseStepInterpreter(),
+    'StateWrapper8': _make_alert_aware,
     # Descriptive names
     'KLDivergence':          lambda: KLDivergenceInterpreter(),
     'AccumulatedLogVolume':  lambda: AccumulatedLogVolumeInterpreter(include_step_ratio=True),
+    'AlertAware':            _make_alert_aware,
 }
 
 
