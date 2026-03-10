@@ -13,18 +13,20 @@ reward:
   std: 13
   # Expected alerts per rule (9 values)
   expected_alerts_per_rule: [4, 0.7, 0, 4, 0, 0, 0, 0, 0]
+  expected_alerts_std_per_rule: [11.7644, 0.2022, 0.0, 4.0756, 0.0, 0.0, 0.0, 0.0, 0.5761]
+  zscore_tolerance_band: 1.0
   # Reward weighting factors
-  alpha: 0.5           # Energy reward weight
-  beta: 0.5            # Alert reward weight
-  gamma: 0.5           # Distribution reward weight
+  alpha: 0.34         # Energy reward weight
+  beta: 0.33         # Alert reward weight
+  gamma: 0.33           # Distribution reward weight
   # Per-component numerical stability epsilons
-  alert_epsilon: 0.1           # Alert reward division stability
+  alert_epsilon: 0.1          # Alert reward division stability (1.0 = 1 alert unit, prevents zero-expected rules from dominating)
   energy_epsilon: 0.00000001   # Energy reward: (baseline + eps) prevents div-by-zero
   distribution_epsilon: 0.00000001  # Distribution: KL divergence smoothing, prevents log(0)
   # Threshold T for alert normalizer.
   # For PowerAlertNormalizer: raw=-T → normalized=-1 (threshold).
   # For TanhNormalizer: -tanh(-raw/T), so T=1 maps 100% violation → -0.76.
-  normalizer_factor: 1
+  normalizer_factor: 5
   # Exponent for PowerAlertNormalizer (>1 = convex = growing gradient beyond threshold)
   power_alert_exponent: 2.0
   # Energy change target
@@ -33,7 +35,7 @@ reward:
   fake_dist_normalizer: 475796
   alert_normalizer: 203
   # Additional tanh scaling
-  tanh_energy_scale: 1.5
+  tanh_energy_scale: 3.0
   # Distribution comparison parameters
   distribution_gamma: 0.2
   distribution_freq: 3
@@ -44,12 +46,12 @@ reward:
   use_energy_reward: true
   use_alert_reward: true
   use_distribution_reward: true
-  use_quota_penalty: true
+  use_quota_penalty: false  # Disabled: quota ratio is not controllable by agent
   # Reward method wrappers.
   # ExpectedDiffPower: convex penalty -(|raw|/T)^p, threshold at normalized=1.
   # Use AlertRewardWrapper (PredictedTanh) for the old bounded [-1,0] behavior.
   alert_method: ExpectedDiffPower
-  distribution_method: DistributionRewardWrapper2
+  distribution_method: DistributionRewardWrapper
   # Use stationary (constant) reward scaling instead of total_steps
   use_stationary_scaling: true
   # Normalize per-step distribution reward by total_steps so cumulative
@@ -57,8 +59,8 @@ reward:
   normalize_distribution_to_episode: true
   # Energy normalizer: 'tanh' (original, saturates fast), 'log1p' (gradient preserved),
   #   'clip_squared' (x^2 clipped at ceiling), or 'power' (convex, unbounded, growing gradient)
-  energy_normalizer: power
-  energy_normalizer_scale: 2.0    # log1p scale param
+  energy_normalizer: tanh
+  energy_normalizer_scale: 5.0    # log1p scale param
   energy_normalizer_ceiling: 2.0  # clip_squared / log1p ceiling param
   # Power-law energy normalizer: (raw/T)^p
   energy_power_threshold: 1.0     # T: raw=1 (100% CPU increase) = normalized=1
@@ -71,17 +73,30 @@ reward:
   tau_alert: 0.25          # Allowed mean positive relative alert increase
   tau_kl: 0.22             # Allowed KL divergence budget
   tau_quota: 0.35          # Allowed injected_logs / real_logs budget
-  scale_alert: 0.25        # Hinge scale for alert budget violation
-  scale_kl: 0.10           # Hinge scale for KL budget violation
-  scale_quota: 0.10        # Hinge scale for quota budget violation
+  scale_alert: 0.25        # (legacy) hinge scale — kept for backward compat, unused by ConstrainedRewardWrapper
+  scale_kl: 0.30           # (legacy) hinge scale — kept for backward compat, unused by ConstrainedRewardWrapper
+  scale_quota: 0.30        # (legacy) hinge scale — kept for backward compat, unused by ConstrainedRewardWrapper
+  # Tanh-hinge sensitivity for ConstrainedRewardWrapper penalties.
+  # penalty = tanh(max(0, violation) / sensitivity), bounded to [0, 1].
+  # At threshold + sensitivity → tanh(1) ≈ 0.76; at threshold + 3*sensitivity → ~1.0.
+  alert_sensitivity: 0.25  # Saturates ~0.76 at rel_alert = tau_alert + 0.25
+  kl_sensitivity: 0.10     # Saturates ~0.76 at KL = tau_kl + 0.10
+  quota_sensitivity: 0.10  # Saturates ~0.76 at quota = tau_quota + 0.10
   use_adaptive_lagrange: true
-  lambda_alert_init: 1.0
-  lambda_distribution_init: 1.0
-  lambda_quota_init: 1.0
-  lambda_alert_eta: 0.01
+  lambda_alert_init: 0.1       # Start low so energy can compete early
+  lambda_distribution_init: 0.1
+  lambda_quota_init: 0.1
+  lambda_alert_eta: 0.01       # Slow dual update (< policy lr)
   lambda_distribution_eta: 0.01
   lambda_quota_eta: 0.01
-  lambda_max: 100.0
+  lambda_max: 20.0
+  # Curriculum: anneal tau from relaxed initial values to final values
+  curriculum_enabled: true
+  tau_alert_initial: 1.0       # 4x tau_alert: allow 100% alert increase initially
+  tau_kl_initial: 0.88         # 4x tau_kl: allow high KL initially
+  tau_quota_initial: 1.0       # 4x tau_quota: allow high injection ratio initially
+  curriculum_warmup_fraction: 0.5  # Fraction of training over which tau anneals
+  reward_clip: 30.0        # Clip total episode reward to [-reward_clip, +reward_clip]
   # Rule names for expected alerts (order must match expected_alerts_per_rule)
   rule_names:
     - Windows Event For Service Disabled
@@ -172,14 +187,14 @@ experiment:
   # Policy type (MlpPolicy, td3_mlp, MlpLstmPolicy)
   policy_type: MlpPolicy
 
-# Model feature extraction
-model:
-  # Custom feature extractor settings
-  features_dim: 128
-  # Hidden layer architecture
-  hidden_layers: [64, 128]
-  # Dropout rate for regularization
-  dropout_rate: 0.2
+# # Model feature extraction
+# model:
+#   # Custom feature extractor settings
+#   features_dim: 128
+#   # Hidden layer architecture
+#   hidden_layers: [64, 128]
+#   # Dropout rate for regularization
+#   dropout_rate: 0.2
 
 # Training hyperparameters
 training:
@@ -192,7 +207,7 @@ training:
   # Steps per rollout (for on-policy algorithms)
   n_steps: 2048
   # Entropy coefficient
-  ent_coef: 0.05
+  ent_coef: auto
   # Device for PyTorch (auto, cuda, cpu)
   device: auto
   # Verbose level (0=none, 1=info, 2=debug)
@@ -202,8 +217,13 @@ training:
 
   # PPO/A2C/RecurrentPPO specific parameters
   ppo:
-    sde_sample_freq: 12
     use_sde: true
+    sde_sample_freq: 12
+    n_epochs: 10       # SB3 default
+    clip_range: 0.2    # SB3 default
+    gae_lambda: 0.98   # SB3 default is 0.95
+    max_grad_norm: 0.5  # prevent gradient explosion (SB3 default)
+    batch_size: 256     # fewer updates per epoch vs default 64
 
   # Number of parallel environments (SubprocVecEnv). 1 = no parallelism.
   # In mock mode any value >=1 works; for real Splunk use one env per host.
@@ -230,8 +250,8 @@ training:
 environment:
   # Action space type (Action8, Action12)
   action_type: Action8
-  # State observation type (StateWrapper7, StateWrapper6, StateWrapper3, SparseStep, KLDivergence, AccumulatedLogVolume)
-  state_type: StateWrapper7
+  # State observation type (StateWrapper7, StateWrapper6, StateWrapper3, SparseStep, StateWrapper8/AlertAware)
+  state_type: StateWrapper8
   # Percentage of hosts to use (0-100)
   hosts_percentage: 100
   # Additional percentage for log generation

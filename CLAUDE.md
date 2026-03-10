@@ -88,6 +88,7 @@ Runtime secrets (Splunk credentials, HEC tokens) are in `SplunkResearch/src/.env
 - **`action.*`**: `softmax_temperature`, `base_log_count`, `sigmoid_sharpness`, `diversity_factor`
 - **`training.*`**: `learning_rate`, `num_episodes`, `device`, `sac.*` (SAC-specific: `learning_starts`, `buffer_size`, `batch_size`, `policy_net_arch`)
 - **`environment.*`**: `action_type` (default `Action8`), `state_type` (default `StateWrapper7`), `hosts_percentage`, `is_mock`, `log_types`
+  - **`is_mock`**: When `true`, only the detection rule execution (Splunk saved searches profiling) is simulated using a prediction model. Everything else — log injection, state observations, reward computation — runs identically in both mock and real modes. Mock mode is **not** a full simulation; it only replaces the expensive rule-execution step.
 - **`evaluation.*`**: `n_eval_episodes`, `eval_freq`, `deterministic`
 - **`callbacks.eval.*`**: `enabled` (run eval during training, default `true`), `eval_freq`, `deterministic`
 

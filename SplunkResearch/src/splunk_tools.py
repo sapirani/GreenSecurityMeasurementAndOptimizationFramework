@@ -188,6 +188,10 @@ class SplunkTools(object):
         self.stop_cpu_monitor = threading.Event()
         while True:
             try:
+                # Stagger all Splunk calls (including the first HTTP request below)
+                # to avoid overloading Splunk when many SubprocVecEnv workers start together.
+                # Range of 60s gives ~1 request/sec for up to 60 workers.
+                time.sleep(randint(1, 60))
                 self.active_saved_searches = self.get_saved_search_names(active_saved_searches, owner=self.splunk_username)
                 self.real_logtypes_counter = {}
                 self.rule_frequency = rule_frequency
@@ -569,7 +573,7 @@ class SplunkTools(object):
         response = requests.post(url,  data=data, auth=self.auth, headers=headers, verify=False)
         if response.status_code != 200:
             logger.error(f'Error: {response}')
-            return None
+            response.raise_for_status()  # Let the retry loop in __init__ handle 503s
         json_objects = response.text.splitlines()
         if 'result' not in json_objects[0]:
             results = []
