@@ -293,6 +293,10 @@ class SplunkEnv(gym.Env):
     def step_counter(self, value):
         self.shared.step_counter = value
 
+    @property
+    def first_start_datetime(self):
+        return self.time_manager.first_start_datetime
+
     def _get_baseline_path(self) -> Path:
         """Get path for baseline data based on environment config"""
         env_id = self.unwrapped.config.env_id

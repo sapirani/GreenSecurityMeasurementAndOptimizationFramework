@@ -47,4 +47,4 @@ joblib==1.5.1
 scikit-learn==1.7.1
 
 # ===== Hyperparameter Optimization =====
-optuna>=3.4.0
+optuna>=3.4.0filelock>=3.9.0

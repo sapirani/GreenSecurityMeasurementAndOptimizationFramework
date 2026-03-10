@@ -33,6 +33,7 @@ from logging.handlers import RotatingFileHandler
 import datetime
 from pathlib import Path
 import json
+from filelock import FileLock
 from stable_baselines3.common.callbacks import BaseCallback, CallbackList
 from stable_baselines3 import A2C, PPO, DQN, DDPG, TD3, SAC
 from stable_baselines3.ppo.policies import MlpPolicy
@@ -56,6 +57,7 @@ import smtplib
 from email.message import EmailMessage
 from stable_baselines3.common.logger import configure
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
+from stable_baselines3.common.monitor import Monitor
 from functools import partial
 logger = logging.getLogger(__name__)
 import torch as th
@@ -195,6 +197,7 @@ def _build_splunk_env(env_config, overrides, baseline_dir):
     hosts_num = get_config('environment.hosts_percentage', 100)
     state_type = get_config('environment.state_type', 'StateWrapper7')
     env = create_state_wrapper(env, state_type, hosts_num)
+    env = Monitor(env)
 
     return env
 
@@ -211,6 +214,7 @@ class ExperimentManager:
         self.eval_env = None
         self.dirs = None
         self._current_writers = None
+        self._current_callbacks = None
 
     def _setup_base_directories(self):
         """Create base directories shared across experiments."""
@@ -252,21 +256,21 @@ class ExperimentManager:
     def _load_experiments_db(self) -> pd.DataFrame:
         """Load or create experiments database"""
         db_path = self.base_dir / 'experiments.csv'
-        if db_path.exists():
-            try:
-                df = pd.read_csv(db_path)
-                # Check if the dataframe is empty or has no columns
-                if df.empty or len(df.columns) == 0:
-                    logger.warning(f"Empty or malformed experiments.csv found, creating new database")
+        lock = FileLock(str(db_path) + '.lock')
+        with lock:
+            if db_path.exists():
+                try:
+                    df = pd.read_csv(db_path)
+                    if df.empty or len(df.columns) == 0:
+                        logger.warning(f"Empty or malformed experiments.csv found, creating new database")
+                        return self._create_empty_experiments_db()
+                    if 'git_info' not in df.columns:
+                        df['git_info'] = None
+                    return df
+                except pd.errors.EmptyDataError:
+                    logger.warning(f"Empty experiments.csv found, creating new database")
                     return self._create_empty_experiments_db()
-                # Add git_info column if missing (backwards compat)
-                if 'git_info' not in df.columns:
-                    df['git_info'] = None
-                return df
-            except pd.errors.EmptyDataError:
-                logger.warning(f"Empty experiments.csv found, creating new database")
-                return self._create_empty_experiments_db()
-        return self._create_empty_experiments_db()
+            return self._create_empty_experiments_db()
 
     def _create_empty_experiments_db(self) -> pd.DataFrame:
         """Create an empty experiments database with proper schema"""
@@ -276,11 +280,22 @@ class ExperimentManager:
         ])
 
     def _save_experiments_db(self):
-        """Save experiments database"""
-        self.experiments_db.to_csv(
-            self.base_dir / 'experiments.csv',
-            index=False
-        )
+        """Save experiments database with file locking to prevent concurrent overwrites."""
+        db_path = self.base_dir / 'experiments.csv'
+        lock = FileLock(str(db_path) + '.lock')
+        with lock:
+            if db_path.exists():
+                try:
+                    existing = pd.read_csv(db_path)
+                    merged = pd.concat([existing, self.experiments_db]).drop_duplicates(
+                        subset=['experiment_id'], keep='last'
+                    ).reset_index(drop=True)
+                except Exception:
+                    merged = self.experiments_db
+            else:
+                merged = self.experiments_db
+            merged.to_csv(db_path, index=False)
+            self.experiments_db = merged
 
     def _cleanup_stale_experiments(self, timeout_hours: int = 48):
         """Mark experiments running longer than timeout as 'crashed'."""
@@ -430,6 +445,11 @@ class ExperimentManager:
                 'ent_coef': get_config('training.ent_coef', 0.05),
                 'sde_sample_freq': get_config('training.ppo.sde_sample_freq', 12),
                 'use_sde': get_config('training.ppo.use_sde', True),
+                'n_epochs': get_config('training.ppo.n_epochs', 10),
+                'clip_range': get_config('training.ppo.clip_range', 0.2),
+                'gae_lambda': get_config('training.ppo.gae_lambda', 0.95),
+                'max_grad_norm': get_config('training.ppo.max_grad_norm', 0.5),
+                'batch_size': get_config('training.ppo.batch_size', 64),
             }
             if ppo_policy_kwargs is not None:
                 ppo_update['policy_kwargs'] = ppo_policy_kwargs
@@ -449,23 +469,24 @@ class ExperimentManager:
             pi_arch = get_config('training.sac.policy_net_arch.pi', [256, 256])
             qf_arch = get_config('training.sac.policy_net_arch.qf', [256, 256])
 
+            policy_kwargs = {"net_arch": dict(pi=pi_arch, qf=qf_arch)}
+            # log_std_init is SAC-only (stochastic policy); TD3/DDPG use deterministic policies
+            if model_type == 'sac':
+                policy_kwargs["log_std_init"] = get_config('training.sac.log_std_init', -3)
+
             model_kwargs.update({
                 'learning_starts': get_config('training.sac.learning_starts', 60),  # (12 steps * 5 episodes)
                 'gradient_steps': get_config('training.sac.gradient_steps', -1),
                 'train_freq': (train_freq_value, train_freq_unit),
                 'buffer_size': get_config('training.sac.buffer_size', 100_000),
                 'batch_size': get_config('training.sac.batch_size', 2048),
-                "policy_kwargs": {
-                    "net_arch": dict(pi=pi_arch, qf=qf_arch),
-                    "log_std_init": get_config('training.sac.log_std_init', -3),
-                },
+                "policy_kwargs": policy_kwargs,
             })
 
             # SAC-only params (TD3/DDPG don't support ent_coef or use_sde)
             if model_type == 'sac':
                 model_kwargs['ent_coef'] = get_config('training.sac.ent_coef', 'auto')
                 model_kwargs['use_sde'] = get_config('training.sac.use_sde', True)
-
 
         return model_cls(**model_kwargs)
 
@@ -532,13 +553,24 @@ class ExperimentManager:
 
     def _get_full_config(self, overrides: dict) -> dict:
         """Build the full effective configuration by merging defaults with overrides."""
-        # Deep copy defaults, strip secrets
         safe_defaults = copy.deepcopy(config._config)
         safe_defaults.pop('email', None)
+
+        # Build effective config: deep-merge overrides (dot-notation keys) into defaults
+        effective = copy.deepcopy(safe_defaults)
+        for key, value in overrides.items():
+            parts = key.split('.')
+            d = effective
+            for part in parts[:-1]:
+                if not isinstance(d.get(part), dict):
+                    d[part] = {}
+                d = d[part]
+            d[parts[-1]] = value
 
         return {
             'defaults': safe_defaults,
             'overrides': overrides.copy(),
+            'effective': effective,
         }
 
     def _save_experiment_config(self, experiment_name: str, overrides: dict):
@@ -653,7 +685,7 @@ class ExperimentManager:
                 # Retrieve first_start_datetime from training env regardless of whether
                 # it is a plain env or a SubprocVecEnv.
                 if isinstance(env, SubprocVecEnv):
-                    train_first_start = env.get_attr('time_manager')[0].first_start_datetime
+                    train_first_start = env.get_attr('first_start_datetime')[0]
                 else:
                     train_first_start = env.unwrapped.time_manager.first_start_datetime
                 self.eval_env.unwrapped.splunk_tools.load_real_logs_distribution_bucket(
@@ -720,8 +752,9 @@ class ExperimentManager:
             return results
 
         except Exception as e:
-            logger.error(f"Experiment failed: {str(e)}")
-            self._record_experiment_end(experiment_id, "failed", {"error": str(e)})
+            import traceback
+            logger.error(f"Experiment failed: {type(e).__name__}: {str(e)}\n{traceback.format_exc()}")
+            self._record_experiment_end(experiment_id, "failed", {"error": f"{type(e).__name__}: {str(e)}"})
             # Send email notification
             experiment_name = overrides.get('experiment_name', 'unknown')
             self.send_email(error_message=str(e), experiment_name=experiment_name)
@@ -757,14 +790,15 @@ class ExperimentManager:
         num_episodes = get_config('training.num_episodes', 100)
         experiment_name = get_config('experiment_name', 'experiment')
 
-        total_steps = (env.get_attr('total_steps')[0] if isinstance(env, SubprocVecEnv)
-                       else env.unwrapped.total_steps)
+        total_steps = env.unwrapped.total_steps if not isinstance(env, SubprocVecEnv) else \
+            config.get('splunk.search_window', 2880) * 60 // config.get('splunk.action_duration', 14400)
         total_timesteps = total_steps * num_episodes
 
         model.learn(
             total_timesteps=total_timesteps,
             callback=callbacks,
-            tb_log_name="train"
+            tb_log_name="train",
+            log_interval=1,
         )
 
         # Save final model
@@ -855,6 +889,12 @@ class ExperimentManager:
                 except Exception as e:
                     logger.warning(f"Error closing writer {name}: {e}")
             self._current_writers = None
+        # Also close the per-callback custom_writers (written at local step).
+        # _on_training_end() closes them on clean exit; this handles crashes.
+        for cb in (self._current_callbacks or []):
+            if hasattr(cb, '_close_custom_writer'):
+                cb._close_custom_writer()
+        self._current_callbacks = None
 
     def _load_existing_model(self, env: gym.Env, overrides: dict = None):
         """Load model from path"""
@@ -898,14 +938,15 @@ class ExperimentManager:
         num_episodes = get_config('training.num_episodes', 100)
         experiment_name = get_config('experiment_name', 'experiment')
 
-        total_steps = (env.get_attr('total_steps')[0] if isinstance(env, SubprocVecEnv)
-                       else env.unwrapped.total_steps)
+        total_steps = env.unwrapped.total_steps if not isinstance(env, SubprocVecEnv) else \
+            config.get('splunk.search_window', 2880) * 60 // config.get('splunk.action_duration', 14400)
         total_timesteps = total_steps * num_episodes
 
         model.learn(
             total_timesteps=total_timesteps,
             callback=callbacks,
-            tb_log_name="train"
+            tb_log_name="train",
+            log_interval=1,
         )
 
         # Save final model
@@ -1014,6 +1055,8 @@ class ExperimentManager:
         self._current_writers = writers
 
         callbacks = [
+            # Custom metrics logging (rule-specific, event-type metrics)
+            # Standard SB3 metrics (fps, ep_rew, etc.) logged automatically via tensorboard_log param
             CustomTensorboardCallback(
                 log_dir=log_dir,
                 rules=rules,
@@ -1057,6 +1100,7 @@ class ExperimentManager:
         extra = overrides.get('_extra_callbacks', [])
         callbacks.extend(extra)
 
+        self._current_callbacks = callbacks
         return callbacks
 
     def _cleanup_old_checkpoints(self):
