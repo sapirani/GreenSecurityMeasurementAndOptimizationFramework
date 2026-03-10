@@ -25,80 +25,83 @@ class MetricsLoggerCallback:
         self.log_dir = log_dir
         self.rules = rules
         self.event_types = event_types
-
         self.writers = writers if writers else {}
 
-    def _log_metrics(self, key: str, value, exclude_from_csv=True):
-        """Safely log metrics to tensorboard"""
-        if value is not None:
-            self.logger.record(f"{self.phase}/{key}", value)
+        # Dedicated writer for custom env metrics (energy_reward, alert_reward, etc.).
+        # By writing directly via add_scalar() at local step (n_calls) we avoid
+        # touching the SB3 logger buffer, which means SB3 can dump fps / loss /
+        # ep_rew_mean at num_timesteps without any interference from our dumps.
+        self.custom_writer = SummaryWriter(
+            log_dir=os.path.join(log_dir, f"{phase}_metrics")
+        ) if log_dir else None
 
-    def log_step_metrics(self, info: Dict):
+    def _log_metrics(self, key: str, value, step: int = 0, exclude_from_csv=True):
+        """Write a scalar directly to the custom_writer at the given local step.
+        Non-numeric values (e.g. TimeWindow string repr) are silently skipped —
+        add_scalar() only accepts floats/ints."""
+        if value is not None and self.custom_writer is not None and isinstance(value, (int, float)):
+            self.custom_writer.add_scalar(f"{self.phase}/{key}", value, global_step=step)
+
+    def log_step_metrics(self, info: Dict, step: int = 0):
         """Log metrics available at each step"""
-        # Log basic step information
         action_window = info.get('action_window')
         if action_window:
-            self._log_metrics('action_window', f"{action_window}")
+            self._log_metrics('action_window', f"{action_window}", step=step)
 
-        # Log reward components
         for reward_type in ['distribution_reward']:
             if reward_type in info:
-                self._log_metrics(reward_type, info[reward_type])
+                self._log_metrics(reward_type, info[reward_type], step=step)
 
-        self._log_metrics('distribution_value', info.get('distribution_value'))
+        self._log_metrics('distribution_value', info.get('distribution_value'), step=step)
 
-    def log_episode_metrics(self, info: Dict, env):
+    def log_episode_metrics(self, info: Dict, env, step: int = 0):
         """Log metrics at episode end"""
-        # Log current window
         current_window = info.get('current_window')
         if current_window:
-            self._log_metrics('current_window', f"{current_window}", exclude_from_csv=True)
+            self._log_metrics('current_window', f"{current_window}", step=step)
 
-        # Get the actual environment from the vectorized env wrapper
-        actual_env = env.envs[0] if hasattr(env, 'envs') else env
-
-        # Log metrics for current and baseline
         current_metrics = info.get('combined_metrics', {})
         baseline_metrics = info.get('combined_baseline_metrics', {})
-        self._log_metrics('final_distribution_value', info.get('distribution_value'))
-        self._log_metrics('ac_distribution_value', info.get('ac_distribution_value'))
-        self._log_metrics('full_ac_distribution_value', info.get('full_ac_distribution_value'))
-        self._log_metrics('ac_distribution_reward', info.get('ac_distribution_reward'))
-        self._log_metrics('energy_reward', info.get('energy_reward'))
-        self._log_metrics('norm_energy_reward', info.get('norm_energy_reward'))
-        self._log_metrics('alert_reward', info.get('alert_reward'))
-        self._log_metrics('norm_alert_reward', info.get('norm_alert_reward'))
-        self._log_metrics('constrained_reward', info.get('constrained_reward'))
-        self._log_metrics('constrained_energy_term', info.get('constrained_energy_term'))
-        self._log_metrics('constrained_alert_metric', info.get('constrained_alert_metric'))
-        self._log_metrics('constrained_distribution_metric', info.get('constrained_distribution_metric'))
-        self._log_metrics('constrained_quota_metric', info.get('constrained_quota_metric'))
-        self._log_metrics('constrained_alert_penalty', info.get('constrained_alert_penalty'))
-        self._log_metrics('constrained_distribution_penalty', info.get('constrained_distribution_penalty'))
-        self._log_metrics('constrained_quota_penalty', info.get('constrained_quota_penalty'))
-        self._log_metrics('lambda_alert', info.get('lambda_alert'))
-        self._log_metrics('lambda_distribution', info.get('lambda_distribution'))
-        self._log_metrics('lambda_quota', info.get('lambda_quota'))
-
-        self._log_metrics('total_episode_logs', info.get('total_episode_logs'))
+        self._log_metrics('final_distribution_value', info.get('distribution_value'), step=step)
+        self._log_metrics('ac_distribution_value', info.get('ac_distribution_value'), step=step)
+        self._log_metrics('full_ac_distribution_value', info.get('full_ac_distribution_value'), step=step)
+        self._log_metrics('ac_distribution_reward', info.get('ac_distribution_reward'), step=step)
+        self._log_metrics('energy_reward', info.get('energy_reward'), step=step)
+        self._log_metrics('norm_energy_reward', info.get('norm_energy_reward'), step=step)
+        self._log_metrics('alert_reward', info.get('alert_reward'), step=step)
+        self._log_metrics('norm_alert_reward', info.get('norm_alert_reward'), step=step)
+        self._log_metrics('constrained_reward', info.get('constrained_reward'), step=step)
+        self._log_metrics('constrained_energy_term', info.get('constrained_energy_term'), step=step)
+        self._log_metrics('constrained_alert_metric', info.get('constrained_alert_metric'), step=step)
+        self._log_metrics('constrained_distribution_metric', info.get('constrained_distribution_metric'), step=step)
+        self._log_metrics('constrained_quota_metric', info.get('constrained_quota_metric'), step=step)
+        self._log_metrics('constrained_alert_penalty', info.get('constrained_alert_penalty'), step=step)
+        self._log_metrics('constrained_distribution_penalty', info.get('constrained_distribution_penalty'), step=step)
+        self._log_metrics('constrained_quota_penalty', info.get('constrained_quota_penalty'), step=step)
+        self._log_metrics('lambda_alert', info.get('lambda_alert'), step=step)
+        self._log_metrics('lambda_distribution', info.get('lambda_distribution'), step=step)
+        self._log_metrics('lambda_quota', info.get('lambda_quota'), step=step)
+        self._log_metrics('tau_alert_effective', info.get('tau_alert_effective'), step=step)
+        self._log_metrics('tau_kl_effective', info.get('tau_kl_effective'), step=step)
+        self._log_metrics('tau_quota_effective', info.get('tau_quota_effective'), step=step)
+        self._log_metrics('total_episode_logs', info.get('total_episode_logs'), step=step)
 
         if current_metrics and baseline_metrics:
-            # Log basic metrics
             for metric in self.episodic_metrics:
                 current_val = current_metrics.get(metric)
                 baseline_val = baseline_metrics.get(metric)
                 if current_val is not None and baseline_val is not None:
-
-                    self._log_metrics(f'{metric}', current_val)
-                    self._log_metrics(f'baseline_{metric}', baseline_val)
-                    self._log_metrics(f'{metric}_gap', current_val - baseline_val)
+                    self._log_metrics(f'{metric}', current_val, step=step)
+                    self._log_metrics(f'baseline_{metric}', baseline_val, step=step)
+                    self._log_metrics(f'{metric}_gap', current_val - baseline_val, step=step)
             if 'real_cpu' in current_metrics:
-                    self._log_metrics('measured_cpu', current_metrics.get('real_cpu', 0))
-                    self._log_metrics('cpu_error', (current_metrics.get('cpu', 0) - current_metrics.get('real_cpu', 0))/current_metrics.get('real_cpu', 0))
-            # Log detailed rules metrics
+                self._log_metrics('measured_cpu', current_metrics.get('real_cpu', 0), step=step)
+                real_cpu = current_metrics.get('real_cpu', 0)
+                if real_cpu != 0:
+                    self._log_metrics('cpu_error', (current_metrics.get('cpu', 0) - real_cpu) / real_cpu, step=step)
+
             raw_current_metrics = info.get('raw_metrics', {})
             raw_baseline_metrics = info.get('raw_baseline_metrics', {})
-
             for search_name in self.rules:
                 for metric in self.episodic_metrics:
                     raw_current_metrics_search = raw_current_metrics.get(search_name, None)
@@ -108,27 +111,37 @@ class MetricsLoggerCallback:
                     current_val = raw_current_metrics_search.get(metric, None)
                     baseline_val = raw_baseline_metrics_search.get(metric, None)
                     if current_val is not None and baseline_val is not None:
-                        self.writers[search_name].add_scalar(f'{self.phase}/rules_baseline_{metric}', baseline_val, global_step=info['n_calls'])
-                        self.writers[search_name].add_scalar(f'{self.phase}/rules_{metric}', current_val, global_step=info['n_calls'])
-                        self.writers[search_name].add_scalar(f'{self.phase}/rules_{metric}_gap', current_val - baseline_val, global_step=info['n_calls'])
+                        self.writers[search_name].add_scalar(f'{self.phase}/rules_baseline_{metric}', baseline_val, global_step=step)
+                        self.writers[search_name].add_scalar(f'{self.phase}/rules_{metric}', current_val, global_step=step)
+                        self.writers[search_name].add_scalar(f'{self.phase}/rules_{metric}_gap', current_val - baseline_val, global_step=step)
 
-        # Log episodic policy
         for event_type in info.get('episode_logs', {}):
-            self.writers[f"{event_type}"].add_scalar(f'{self.phase}/episodic_policy', info['episode_logs'][f"{event_type}"], global_step=info['n_calls'])
-            self.writers[f"{event_type}"].add_scalar(f'{self.phase}/diversity_policy', info['diversity_episode_logs'].get(f"{event_type}", 0), global_step=info['n_calls'])
+            self.writers[f"{event_type}"].add_scalar(f'{self.phase}/episodic_policy', info['episode_logs'][f"{event_type}"], global_step=step)
+            self.writers[f"{event_type}"].add_scalar(f'{self.phase}/diversity_policy', info['diversity_episode_logs'].get(f"{event_type}", 0), global_step=step)
 
         if 'episodic_inserted_logs' in info:
-            self._log_metrics('episodic_inserted_logs', info['episodic_inserted_logs'], exclude_from_csv=True)
+            self._log_metrics('episodic_inserted_logs', info['episodic_inserted_logs'], step=step)
 
         if 'episodic_inserted_logs' in info and 'episode_logs' in info:
-            self._log_metrics('actual_quota', info['episodic_inserted_logs']/(info['total_episode_logs']+1e-8), exclude_from_csv=True)
+            self._log_metrics('actual_quota', info['episodic_inserted_logs'] / (info['total_episode_logs'] + 1e-8), step=step)
 
         for event_type in self.event_types:
-            self.writers[event_type].add_scalar(f'{self.phase}/real_relevant_distribution', info['real_relevant_distribution'].get(event_type, 0), global_step=info['n_calls'])
-            self.writers[event_type].add_scalar(f'{self.phase}/fake_relevant_distribution', info['fake_relevant_distribution'].get(event_type, 0), global_step=info['n_calls'])
+            self.writers[event_type].add_scalar(f'{self.phase}/real_relevant_distribution', info['real_relevant_distribution'].get(event_type, 0), global_step=step)
+            self.writers[event_type].add_scalar(f'{self.phase}/fake_relevant_distribution', info['fake_relevant_distribution'].get(event_type, 0), global_step=step)
 
+        # Flush all writers (rules, event_types, custom)
         for writer in self.writers.values():
             writer.flush()
+        if self.custom_writer is not None:
+            self.custom_writer.flush()
+
+    def _close_custom_writer(self):
+        if self.custom_writer is not None:
+            try:
+                self.custom_writer.close()
+            except Exception as e:
+                logger.warning(f"Error closing custom_writer: {e}")
+            self.custom_writer = None
 
 
 class CustomTensorboardCallback(MetricsLoggerCallback, BaseCallback):
@@ -136,23 +149,29 @@ class CustomTensorboardCallback(MetricsLoggerCallback, BaseCallback):
         BaseCallback.__init__(self, verbose)
         MetricsLoggerCallback.__init__(self, "train", log_dir, rules, event_types, writers=writers)
 
-
     def _on_step(self) -> bool:
         """Log metrics at each step"""
-        info = self.locals['infos'][0]  # Get info from environment step
-        info['n_calls'] = self.n_calls  # Add current step count to info
-        self.log_step_metrics(info)
+        info = self.locals['infos'][0]
+        info['n_calls'] = self.n_calls
+        # Step-level env metrics at local step (n_calls)
+        self.log_step_metrics(info, step=self.n_calls)
 
         ep_step = info.get('step', 0)
         global_step = info.get('all_steps_counter', 0)
         logger.info(f"[Step] episode_step={ep_step}, global_step={global_step}, n_calls={self.n_calls}")
 
-        # Log episode end metrics
-        if info.get('done', False):
-            self.log_episode_metrics(info, self.training_env)
+        # Episode-level env metrics written directly to custom_writer at local step.
+        # We do NOT call self.logger.dump() here so that SB3's internal metrics
+        # (fps, loss, ep_rew_mean) are written exclusively by SB3's own dump at
+        # num_timesteps, with no interference from our buffer usage.
+        done = self.locals.get('dones', [False])[0] or info.get('done', False)
+        if done:
+            self.log_episode_metrics(info, self.training_env, step=self.n_calls)
 
-        self.logger.dump(self.n_calls)
         return True
+
+    def _on_training_end(self) -> None:
+        self._close_custom_writer()
 
 
 class HParamsCallback(BaseCallback):
@@ -167,7 +186,6 @@ class HParamsCallback(BaseCallback):
     def _on_step(self) -> bool:
         if not self._logged:
             writer = SummaryWriter(log_dir=self.log_dir)
-            # Flatten and sanitize hparams for TensorBoard
             flat_hparams = {}
             for k, v in self.hparam_dict.items():
                 if isinstance(v, (int, float, str, bool)):
@@ -180,7 +198,7 @@ class HParamsCallback(BaseCallback):
         return True
 
 
-class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
+class CustomEvalCallback3(MetricsLoggerCallback, EvalCallback):
     def __init__(self,
                  eval_env,
                  log_dir, rules, event_types,
@@ -222,19 +240,11 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
         self.eval_infos = []
 
         def _store_actions_callback(locals_, globals_):
-            """
-            Callback function to store the action at each step.
-
-            :param locals_: A dictionary containing local variables.
-            :param globals_: A dictionary containing global variables.
-            """
-            # 'actions' is the variable name used inside evaluate_policy
-            # It will be a numpy array, e.g., array([1])
             self.all_actions_list.append(locals_['actions'][0])
 
         def _log_info_callback(locals_, globals_):
             info = locals_['info']
-            info['n_calls'] = self.n_calls  # Add current step count to info
+            info['n_calls'] = self.n_calls
             self.eval_infos.append(info)
 
         def _log_info_store_actions_callback(locals_, globals_):
@@ -244,14 +254,12 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
         kwargs['callback'] = _log_info_store_actions_callback
         return evaluate_policy(*args, **kwargs)
 
-    def _aggregate_eval_metrics(self, infos):
+    def _aggregate_eval_metrics(self, infos, step: int = 0):
         """Aggregate metrics from multiple evaluation episodes"""
-        # Get the last info which should contain final episode metrics
         last_info = infos[-1] if infos else None
         if not last_info:
             return
 
-        # Calculate mean of step-wise metrics across all infos
         mean_metrics = defaultdict(list)
         for info in infos:
             for metric in ['distribution_reward', 'energy_reward', 'alert_reward',
@@ -262,23 +270,19 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
                 if metric in info:
                     mean_metrics[metric].append(info[metric])
 
-        # Log mean metrics
         for metric, values in mean_metrics.items():
             try:
-                self._log_metrics(f'mean_{metric}', np.mean(values))
+                self._log_metrics(f'mean_{metric}', np.mean(values), step=step)
             except Exception as e:
                 logger.warning(f"Error logging metric {metric}: {e}")
 
-        # Log the final episode metrics using the base class method
-        self.log_episode_metrics(last_info, self.eval_env)
+        self.log_episode_metrics(last_info, self.eval_env, step=step)
 
     def _on_step(self) -> bool:
         """Evaluate the agent and log metrics"""
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
-            # Reset eval info collection
             self.eval_infos = []
 
-            # Run evaluation
             episode_rewards, episode_lengths = self.evaluate_policy(
                 self.model,
                 self.eval_env,
@@ -288,7 +292,6 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
                 return_episode_rewards=True,
                 warn=self.warn
             )
-            # use stored actions to evaluate full eval env if provided
             if self.full_eval_env is not None:
                 obs = self.full_eval_env.reset()
                 for action in self.all_actions_list:
@@ -299,8 +302,6 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
                             last_real_eval_info = self.eval_infos[-1]
                             logger.debug(f"Last eval info: {last_real_eval_info}")
                             last_real_eval_info["full_ac_distribution_value"] = info['ac_distribution_value']
-                            # add all metrics to results_for_csv
-                            # Extract time range from eval info
                             current_window = last_real_eval_info.get('current_window', (None, None))
                             results_for_csv = [{
                                 "eval_date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -322,7 +323,6 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
                                 "memory_mb": last_real_eval_info['combined_metrics'].get('memory_mb', None),
                                 "baseline_memory_mb": last_real_eval_info['combined_baseline_metrics'].get('memory_mb', None),
                             }]
-                            # dump to csv in results directory
                             if self.results_dir:
                                 csv_path = os.path.join(self.results_dir, f"full_eval_results_random_{self.is_random_agent}.csv")
                             else:
@@ -333,16 +333,16 @@ class CustomEvalCallback3( MetricsLoggerCallback, EvalCallback):
                         obs = self.full_eval_env.reset()
                 self.all_actions_list = []
 
-            # Log aggregated evaluation metrics
-            self._aggregate_eval_metrics(self.eval_infos)
-
-            # Log standard evaluation metrics
-            self._log_metrics('mean_reward', np.mean(episode_rewards))
-            self._log_metrics('mean_ep_length', np.mean(episode_lengths))
-
-            self.logger.dump(self.n_calls)
+            # All eval metrics written to custom_writer at local step (n_calls).
+            # No self.logger.dump() — SB3's own dump handles agent metrics.
+            self._aggregate_eval_metrics(self.eval_infos, step=self.n_calls)
+            self._log_metrics('mean_reward', np.mean(episode_rewards), step=self.n_calls)
+            self._log_metrics('mean_ep_length', np.mean(episode_lengths), step=self.n_calls)
 
         return True
+
+    def _on_training_end(self) -> None:
+        self._close_custom_writer()
 
 
 class SplunkLincenceCheckCallback(BaseCallback):
@@ -362,7 +362,6 @@ class SplunkLincenceCheckCallback(BaseCallback):
                 self.logger.record('splunk/remaining_mb', remaining_mb)
                 self.logger.record('splunk/quota_mb', quota_mb)
                 self.logger.dump(self.n_calls)
-                # stop training
                 return False
             else:
                 logger.info(f"Splunk license usage is sufficient: {remaining_mb} MB remaining out of {quota_mb} MB")
