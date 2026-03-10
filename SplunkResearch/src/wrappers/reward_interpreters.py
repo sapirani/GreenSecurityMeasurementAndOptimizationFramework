@@ -87,14 +87,80 @@ class ExpectedDiffAlertSignal(AlertSignal):
         current_rules_alerts = {
             rule: info['raw_metrics'][rule]['alert'] for rule in expected_alerts
         }
+        alerts_diff = info.get('alerts_diff', {})
         alert_diffs = []
         for rule in expected_alerts:
             expected_alert = expected_alerts[rule]['alert']
+            rule_diversity = alerts_diff.get(rule, 0)
+            if rule_diversity == 0:
+                expected_alert = max(expected_alert, current_rules_alerts[rule])
             alert_diff = (current_rules_alerts[rule] - expected_alert) / (expected_alert + epsilon)
             alert_diffs.append(alert_diff)
         if alert_diffs:
             return min(0, -np.mean(alert_diffs))
         return 0
+
+
+class ZScoreAlertSignal(AlertSignal):
+    """Z-score based alert signal with tolerance band.
+
+    Computes per-rule z-scores using pre-computed means and stds from
+    training data.  No penalty within ``tolerance_band`` standard deviations;
+    linear penalty beyond.
+
+    Config keys:
+      - ``reward.expected_alerts_std_per_rule``: list of stds (same order as rule_names)
+      - ``reward.zscore_tolerance_band``: number of stds before penalty (default 1.0)
+    """
+
+    def __init__(self, tolerance_band: float = None):
+        if tolerance_band is None:
+            tolerance_band = config.get('reward.zscore_tolerance_band', 1.0)
+        self.tolerance_band = tolerance_band
+        self._expected_stds = None
+
+    def _load_stds(self) -> Dict[str, float]:
+        if self._expected_stds is None:
+            rule_names = config.get('reward.rule_names', [])
+            std_values = config.get('reward.expected_alerts_std_per_rule', [])
+            self._expected_stds = dict(zip(rule_names, std_values))
+        return self._expected_stds
+
+    def compute(self, info: Dict, expected_alerts: Dict, epsilon: float) -> float:
+        stds = self._load_stds()
+        current_rules_alerts = {
+            rule: info['raw_metrics'][rule]['alert'] for rule in expected_alerts
+        }
+        alerts_diff = info.get('alerts_diff', {})
+        penalties = []
+        for rule in expected_alerts:
+            mean = expected_alerts[rule]['alert']
+            std = stds.get(rule, epsilon)
+            rule_diversity = alerts_diff.get(rule, 0)
+            current = current_rules_alerts[rule]
+            if rule_diversity == 0:
+                # Agent didn't inject for this rule — no penalty
+                penalties.append(0.0)
+                continue
+            z = (current - mean) / (std + epsilon)
+            penalty = max(0.0, z - self.tolerance_band)
+            penalties.append(penalty)
+        return -np.mean(penalties) if penalties else 0.0
+
+
+class TotalAlertSignal(AlertSignal):
+    """Total-alert relative difference — ignores per-rule distribution.
+
+    Compares the *sum* of alerts across all rules against the sum of expected
+    (config) values.  The agent is only penalised when the total alert count
+    rises above the expected total, regardless of which rules fired.
+    """
+
+    def compute(self, info: Dict, expected_alerts: Dict, epsilon: float) -> float:
+        total_current = sum(info['raw_metrics'][rule]['alert'] for rule in expected_alerts)
+        total_expected = sum(expected_alerts[rule]['alert'] for rule in expected_alerts)
+        diff = (total_current - total_expected) / (total_expected + epsilon)
+        return min(0, -diff)
 
 
 # ---------------------------------------------------------------------------
@@ -275,4 +341,12 @@ ALERT_REWARD_REGISTRY: Dict[str, tuple] = {
     'PredictedPower':        (PredictedAlertSignal,    PowerAlertNormalizer),
     'RelativeDiffPower':     (RelativeDiffAlertSignal, PowerAlertNormalizer),
     'ExpectedDiffPower':     (ExpectedDiffAlertSignal, PowerAlertNormalizer),
+    # Z-score signal (tolerance band, pre-computed stds)
+    'ZScoreScaledTanh':      (ZScoreAlertSignal, ScaledTanhNormalizer),
+    'ZScoreIdentity':        (ZScoreAlertSignal, IdentityNormalizer),
+    'ZScorePower':           (ZScoreAlertSignal, PowerAlertNormalizer),
+    # Total-alert signal (ignores per-rule distribution)
+    'TotalAlertScaledTanh':  (TotalAlertSignal, ScaledTanhNormalizer),
+    'TotalAlertIdentity':    (TotalAlertSignal, IdentityNormalizer),
+    'TotalAlertPower':       (TotalAlertSignal, PowerAlertNormalizer),
 }
