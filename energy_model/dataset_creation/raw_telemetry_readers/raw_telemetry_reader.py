@@ -11,7 +11,7 @@ from DTOs.raw_results_dtos.iteration_info import IterationMetadata
 from DTOs.raw_results_dtos.process_raw_results import ProcessRawResults
 from DTOs.raw_results_dtos.system_process_raw_results import ProcessSystemRawResults
 from DTOs.raw_results_dtos.system_raw_results import SystemRawResults
-from elastic_reader.consts import ElasticIndex
+from DTOs.logging.consts import IndexName
 from elastic_reader.elastic_reader import ElasticReader
 from elastic_reader.elastic_reader_parameters import time_picker_input_strategy, preconfigured_time_picker_input
 from energy_model.dataset_creation.dataset_creation_config import IDLE_SESSION_ID_NAME
@@ -27,7 +27,7 @@ class RawTelemetryReader(ABC):
     def __init__(self):
         self.__elastic_reader_iterator = ElasticReader(
             get_time_picker_input(time_picker_input_strategy, preconfigured_time_picker_input),
-            [ElasticIndex.PROCESS, ElasticIndex.SYSTEM]).read()
+            [IndexName.PROCESS_METRICS, IndexName.SYSTEM_METRICS]).read()
 
         self._processes_features_extractor_mapping: dict[ProcessIdentity, EnergyModelFeatureExtractor] = defaultdict(
             lambda: EnergyModelFeatureExtractor())

@@ -7,12 +7,11 @@ from threading import Thread
 import os
 import signal
 from typing import TextIO, Tuple
-
-import pandas as pd
 import psutil
 from typing_extensions import override
 from utils import general_functions
-from utils.general_consts import PowerPlan, pc_types, GB, physical_memory_types, disk_types, LoggerName
+from utils.general_consts import PowerPlan, pc_types, GB, physical_memory_types, disk_types
+from DTOs.logging.consts import LoggerName
 from utils.general_functions import get_powershell_result_list_format
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from program_parameters import power_plan, DEFAULT_SCREEN_TURNS_OFF_TIME, DEFAULT_TIME_BEFORE_SLEEP_MODE

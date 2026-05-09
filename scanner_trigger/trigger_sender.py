@@ -1,7 +1,8 @@
 import argparse
+import json
 import logging
 import socket
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Dict
 
 from scanner_trigger import logging_configuration
 
@@ -25,8 +26,16 @@ def decorate_addresses(addresses: List[Tuple[str, int]]) -> str:
     return "\n".join([f"Host: {host}, Port: {port}" for host, port in addresses])
 
 
-def main(trigger_message: str, receivers_addresses: List[Tuple[str, int]], session_id: str):
-    logging.info(f"Received message: {trigger_message}, received session ID: {session_id}")
+def send_trigger(
+        trigger_message: str,
+        receivers_addresses: List[Tuple[str, int]],
+        session_id: str,
+        scanner_logging_extras: Optional[Dict[str, str]] = None
+):
+    if not scanner_logging_extras:
+        scanner_logging_extras = {}
+    logging.info(f"Received message: {trigger_message}, received session ID: {session_id}, "
+                 f"received logging extras: {scanner_logging_extras}")
     logging.info("Sending trigger to the following addresses:\n" + decorate_addresses(receivers_addresses))
 
     for receiver_address in receivers_addresses:
@@ -38,7 +47,8 @@ def main(trigger_message: str, receivers_addresses: List[Tuple[str, int]], sessi
                 logging.warning(f"Connect timout ({CONNECT_TIMEOUT} seconds). Address: {receiver_address}, ")
                 continue
             logging.info(f"Connected to {receiver_address}, Sending:{trigger_message}")
-            full_message = f"{trigger_message} --measurement_session_id {session_id}"
+            full_message = f"{trigger_message} --measurement_session_id {session_id} " \
+                           f"--logging_constant_extras '{json.dumps(scanner_logging_extras)}'"
             s.sendall(full_message.encode())
 
 
@@ -68,4 +78,4 @@ Example: 1.1.1.1:80,2.2.2.2:90,3.3.3.3:100""",
 
     args = parser.parse_args()
 
-    main(args.trigger_message, args.receivers_addresses, args.session_id)
+    send_trigger(args.trigger_message, args.receivers_addresses, args.session_id)

@@ -2,13 +2,13 @@ import gymnasium as gym
 import numpy as np
 from gymnasium.core import WrapperActType, ActType
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
+from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOptimizerEnvInterface
 from hadoop_optimizer.drl_envs.consts import NEXT_JOB_CONFIG_KEY, TERMINATE_ACTION_NAME
-from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
 
 
 class ActionTypesDecoder(gym.ActionWrapper):
     def action(self, action: WrapperActType) -> ActType:
-        assert isinstance(self.unwrapped, OptimizerDeploymentEnv), \
+        assert isinstance(self.unwrapped, AbstractOptimizerEnvInterface), \
             "This action decoder wrapper is dedicated for the OptimizerDeploymentEnv"
 
         decoded_action = {}

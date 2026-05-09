@@ -7,27 +7,29 @@ from dependency_injector.wiring import inject, Provide
 from fastapi import FastAPI, Depends, Request
 from starlette import status
 from starlette.responses import JSONResponse
-from elastic_reader.consts import ElasticIndex
+from DTOs.logging.consts import IndexName
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
-from DTOs.hadoop.job_properties import JobProperties, get_job_properties
-from hadoop_optimizer.deployment_server.container.container import Container
-from hadoop_optimizer.deployment_server.drl_manager import DRLManager
-from hadoop_optimizer.drl_telemetry.telemetry_manager import DRLTelemetryManager
+from DTOs.hadoop.drl_training.job_properties import JobProperties, get_job_properties
+from hadoop_optimizer.deployment.server.container.deployment_container import DeploymentContainer
+from hadoop_optimizer.deployment.server.drl_deployment_manager import DRLDeploymentManager
+from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 from hadoop_optimizer.erros import EnvironmentTruncatedException, StateNotReadyException
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput
 from elastic_reader.main import run_elastic_reader
+
+MINUTE = 60
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Starting Elastic reader in the background")
-    drl_telemetry_manager = app.container.drl_telemetry_manager()
+    telemetry_aggregator = app.container.telemetry_aggregator()
     time_picker_input = app.container.drl_time_picker_input()
-    indices_to_read_from = app.container.config.indices_to_read_from()
+    indices_to_read_from = app.container.config.elastic.indices_to_read_from()
     should_terminate_event = threading.Event()
     t = threading.Thread(
         target=run_telemetry_reader,
-        args=(drl_telemetry_manager, time_picker_input, indices_to_read_from, should_terminate_event),
+        args=(telemetry_aggregator, time_picker_input, indices_to_read_from, should_terminate_event),
         daemon=True
     )
     t.start()
@@ -39,14 +41,14 @@ async def lifespan(app: FastAPI):
 
 
 def run_telemetry_reader(
-        drl_telemetry_manager: DRLTelemetryManager,
+        telemetry_aggregator: TelemetryAggregator,
         time_picker_input: TimePickerChosenInput,
-        indices_to_read_from: List[ElasticIndex],
+        indices_to_read_from: List[IndexName],
         should_terminate_event: Optional[threading.Event] = None
 ):
     run_elastic_reader(
         time_picker_input=time_picker_input,
-        consumers=[drl_telemetry_manager],
+        consumers=[telemetry_aggregator],
         indices_to_read_from=indices_to_read_from,
         should_terminate_event=should_terminate_event
     )
@@ -67,13 +69,12 @@ async def state_not_ready_exception_handler(request: Request, exc: StateNotReady
 @inject
 def choose_the_best_configuration_for_a_new_task_under_the_current_load(
     job_properties: Annotated[JobProperties, Depends(get_job_properties)],
-    drl_manager: Annotated[DRLManager, Depends(Provide[Container.drl_manager])],
+    drl_deployment_manager: Annotated[DRLDeploymentManager, Depends(Provide[DeploymentContainer.drl_deployment_manager])],
 ) -> HadoopJobExecutionConfig:
 
     try:
-        return drl_manager.determine_best_job_configuration(job_properties)
+        return drl_deployment_manager.determine_best_job_configuration(job_properties)
     except EnvironmentTruncatedException as e:
-        # Return HTTP 400 (Bad Request) or 500 depending on semantics
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
@@ -86,12 +87,11 @@ def choose_the_best_configuration_for_a_new_task_under_the_current_load(
 
 
 if __name__ == '__main__':
-    container = Container()
-    container.config.allowed_numeric_noise.from_value(0.001)
-    container.config.max_episode_steps.from_value(100)
-    container.config.indices_to_read_from.from_value([ElasticIndex.PROCESS, ElasticIndex.SYSTEM])
-    container.config.drl_state.split_by.from_value("hostname")
-    container.config.drl_state.time_windows_seconds.from_value([1 * 60, 5 * 60, 10 * 60, 20 * 60])
+    container = DeploymentContainer()
+    container.config.elastic.indices_to_read_from.from_value([IndexName.PROCESS_METRICS, IndexName.SYSTEM_METRICS])
+    container.config.drl.env.max_episode_steps.from_value(100)
+    container.config.drl.state.split_by.from_value("hostname")
+    container.config.drl.state.time_windows_seconds.from_value([1 * MINUTE, 5 * MINUTE, 10 * MINUTE, 20 * MINUTE])
     container.wire(modules=[__name__])
     app.container = container
 

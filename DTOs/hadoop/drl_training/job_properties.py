@@ -1,9 +1,9 @@
 from fastapi import Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class JobProperties(BaseModel):
-    input_size_gb: float
+    input_size_gb: float    # TODO: NOT ALWAYS THE INPUT SIZE IMPACTS THE PERFORMANCE (E.G., IN MONTE CARLO PI)
     cpu_bound_scale: float
     io_bound_scale: float
 

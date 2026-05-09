@@ -59,3 +59,4 @@ class IterationRawResults:
     metadata: IterationMetadata
     system_raw_results: Optional[SystemRawResults]
     processes_raw_results: Dict[ProcessIdentity, ProcessRawResults]
+    is_last_iteration: bool

@@ -5,6 +5,9 @@ import logging
 from typing import Optional, Dict, Any
 from elasticsearch import Elasticsearch
 
+TIMESTAMP_FIELD_NAME = "timestamp"
+START_DATE_FIELD_NAME = "start_date"
+
 
 class AbstractElasticSearchHandler(logging.Handler, ABC):
     def __init__(
@@ -13,13 +16,15 @@ class AbstractElasticSearchHandler(logging.Handler, ABC):
             elastic_password: str,
             elastic_url: str,
             index_name: str,
-            start_timestamp: float = time.time(),
+            start_timestamp: Optional[float] = None,
             pipeline_name: Optional[str] = None
     ):
         super().__init__()
         self.es = Elasticsearch(elastic_url, basic_auth=(elastic_username, elastic_password))
         self.index_name = index_name
-        self.start_date = datetime.fromtimestamp(start_timestamp, tz=timezone.utc).isoformat()
+        self.start_date = None
+        if start_timestamp:
+            self.start_date = datetime.fromtimestamp(start_timestamp, tz=timezone.utc).isoformat()
         self.pipeline_name = pipeline_name
 
         if not self.es.ping():
@@ -34,8 +39,6 @@ class AbstractElasticSearchHandler(logging.Handler, ABC):
         doc = {
             "level": record.levelname,
             "message": record.getMessage(),
-            # TODO: try to find a way to avoid sending start_date inside each log
-            "start_date": self.start_date
         }
 
         # Emit extra log data
@@ -44,7 +47,11 @@ class AbstractElasticSearchHandler(logging.Handler, ABC):
             if key not in reserved:
                 doc[key] = value
 
-        if "timestamp" not in doc:
-            doc["timestamp"]: datetime.now(timezone.utc).isoformat()
+        if TIMESTAMP_FIELD_NAME not in doc:
+            doc[TIMESTAMP_FIELD_NAME] = datetime.now(timezone.utc).isoformat()
+
+        # TODO: try to find a way to avoid sending start_date inside each log
+        if self.start_date:
+            doc[START_DATE_FIELD_NAME] = self.start_date
 
         self._inner_emit(doc)

@@ -1,10 +1,11 @@
 from enum import Enum
 
 
-class ElasticIndex(str, Enum):
-    SYSTEM = "system_metrics"
-    PROCESS = "process_metrics"
-    AGGREGATIONS = "metrics_aggregations"
+class IndexRetrievalOrder:
+    FIRST = 1
+    SECOND = 2
+    THIRD = 3
+    LAST = 999
 
 
 class ElasticConsumerType(str, Enum):
@@ -30,7 +31,7 @@ class AggregationStrategy(str, Enum):
     NONE = "none"
 
 
-FINAL_ITERATION_TIMEOUT_SECONDS = 120
+NON_GRACEFUL_TERMINATION_DETECTION_WINDOW_SECONDS = 180
 PULL_INTERVAL_SECONDS = 5  # seconds
-MAX_INDEXING_TIME_SECONDS = 15
+MAX_INDEXING_TIME_SECONDS = 16
 PULL_PAGE_SIZE = 10000
