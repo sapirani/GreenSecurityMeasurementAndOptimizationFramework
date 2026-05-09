@@ -9,7 +9,7 @@ from DTOs.hadoop.job_types import JobType
 from DTOs.hadoop.drl_training.episode_context import EpisodeContext
 from DTOs.hadoop.drl_training.training_step_results import TrainingStepResults
 from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOptimizerEnvInterface
-from hadoop_optimizer.drl_envs.training_progress_tracker import TrainingProgressTracker
+from hadoop_optimizer.drl_envs.training.training_progress_tracker import TrainingProgressTracker
 from hadoop_optimizer.drl_telemetry.energy_tracker import EnergyTracker
 from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 from hadoop_optimizer.reward.reward_calculator import RewardCalculator

@@ -21,7 +21,7 @@ class RewardCalculator:
             self,
             alpha: float,
             beta: float,
-            lambda_: float,     # lambda is a reserved word
+            lambda_: float,
             epsilon: float,
             tau: float = 0.5,
             delta: float = 0.5,

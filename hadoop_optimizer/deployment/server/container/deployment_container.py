@@ -8,7 +8,7 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 from elastic_reader.consts import TimePickerInputStrategy
 from hadoop_optimizer.deployment.server.drl_deployment_manager import DRLDeploymentManager
 from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator
-from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
+from hadoop_optimizer.drl_envs.deployment.deployment_env import OptimizerDeploymentEnv
 from hadoop_optimizer.env_composition_config.env_builder import build_env
 from hadoop_optimizer.env_composition_config.env_wrapper_spec import EnvWrappersParams
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode

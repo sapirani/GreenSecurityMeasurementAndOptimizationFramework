@@ -45,15 +45,19 @@ class ElasticReader:
             represented as last_sort. If none exist, return an empty list
 
         Important! sorting must be unique. I.e., we cannot have 2 or more documents receiving the same "sort score".
-            To "enhance" uniqueness, _seq_no is used. After each operation in the shard
+            To "enhance" uniqueness, '_seq_no' is used. After each operation in the shard
             (a subset of documents in the index), such as document insertion, update, or deletion, this number is
              incremented and attached to the document. A single document is attached to a single shard.
              In our case, where telemetry documents are not supposed to be modified and are used as read-only, this
              number is fixed and unique per document in the shard. If this assumption breaks - the correctness of this
-             function also breaks
-             In general, it is not guaranteed that _seq_no is globally unique across shards, so it must be ensured that
-             the combination with the order fields that the sorting relies on is unique.
-             For most appropriate fields, such as _id, a special option in Elasticsearch should be enabled
+             function also breaks (we may retrieve duplicates of the same document).
+             In general, it is not guaranteed that '_seq_no' is globally unique across shards (since 2 documents reside
+             in 2 different shards may obtain the same value), so it must be ensured
+             that the combination with the other order fields that the sorting relies on is unique.
+             I.e, if other order fields are identical between 2 documents, and they reside in 2 different shards, and
+             somehow the exact same number of operations occurred in each of the shards - we may miss or see the same
+             document more than once.
+             For most appropriate fields, such as _id, a special option in Elasticsearch should be enabled.
         """
         s = Search(using=self.es, index=','.join(self.indices))
 
@@ -86,12 +90,8 @@ class ElasticReader:
             },
             {"pid": {"order": "asc", "missing": "_last", "unmapped_type": "long"}},
             {"process_name.keyword": {"order": "asc", "missing": "_last", "unmapped_type": "keyword"}},
-            # The previous fields are supposed to provide a unique combination.
-            # The following field is used just in case they aren't
-            # (and hopefully the documents do not share the exact same "_seq_no"  value since they reside in
-            # different shards and somehow the exact same number of operations occurred in each of the shards).
-            # important! this field assumes that documents are real-only! otherwise, you may retrieve duplicates of the
-            # same document
+            # Previous fields should be unique; "_seq_no" provides uniqueness if they aren't,
+            # though collisions are still possible in extreme cases.
             "_seq_no"
         )
 

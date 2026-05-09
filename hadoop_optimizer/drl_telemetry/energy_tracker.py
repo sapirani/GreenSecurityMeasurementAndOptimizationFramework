@@ -29,7 +29,6 @@ class EnergyTracker(AbstractElasticConsumer):
         """
         This function is being called by a different thread
         """
-        # TODO: CREATE AN ABSTRACT CLASS FOR THE VALIDATION?
         if not iteration_aggregation_results:
             raise ValueError("Aggregations cannot be None in state computations")
 
