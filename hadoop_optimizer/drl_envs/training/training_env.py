@@ -1,22 +1,23 @@
+from logging import Logger
 from typing import Any, Optional
 
-from DTOs.hadoop.drl_training.training_metadata import TrainingMetadata
+import numpy as np
+
+from DTOs.hadoop.drl.job_properties import JobProperties
+from DTOs.hadoop.drl.training.episode_context import EpisodeContext
+from DTOs.hadoop.drl.training.training_metadata import TrainingMetadata
+from DTOs.hadoop.drl.training.training_step_results import TrainingStepResults
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
-from DTOs.hadoop.drl_training.job_properties import JobProperties
 from DTOs.hadoop.job_types import JobType
-from DTOs.hadoop.drl_training.episode_context import EpisodeContext
-from DTOs.hadoop.drl_training.training_step_results import TrainingStepResults
+from hadoop_optimizer.common.drl_telemetry.energy_tracker import EnergyTracker
+from hadoop_optimizer.common.drl_telemetry.telemetry_aggregator import TelemetryAggregator
+from hadoop_optimizer.common.supported_jobs.supported_jobs_config import SupportedJobsConfig
 from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOptimizerEnvInterface
+from hadoop_optimizer.drl_envs.training.reward.reward_calculator import RewardCalculator
 from hadoop_optimizer.drl_envs.training.training_progress_tracker import TrainingProgressTracker
-from hadoop_optimizer.drl_telemetry.energy_tracker import EnergyTracker
-from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator
-from hadoop_optimizer.reward.reward_calculator import RewardCalculator
-from hadoop_optimizer.supported_jobs.supported_jobs_config import SupportedJobsConfig
-from hadoop_optimizer.training.client.hadoop_optimizer_training_client import HadoopOptimizerTrainingClient
-import numpy as np
-from logging import Logger
+from hadoop_optimizer.training_api.client.hadoop_optimizer_training_client import HadoopOptimizerTrainingClient
 
 
 class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
@@ -43,9 +44,11 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         self.__current_step_reward = None
 
     def _extra_step_init(self):
+        assert self.__episodic_job_descriptor is not None
         self.training_progress_tracker.update_training_progress(self.__episodic_job_descriptor)
 
     def _custom_rendering(self):
+        assert self.__episodic_job_descriptor is not None
         print("Episodic Job Type:", self.__episodic_job_descriptor.job_type.value)
         print("Training Progress Context:",
               self.training_progress_tracker.get_progress_context(self.__episodic_job_descriptor, is_baseline=False))
@@ -68,6 +71,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             *,
             is_baseline: bool = False,
     ):
+        assert self.__episodic_job_descriptor is not None
         if is_baseline and step_reward:
             raise ValueError("Reward values are not expected when logging the baseline performance")
 
@@ -103,6 +107,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         #   NOTE: WE MAY ADD INTENTIONAL NOISE FOR THOSE RESULTS, AND WE SHOULD IMPLEMENT "SIMILARITY" MECHANISM
         #   (AS IF WE HAVE A VERY SIMILAR CONFIGURATION BUT NOT EXACTLY THE SAME IN THE DRL_TRAINING INDEX)
         #   THAT IS BEING MORE GRANULAR OVER STEPS.
+        assert self.__episodic_job_descriptor is not None
         episode_context = self.__get_episode_context(is_baseline=is_baseline)
 
         self.energy_tracker.reset_tracker(self.train_id, episode_context)
@@ -133,6 +138,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         self.__log_results(default_execution_configuration, job_performance, is_baseline=True)
         self.reward_calculator.update_baseline_performance(job_performance)
 
+        assert self.__episodic_job_descriptor is not None
         return SupportedJobsConfig.extract_job_properties(self.__episodic_job_descriptor)
 
     def _compute_reward(self, job_config: HadoopJobExecutionConfig, terminated: bool, truncated: bool) -> float:
@@ -143,6 +149,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             terminated or truncated
         )
 
+        assert self.__current_step_performance is not None
         self.__log_results(job_config, self.__current_step_performance, self.__current_step_reward, is_baseline=False)
 
         self.render()

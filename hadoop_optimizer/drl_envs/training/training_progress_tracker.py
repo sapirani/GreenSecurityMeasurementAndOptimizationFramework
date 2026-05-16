@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import DefaultDict, Optional
 
-from DTOs.hadoop.drl_training.training_progress_context import TrainingProgressContext
+from DTOs.hadoop.drl.training.training_progress_context import TrainingProgressContext
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_types import JobType
 

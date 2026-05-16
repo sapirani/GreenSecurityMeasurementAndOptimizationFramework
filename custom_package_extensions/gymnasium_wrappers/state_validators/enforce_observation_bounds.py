@@ -2,7 +2,7 @@ from typing import Any, SupportsFloat
 import gymnasium as gym
 from gymnasium.core import ObsType, ActType
 
-from hadoop_optimizer.erros import OutOfBoundObservation
+from hadoop_optimizer.common.erros import OutOfBoundObservation
 
 
 class EnforceObservationBounds(gym.Wrapper):

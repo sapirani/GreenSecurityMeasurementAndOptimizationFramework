@@ -1,8 +1,9 @@
 from typing import Any
+
 from pydantic import ValidationError
 
+from DTOs.hadoop.drl.job_properties import JobProperties
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
-from DTOs.hadoop.drl_training.job_properties import JobProperties
 from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOptimizerEnvInterface
 
 

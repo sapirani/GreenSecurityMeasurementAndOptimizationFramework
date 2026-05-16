@@ -1,15 +1,16 @@
 from abc import ABC, abstractmethod
 from typing import SupportsFloat, Any, Optional, Dict, Set
 
-from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
-from DTOs.hadoop.drl_training.job_properties import JobProperties
-from hadoop_optimizer.drl_envs.consts import TERMINATE_ACTION_NAME, CURRENT_JOB_CONFIG_KEY, NEXT_JOB_CONFIG_KEY, \
-    JOB_PROPERTIES_KEY, DEFAULT_JOB_CONFIG_KEY, RenderMode
-from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 import gymnasium as gym
-from gymnasium.core import RenderFrame, ActType, ObsType
 import numpy as np
 from gymnasium import spaces
+from gymnasium.core import RenderFrame, ActType, ObsType
+
+from DTOs.hadoop.drl.job_properties import JobProperties
+from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
+from hadoop_optimizer.common.drl_telemetry.telemetry_aggregator import TelemetryAggregator
+from hadoop_optimizer.drl_envs.consts import TERMINATE_ACTION_NAME, CURRENT_JOB_CONFIG_KEY, NEXT_JOB_CONFIG_KEY, \
+    JOB_PROPERTIES_KEY, DEFAULT_JOB_CONFIG_KEY, RenderMode
 
 
 # TODO: THINK ABOUT THE CORRECT TREATMENT OPTION FOR THE LAST STEP (TO BEST ALIGN WITH THE MARKOV PROPERTY):
