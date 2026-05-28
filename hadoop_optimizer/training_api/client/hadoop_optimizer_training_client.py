@@ -33,7 +33,7 @@ class HadoopOptimizerTrainingClient:
             1.  requests.exceptions.HTTPError: 422 not implemented (typically when selected job execution config is invalid)
             2.  requests.exceptions.HTTPError: 500 internal server error (typically when Hadoop job can't run for some reason)
             3.  requests.exceptions.HTTPError: 501 not implemented (typically when Hadoop is not installed)
-            4.  requests.exceptions.HTTPError: 503 gateway timout (when job execution has passed time limit)
+            4.  requests.exceptions.HTTPError: 503 gateway timeout (when job execution has passed time limit)
         """
         params = job_descriptor.model_dump()
         if session_id:
