@@ -1,6 +1,5 @@
-import threading
 from contextlib import asynccontextmanager
-from typing import Annotated, List, Optional
+from typing import Annotated
 
 import uvicorn
 from dependency_injector.wiring import inject, Provide
@@ -12,12 +11,9 @@ from starlette.responses import JSONResponse
 from DTOs.hadoop.drl.job_properties import JobProperties, get_job_properties
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.logging.consts import IndexName
-from elastic_reader.main import run_elastic_reader
-from hadoop_optimizer.common.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 from hadoop_optimizer.common.erros import EnvironmentTruncatedException, StateNotReadyException
-from hadoop_optimizer.deployment_api.server.container.deployment_container import DeploymentContainer
-from hadoop_optimizer.deployment_api.server.drl_deployment_manager import DRLDeploymentManager
-from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput
+from hadoop_optimizer.job_config_recommender.server.container.deployment_container import DeploymentContainer
+from hadoop_optimizer.job_config_recommender.server.drl_deployment_manager import DRLDeploymentManager
 
 MINUTE = 60
 
@@ -25,35 +21,13 @@ MINUTE = 60
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Starting Elastic reader in the background")
-    telemetry_aggregator = app.container.telemetry_aggregator()
-    time_picker_input = app.container.drl_time_picker_input()
-    indices_to_read_from = app.container.config.elastic.indices_to_read_from()
-    should_terminate_event = threading.Event()
-    t = threading.Thread(
-        target=run_telemetry_reader,
-        args=(telemetry_aggregator, time_picker_input, indices_to_read_from, should_terminate_event),
-        daemon=True
-    )
-    t.start()
-    yield
-    # shutdown code
-    print("Cleaning up tasks")
-    should_terminate_event.set()
-    t.join()
-
-
-def run_telemetry_reader(
-        telemetry_aggregator: TelemetryAggregator,
-        time_picker_input: TimePickerChosenInput,
-        indices_to_read_from: List[IndexName],
-        should_terminate_event: Optional[threading.Event] = None
-):
-    run_elastic_reader(
-        time_picker_input=time_picker_input,
-        consumers=[telemetry_aggregator],
-        indices_to_read_from=indices_to_read_from,
-        should_terminate_event=should_terminate_event
-    )
+    elastic_reader_service = app.container.elastic_reader_service()
+    elastic_reader_service.start_in_background()
+    try:
+        yield
+    finally:
+        print("Stopping Elastic reader service")
+        elastic_reader_service.stop()
 
 
 app = FastAPI(lifespan=lifespan)

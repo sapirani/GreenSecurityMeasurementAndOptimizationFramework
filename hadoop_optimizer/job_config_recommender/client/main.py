@@ -1,5 +1,5 @@
 from DTOs.hadoop.drl.job_properties import JobProperties
-from hadoop_optimizer.deployment_api.client.hadoop_optimizer_deployment_client import HadoopOptimizerDeploymentClient
+from hadoop_optimizer.job_config_recommender.client.hadoop_optimizer_deployment_client import HadoopOptimizerDeploymentClient
 
 
 def main():

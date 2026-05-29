@@ -16,13 +16,12 @@ from application_logging.handlers.elastic_handler import get_elastic_logging_han
 from application_logging.logging_utils import get_measurement_logger
 from elastic_reader.consts import TimePickerInputStrategy
 from elastic_reader.elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
-from hadoop_optimizer.common.drl_telemetry.energy_tracker import EnergyTracker
 from hadoop_optimizer.common.env_composition_config.env_builder import build_env
 from hadoop_optimizer.common.env_composition_config.env_wrapper_spec import EnvWrappersParams
 from hadoop_optimizer.drl_envs.training.reward.reward_calculator import RewardCalculator
 from hadoop_optimizer.drl_envs.training.training_env import OptimizerTrainingEnv
 from hadoop_optimizer.drl_envs.training.training_progress_tracker import TrainingProgressTracker
-from hadoop_optimizer.training_api.client.hadoop_optimizer_training_client import HadoopOptimizerTrainingClient
+from job_runner.clients.job_performance_evaluator_client import HadoopJobPerformanceEvaluatorClient
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 
@@ -61,15 +60,11 @@ class TrainingContainer(containers.DeclarativeContainer):
         logger_handler=training_elastic_handler
     )
 
-    energy_tracker: Provider[EnergyTracker] = providers.Singleton(
-        EnergyTracker
-    )
-
     training_progress_tracker: Provider[TrainingProgressTracker] = providers.Singleton(
         TrainingProgressTracker
     )
 
-    reward_calculator: Provider[EnergyTracker] = providers.Factory(
+    reward_calculator: Provider[RewardCalculator] = providers.Factory(
         RewardCalculator,
         alpha=config.drl.reward.alpha,
         beta=config.drl.reward.beta,
@@ -81,15 +76,14 @@ class TrainingContainer(containers.DeclarativeContainer):
 
     # todo: think about what to do with the telemetry aggregator, is it necessary?
     telemetry_aggregator = Mock()
-    training_client: HadoopOptimizerTrainingClient = providers.Factory(
-        HadoopOptimizerTrainingClient,
+    training_client: HadoopJobPerformanceEvaluatorClient = providers.Factory(
+        HadoopJobPerformanceEvaluatorClient,
     )
 
     base_env: Provider[gym.Env] = providers.Factory(
         OptimizerTrainingEnv,
         telemetry_aggregator=telemetry_aggregator,
         training_client=training_client,
-        energy_tracker=energy_tracker,
         reward_calculator=reward_calculator,
         train_id=generate_id(word_count=3),
         training_results_logger=training_results_logger,

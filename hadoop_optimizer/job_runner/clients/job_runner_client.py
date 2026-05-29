@@ -7,11 +7,11 @@ from DTOs.hadoop.drl.training.training_run_job_response import TrainingJobRunRes
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from hadoop_optimizer.drl_envs.training.training_env import EpisodeContext
-from hadoop_optimizer.training_api.client.consts import DEFAULT_CHOOSE_CONFIG_ENDPOINT_NAME, DEFAULT_SERVER_PORT, \
+from job_runner.clients.consts import DEFAULT_CHOOSE_CONFIG_ENDPOINT_NAME, DEFAULT_SERVER_PORT, \
     DEFAULT_SERVER_IP, SESSION_ID_PARAM_NAME
 
 
-class HadoopOptimizerTrainingClient:
+class HadoopJobRunnerClient:
     def __init__(
             self,
             server_ip: str = DEFAULT_SERVER_IP,
@@ -26,7 +26,7 @@ class HadoopOptimizerTrainingClient:
         job_descriptor: JobDescriptor,
         execution_configuration: HadoopJobExecutionConfig,
         session_id: Optional[str] = None,
-        scanner_extras: Optional[EpisodeContext] = None
+        episode_context: Optional[EpisodeContext] = None
     ) -> TrainingJobRunResponse:
         """
         :raises:
@@ -39,8 +39,8 @@ class HadoopOptimizerTrainingClient:
         if session_id:
             params[SESSION_ID_PARAM_NAME] = session_id
 
-        if scanner_extras:
-            params = {**params, **scanner_extras.model_dump()}
+        if episode_context:
+            params = {**params, **episode_context.model_dump()}
 
         response = requests.post(
             urljoin(self.api_address, self.run_job_endpoint_name),

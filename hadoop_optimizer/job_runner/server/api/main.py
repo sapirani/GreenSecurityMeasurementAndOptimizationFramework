@@ -14,8 +14,8 @@ from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_types import JobType
 from hadoop_optimizer.common.supported_jobs.supported_jobs_config import SupportedJobsConfig
-from hadoop_optimizer.training_api.server.api.config import MAX_JOB_RUNTIME
-from hadoop_optimizer.training_api.server.nodes_trigger_sender import HadoopClusterTriggerSender
+from job_runner.server.api.config import MAX_JOB_RUNTIME
+from job_runner.server.nodes_trigger_sender import HadoopClusterTriggerSender
 
 app = FastAPI()
 

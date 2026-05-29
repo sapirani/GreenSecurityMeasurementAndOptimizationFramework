@@ -4,7 +4,7 @@ import requests
 
 from DTOs.hadoop.drl.job_properties import JobProperties
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
-from hadoop_optimizer.deployment_api.client.consts import DEFAULT_CHOOSE_CONFIG_ENDPOINT_NAME, DEFAULT_SERVER_PORT, \
+from hadoop_optimizer.job_config_recommender.client.consts import DEFAULT_CHOOSE_CONFIG_ENDPOINT_NAME, DEFAULT_SERVER_PORT, \
     DEFAULT_SERVER_IP
 
 
