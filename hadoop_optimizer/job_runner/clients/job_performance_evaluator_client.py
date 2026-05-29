@@ -4,7 +4,7 @@ from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
 from DTOs.logging.consts import IndexName
-from common.drl_telemetry.energy_tracker import EnergyTracker
+from hadoop_optimizer.common.drl_telemetry.energy_tracker import EnergyTracker
 from elastic_reader.consts import AggregationStrategy
 from elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
 from hadoop_optimizer.drl_envs.training.training_env import EpisodeContext
