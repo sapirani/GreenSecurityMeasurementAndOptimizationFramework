@@ -5,7 +5,7 @@ from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.callbacks import CheckpointCallback
 from DTOs.logging.consts import IndexName
 from elastic_reader.elastic_reader_parameters import ES_URL, ES_PASS, ES_USER
-from training_loop.container.training_container import TrainingContainer
+from hadoop_optimizer.training_loop.container.training_container import TrainingContainer
 
 
 @inject
