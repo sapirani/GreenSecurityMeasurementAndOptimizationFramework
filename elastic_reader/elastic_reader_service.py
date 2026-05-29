@@ -6,7 +6,7 @@ from DTOs.logging.consts import IndexName
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
 from aggregation_manager import AggregationManager
 from consts import AggregationStrategy
-from elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
+from elastic_reader.elastic_consumers.abstract_elastic_consumer import AbstractElasticConsumer
 from elastic_reader.elastic_reader import ElasticReader
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 
