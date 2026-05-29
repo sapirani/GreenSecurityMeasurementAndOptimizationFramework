@@ -16,7 +16,7 @@ from hadoop_optimizer.common.supported_jobs.supported_jobs_config import Support
 from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOptimizerEnvInterface
 from hadoop_optimizer.drl_envs.training.reward.reward_calculator import RewardCalculator
 from hadoop_optimizer.drl_envs.training.training_progress_tracker import TrainingProgressTracker
-from job_runner.clients.job_performance_evaluator_client import HadoopJobPerformanceEvaluatorClient
+from hadoop_optimizer.job_runner.clients.job_performance_evaluator_client import HadoopJobPerformanceEvaluatorClient
 
 
 class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):

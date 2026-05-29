@@ -3,7 +3,7 @@ from human_id import generate_id
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_types import JobType
-from job_runner.clients.job_performance_evaluator_client import HadoopJobPerformanceEvaluatorClient
+from hadoop_optimizer.job_runner.clients.job_performance_evaluator_client import HadoopJobPerformanceEvaluatorClient
 from DTOs.hadoop.drl.training.episode_context import EpisodeContext
 
 

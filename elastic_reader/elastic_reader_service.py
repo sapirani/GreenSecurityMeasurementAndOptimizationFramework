@@ -61,7 +61,7 @@ class ElasticReaderService:
         self.should_terminate_event.clear()
 
         print("Starting Elastic Reader")
-        self.elastic_reader_thread = threading.Thread(target=self.run_elastic_reader, daemon=True)
+        self.elastic_reader_thread = threading.Thread(target=self._run_elastic_reader, daemon=True)
         self.elastic_reader_thread.start()
 
     def stop(self):
@@ -104,6 +104,9 @@ class ElasticReaderService:
         if self.is_running():
             raise RuntimeError("Cannot run ElasticReaderService both in background and foreground")
 
+        self._run_elastic_reader()
+
+    def _run_elastic_reader(self):
         print(self.time_picker_input)
         reader = ElasticReader(
             self.time_picker_input,

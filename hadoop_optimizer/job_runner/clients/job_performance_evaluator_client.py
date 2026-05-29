@@ -8,7 +8,7 @@ from common.drl_telemetry.energy_tracker import EnergyTracker
 from elastic_reader.consts import AggregationStrategy
 from elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
 from hadoop_optimizer.drl_envs.training.training_env import EpisodeContext
-from job_runner.clients.job_runner_client import HadoopJobRunnerClient
+from hadoop_optimizer.job_runner.clients.job_runner_client import HadoopJobRunnerClient
 from elastic_reader.elastic_reader_service import ElasticReaderService
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 
