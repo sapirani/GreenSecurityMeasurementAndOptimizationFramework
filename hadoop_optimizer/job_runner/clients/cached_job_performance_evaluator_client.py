@@ -97,6 +97,8 @@ class CachedHadoopJobPerformanceEvaluatorClient:
 
         # TODO: THINK OF THE CASE WHERE ONE OF THE RETREIVED CONFIGURATIONS IS THE EXACT SAME AS I WANTED, BUT I HAVE
         #   FEW MORE SIMILARITIES THAT ARE NOT THE EXACT THING. SHOULD I CONSIDER ONLY THE EXACT ONE OR ALL THE SIMILARS?
+        # TODO: IN LOW CHANCES, ALLOW TO RUN THE SAME CONFIGURATION OVER (EVEN IF WE HAVE ENOUGH SIMILAR RESULTS), TO
+        #   ENSURE THE STABILITY OF LATER RESULTS
         evaluated_running_time_sec = [
             similar_execution_result.running_time_sec for similar_execution_result in similar_execution_results
         ]
