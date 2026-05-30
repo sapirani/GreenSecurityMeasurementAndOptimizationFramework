@@ -11,6 +11,7 @@ from hadoop_optimizer.common.env_composition_config.env_wrapper_spec import EnvW
 
 
 def get_env_wrappers(wrappers_params: EnvWrappersParams):
+    # NOTE: the first wrapper is applied last
     return [
         EnvWrapperSpec(OrderEnforcing),
         EnvWrapperSpec(TimeLimitWrapper, dict(max_episode_steps=wrappers_params.max_episode_steps)),

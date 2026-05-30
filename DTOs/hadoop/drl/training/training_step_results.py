@@ -14,7 +14,7 @@ class TrainingStepResults(BaseModel):
     job_config: HadoopJobExecutionConfig
     training_metadata: TrainingMetadata
     job_performance: JobExecutionPerformance
-    step_reward: Optional[float]
+    step_reward: Optional[float] = None
 
     model_config = {
         "frozen": True  # ensures that this class is immutable

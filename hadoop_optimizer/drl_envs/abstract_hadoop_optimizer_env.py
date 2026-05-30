@@ -1,13 +1,15 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import SupportsFloat, Any, Optional, Dict, Set
 
 import gymnasium as gym
 import numpy as np
-from gymnasium import spaces
+from gymnasium import spaces, Space
 from gymnasium.core import RenderFrame, ActType, ObsType
 
 from DTOs.hadoop.drl.job_properties import JobProperties
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
+from DTOs.range import Range
 from hadoop_optimizer.common.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 from hadoop_optimizer.drl_envs.consts import TERMINATE_ACTION_NAME, CURRENT_JOB_CONFIG_KEY, NEXT_JOB_CONFIG_KEY, \
     JOB_PROPERTIES_KEY, DEFAULT_JOB_CONFIG_KEY, RenderMode
@@ -90,6 +92,13 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
             "cpu_bound_scale": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
             "io_bound_scale": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
         })
+
+    @staticmethod
+    def _get_space_ranges(space: spaces.Dict) -> Dict[str, Range]:
+        return {
+            config_name: Range(low=box_space.low, high=box_space.high)
+            for config_name, box_space in space.spaces.items()
+        }
 
     @property
     def supported_configurations(self) -> Set[str]:

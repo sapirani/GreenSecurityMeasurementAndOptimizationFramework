@@ -22,6 +22,7 @@ from hadoop_optimizer.drl_envs.training.reward.reward_calculator import RewardCa
 from hadoop_optimizer.drl_envs.training.training_env import OptimizerTrainingEnv
 from hadoop_optimizer.drl_envs.training.training_progress_tracker import TrainingProgressTracker
 from hadoop_optimizer.job_runner.clients.job_performance_evaluator_client import HadoopJobPerformanceEvaluatorClient
+from job_runner.clients.cached_job_performance_evaluator_client import CachedHadoopJobPerformanceEvaluatorClient
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 
@@ -76,8 +77,8 @@ class TrainingContainer(containers.DeclarativeContainer):
 
     # todo: think about what to do with the telemetry aggregator, is it necessary?
     telemetry_aggregator = Mock()
-    training_client: HadoopJobPerformanceEvaluatorClient = providers.Factory(
-        HadoopJobPerformanceEvaluatorClient,
+    training_client: CachedHadoopJobPerformanceEvaluatorClient = providers.Factory(
+        CachedHadoopJobPerformanceEvaluatorClient,
     )
 
     base_env: Provider[gym.Env] = providers.Factory(

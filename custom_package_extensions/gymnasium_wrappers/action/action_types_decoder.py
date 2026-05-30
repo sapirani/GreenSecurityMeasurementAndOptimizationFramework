@@ -7,6 +7,11 @@ from hadoop_optimizer.drl_envs.consts import NEXT_JOB_CONFIG_KEY, TERMINATE_ACTI
 
 
 class ActionTypesDecoder(gym.ActionWrapper):
+    """
+    Decodes the numeric action space into the actual typing of the configuration parameter.
+    Note: enums are not supported for now.
+    # TODO: SUPPORT ENUM DECODING
+    """
     def action(self, action: WrapperActType) -> ActType:
         assert isinstance(self.unwrapped, AbstractOptimizerEnvInterface), \
             "This action decoder wrapper is dedicated for the OptimizerDeploymentEnv"

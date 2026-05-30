@@ -1,7 +1,7 @@
 from elastic_reader.elastic_consumers.consumer_factory import get_consumers
 from elastic_reader.elastic_reader_parameters import *
 from DTOs.logging.consts import IndexName
-from elastic_reader_service import ElasticReaderService
+from elastic_reader.elastic_reader_service import ElasticReaderService
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 
 
@@ -15,4 +15,3 @@ if __name__ == '__main__':
     )
 
     elastic_reader_service.run_elastic_reader()
-

@@ -16,14 +16,14 @@ from hadoop_optimizer.common.supported_jobs.supported_jobs_config import Support
 from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOptimizerEnvInterface
 from hadoop_optimizer.drl_envs.training.reward.reward_calculator import RewardCalculator
 from hadoop_optimizer.drl_envs.training.training_progress_tracker import TrainingProgressTracker
-from hadoop_optimizer.job_runner.clients.job_performance_evaluator_client import HadoopJobPerformanceEvaluatorClient
+from job_runner.clients.cached_job_performance_evaluator_client import CachedHadoopJobPerformanceEvaluatorClient
 
 
 class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
     def __init__(
             self,
             telemetry_aggregator: TelemetryAggregator,
-            training_client: HadoopJobPerformanceEvaluatorClient,
+            training_client: CachedHadoopJobPerformanceEvaluatorClient,
             reward_calculator: RewardCalculator,
             train_id: str,
             training_results_logger: Logger,
@@ -108,16 +108,13 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         assert self.__episodic_job_descriptor is not None
         episode_context = self.__get_episode_context(is_baseline=is_baseline)
 
-        result = self.training_client.run_job(
+        return self.training_client.run_job(
             job_descriptor=self.__episodic_job_descriptor,
             execution_configuration=job_config,
             session_id=self.train_id,
             episode_context=episode_context,
-        )
-
-        return JobExecutionPerformance(
-            running_time_sec=result.running_time_sec,
-            energy_use_mwh=result.energy_use_mwh
+            space_ranges=self._get_space_ranges(self.job_config_space),
+            max_param_diff_percent=27 # TODO: MAKE THIS PARAMETER ADAPTIVE AS THE TRAINING PROGESS
         )
 
     def _init_episodic_job(self, options: dict[str, Any] | None) -> JobProperties:

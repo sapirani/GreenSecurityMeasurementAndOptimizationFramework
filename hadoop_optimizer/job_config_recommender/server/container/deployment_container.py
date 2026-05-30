@@ -8,7 +8,7 @@ from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.policies import ActorCriticPolicy
 
 from elastic_reader.consts import TimePickerInputStrategy, AggregationStrategy
-from elastic_reader_service import ElasticReaderService
+from elastic_reader.elastic_reader_service import ElasticReaderService
 from hadoop_optimizer.common.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 from hadoop_optimizer.common.env_composition_config.env_builder import build_env
 from hadoop_optimizer.common.env_composition_config.env_wrapper_spec import EnvWrappersParams
