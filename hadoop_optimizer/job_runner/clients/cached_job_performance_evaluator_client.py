@@ -72,6 +72,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         #  OTHERWISE, RETURN THE RESULTS THAT CONSIDER THE NEW RUN
 
         similar_training_steps = self._find_similar_training_steps(
+            job_descriptor,
             execution_configuration,
             space_ranges,
             max_param_diff_percent
@@ -164,8 +165,8 @@ class CachedHadoopJobPerformanceEvaluatorClient:
 
     def _find_matching_events(
             self,
-            config: HadoopJobExecutionConfig,
             job_descriptor: JobDescriptor,
+            config: HadoopJobExecutionConfig,
             allowed_ranges: Dict[str, Range],
             float_tolerance: float = 1e-6,
     ):
@@ -252,6 +253,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
 
     def _find_similar_training_steps(
             self,
+            job_descriptor: JobDescriptor,
             execution_configuration: HadoopJobExecutionConfig,
             space_ranges: Dict[str, Range],
             max_param_diff_percent: float
@@ -259,11 +261,9 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         # compute allowed intervals for all numeric fields
         allowed_ranges = self._allowed_params_interval(execution_configuration, space_ranges, max_param_diff_percent)
 
-        job_descriptor = JobDescriptor(job_type=JobType.word_count, input_size_gb=0.3)
-
         hits = self._find_matching_events(
-            config=execution_configuration,
             job_descriptor=job_descriptor,
+            config=execution_configuration,
             allowed_ranges=allowed_ranges
         )
 
