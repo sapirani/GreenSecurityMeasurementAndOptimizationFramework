@@ -81,6 +81,8 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             similar_training_step.job_performance for similar_training_step in similar_training_steps
         ]
 
+        print("similar_training_steps:", similar_training_steps, "similar_execution_results:", similar_execution_results)
+
         if len(similar_execution_results) < 3:  # run another experiment and combine the new results
             new_experiment_results = self.job_performance_evaluator_client.run_job(
                 job_descriptor=job_descriptor,
