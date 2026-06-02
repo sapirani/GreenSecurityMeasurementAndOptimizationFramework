@@ -1,5 +1,7 @@
 from enum import Enum
-from typing import Optional
+from typing import Optional, NewType
+
+DocumentID = NewType("DocumentID", str)
 
 GENERAL_GROUP = "General"
 HUMAN_READABLE_KEY = "human_readable"

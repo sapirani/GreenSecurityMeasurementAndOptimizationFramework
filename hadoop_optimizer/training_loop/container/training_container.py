@@ -78,6 +78,10 @@ class TrainingContainer(containers.DeclarativeContainer):
     telemetry_aggregator = Mock()
     training_client: CachedHadoopJobPerformanceEvaluatorClient = providers.Factory(
         CachedHadoopJobPerformanceEvaluatorClient,
+        elastic_url=config.elastic.url,
+        elastic_user=config.elastic.username,
+        elastic_password=config.elastic.password,
+        min_similar_samples=config.cached_config_evaluator.min_similar_samples,
     )
 
     base_env: Provider[gym.Env] = providers.Factory(
@@ -89,6 +93,7 @@ class TrainingContainer(containers.DeclarativeContainer):
         training_results_logger=training_results_logger,
         training_progress_tracker=training_progress_tracker,
         max_param_diff_percent=config.drl.env.max_param_diff_percent,
+
     )
 
     env_wrappers_params: Provider[EnvWrappersParams] = providers.Factory(

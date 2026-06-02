@@ -1,12 +1,13 @@
 import inspect
 import numpy as np
 from elasticsearch import Elasticsearch
+
+from DTOs.hadoop.consts import DocumentID
 from DTOs.hadoop.drl.training.training_step_results import TrainingStepResults
-from DTOs.hadoop.job_types import JobType
 from enum import Enum
 from elasticsearch_dsl import Search, Q
 from DTOs.logging.consts import IndexName
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, NewType
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
@@ -18,16 +19,16 @@ from hadoop_optimizer.job_runner.clients.job_performance_evaluator_client import
 class CachedHadoopJobPerformanceEvaluatorClient:
     def __init__(
             self,
+            elastic_url: str,
+            elastic_user: str,
+            elastic_password: str,
             job_performance_evaluator_client: Optional[HadoopJobPerformanceEvaluatorClient] = None,
+            min_similar_samples: int = 3
     ):
         self.job_performance_evaluator_client = job_performance_evaluator_client or HadoopJobPerformanceEvaluatorClient()
+        self.min_similar_samples = min_similar_samples
 
-        # todo: inject as parameters
-        ES_URL = "http://192.168.140.105:9200"
-        ES_USER = "elastic"
-        ES_PASS = "71BPiEiQ"
-
-        self.es_client = Elasticsearch(ES_URL, basic_auth=(ES_USER, ES_PASS), verify_certs=False)
+        self.es_client = Elasticsearch(elastic_url, basic_auth=(elastic_user, elastic_password), verify_certs=False)
 
     def __enter__(self):
         self.start()
@@ -64,12 +65,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             5.  RuntimeError: in case that the caller did not call start beforehand / use the contextmanager
         """
 
-        # TODO: FETCH RESULTS FROM SIMILAR JobDescriptor + HadoopJobExecutionConfig
-        #  AVERAGE THEM
-        #  NOTE THAT HAVE HAVE ENOUGH MEASUREMENTS AND THAT THE VARIANCE IS LOW
-        #  IF VARIANCE IS HIGH - OUTPUT SOME WARNING AND MAYBE RUN ADDITIONAL EXPERIMEET
-        #  IF THERE ARE ENOUGH SAMPLES AND VARIANCE IS LOW, JUST RETURN THE AVERAGE
-        #  OTHERWISE, RETURN THE RESULTS THAT CONSIDER THE NEW RUN
+        #  TODO: IF VARIANCE OF SIMILAR RESULTS IS HIGH - OUTPUT SOME WARNING AND MAYBE RUN ADDITIONAL EXPERIMENT
 
         similar_training_steps = self._find_similar_training_steps(
             job_descriptor,
@@ -78,13 +74,14 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             max_param_diff_percent
         )
 
+        similar_steps_ids = set(similar_training_steps.keys())
+
         similar_execution_results = [
-            similar_training_step.job_performance for similar_training_step in similar_training_steps
+            similar_training_step.job_performance for similar_training_step in similar_training_steps.values()
         ]
 
-        print("similar_training_steps:", similar_training_steps, "similar_execution_results:", similar_execution_results)
-
-        if len(similar_execution_results) < 3:  # run another experiment and combine the new results
+        # run another experiment and combine the new results
+        if len(similar_execution_results) < self.min_similar_samples:
             new_experiment_results = self.job_performance_evaluator_client.run_job(
                 job_descriptor=job_descriptor,
                 execution_configuration=execution_configuration,
@@ -123,7 +120,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             simulated=True,
             std_running_time_sec=std_running_time_sec,
             std_energy_mwh=std_energy_mwh,
-            number_of_simulation_participants=len(similar_execution_results)
+            participants=similar_steps_ids
         )
 
     @staticmethod
@@ -257,7 +254,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             execution_configuration: HadoopJobExecutionConfig,
             space_ranges: Dict[str, Range],
             max_param_diff_percent: float
-    ) -> List[TrainingStepResults]:
+    ) -> Dict[DocumentID, TrainingStepResults]:
         # compute allowed intervals for all numeric fields
         allowed_ranges = self._allowed_params_interval(execution_configuration, space_ranges, max_param_diff_percent)
 
@@ -267,9 +264,9 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             allowed_ranges=allowed_ranges
         )
 
-        similar_training_results = []
+        similar_training_results = {}
         for hit in hits:
             relevant_fields = {k: v for k, v in hit.to_dict().items() if k in TrainingStepResults.model_fields}
-            similar_training_results.append(TrainingStepResults.model_validate(relevant_fields))
+            similar_training_results[hit.meta.id] = TrainingStepResults.model_validate(relevant_fields)
 
         return similar_training_results
