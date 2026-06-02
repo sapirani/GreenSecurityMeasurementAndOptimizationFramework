@@ -87,7 +87,8 @@ class TrainingContainer(containers.DeclarativeContainer):
         reward_calculator=reward_calculator,
         train_id=generate_id(word_count=3),
         training_results_logger=training_results_logger,
-        training_progress_tracker=training_progress_tracker
+        training_progress_tracker=training_progress_tracker,
+        max_param_diff_percent=config.drl.env.max_param_diff_percent,
     )
 
     env_wrappers_params: Provider[EnvWrappersParams] = providers.Factory(

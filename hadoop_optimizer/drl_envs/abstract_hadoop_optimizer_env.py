@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 from typing import SupportsFloat, Any, Optional, Dict, Set
 
 import gymnasium as gym
@@ -165,6 +166,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
     def render(self) -> RenderFrame | list[RenderFrame] | None:
         print(f"****************** "
               f"Current Episode: {self.episode_counter}, Current Step: {self.step_count} "
+              f"(at {datetime.now().strftime('%d/%m/%Y %H:%M:%S')})"
               f"******************")
 
         self._custom_rendering()

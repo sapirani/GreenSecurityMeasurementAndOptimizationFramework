@@ -27,7 +27,8 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             reward_calculator: RewardCalculator,
             train_id: str,
             training_results_logger: Logger,
-            training_progress_tracker: TrainingProgressTracker
+            training_progress_tracker: TrainingProgressTracker,
+            max_param_diff_percent: float = 27,
     ):
         super().__init__(telemetry_aggregator)
         self.training_client = training_client
@@ -36,6 +37,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         self.train_id = train_id
         self.training_results_logger = training_results_logger
         self.training_progress_tracker = training_progress_tracker
+        self.max_param_diff_percent = max_param_diff_percent
 
         self.__episodic_job_descriptor: Optional[JobDescriptor] = None
         self.__current_step_performance: Optional[JobExecutionPerformance] = None
@@ -114,7 +116,8 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             session_id=self.train_id,
             episode_context=episode_context,
             space_ranges=self._get_space_ranges(self.job_config_space),
-            max_param_diff_percent=27 # TODO: MAKE THIS PARAMETER ADAPTIVE AS THE TRAINING PROGESS
+            # TODO: Consider making the following parameter adaptive as the training progress
+            max_param_diff_percent=self.max_param_diff_percent
         )
 
     def _init_episodic_job(self, options: dict[str, Any] | None) -> JobProperties:
@@ -138,7 +141,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
 
         self.__current_step_reward = self.reward_calculator.compute_reward(
             self.__current_step_performance,
-            terminated or truncated
+            terminated or truncated # TODO: SHOULD IT BE ONLY terminated? AS TRUNCATED IS NOT INTENTIONAL BY THE AGENT
         )
 
         assert self.__current_step_performance is not None
