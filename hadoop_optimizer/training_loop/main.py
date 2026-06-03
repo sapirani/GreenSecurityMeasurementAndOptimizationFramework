@@ -1,43 +1,68 @@
+from datetime import datetime
 import os
 from pathlib import Path
 from dependency_injector.wiring import inject, Provide
+from human_id import generate_id
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.callbacks import CheckpointCallback
 from DTOs.logging.consts import IndexName
 from elastic_reader.elastic_reader_parameters import ES_URL, ES_PASS, ES_USER
 from hadoop_optimizer.training_loop.container.training_container import TrainingContainer
 
+MODELS_DIR_NAME = "models"
+INTERMEDIATE_MODELS_NAMES_DIR_NAME = "intermediate_models"
+FINAL_MODEL_PREFIX = "trained_"
+
 
 @inject
 def main(
-        training_drl_model: BaseAlgorithm = Provide[TrainingContainer.training_drl_model],
-        drl_model_storage_path: Path = Provide[TrainingContainer.config.drl.storage.model_path],
+        drl_training_model: BaseAlgorithm = Provide[TrainingContainer.drl_training_model],
+        models_base_dir: Path = Provide[TrainingContainer.config.drl.storage.models_base_dir],
+        train_id: str = Provide[TrainingContainer.config.drl.train_id],
         learning_total_timestamps: int = Provide[TrainingContainer.config.drl.learning_total_timestamps],
         save_freq: int = Provide[TrainingContainer.config.drl.storage.save_freq],
 ) -> None:
-    checkpoint_callback = CheckpointCallback(
-        save_freq=save_freq,
-        save_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "models"),
-        name_prefix="ppo"
+    # TODO: ELABORATE ON THE CONVERSION THAT THE FILE'S NAME MUST INCLUDE THE MODEL'S NAME
+    model_name = drl_training_model.__class__.__name__
+
+    training_base_dir = os.path.join(
+        models_base_dir,
+        MODELS_DIR_NAME,
+        f"{datetime.now().strftime('%Y-%m-%d')}_{train_id}"
     )
 
-    training_drl_model.learn(
+    checkpoint_callback = CheckpointCallback(
+        save_freq=save_freq,
+        save_path=os.path.join(training_base_dir, INTERMEDIATE_MODELS_NAMES_DIR_NAME),
+        name_prefix=model_name
+    )
+
+    drl_training_model.learn(
         total_timesteps=learning_total_timestamps,
         log_interval=1,
         progress_bar=True,
         callback=checkpoint_callback
+        # TODO: CONSIDER SETTING reset_num_timesteps TO FALSE TO START THE INTERNAL COUNTING FROM THE SAME POINT
+        #  WHERE THE PRETRAINED MODEL STOPPED
     )
-    training_drl_model.save(drl_model_storage_path)
+    drl_training_model.save(os.path.join(training_base_dir, f"{FINAL_MODEL_PREFIX + model_name}"))
 
 
 if __name__ == '__main__':
     container = TrainingContainer()
-    container.config.drl.storage.model_path.from_value(Path("trained_ppo"))
+    # Use a path to a pretrained model, or None if you want to start training all over again
+    container.config.drl.resume_from_path.from_vatlue(
+        Path(os.path.dirname(os.path.abspath(__file__))) /
+        Path("trained_ppo.zip")
+    )
+    container.config.drl.train_id.from_value(generate_id(word_count=3))
+    container.config.drl.storage.models_base_dir.from_value(os.path.dirname(os.path.abspath(__file__)))
     container.config.drl.storage.save_freq.from_value(100)
     container.config.drl.env.max_episode_steps.from_value(50)
-    container.config.drl.env.max_param_diff_percent.from_value(27)
-    container.config.cached_config_evaluator.min_similar_samples.from_value(3)
-    container.config.drl.learning_total_timestamps.from_value(2000)
+    container.config.drl.cached_results_utilization_policy.max_param_diff_percent.from_value(27)
+    container.config.drl.cached_results_utilization_policy.min_required_similar_samples.from_value(3)
+    container.config.drl.cached_results_utilization_policy.results_noise_scale.from_value(0.3)
+    container.config.drl.learning_total_timestamps.from_value(20000)
     container.config.drl.reward.alpha.from_value(1)
     container.config.drl.reward.beta.from_value(1)
     container.config.drl.reward.lambda_.from_value(50)

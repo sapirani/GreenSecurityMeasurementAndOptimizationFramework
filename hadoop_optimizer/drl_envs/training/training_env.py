@@ -4,6 +4,7 @@ from typing import Any, Optional
 import numpy as np
 
 from DTOs.hadoop.drl.job_properties import JobProperties
+from DTOs.hadoop.drl.training.cached_results_utilization_policy import CachedResultsUtilizationPolicy
 from DTOs.hadoop.drl.training.episode_context import EpisodeContext
 from DTOs.hadoop.drl.training.training_metadata import TrainingMetadata
 from DTOs.hadoop.drl.training.training_step_results import TrainingStepResults
@@ -28,7 +29,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             train_id: str,
             training_results_logger: Logger,
             training_progress_tracker: TrainingProgressTracker,
-            max_param_diff_percent: float = 27,
+            cached_results_utilization_policy: CachedResultsUtilizationPolicy
     ):
         super().__init__(telemetry_aggregator)
         self.training_client = training_client
@@ -37,7 +38,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         self.train_id = train_id
         self.training_results_logger = training_results_logger
         self.training_progress_tracker = training_progress_tracker
-        self.max_param_diff_percent = max_param_diff_percent
+        self.cached_results_utilization_policy = cached_results_utilization_policy
 
         self.__episodic_job_descriptor: Optional[JobDescriptor] = None
         self.__current_step_performance: Optional[JobExecutionPerformance] = None
@@ -116,8 +117,8 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             session_id=self.train_id,
             episode_context=episode_context,
             space_ranges=self._get_space_ranges(self.job_config_space),
-            # TODO: Consider making the following parameter adaptive as the training progress
-            max_param_diff_percent=self.max_param_diff_percent
+            # TODO: Consider making the following policy adaptive as the training progress
+            cached_results_utilization_policy=self.cached_results_utilization_policy,
         )
 
     def _init_episodic_job(self, options: dict[str, Any] | None) -> JobProperties:

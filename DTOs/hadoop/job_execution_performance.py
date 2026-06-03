@@ -6,6 +6,7 @@ from pydantic import BaseModel, model_validator
 class JobExecutionPerformance(BaseModel):
     running_time_sec: float
     energy_use_mwh: float
+    # TODO: CHANGE TO IS_SIMULATED?
     simulated: bool = False
     std_running_time_sec: Optional[float] = None
     std_energy_mwh: Optional[float] = None

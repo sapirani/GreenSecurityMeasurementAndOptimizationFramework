@@ -1,15 +1,16 @@
 from datetime import datetime
 from logging import Handler
+from pathlib import Path
+from typing import Optional, List, Type
 from unittest.mock import Mock
-
 import gymnasium as gym
 from dependency_injector import containers, providers
 from dependency_injector.providers import Provider
-from human_id import generate_id
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, TD3, SAC, A2C, DQN, DDPG
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.policies import ActorCriticPolicy
 
+from DTOs.hadoop.drl.training.cached_results_utilization_policy import CachedResultsUtilizationPolicy
 from DTOs.hadoop.drl.training.episode_context import EpisodeContext
 from DTOs.logging.consts import LoggerName, IndexName
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
@@ -24,6 +25,30 @@ from hadoop_optimizer.drl_envs.training.training_progress_tracker import Trainin
 from hadoop_optimizer.job_runner.clients.cached_job_performance_evaluator_client import CachedHadoopJobPerformanceEvaluatorClient
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
+
+ALGOS: List[Type[BaseAlgorithm]] = [PPO, SAC, TD3, DDPG, A2C, DQN]
+
+def get_algo_class(resume_from_path: Path) -> Type[BaseAlgorithm]:
+    # TODO: ELABORATE ON THE CONVERSION THAT THE FILE'S NAME MUST INCLUDE THE MODEL'S NAME
+    for algo in ALGOS:
+        if algo.__name__.lower() in resume_from_path.stem.lower():
+            return algo
+
+    raise ValueError(f"The file name must include the name of one of the supported algorithms: {ALGOS}")
+
+
+def get_training_model(
+        resume_from_path: Optional[Path],
+        env: Provider[gym.Env],
+        default_model: Provider[BaseAlgorithm]
+) -> BaseAlgorithm:
+    if resume_from_path is not None:
+        if resume_from_path.exists():
+            return get_algo_class(resume_from_path).load(resume_from_path, env=env())
+        else:
+            raise ValueError(f"Resume path does not exist: {resume_from_path}")
+
+    return default_model()
 
 
 class TrainingContainer(containers.DeclarativeContainer):
@@ -81,7 +106,13 @@ class TrainingContainer(containers.DeclarativeContainer):
         elastic_url=config.elastic.url,
         elastic_user=config.elastic.username,
         elastic_password=config.elastic.password,
-        min_similar_samples=config.cached_config_evaluator.min_similar_samples,
+    )
+
+    cached_results_utilization_policy: Provider[CachedResultsUtilizationPolicy] = providers.Factory(
+        CachedResultsUtilizationPolicy,
+        max_param_diff_percent=config.drl.cached_results_utilization_policy.max_param_diff_percent,
+        min_required_similar_samples=config.drl.cached_results_utilization_policy.min_required_similar_samples,
+        results_noise_scale=config.drl.cached_results_utilization_policy.results_noise_scale,
     )
 
     base_env: Provider[gym.Env] = providers.Factory(
@@ -89,11 +120,10 @@ class TrainingContainer(containers.DeclarativeContainer):
         telemetry_aggregator=telemetry_aggregator,
         training_client=training_client,
         reward_calculator=reward_calculator,
-        train_id=generate_id(word_count=3),
+        train_id=config.drl.train_id,
         training_results_logger=training_results_logger,
         training_progress_tracker=training_progress_tracker,
-        max_param_diff_percent=config.drl.env.max_param_diff_percent,
-
+        cached_results_utilization_policy=cached_results_utilization_policy,
     )
 
     env_wrappers_params: Provider[EnvWrappersParams] = providers.Factory(
@@ -101,13 +131,13 @@ class TrainingContainer(containers.DeclarativeContainer):
         config.drl.env
     )
 
-    training_env: Provider[gym.Env] = providers.Factory(
+    training_env: Provider[gym.Env] = providers.Singleton(
         build_env,
         base_env=base_env,
         wrappers_params=env_wrappers_params,
     )
 
-    training_drl_model: Provider[BaseAlgorithm] = providers.Singleton(
+    default_drl_model: Provider[BaseAlgorithm] = providers.Singleton(
         PPO,
         policy=ActorCriticPolicy,
         env=training_env,
@@ -121,4 +151,11 @@ class TrainingContainer(containers.DeclarativeContainer):
         policy_kwargs=dict(
             net_arch=[128, 128]
         ),
+    )
+
+    drl_training_model = providers.Callable(
+        get_training_model,
+        resume_from_path=config.drl.resume_from_path,
+        env=training_env,
+        default_drl_model=default_drl_model,
     )

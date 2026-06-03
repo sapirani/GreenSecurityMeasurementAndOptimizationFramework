@@ -3,11 +3,12 @@ import numpy as np
 from elasticsearch import Elasticsearch
 
 from DTOs.hadoop.consts import DocumentID
+from DTOs.hadoop.drl.training.cached_results_utilization_policy import CachedResultsUtilizationPolicy
 from DTOs.hadoop.drl.training.training_step_results import TrainingStepResults
 from enum import Enum
 from elasticsearch_dsl import Search, Q
 from DTOs.logging.consts import IndexName
-from typing import Optional, Dict, List, NewType
+from typing import Optional, Dict
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
@@ -16,6 +17,7 @@ from hadoop_optimizer.drl_envs.training.training_env import EpisodeContext
 from hadoop_optimizer.job_runner.clients.job_performance_evaluator_client import HadoopJobPerformanceEvaluatorClient
 
 
+# TODO: ADD DOCUMENTATION THE ANY NON-TRIVIAL PART
 class CachedHadoopJobPerformanceEvaluatorClient:
     def __init__(
             self,
@@ -23,10 +25,10 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             elastic_user: str,
             elastic_password: str,
             job_performance_evaluator_client: Optional[HadoopJobPerformanceEvaluatorClient] = None,
-            min_similar_samples: int = 3
+            cached_results_utilization_policy: Optional[CachedResultsUtilizationPolicy] = None
     ):
         self.job_performance_evaluator_client = job_performance_evaluator_client or HadoopJobPerformanceEvaluatorClient()
-        self.min_similar_samples = min_similar_samples
+        self.cached_results_utilization_policy = cached_results_utilization_policy or CachedResultsUtilizationPolicy()
 
         self.es_client = Elasticsearch(elastic_url, basic_auth=(elastic_user, elastic_password), verify_certs=False)
 
@@ -52,7 +54,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         session_id: str,
         episode_context: EpisodeContext,
         space_ranges: Dict[str, Range],
-        max_param_diff_percent: float = 33,
+        cached_results_utilization_policy: Optional[CachedResultsUtilizationPolicy]
     ) -> JobExecutionPerformance:
         """
         # TODO: EXPLAIN WHAT WE ARE DOING HERE: FETCHING ONLY NOT SIMULATED RESULTS OF SIMILAR CONFIGURATIONS
@@ -64,14 +66,16 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             4.  requests.exceptions.HTTPError: 503 gateway timeout (when job execution has passed time limit)
             5.  RuntimeError: in case that the caller did not call start beforehand / use the contextmanager
         """
+        cached_results_utilization_policy = cached_results_utilization_policy or self.cached_results_utilization_policy
+        assert cached_results_utilization_policy
 
-        #  TODO: IF VARIANCE OF SIMILAR RESULTS IS HIGH - OUTPUT SOME WARNING AND MAYBE RUN ADDITIONAL EXPERIMENT
+        #  TODO: IF THE VARIANCE OF SIMILAR RESULTS IS HIGH - OUTPUT SOME WARNING AND MAYBE RUN ADDITIONAL EXPERIMENT
 
         similar_training_steps = self._find_similar_training_steps(
             job_descriptor,
             execution_configuration,
             space_ranges,
-            max_param_diff_percent
+            cached_results_utilization_policy.max_param_diff_percent
         )
 
         similar_steps_ids = set(similar_training_steps.keys())
@@ -81,7 +85,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         ]
 
         # run another experiment and combine the new results
-        if len(similar_execution_results) < self.min_similar_samples:
+        if len(similar_execution_results) < cached_results_utilization_policy.min_required_similar_samples:
             new_experiment_results = self.job_performance_evaluator_client.run_job(
                 job_descriptor=job_descriptor,
                 execution_configuration=execution_configuration,
@@ -97,6 +101,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
 
         # TODO: THINK OF THE CASE WHERE ONE OF THE RETREIVED CONFIGURATIONS IS THE EXACT SAME AS I WANTED, BUT I HAVE
         #   FEW MORE SIMILARITIES THAT ARE NOT THE EXACT THING. SHOULD I CONSIDER ONLY THE EXACT ONE OR ALL THE SIMILARS?
+        #   ANSWER: CONSIDER ALL OF THEM, WEIGHTED BY HOW SIMILAR THEY ARE TO THE TARGET.
         # TODO: IN LOW CHANCES, ALLOW TO RUN THE SAME CONFIGURATION OVER (EVEN IF WE HAVE ENOUGH SIMILAR RESULTS), TO
         #   ENSURE THE STABILITY OF LATER RESULTS
         evaluated_running_time_sec = [
@@ -112,7 +117,8 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         std_running_time_sec = float(np.std(evaluated_running_time_sec, ddof=1))
         std_energy_mwh = float(np.std(evaluated_energy_mwh, ddof=1))
 
-        # TODO: ADD RANDOM NOISE THAT ITS SCALE IS PROPORTIONATE TO THE STD
+        # TODO: ADD RANDOM NOISE THAT ITS SCALE IS PROPORTIONATE TO THE STD. SCALE IT BY
+        #   cached_results_utilization_policy.results_noise_scale. USE NORMAL DISTRIBUTION FOR TO CHOOSE THE NOISE FROM
 
         return JobExecutionPerformance(
             running_time_sec=mean_running_time_sec,
@@ -147,6 +153,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             if annotation is bool or CachedHadoopJobPerformanceEvaluatorClient._is_enum_argument(annotation):
                 continue
 
+            # TODO: IS THERE A NORMAL WAY?
             if field_name in space_ranges:
                 allowed_ranges[f'job_config.{field_name}'] = CachedHadoopJobPerformanceEvaluatorClient._allowed_param_interval(
                     getattr(execution_configuration, field_name),
@@ -169,6 +176,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
     ):
         filters = []
 
+        # TODO: DATETIME AS INJECTED PARAMETER
         filters.append(
             Q(
                 "range",
@@ -178,6 +186,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             )
         )
 
+        # TODO: IS THERE A NORMAL WAY?
         filters.append(
             Q(
                 "term",
