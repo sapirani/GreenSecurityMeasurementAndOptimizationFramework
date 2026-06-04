@@ -44,10 +44,12 @@ def get_training_model(
 ) -> BaseAlgorithm:
     if resume_from_path is not None:
         if resume_from_path.exists():
+            print("Loading already trained model")
             return get_algo_class(resume_from_path).load(resume_from_path, env=env)
         else:
             raise ValueError(f"Resume path does not exist: {resume_from_path}")
 
+    print("Loading default model")
     return default_drl_model
 
 
