@@ -40,7 +40,7 @@ def get_algo_class(resume_from_path: Path) -> Type[BaseAlgorithm]:
 def get_training_model(
         resume_from_path: Optional[Path],
         env: Provider[gym.Env],
-        default_model: Provider[BaseAlgorithm]
+        default_drl_model: Provider[BaseAlgorithm]
 ) -> BaseAlgorithm:
     if resume_from_path is not None:
         if resume_from_path.exists():
@@ -48,7 +48,7 @@ def get_training_model(
         else:
             raise ValueError(f"Resume path does not exist: {resume_from_path}")
 
-    return default_model()
+    return default_drl_model()
 
 
 class TrainingContainer(containers.DeclarativeContainer):
@@ -101,7 +101,7 @@ class TrainingContainer(containers.DeclarativeContainer):
 
     # todo: think about what to do with the telemetry aggregator, is it necessary?
     telemetry_aggregator = Mock()
-    training_client: CachedHadoopJobPerformanceEvaluatorClient = providers.Factory(
+    training_client: Provider[CachedHadoopJobPerformanceEvaluatorClient] = providers.Factory(
         CachedHadoopJobPerformanceEvaluatorClient,
         elastic_url=config.elastic.url,
         elastic_user=config.elastic.username,
