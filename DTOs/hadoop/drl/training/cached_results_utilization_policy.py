@@ -1,4 +1,18 @@
-class CachedResultsUtilizationPolicy:
-    max_param_diff_percent: float = 27
-    min_required_similar_samples: int = 3
-    results_noise_scale: float = 0.3
+from pydantic import BaseModel, Field
+
+
+class CachedResultsUtilizationPolicy(BaseModel):
+    max_param_diff_percent: float = Field(
+        default=27,
+        ge=0,
+        le=100,
+    )
+    min_required_similar_samples: int = Field(
+        default=3,
+        ge=0,
+    )
+
+    results_noise_scale: float = Field(
+        default=0.3,
+        ge=0,
+    )
