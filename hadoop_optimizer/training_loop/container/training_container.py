@@ -39,16 +39,16 @@ def get_algo_class(resume_from_path: Path) -> Type[BaseAlgorithm]:
 
 def get_training_model(
         resume_from_path: Optional[Path],
-        env: Provider[gym.Env],
-        default_drl_model: Provider[BaseAlgorithm]
+        env: gym.Env,
+        default_drl_model: BaseAlgorithm
 ) -> BaseAlgorithm:
     if resume_from_path is not None:
         if resume_from_path.exists():
-            return get_algo_class(resume_from_path).load(resume_from_path, env=env())
+            return get_algo_class(resume_from_path).load(resume_from_path, env=env)
         else:
             raise ValueError(f"Resume path does not exist: {resume_from_path}")
 
-    return default_drl_model()
+    return default_drl_model
 
 
 class TrainingContainer(containers.DeclarativeContainer):
