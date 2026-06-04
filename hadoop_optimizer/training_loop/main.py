@@ -51,7 +51,7 @@ def main(
 if __name__ == '__main__':
     container = TrainingContainer()
     # Use a path to a pretrained model, or None if you want to start training all over again
-    container.config.drl.resume_from_path.from_vatlue(
+    container.config.drl.resume_from_path.from_value(
         Path(os.path.dirname(os.path.abspath(__file__))) /
         Path("trained_ppo.zip")
     )

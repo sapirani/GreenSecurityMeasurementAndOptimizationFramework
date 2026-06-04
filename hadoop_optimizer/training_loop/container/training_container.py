@@ -44,7 +44,7 @@ def get_training_model(
 ) -> BaseAlgorithm:
     if resume_from_path is not None:
         if resume_from_path.exists():
-            print("Loading already trained model")
+            print(f"Loading already trained model from {resume_from_path}")
             return get_algo_class(resume_from_path).load(resume_from_path, env=env)
         else:
             raise ValueError(f"Resume path does not exist: {resume_from_path}")
