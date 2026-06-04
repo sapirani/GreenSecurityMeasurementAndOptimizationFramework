@@ -78,7 +78,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             cached_results_utilization_policy.max_param_diff_percent
         )
 
-        similar_steps_ids = set(similar_training_steps.keys())
+        similar_steps_ids = list(similar_training_steps.keys())
 
         similar_execution_results = [
             similar_training_step.job_performance for similar_training_step in similar_training_steps.values()
