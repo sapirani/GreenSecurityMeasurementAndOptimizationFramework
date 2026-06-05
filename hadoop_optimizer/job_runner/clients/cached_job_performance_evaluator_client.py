@@ -1,6 +1,7 @@
-import inspect
+from datetime import datetime
 import numpy as np
 from elasticsearch import Elasticsearch
+from pydantic import BaseModel
 
 from DTOs.hadoop.consts import DocumentID
 from DTOs.hadoop.drl.training.cached_results_utilization_policy import CachedResultsUtilizationPolicy
@@ -15,9 +16,12 @@ from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
 from DTOs.range import Range
 from hadoop_optimizer.drl_envs.training.training_env import EpisodeContext
 from hadoop_optimizer.job_runner.clients.job_performance_evaluator_client import HadoopJobPerformanceEvaluatorClient
+from hadoop_optimizer.common.utils import get_full_field_name, is_enum_argument
 
+MAX_SIMILAR_RESULTS = 10000
 
 # TODO: ADD DOCUMENTATION THE ANY NON-TRIVIAL PART
+#  write about the assumption that the object that was logging the results is TrainingStepResults
 class CachedHadoopJobPerformanceEvaluatorClient:
     def __init__(
             self,
@@ -25,10 +29,12 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             elastic_user: str,
             elastic_password: str,
             job_performance_evaluator_client: Optional[HadoopJobPerformanceEvaluatorClient] = None,
-            cached_results_utilization_policy: Optional[CachedResultsUtilizationPolicy] = None
+            cached_results_utilization_policy: Optional[CachedResultsUtilizationPolicy] = None,
+            search_since: Optional[datetime] = None
     ):
         self.job_performance_evaluator_client = job_performance_evaluator_client or HadoopJobPerformanceEvaluatorClient()
         self.cached_results_utilization_policy = cached_results_utilization_policy or CachedResultsUtilizationPolicy()
+        self.search_since = search_since or datetime.min
 
         self.es_client = Elasticsearch(elastic_url, basic_auth=(elastic_user, elastic_password), verify_certs=False)
 
@@ -46,7 +52,6 @@ class CachedHadoopJobPerformanceEvaluatorClient:
     def stop(self):
         self.job_performance_evaluator_client.stop()
 
-    # TODO: ORGANIZE CODE
     def run_job(
         self,
         job_descriptor: JobDescriptor,
@@ -103,7 +108,8 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         #   FEW MORE SIMILARITIES THAT ARE NOT THE EXACT THING. SHOULD I CONSIDER ONLY THE EXACT ONE OR ALL THE SIMILARS?
         #   ANSWER: CONSIDER ALL OF THEM, WEIGHTED BY HOW SIMILAR THEY ARE TO THE TARGET.
         # TODO: IN LOW CHANCES, ALLOW TO RUN THE SAME CONFIGURATION OVER (EVEN IF WE HAVE ENOUGH SIMILAR RESULTS), TO
-        #   ENSURE THE STABILITY OF LATER RESULTS
+        #   ENSURE THE STABILITY OF LATER RESULTS. WHICH RESULT SHOULD BE RETURNED? ONLY NEW ONE? AVERAGE?
+        #   IF AVERAGE, IS IT CONSIDERED SIMULATED OR NOT?
         evaluated_running_time_sec = [
             similar_execution_result.running_time_sec for similar_execution_result in similar_execution_results
         ]
@@ -130,92 +136,93 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         )
 
     @staticmethod
-    def _allowed_param_interval(
+    def _calc_similarity_interval(
             desired_val: float,
             param_range: Range,
             max_param_diff_percent: float
     ):
-        factor = (max_param_diff_percent / 100) * (param_range.high - param_range.low)
+        max_deviation = (max_param_diff_percent / 100) * (param_range.high - param_range.low)
         return Range(
-            low=desired_val - factor,
-            high=desired_val + factor,
+            low=desired_val - max_deviation,
+            high=desired_val + max_deviation,
         )
 
     @staticmethod
-    def _allowed_params_interval(
+    def params_similarity_ranges(
             execution_configuration: HadoopJobExecutionConfig,
             space_ranges: Dict[str, Range],
-            max_param_diff_percent: float
+            max_param_diff_percent: float   # TODO: consider an extension where each param defines its own max diff
     ) -> Dict[str, Range]:
-        allowed_ranges = {}
+        """
+        return, for each config parameter, the range of values that are considered "similar" enough to
+        the provided execution configuration.
+        Note: booleans and are excluded as values must be the identical to be considered as "similar"
+        :param execution_configuration: the configuration that we want to understand what are the "similarity ranges" for each of its parameters
+        :param space_ranges: the lower value and higher value of each parameter range
+        :param max_param_diff_percent: the relative percentage (compared to the scale of each parameter's range), where
+            values that reside within this range are considered "similar".
+        :return: a dictionary that maps each parameter name to the range of values representing "similar" enough" values.
+        """
+        similarity_ranges = {}
         for field_name, field in HadoopJobExecutionConfig.model_fields.items():
-            annotation = field.annotation
-            if annotation is bool or CachedHadoopJobPerformanceEvaluatorClient._is_enum_argument(annotation):
+            if field.annotation is bool or is_enum_argument(field.annotation):
                 continue
 
-            # TODO: IS THERE A NORMAL WAY?
             if field_name in space_ranges:
-                allowed_ranges[f'job_config.{field_name}'] = CachedHadoopJobPerformanceEvaluatorClient._allowed_param_interval(
+                similarity_ranges[field_name] = CachedHadoopJobPerformanceEvaluatorClient._calc_similarity_interval(
                     getattr(execution_configuration, field_name),
                     space_ranges[field_name],
                     max_param_diff_percent
                 )
-        return allowed_ranges
 
+        return similarity_ranges
 
     @staticmethod
-    def _is_enum_argument(arg_type) -> bool:
-        return inspect.isclass(arg_type) and issubclass(arg_type, Enum)
+    def full_field_name(field_name: str) -> str:
+        return get_full_field_name(field_name, TrainingStepResults)
+
+    @staticmethod
+    def model_dump_with_full_names(basemodel: BaseModel):
+        return {
+            CachedHadoopJobPerformanceEvaluatorClient.full_field_name(field): value
+            for field, value in basemodel.model_dump().items()
+        }
 
     def _find_matching_events(
             self,
             job_descriptor: JobDescriptor,
             config: HadoopJobExecutionConfig,
-            allowed_ranges: Dict[str, Range],
+            similarity_ranges: Dict[str, Range],
             float_tolerance: float = 1e-6,
     ):
         filters = []
 
-        # TODO: DATETIME AS INJECTED PARAMETER
         filters.append(
             Q(
                 "range",
                 timestamp={
-                    "gte": "2026-05-29T00:00:00"
+                    "gte": self.search_since
                 }
             )
         )
 
-        # TODO: IS THERE A NORMAL WAY?
-        filters.append(
-            Q(
-                "term",
-                **{"job_performance.simulated": False}
-            )
-        )
-
         # Flatten all fields
-        fields = [
-            *(
-                (f"job_descriptor.{field}", value)
-                for field, value in job_descriptor.model_dump().items()
-            ),
-            *(
-                (f"job_config.{field}", value)
-                for field, value in config.model_dump().items()
-            ),
-        ]
+        query_fields = {
+            self.full_field_name("simulated"): False,
+            **self.model_dump_with_full_names(job_descriptor),
+            **self.model_dump_with_full_names(config)
+        }
 
-        for field_name, value in fields:
-            if field_name in allowed_ranges:
-                r = allowed_ranges[field_name]
+        for field_name, value in query_fields.items():
+            if field_name in similarity_ranges:
+                similarity_range = similarity_ranges[field_name]
                 filters.append(
                     Q(
                         "range",
                         **{
                             field_name: {
-                                "gte": float(r.low) - float_tolerance,
-                                "lte": float(r.high) + float_tolerance,
+                                "gte": float(similarity_range.low) - float_tolerance,
+                                "lte": float(similarity_range.high) + float_tolerance,
                             }
                         },
                     )
@@ -253,7 +260,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
 
         return (
             Search(using=self.es_client, index=IndexName.DRL_TRAINING)
-            .query("bool", filter=filters)[:10000]
+            .query("bool", filter=filters)[:MAX_SIMILAR_RESULTS]
             .execute()
         )
 
@@ -265,12 +272,16 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             max_param_diff_percent: float
     ) -> Dict[DocumentID, TrainingStepResults]:
         # compute allowed intervals for all numeric fields
-        allowed_ranges = self._allowed_params_interval(execution_configuration, space_ranges, max_param_diff_percent)
+        params_similarity_ranges = self.params_similarity_ranges(
+            execution_configuration,
+            space_ranges,
+            max_param_diff_percent
+        )
 
         hits = self._find_matching_events(
             job_descriptor=job_descriptor,
             config=execution_configuration,
-            allowed_ranges=allowed_ranges
+            similarity_ranges=params_similarity_ranges
         )
 
         similar_training_results = {}

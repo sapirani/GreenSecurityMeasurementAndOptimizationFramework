@@ -108,13 +108,14 @@ class TrainingContainer(containers.DeclarativeContainer):
         elastic_url=config.elastic.url,
         elastic_user=config.elastic.username,
         elastic_password=config.elastic.password,
+        search_since=config.drl.cached_results.search_since,
     )
 
     cached_results_utilization_policy: Provider[CachedResultsUtilizationPolicy] = providers.Factory(
         CachedResultsUtilizationPolicy,
-        max_param_diff_percent=config.drl.cached_results_utilization_policy.max_param_diff_percent,
-        min_required_similar_samples=config.drl.cached_results_utilization_policy.min_required_similar_samples,
-        results_noise_scale=config.drl.cached_results_utilization_policy.results_noise_scale,
+        max_param_diff_percent=config.drl.cached_results.utilization_policy.max_param_diff_percent,
+        min_required_similar_samples=config.drl.cached_results.utilization_policy.min_required_similar_samples,
+        results_noise_scale=config.drl.cached_results.utilization_policy.results_noise_scale,
     )
 
     base_env: Provider[gym.Env] = providers.Factory(

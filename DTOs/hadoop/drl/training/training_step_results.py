@@ -1,7 +1,5 @@
 from typing import Optional
-
 from pydantic import BaseModel
-
 from DTOs.hadoop.drl.training.training_metadata import TrainingMetadata
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor

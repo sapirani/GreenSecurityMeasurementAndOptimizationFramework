@@ -139,13 +139,13 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
 
     def _compute_reward(self, job_config: HadoopJobExecutionConfig, terminated: bool, truncated: bool) -> float:
         self.__current_step_performance = self.__run_job_and_measure_performance(job_config)
+        assert self.__current_step_performance is not None
 
         self.__current_step_reward = self.reward_calculator.compute_reward(
             self.__current_step_performance,
             terminated or truncated # TODO: SHOULD IT BE ONLY terminated? AS TRUNCATED IS NOT INTENTIONAL BY THE AGENT
         )
 
-        assert self.__current_step_performance is not None
         self.__log_results(job_config, self.__current_step_performance, self.__current_step_reward, is_baseline=False)
 
         self.render()

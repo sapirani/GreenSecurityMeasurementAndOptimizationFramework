@@ -59,7 +59,7 @@ class RewardCalculator:
 
         return self.__delta * runtime_gain + self.__tau * energy_gain
 
-    def compute_reward(self, job_performance: Optional[JobExecutionPerformance], is_last_step: bool) -> float:
+    def compute_reward(self, job_performance: JobExecutionPerformance, is_last_step: bool) -> float:
         step_gain = self.__compute_step_gain(job_performance)
         is_last_step = int(is_last_step)
 
