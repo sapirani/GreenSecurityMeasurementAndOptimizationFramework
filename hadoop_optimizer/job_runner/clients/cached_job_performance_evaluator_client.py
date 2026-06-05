@@ -1,16 +1,17 @@
+import math
 import random
 from datetime import datetime
 import numpy as np
 from elasticsearch import Elasticsearch
 from pydantic import BaseModel
 
-from DTOs.hadoop.consts import DocumentID
+from DTOs.hadoop.consts import DocumentID, SimilarityScore
 from DTOs.hadoop.drl.training.cached_results_utilization_policy import CachedResultsUtilizationPolicy
 from DTOs.hadoop.drl.training.training_step_results import TrainingStepResults
 from enum import Enum
 from elasticsearch_dsl import Search, Q
 from DTOs.logging.consts import IndexName
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Union
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
@@ -55,32 +56,92 @@ class CachedHadoopJobPerformanceEvaluatorClient:
     def stop(self):
         self.job_performance_evaluator_client.stop()
 
-    @staticmethod
     def _calc_simulated_job_performance(
-            similar_jobs_running_time_sec: List[float],
-            similar_jobs_energy_mwh: List[float],
-            similar_steps_ids: List[DocumentID],
+            self,
+            similar_execution_results: Dict[DocumentID, JobExecutionPerformance],
+            similarity_scores: Dict[DocumentID, SimilarityScore],
             results_noise_scale: float
     ) -> JobExecutionPerformance:
-        assert len(similar_jobs_running_time_sec) == len(similar_jobs_energy_mwh) and len(similar_jobs_energy_mwh) > 1
+        assert len(similar_execution_results) > 1
 
-        # TODO: CONSIDER WEIGHTING SIMULATED RESULTS BY HOW SIMILAR THEY ARE TO THE TARGET CONFIGURATION
-        #  (INSTEAD OF 'JUST' AVERAGING)
-        mean_running_time_sec = float(np.mean(similar_jobs_running_time_sec))
-        mean_energy_mwh = float(np.mean(similar_jobs_energy_mwh))
-        # sample std (dataset is considered as a sample from a larger unknown population)
-        std_running_time_sec = float(np.std(similar_jobs_running_time_sec, ddof=1))
-        std_energy_mwh = float(np.std(similar_jobs_energy_mwh, ddof=1))
+        # Note: to prevent high values, we may reduce the maximum score from all exponents
+        max_score = max(similarity_scores.values())
+        sum_exponents = sum(
+            math.exp(self.cached_results_utilization_policy.similarity_factor * score - max_score)
+            for score in similarity_scores.values()
+        )
+
+        similarity_weights = {
+            _id: math.exp(self.cached_results_utilization_policy.similarity_factor * score - max_score) / sum_exponents
+            for _id, score in similarity_scores.items()
+        }
+
+        # TODO: CONSIDER LOGGING LARGE STANDARD DEVIATIONS AS WARNINGS
+        running_times_sec = np.array(
+            [
+                similar_execution_results[_id].running_time_sec
+                for _id in similarity_weights
+            ],
+            dtype=float
+        )
+
+        energies_mwh = np.array(
+            [
+                similar_execution_results[_id].energy_use_mwh
+                for _id in similarity_weights
+            ],
+            dtype=float
+        )
+
+        weights = np.array(
+            [
+                similarity_weights[_id]
+                for _id in similarity_weights
+            ],
+            dtype=float
+        )
+
+        # weighted means
+        mean_running_time_sec = float(
+            np.average(running_times_sec, weights=weights)
+        )
+
+        mean_energy_mwh = float(
+            np.average(energies_mwh, weights=weights)
+        )
+
+        # weighted variances
+        var_running_time_sec = float(
+            np.average(
+                (running_times_sec - mean_running_time_sec) ** 2,
+                weights=weights
+            )
+        )
+
+        var_energy_mwh = float(
+            np.average(
+                (energies_mwh - mean_energy_mwh) ** 2,
+                weights=weights
+            )
+        )
+
+        std_running_time_sec = math.sqrt(var_running_time_sec)
+        std_energy_mwh = math.sqrt(var_energy_mwh)
 
         # Gaussian noise proportional to std
-        running_time_sec_noise = float(np.random.normal(
-            loc=0.0,
-            scale=std_running_time_sec * results_noise_scale
-        ))
-        energy_mwh_noise = float(np.random.normal(
-            loc=0.0,
-            scale=std_energy_mwh * results_noise_scale
-        ))
+        running_time_sec_noise = float(
+            np.random.normal(
+                loc=0.0,
+                scale=std_running_time_sec * results_noise_scale
+            )
+        )
+
+        energy_mwh_noise = float(
+            np.random.normal(
+                loc=0.0,
+                scale=std_energy_mwh * results_noise_scale
+            )
+        )
 
         return JobExecutionPerformance(
             running_time_sec=mean_running_time_sec + running_time_sec_noise,
@@ -90,8 +151,38 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             std_energy_mwh=std_energy_mwh,
             selected_running_time_sec_noise=running_time_sec_noise,
             selected_energy_use_mwh_noise=energy_mwh_noise,
-            participants=similar_steps_ids
+            similarity_weights=similarity_weights,
         )
+
+    @staticmethod
+    def _compute_similarity_score(
+            desired_val: Union[float, int],
+            similar_val: Union[float, int],
+            param_range: Range
+    ) -> SimilarityScore:
+        soft_range = max(param_range.high - param_range.low, 1e-9)
+        assert abs(desired_val - similar_val) <= soft_range
+        return SimilarityScore(1 - (abs(desired_val - similar_val) / soft_range))
+
+    @staticmethod
+    def _compute_similarity_scores(
+            execution_configuration: HadoopJobExecutionConfig,
+            similar_training_steps: Dict[DocumentID, TrainingStepResults],
+            space_ranges: Dict[str, Range],
+    ) -> Dict[DocumentID, SimilarityScore]:
+        similarity_scores = {}
+        for _id, training_step in similar_training_steps.items():
+            similarity_score = sum(
+                CachedHadoopJobPerformanceEvaluatorClient._compute_similarity_score(
+                    getattr(execution_configuration, field_name),
+                    getattr(training_step.job_config, field_name),
+                    space_ranges[field_name],
+                )
+                for field_name, field in HadoopJobExecutionConfig.model_fields.items()
+            )
+            similarity_scores[_id] = similarity_score / len(HadoopJobExecutionConfig.model_fields)
+
+        return similarity_scores
 
     def run_job(
         self,
@@ -122,9 +213,9 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             cached_results_utilization_policy.max_param_diff_percent
         )
 
-        similar_execution_results = [
-            similar_training_step.job_performance for similar_training_step in similar_training_steps.values()
-        ]
+        similar_execution_results = {
+            _id: similar_training_step.job_performance for _id, similar_training_step in similar_training_steps.items()
+        }
 
         # run another experiment and combine the new results
         if len(similar_execution_results) < cached_results_utilization_policy.min_required_similar_samples:
@@ -143,18 +234,15 @@ class CachedHadoopJobPerformanceEvaluatorClient:
                 episode_context=episode_context,
             )
 
-        similar_jobs_running_time_sec = [
-            similar_execution_result.running_time_sec for similar_execution_result in similar_execution_results
-        ]
-        similar_jobs_energy_mwh = [
-            similar_execution_result.energy_use_mwh for similar_execution_result in similar_execution_results
-        ]
-        similar_steps_ids = list(similar_training_steps.keys())
+        similarity_scores = self._compute_similarity_scores(
+            execution_configuration,
+            similar_training_steps,
+            space_ranges
+        )
 
         return self._calc_simulated_job_performance(
-            similar_jobs_running_time_sec,
-            similar_jobs_energy_mwh,
-            similar_steps_ids,
+            similar_execution_results,
+            similarity_scores,
             cached_results_utilization_policy.results_noise_scale
         )
 

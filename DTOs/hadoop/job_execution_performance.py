@@ -1,4 +1,4 @@
-from typing import Optional, Set, List
+from typing import Optional, Dict
 from DTOs.hadoop.consts import DocumentID
 from pydantic import BaseModel, model_validator
 
@@ -12,7 +12,7 @@ class JobExecutionPerformance(BaseModel):
     std_energy_mwh: Optional[float] = None
     selected_running_time_sec_noise: Optional[float] = None
     selected_energy_use_mwh_noise: Optional[float] = None
-    participants: Optional[List[DocumentID]] = None
+    similarity_weights: Optional[Dict[DocumentID, float]] = None
 
     model_config = {
         "frozen": True  # ensures that this class is immutable
@@ -26,7 +26,7 @@ class JobExecutionPerformance(BaseModel):
         simulation_fields = [
             self.std_running_time_sec,
             self.std_energy_mwh,
-            self.participants,
+            self.similarity_weights,
             self.selected_running_time_sec_noise,
             self.selected_energy_use_mwh_noise,
         ]

@@ -122,6 +122,7 @@ class TrainingContainer(containers.DeclarativeContainer):
         max_param_diff_percent=config.drl.cached_results.utilization_policy.max_param_diff_percent,
         min_required_similar_samples=config.drl.cached_results.utilization_policy.min_required_similar_samples,
         results_noise_scale=config.drl.cached_results.utilization_policy.results_noise_scale,
+        similarity_factor=config.drl.cached_results.utilization_policy.similarity_factor,
     )
 
     base_env: Provider[gym.Env] = providers.Factory(

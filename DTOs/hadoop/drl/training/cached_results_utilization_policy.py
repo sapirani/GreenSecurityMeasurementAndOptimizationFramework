@@ -16,3 +16,8 @@ class CachedResultsUtilizationPolicy(BaseModel):
         default=0.3,
         ge=0,
     )
+
+    similarity_factor: float = Field(
+        default=5,
+        ge=0,
+    )

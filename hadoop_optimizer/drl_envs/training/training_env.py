@@ -143,7 +143,9 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
 
         self.__current_step_reward = self.reward_calculator.compute_reward(
             self.__current_step_performance,
-            terminated or truncated # TODO: SHOULD IT BE ONLY terminated? AS TRUNCATED IS NOT INTENTIONAL BY THE AGENT
+            # TODO: SHOULD IT BE ONLY terminated? AS TRUNCATED IS NOT INTENTIONAL BY THE AGENT.
+            #  MAYBE HAVE A SEPARATE REWARD FOR THE CASE OF TRUNCATED?
+            terminated or truncated
         )
 
         self.__log_results(job_config, self.__current_step_performance, self.__current_step_reward, is_baseline=False)

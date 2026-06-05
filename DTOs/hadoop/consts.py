@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Optional, NewType
 
 DocumentID = NewType("DocumentID", str)
+SimilarityScore = NewType("SimilarityScore", float)
 
 GENERAL_GROUP = "General"
 HUMAN_READABLE_KEY = "human_readable"
