@@ -22,7 +22,13 @@ def main(
         learning_total_timestamps: int = Provide[TrainingContainer.config.drl.learning_total_timestamps],
         save_freq: int = Provide[TrainingContainer.config.drl.storage.save_freq],
 ) -> None:
-    # TODO: ELABORATE ON THE CONVERSION THAT THE FILE'S NAME MUST INCLUDE THE MODEL'S NAME
+    """
+    This function runs a drl training and store the final + intermediate models.
+    Depending on TrainingContainer.config.drl.resume_from_path, this function eiter train a fresh model, or resuming
+    a previously trained model and keeps on training it.
+    Note: the file names that store the models, must include the model name (e.g., PPO, A2C, etc.).
+    The reason for this convention is that the automatic code that resumes the pretrained model must know its type
+    """
     model_name = drl_training_model.__class__.__name__
 
     training_base_dir = os.path.join(

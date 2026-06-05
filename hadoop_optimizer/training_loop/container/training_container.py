@@ -29,7 +29,12 @@ from user_input.elastic_reader_input.time_picker_input_factory import get_time_p
 ALGOS: List[Type[BaseAlgorithm]] = [PPO, SAC, TD3, DDPG, A2C, DQN]
 
 def get_algo_class(resume_from_path: Path) -> Type[BaseAlgorithm]:
-    # TODO: ELABORATE ON THE CONVERSION THAT THE FILE'S NAME MUST INCLUDE THE MODEL'S NAME
+    """
+    This function returns the relevant algorithm name for resuming a pretrained model.
+    Since storing the model is not leaving signs of the algorithm that was being used in the training process,
+    the convention here is that the file's name (where the model to resume is saved)
+    ** MUST include the name of the algorithm. **
+    """
     for algo in ALGOS:
         if algo.__name__.lower() in resume_from_path.stem.lower():
             return algo
