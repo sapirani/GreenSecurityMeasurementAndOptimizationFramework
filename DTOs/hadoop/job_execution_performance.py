@@ -10,6 +10,8 @@ class JobExecutionPerformance(BaseModel):
     simulated: bool = False
     std_running_time_sec: Optional[float] = None
     std_energy_mwh: Optional[float] = None
+    selected_running_time_sec_noise: Optional[float] = None
+    selected_energy_use_mwh_noise: Optional[float] = None
     participants: Optional[List[DocumentID]] = None
 
     model_config = {
@@ -25,6 +27,8 @@ class JobExecutionPerformance(BaseModel):
             self.std_running_time_sec,
             self.std_energy_mwh,
             self.participants,
+            self.selected_running_time_sec_noise,
+            self.selected_energy_use_mwh_noise,
         ]
 
         if self.simulated:

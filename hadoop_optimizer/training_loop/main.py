@@ -61,6 +61,7 @@ if __name__ == '__main__':
     container.config.drl.storage.save_freq.from_value(100)
     container.config.drl.env.max_episode_steps.from_value(50)
     container.config.drl.cached_results.search_since.from_value(datetime(year=2026, month=5, day=29))
+    container.config.drl.cached_results.force_real_execution_probability.from_value(0.001)
     container.config.drl.cached_results.utilization_policy.max_param_diff_percent.from_value(27)
     container.config.drl.cached_results.utilization_policy.min_required_similar_samples.from_value(3)
     container.config.drl.cached_results.utilization_policy.results_noise_scale.from_value(0.3)

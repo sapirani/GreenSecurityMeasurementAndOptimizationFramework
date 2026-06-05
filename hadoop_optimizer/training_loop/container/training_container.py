@@ -109,6 +109,7 @@ class TrainingContainer(containers.DeclarativeContainer):
         elastic_user=config.elastic.username,
         elastic_password=config.elastic.password,
         search_since=config.drl.cached_results.search_since,
+        force_real_execution_probability=config.drl.cached_results.force_real_execution_probability,
     )
 
     cached_results_utilization_policy: Provider[CachedResultsUtilizationPolicy] = providers.Factory(
