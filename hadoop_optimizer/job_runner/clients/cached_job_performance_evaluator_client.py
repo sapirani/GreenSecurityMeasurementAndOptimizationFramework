@@ -22,9 +22,11 @@ from hadoop_optimizer.common.utils import get_full_field_name, is_enum_argument
 
 MAX_SIMILAR_RESULTS = 10000
 
-# TODO: ADD DOCUMENTATION THE ANY NON-TRIVIAL PART
-#  write about the assumption that the object that was logging the results is TrainingStepResults
 class CachedHadoopJobPerformanceEvaluatorClient:
+    """
+    This class fetches previously performed experiments from Elasticsearch, to avoid waisting time when running
+    similar jobs all over again
+    """
     def __init__(
             self,
             elastic_url: str,
@@ -62,6 +64,10 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             similarity_scores: Dict[DocumentID, SimilarityScore],
             results_noise_scale: float
     ) -> JobExecutionPerformance:
+        """
+        Uses weighting that is proportional to the similarity score of each configuration relative to the
+        properties of the requested job.
+        """
         assert len(similar_execution_results) > 1
 
         # Note: to prevent high values, we may reduce the maximum score from all exponents
@@ -76,7 +82,6 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             for _id, score in similarity_scores.items()
         }
 
-        # TODO: CONSIDER LOGGING LARGE STANDARD DEVIATIONS AS WARNINGS
         running_times_sec = np.array(
             [
                 similar_execution_results[_id].running_time_sec
@@ -127,6 +132,8 @@ class CachedHadoopJobPerformanceEvaluatorClient:
 
         std_running_time_sec = math.sqrt(var_running_time_sec)
         std_energy_mwh = math.sqrt(var_energy_mwh)
+
+        # TODO: CONSIDER LOGGING LARGE STANDARD DEVIATIONS AS WARNINGS
 
         # Gaussian noise proportional to std
         running_time_sec_noise = float(
@@ -194,8 +201,13 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         cached_results_utilization_policy: Optional[CachedResultsUtilizationPolicy]
     ) -> JobExecutionPerformance:
         """
-        # TODO: EXPLAIN WHAT WE ARE DOING HERE: FETCHING ONLY NOT SIMULATED RESULTS OF SIMILAR CONFIGURATIONS
-            AND COMPUTE THE MEAN, IN THE CASE WE HAVE AT LEAST 3 SIMILAR TRAINING STEPS
+        If there are enough results of similar samples from Elasticsearch - use them as cache to simulate the result
+        of the currently requested job. Otherwise, run the actual job and return its results.
+        For simulated results - The weighted mean of fetched similar results is used as an estimator to the
+        job's performance. The weighting is proportional to the similarity score of each sample relative to the
+        properties of the requested job.
+        An additional interfacial noise is added, which is propositional to the standard deviation of the
+        fetched similar results.
         :raises:
             1.  requests.exceptions.HTTPError: 422 not implemented (typically when selected job execution config is invalid)
             2.  requests.exceptions.HTTPError: 500 internal server error (typically when Hadoop job can't run for some reason)
@@ -265,7 +277,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             max_param_diff_percent: float   # TODO: consider an extension where each param defines its own max diff
     ) -> Dict[str, Range]:
         """
-        return, for each config parameter, the range of values that are considered "similar" enough to
+        Returs, for each config parameter, the range of values that are considered "similar" enough to
         the provided execution configuration.
         Note: booleans and are excluded as values must be the identical to be considered as "similar"
         :param execution_configuration: the configuration that we want to understand what are the "similarity ranges" for each of its parameters
@@ -290,6 +302,9 @@ class CachedHadoopJobPerformanceEvaluatorClient:
 
     @staticmethod
     def full_field_name(field_name: str) -> str:
+        """
+        Assuming that all results were logged from TrainingStepResults
+        """
         return get_full_field_name(field_name, TrainingStepResults)
 
     @staticmethod
@@ -306,6 +321,9 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             similarity_ranges: Dict[str, Range],
             float_tolerance: float = 1e-6,
     ):
+        """
+        Finds not-simulated, similar results from Elasticsearch.
+        """
         filters = []
 
         filters.append(
@@ -382,6 +400,11 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             space_ranges: Dict[str, Range],
             max_param_diff_percent: float
     ) -> Dict[DocumentID, TrainingStepResults]:
+        """
+        This function finds similar results from the training results index in Elasticsearch.
+        It fetches the relevant events and converts them into the original object that they were logged from.
+        :return:
+        """
         # compute allowed intervals for all numeric fields
         params_similarity_ranges = self.params_similarity_ranges(
             execution_configuration,
