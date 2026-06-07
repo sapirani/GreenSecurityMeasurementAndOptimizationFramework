@@ -11,7 +11,7 @@ from energy_model.dataset_creation.raw_telemetry_readers.raw_telemetry_reader im
 from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
 
 
-DEFAULT_DURATIONS_BETWEEN_SAMPLES = []
+DEFAULT_DURATIONS_BETWEEN_SAMPLES = ()
 
 class DatasetCreator(ABC):
     """

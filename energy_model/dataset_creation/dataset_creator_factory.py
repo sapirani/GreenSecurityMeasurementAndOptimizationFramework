@@ -35,14 +35,11 @@ class DatasetCreatorFactory:
         # * target calculator = System based => dataset creator = EnergyPerSecond or With Aggregations
         # These are the only possible combinations since we need to check whether different combinations work without errors.
         # TODO: check other combinations and remove this if command
-        if (
-                target_calculator_choice != TargetCalculatorType.IdleBased and dataset_creator_choice == DatasetCreatorType.WithProcessRatio) or \
-                (
-                        target_calculator_choice != TargetCalculatorType.BatteryDrainBased and dataset_creator_choice == DatasetCreatorType.WithEnergyAggregation) or \
-                (
-                        target_calculator_choice == TargetCalculatorType.IdleBased and dataset_creator_choice != DatasetCreatorType.WithProcessRatio) or \
-                (
-                        target_calculator_choice == TargetCalculatorType.BatteryDrainBased and dataset_creator_choice != DatasetCreatorType.WithEnergyAggregation):
+
+        if (target_calculator_choice != TargetCalculatorType.IdleBased and dataset_creator_choice == DatasetCreatorType.WithProcessRatio) or \
+            (target_calculator_choice != TargetCalculatorType.BatteryDrainBased and dataset_creator_choice == DatasetCreatorType.WithEnergyAggregation) or \
+            (target_calculator_choice == TargetCalculatorType.IdleBased and dataset_creator_choice != DatasetCreatorType.WithProcessRatio) or \
+            (target_calculator_choice == TargetCalculatorType.BatteryDrainBased and dataset_creator_choice != DatasetCreatorType.WithEnergyAggregation):
             raise ValueError(
                 f"Target Calculator Type {target_calculator_choice} does not match the Dataset Creator Type {dataset_creator_choice}!")
 
@@ -50,20 +47,15 @@ class DatasetCreatorFactory:
         dataset_reader = DatasetCreatorFactory.telemetry_reader_factory(dataset_reader_choice)
 
         if dataset_creator_choice == DatasetCreatorType.WithProcessRatio:
-            return ProcessesRatioDatasetCreator(target_calculator, dataset_reader, batch_time_intervals,
-                                                should_filter_batches)
+            return ProcessesRatioDatasetCreator(target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
         elif dataset_creator_choice == DatasetCreatorType.WithEnergyAggregation:
-            return AggregatedDatasetCreator(target_calculator, dataset_reader, batch_time_intervals,
-                                            should_filter_batches)
+            return AggregatedDatasetCreator(target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
         elif dataset_creator_choice == DatasetCreatorType.WithAggregation:
-            return AggregatedDatasetCreator(target_calculator, dataset_reader, batch_time_intervals,
-                                            should_filter_batches)
+            return AggregatedDatasetCreator(target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
         elif dataset_creator_choice == DatasetCreatorType.Basic:
-            return EnergyPerSecondDatasetCreator(target_calculator, dataset_reader, batch_time_intervals,
-                                                 should_filter_batches)
+            return EnergyPerSecondDatasetCreator(target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
         elif dataset_creator_choice == DatasetCreatorType.WithWindowAggregation:
-            return AggregatedWindowDatasetCreator(target_calculator, dataset_reader, batch_time_intervals,
-                                                  should_filter_batches)
+            return AggregatedWindowDatasetCreator(target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
         else:
             raise ValueError(f"Dataset Creator Type {dataset_creator_choice} is not supported!")
 
