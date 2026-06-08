@@ -92,8 +92,11 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         Uses weighting that is proportional to the similarity score of each configuration relative to the
         properties of the requested job.
         """
-        assert len(similar_execution_results) > 1
-        assert set(similarity_scores) <= set(similar_execution_results)
+        if not similar_execution_results:
+            raise ValueError("Similar results must not be empty")
+
+        if similarity_scores.keys() != similar_execution_results.keys():
+            raise ValueError("Must recived the same Document IDs in both similarity scores and execution results")
 
         document_ids, weights = self._compute_similarity_weights(
             similarity_scores,
