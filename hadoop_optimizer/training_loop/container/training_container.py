@@ -26,20 +26,20 @@ from hadoop_optimizer.job_runner.clients.cached_job_performance_evaluator_client
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 
-ALGOS: List[Type[BaseAlgorithm]] = [PPO, SAC, TD3, DDPG, A2C, DQN]
+ALGORITHMS: List[Type[BaseAlgorithm]] = [PPO, SAC, TD3, DDPG, A2C, DQN]
 
-def get_algo_class(resume_from_path: Path) -> Type[BaseAlgorithm]:
+def get_algorithm_class(resume_from_path: Path) -> Type[BaseAlgorithm]:
     """
     This function returns the relevant algorithm name for resuming a pretrained model.
     Since storing the model is not leaving signs of the algorithm that was being used in the training process,
     the convention here is that the file's name (where the model to resume is saved)
     ** MUST include the name of the algorithm. **
     """
-    for algo in ALGOS:
+    for algo in ALGORITHMS:
         if algo.__name__.lower() in resume_from_path.stem.lower():
             return algo
 
-    raise ValueError(f"The file name must include the name of one of the supported algorithms: {ALGOS}")
+    raise ValueError(f"The file name must include the name of one of the supported algorithms: {ALGORITHMS}")
 
 
 def get_training_model(
@@ -50,7 +50,7 @@ def get_training_model(
     if resume_from_path is not None:
         if resume_from_path.exists():
             print(f"Loading already trained model from {resume_from_path}")
-            return get_algo_class(resume_from_path).load(resume_from_path, env=env)
+            return get_algorithm_class(resume_from_path).load(resume_from_path, env=env)
         else:
             raise ValueError(f"Resume path does not exist: {resume_from_path}")
 

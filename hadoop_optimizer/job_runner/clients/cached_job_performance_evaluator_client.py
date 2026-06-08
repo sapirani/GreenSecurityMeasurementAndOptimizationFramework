@@ -11,7 +11,7 @@ from DTOs.hadoop.drl.training.training_step_results import TrainingStepResults
 from enum import Enum
 from elasticsearch_dsl import Search, Q
 from DTOs.logging.consts import IndexName
-from typing import Optional, Dict, List, Union
+from typing import Optional, Dict, List, Union, Tuple
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
@@ -58,6 +58,30 @@ class CachedHadoopJobPerformanceEvaluatorClient:
     def stop(self):
         self.job_performance_evaluator_client.stop()
 
+    @staticmethod
+    def _compute_similarity_weights(
+            similarity_scores: Dict[DocumentID, float],
+            factor: float
+    ) -> Tuple[List[DocumentID], np.ndarray]:
+
+        ids = list(similarity_scores)
+        values = np.array([similarity_scores[_id] for _id in ids], dtype=float)
+
+        # Note: to prevent high values, we reduce the maximum score from all exponents
+        weights = np.exp(factor * values - np.max(values))
+        weights /= weights.sum()
+
+        return ids, weights
+
+    @staticmethod
+    def _weighted_mean_std(
+            values: np.ndarray,
+            weights: np.ndarray
+    ) -> Tuple[float, float]:
+        mean = float(np.average(values, weights=weights))
+        variance = float(np.average((values - mean) ** 2, weights=weights))
+        return mean, math.sqrt(variance)
+
     def _calc_simulated_job_performance(
             self,
             similar_execution_results: Dict[DocumentID, JobExecutionPerformance],
@@ -69,85 +93,35 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         properties of the requested job.
         """
         assert len(similar_execution_results) > 1
+        assert set(similarity_scores) <= set(similar_execution_results)
 
-        # Note: to prevent high values, we may reduce the maximum score from all exponents
-        max_score = max(similarity_scores.values())
-        sum_exponents = sum(
-            math.exp(self.cached_results_utilization_policy.similarity_factor * score - max_score)
-            for score in similarity_scores.values()
+        document_ids, weights = self._compute_similarity_weights(
+            similarity_scores,
+            self.cached_results_utilization_policy.similarity_factor
         )
 
-        similarity_weights = {
-            _id: math.exp(self.cached_results_utilization_policy.similarity_factor * score - max_score) / sum_exponents
-            for _id, score in similarity_scores.items()
-        }
-
         running_times_sec = np.array(
-            [
-                similar_execution_results[_id].running_time_sec
-                for _id in similarity_weights
-            ],
+            [similar_execution_results[_id].running_time_sec for _id in document_ids],
             dtype=float
         )
 
         energies_mwh = np.array(
-            [
-                similar_execution_results[_id].energy_use_mwh
-                for _id in similarity_weights
-            ],
+            [similar_execution_results[_id].energy_use_mwh for _id in document_ids],
             dtype=float
         )
 
-        weights = np.array(
-            [
-                similarity_weights[_id]
-                for _id in similarity_weights
-            ],
-            dtype=float
-        )
-
-        # weighted means
-        mean_running_time_sec = float(
-            np.average(running_times_sec, weights=weights)
-        )
-
-        mean_energy_mwh = float(
-            np.average(energies_mwh, weights=weights)
-        )
-
-        # weighted variances
-        var_running_time_sec = float(
-            np.average(
-                (running_times_sec - mean_running_time_sec) ** 2,
-                weights=weights
-            )
-        )
-
-        var_energy_mwh = float(
-            np.average(
-                (energies_mwh - mean_energy_mwh) ** 2,
-                weights=weights
-            )
-        )
-
-        std_running_time_sec = math.sqrt(var_running_time_sec)
-        std_energy_mwh = math.sqrt(var_energy_mwh)
+        mean_running_time_sec, std_running_time_sec = self._weighted_mean_std(running_times_sec, weights)
+        mean_energy_mwh, std_energy_mwh = self._weighted_mean_std(energies_mwh, weights)
 
         # TODO: CONSIDER LOGGING LARGE STANDARD DEVIATIONS AS WARNINGS
 
         # Gaussian noise proportional to std
         running_time_sec_noise = float(
-            np.random.normal(
-                loc=0.0,
-                scale=std_running_time_sec * results_noise_scale
-            )
+            np.random.normal(loc=0.0, scale=std_running_time_sec * results_noise_scale)
         )
 
         energy_mwh_noise = float(
-            np.random.normal(
-                loc=0.0,
-                scale=std_energy_mwh * results_noise_scale
-            )
+            np.random.normal(loc=0.0, scale=std_energy_mwh * results_noise_scale)
         )
 
         return JobExecutionPerformance(
@@ -158,7 +132,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             std_energy_mwh=std_energy_mwh,
             selected_running_time_sec_noise=running_time_sec_noise,
             selected_energy_use_mwh_noise=energy_mwh_noise,
-            similarity_weights=similarity_weights,
+            similarity_weights=dict(zip(document_ids, weights)),
         )
 
     @staticmethod
