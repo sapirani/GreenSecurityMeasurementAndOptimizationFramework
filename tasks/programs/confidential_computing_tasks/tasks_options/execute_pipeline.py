@@ -55,16 +55,15 @@ def get_message(messages_file_path: str, alg: SecurityAlgorithm, action: ActionT
 
 
 def save_messages_for_pipeline(messages: list, results_path: str, alg: SecurityAlgorithm, action: ActionType,
-                               starting_index: int):
+                               should_override: bool):
     """
-    Save the messages after performing the given operation of them using the given algorithm.
+    Save the messages after performing the given operation on them using the given algorithm.
     Input:
         - messages: List of messages to save.
         - results_path: Path to the file where the messages should be saved.
         - action: The type of operation that was performed on the messages.
         - starting_index: Index of the first message that was read.
     """
-    should_override = is_new_execution(starting_index)
     if action == ActionType.Encryption:
         alg.save_encrypted_messages(messages, results_path, should_override)
     # If decryption or full pipeline, optionally save decrypted ints as text
@@ -120,8 +119,11 @@ def execute_regular_pipeline(action_type: ActionType) -> list[int]:
             storage.transformed_messages = transformed_messages
             storage.save_checkpoint()
             break
+
+
+    should_override = is_new_execution(last_message_index)
     save_messages_for_pipeline(transformed_messages, params.path_for_result_messages, encryption_instance, action_type,
-                               last_message_index)
+                               should_override)
 
     return transformed_messages
 

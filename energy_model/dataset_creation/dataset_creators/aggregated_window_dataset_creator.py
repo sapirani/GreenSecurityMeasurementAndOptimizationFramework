@@ -57,13 +57,13 @@ class AggregatedWindowDatasetCreator(EnergyPerSecondDatasetCreator):
         }
         metadata_cols = [col for col, agg in necessary_aggregations.items() if col not in rolling_aggs]
         grouped_df = df.groupby(COLUMNS_TO_GROUP_BY, group_keys=False)
-        dfs = self.__handle_windows(df, grouped_df, metadata_cols, rolling_aggs)
+        dfs = self.__handle_aggregations_on_rolling_windows(df, grouped_df, metadata_cols, rolling_aggs)
 
         df_orig = df.reset_index(drop=True).copy()
         final_df = pd.concat([df_orig, *dfs], ignore_index=True)
         return final_df
 
-    def __handle_windows(self, original_df: pd.DataFrame, grouped_df: DataFrameGroupBy, metadata_columns: list[str],
+    def __handle_aggregations_on_rolling_windows(self, original_df: pd.DataFrame, grouped_df: DataFrameGroupBy, metadata_columns: list[str],
                          rolling_aggregations: dict[str, str]) -> list[pd.DataFrame]:
         dfs = []
         for w in WINDOW_SIZES:
