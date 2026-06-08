@@ -1,3 +1,4 @@
+import sys
 from abc import ABC, abstractmethod
 from typing import Callable, Union
 
@@ -11,7 +12,7 @@ from energy_model.dataset_creation.raw_telemetry_readers.raw_telemetry_reader im
 from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
 
 
-DEFAULT_DURATIONS_BETWEEN_SAMPLES = ()
+DEFAULT_DURATIONS_BETWEEN_SAMPLES = (sys.maxsize, )
 
 class DatasetCreator(ABC):
     """
@@ -34,25 +35,71 @@ class DatasetCreator(ABC):
 
         full_df = pd.DataFrame()
         for batch_interval in self.__batch_time_intervals:
-            if len(self.__durations_between_samples) > 0:
-                previous_duration_threshold = 0
-                full_df_for_interval = pd.DataFrame()
-                for current_duration_threshold in self.__durations_between_samples:
-                    duration_based_df = df[(df[SystemColumns.DURATION_COL] > previous_duration_threshold) &
-                                           (df[SystemColumns.DURATION_COL] <= current_duration_threshold)]
-                    previous_duration_threshold = current_duration_threshold
-                    full_df_for_duration = self.__process_single_time_interval(duration_based_df, batch_interval)
-                    full_df_for_interval = pd.concat([full_df_for_interval, full_df_for_duration], ignore_index=True)
-
-
-            else:
-                full_df_for_interval = self.__process_single_time_interval(df, batch_interval)
-
+            full_df_for_interval = self.__get_batch_based_df(df, batch_interval)
             full_df = pd.concat([full_df, full_df_for_interval], ignore_index=True)
 
         return full_df
 
+    def __get_batch_based_df(self, full_df: pd.DataFrame, batch_size: int) -> pd.DataFrame:
+        """
+        For a given batch size, the method splits the given dataframe into sub-dataframes by duration thresholds. For each sub-dataframe it performs processing.
+        The concatenation helps with extending the dataset.
+
+        ! In the future, for finding a duration threshold that defines when to use real-time model and long-term model:
+        We need to train regression models on different duration ranges.
+        In that case, we don't need to concat the dataframes, and we should return each one of them separately.
+        We can concat different dataframes based on these durations.
+        Input:
+            - full_df: the full original dataframe
+            - batch_size: the batch interval to process the samples by
+        Output:
+            - concatenated dataframe with all duration-based thresholds for the given batch size
+        """
+        full_df_for_interval = pd.DataFrame()
+        previous_duration_threshold = 0
+
+        for current_duration_threshold in self.__durations_between_samples:
+            full_df_for_duration = self.__get_duration_based_df(full_df, batch_size,
+                                                                previous_duration_threshold,
+                                                                current_duration_threshold)
+            previous_duration_threshold = current_duration_threshold
+            full_df_for_interval = pd.concat([full_df_for_interval, full_df_for_duration], ignore_index=True)
+
+        return full_df_for_interval
+
+    def __get_duration_based_df(self, full_df: pd.DataFrame, batche_size:int, minimal_duration: int, maximal_duration: int) -> pd.DataFrame:
+        """
+        The method processes samples that their duration matches the given range, while splitting these samples into batches of batch_size samples.
+        Input:
+            - full_df: the full original dataframe
+            - batch_size: the batch interval to process the samples by
+            - minimal_duration: the processed sample's duration should be grater than this value
+            - maximal_duration: the processed sample's duration should be lower or equal to this value
+        Output:
+            - Processed dataframe representing samples with duration in a given range.
+
+        For example, given minimal duration of 10 seconds and maximal duration of 30 seconds, we filter from the original dataset the samples with 10 < duration <= 30.
+        Then, we split them into batches, where the total duration of the batch (the sum over the duration of all samples in that batch) is batch_size.
+        We process each batch separately.
+        """
+        duration_based_df = full_df[(full_df[SystemColumns.DURATION_COL] > minimal_duration) &
+                                    (full_df[SystemColumns.DURATION_COL] <= maximal_duration)]
+        full_df_for_duration = self.__process_single_time_interval(duration_based_df, batche_size)
+        return full_df_for_duration
+
     def __process_single_time_interval(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
+        """
+        The method processes a single dataframe by splitting it to batches and handling each batch with:
+        * adding batch id
+        * adding target column
+        * filter last record in the batch if the last batch duration is much smaller than batch_duration_seconds
+        * remove unnecessary columns
+        Input:
+            - df: The dataframe to be processed
+            - batch_duration_seconds: the duration of each batch of samples
+        Output:
+            - Processed dataframe
+        """
         full_df_with_batch_id = self.__add_batch_id(df, batch_duration_seconds)
         self.__check_dataset_validity(full_df_with_batch_id)
 
