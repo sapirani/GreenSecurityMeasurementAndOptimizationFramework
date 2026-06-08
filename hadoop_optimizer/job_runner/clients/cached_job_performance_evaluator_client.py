@@ -114,6 +114,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         mean_energy_mwh, std_energy_mwh = self._weighted_mean_std(energies_mwh, weights)
 
         # TODO: CONSIDER LOGGING LARGE STANDARD DEVIATIONS AS WARNINGS
+        # TODO: CONSIDER RUNNING THE JOB WITHOUT SIMULATIONS IF THE STANDARD DEVIATION IS TOO LARGE
 
         # Gaussian noise proportional to std
         running_time_sec_noise = float(
