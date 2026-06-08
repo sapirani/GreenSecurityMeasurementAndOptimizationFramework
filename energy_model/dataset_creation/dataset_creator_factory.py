@@ -47,15 +47,20 @@ class DatasetCreatorFactory:
         dataset_reader = DatasetCreatorFactory.telemetry_reader_factory(dataset_reader_choice)
 
         if dataset_creator_choice == DatasetCreatorType.WithProcessRatio:
-            return ProcessesRatioDatasetCreator(target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
+            return ProcessesRatioDatasetCreator(
+                target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
         elif dataset_creator_choice == DatasetCreatorType.WithEnergyAggregation:
-            return AggregatedDatasetCreator(target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
+            return AggregatedDatasetCreator(
+                target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
         elif dataset_creator_choice == DatasetCreatorType.WithAggregation:
-            return AggregatedDatasetCreator(target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
+            return AggregatedDatasetCreator(
+                target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
         elif dataset_creator_choice == DatasetCreatorType.Basic:
-            return EnergyPerSecondDatasetCreator(target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
+            return EnergyPerSecondDatasetCreator(
+                target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
         elif dataset_creator_choice == DatasetCreatorType.WithWindowAggregation:
-            return AggregatedWindowDatasetCreator(target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
+            return AggregatedWindowDatasetCreator(
+                target_calculator, dataset_reader, batch_time_intervals, should_filter_batches)
         else:
             raise ValueError(f"Dataset Creator Type {dataset_creator_choice} is not supported!")
 
