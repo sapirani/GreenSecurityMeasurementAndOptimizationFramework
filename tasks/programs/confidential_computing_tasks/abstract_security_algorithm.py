@@ -22,6 +22,13 @@ class SecurityAlgorithm(ABC, Generic[T]):
         return pickle.loads(msg)
 
     def save_encrypted_messages(self, encrypted_messages: list[T], file_name: str, should_override_file: bool):
+        """
+        Method that saves encrypted messages to a file. We first serialize the message and then write them to a file in bytes.
+        Input:
+            - encrypted_messages: a list of encrypted messages
+            - file_name: the name of the file to save the encrypted messages to
+            - should_override_file: whether or not to save the encrypted messages to a new file. If not, append the new messages to the end of the file.
+        """
         serializable_messages = self._get_serializable_encrypted_messages(encrypted_messages)
         try:
             mode = "wb" if should_override_file else "ab"
@@ -31,13 +38,29 @@ class SecurityAlgorithm(ABC, Generic[T]):
             print("Something went wrong with saving the encrypted messages")
 
     def load_encrypted_messages(self, file_name: str, starting_index: int) -> Generator[T, None, None]:
+        """
+        This method reads encrypted messages from file (that are serialized), and deserializes them.
+        In order to handle large files, we read a portion of the messages (using pickle.load) and deserialize each message separately.
+        The method can use a starting_index which mentions what was the index of the last message that was loaded (for cases where the computer shuts down but the experiment is not over).
+        Input:
+            - file_name: the name of the file to load (the file that contains encrypted messages)
+            - starting_index: the index of the message that should be loaded now
+        Output:
+            - Generator that yields deserialized messages
+        """
         try:
             if os.path.exists(file_name):
                 with open(f"{file_name}", 'rb') as messages_file:
                     while True:
                         try:
+                            # the pickle.load method knows to read an entire object from the current place (pointer) in the file.
+                            # the object that should be loaded is a list of messages
+                            # this mechanism should handle cases of large files and avoid crashing over using too much memory
+                            # for example, when the experiment of encrypting messages crushed at least once and there are a lot of messages to encrypt.
                             encrypted_messages_portion = pickle.load(messages_file)
                             print("LEN: {}".format(len(encrypted_messages_portion)))
+
+                            # check if these messages were already read and deserialized in a previous experiment
                             if len(encrypted_messages_portion) > starting_index:
                                 encrypted_messages_portion = encrypted_messages_portion[starting_index:]
                                 starting_index = 0
@@ -47,6 +70,7 @@ class SecurityAlgorithm(ABC, Generic[T]):
                             else:
                                 starting_index -= len(encrypted_messages_portion)
                         except EOFError:
+                            # when the pickle.load is done reading all objects in the file
                             break
 
 
