@@ -168,7 +168,14 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             param_range: Range
     ) -> SimilarityScore:
         soft_range = max(param_range.high - param_range.low, 1e-9)
-        assert abs(desired_val - similar_val) <= soft_range
+
+        if abs(desired_val - similar_val) > soft_range:
+            raise ValueError(
+                f"Values diff should not exceed the parameter range size. \n"
+                f"Diff: {desired_val}. \n"
+                f"Range size: {soft_range} [{param_range.low},{param_range.high}]"
+            )
+
         return SimilarityScore(1 - (abs(desired_val - similar_val) / soft_range))
 
     @staticmethod

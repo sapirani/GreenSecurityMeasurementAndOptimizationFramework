@@ -167,5 +167,5 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         selected_input_size_index = np_random.integers(0, len(supported_input_size_gb), dtype=int)
         return supported_input_size_gb[selected_input_size_index]
 
-    def close(self) -> None:
+    def close(self):
         self.training_client.stop()
