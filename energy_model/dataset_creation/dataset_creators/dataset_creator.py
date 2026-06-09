@@ -96,7 +96,7 @@ class DatasetCreator(ABC):
         * remove unnecessary columns
         Input:
             - df: The dataframe to be processed
-            - batch_duration_seconds: the duration of each batch of samples
+            - batch_duration_seconds: the duration of each batch of samples. Total duration of all samples in this batch should be <= batch_duration_seconds
         Output:
             - Processed dataframe
         """

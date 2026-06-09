@@ -42,6 +42,8 @@ class SecurityAlgorithm(ABC, Generic[T]):
         This method reads encrypted messages from file (that are serialized), and deserializes them.
         In order to handle large files, we read a portion of the messages (using pickle.load) and deserialize each message separately.
         The method can use a starting_index which mentions what was the index of the last message that was loaded (for cases where the computer shuts down but the experiment is not over).
+
+        The partial reading is relevant in cases of calling `save_encrypted_messages` at least two times. Each time, list of encrypted messages is saved as a full object, so the portion matches such one list.
         Input:
             - file_name: the name of the file to load (the file that contains encrypted messages)
             - starting_index: the index of the message that should be loaded now
