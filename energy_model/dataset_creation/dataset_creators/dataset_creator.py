@@ -11,14 +11,15 @@ from energy_model.dataset_creation.dataset_creation_config import DEFAULT_BATCH_
 from energy_model.dataset_creation.raw_telemetry_readers.raw_telemetry_reader import RawTelemetryReader
 from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
 
+DEFAULT_DURATIONS_BETWEEN_SAMPLES = (sys.maxsize,)
 
-DEFAULT_DURATIONS_BETWEEN_SAMPLES = (sys.maxsize, )
 
 class DatasetCreator(ABC):
     """
     Class for processing the telemetry data and calculating the energy usage of each sample.
     The data is retrieved from elastic.
     """
+
     def __init__(self, target_calculator: TargetCalculator, dataset_reader: RawTelemetryReader,
                  batch_time_intervals: list[int] = None, single_process_only: bool = DEFAULT_FILTERING_SINGLE_PROCESS):
         if batch_time_intervals is None:
@@ -34,13 +35,13 @@ class DatasetCreator(ABC):
         df = self.__dataset_reader.read_dataset()
 
         full_df = pd.DataFrame()
-        for batch_interval in self.__batch_time_intervals:
-            full_df_for_interval = self.__get_batch_based_df(df, batch_interval)
+        for max_aggregated_duration_in_batch in self.__batch_time_intervals:
+            full_df_for_interval = self.__get_batch_based_df(df, max_aggregated_duration_in_batch)
             full_df = pd.concat([full_df, full_df_for_interval], ignore_index=True)
 
         return full_df
 
-    def __get_batch_based_df(self, full_df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
+    def __get_batch_based_df(self, full_df: pd.DataFrame, max_aggregated_duration_in_batch: int) -> pd.DataFrame:
         """
         For a given batch size, the method splits the given dataframe into sub-dataframes by duration thresholds. For each sub-dataframe it performs processing.
         The concatenation helps with extending the dataset.
@@ -51,7 +52,7 @@ class DatasetCreator(ABC):
         We can concat different dataframes based on these durations.
         Input:
             - full_df: the full original dataframe
-            - batch_duration_seconds: the duration of each batch of samples
+            - max_aggregated_duration_in_batch: the duration of each batch of samples
         Output:
             - concatenated dataframe with all duration-based thresholds for the given batch size
         """
@@ -59,7 +60,7 @@ class DatasetCreator(ABC):
         previous_duration_threshold = 0
 
         for current_duration_threshold in self.__durations_thresholds:
-            full_df_for_duration = self.__get_duration_based_df(full_df, batch_duration_seconds,
+            full_df_for_duration = self.__get_duration_based_df(full_df, max_aggregated_duration_in_batch,
                                                                 previous_duration_threshold,
                                                                 current_duration_threshold)
             previous_duration_threshold = current_duration_threshold
@@ -67,12 +68,13 @@ class DatasetCreator(ABC):
 
         return full_df_for_interval
 
-    def __get_duration_based_df(self, full_df: pd.DataFrame, batch_duration_seconds:int, minimal_duration: int, maximal_duration: int) -> pd.DataFrame:
+    def __get_duration_based_df(self, full_df: pd.DataFrame, max_aggregated_duration_in_batch: int,
+                                minimal_duration: int, maximal_duration: int) -> pd.DataFrame:
         """
-        The method processes samples that their duration matches the given range, while splitting these samples into batches of batch_size samples.
+        The method processes samples that their duration matches the given range, while splitting these samples into batches of max_aggregated_duration_in_batch total duration.
         Input:
             - full_df: the full original dataframe
-            - batch_duration_seconds: the duration of each batch of samples
+            - max_aggregated_duration_in_batch: the duration of each batch of samples
             - minimal_duration: the processed sample's duration should be grater than this value
             - maximal_duration: the processed sample's duration should be lower or equal to this value
         Output:
@@ -84,40 +86,42 @@ class DatasetCreator(ABC):
         """
         duration_based_df = full_df[(full_df[SystemColumns.DURATION_COL] > minimal_duration) &
                                     (full_df[SystemColumns.DURATION_COL] <= maximal_duration)]
-        full_df_for_duration = self.__process_single_time_interval(duration_based_df, batch_duration_seconds)
+        full_df_for_duration = self.__process_single_time_interval(duration_based_df, max_aggregated_duration_in_batch)
         return full_df_for_duration
 
-    def __process_single_time_interval(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
+    def __process_single_time_interval(self, df: pd.DataFrame, max_aggregated_duration_in_batch: int) -> pd.DataFrame:
         """
         The method processes a single dataframe by splitting it to batches and handling each batch with:
         * adding batch id
         * adding target column
-        * filter last record in the batch if the last batch duration is much smaller than batch_duration_seconds
+        * filter last record in the batch if the last batch duration is much smaller than max_aggregated_duration_in_batch
         * remove unnecessary columns
         Input:
             - df: The dataframe to be processed
-            - batch_duration_seconds: the duration of each batch of samples. Total duration of all samples in this batch should be <= batch_duration_seconds
+            - max_aggregated_duration_in_batch: the duration of each batch of samples. Total duration of all samples in this batch should be <= max_aggregated_duration_in_batch
         Output:
             - Processed dataframe
         """
-        full_df_with_batch_id = self.__add_batch_id(df, batch_duration_seconds)
+        full_df_with_batch_id = self.__add_batch_id(df, max_aggregated_duration_in_batch)
         self.__check_dataset_validity(full_df_with_batch_id)
 
         # todo: handle energy calculations with several sessions in the same batch
-        full_df_for_interval = self.__extend_df_with_target(full_df_with_batch_id, batch_duration_seconds)
+        full_df_for_interval = self.__extend_df_with_target(full_df_with_batch_id, max_aggregated_duration_in_batch)
         full_df_for_interval = self.__filter_last_batch_records(full_df_for_interval)
         full_df_for_interval = self._remove_temporary_columns(full_df_for_interval)
         return full_df_for_interval
 
-    def __add_batch_id(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
+    def __add_batch_id(self, df: pd.DataFrame, max_aggregated_duration_in_batch: int) -> pd.DataFrame:
         df = df.copy()
 
         # Group by session id.
         # For each group, calculate time delta of each sample (time passed since the beginning of the session).
-        # Then, split the time delta by batch_duration_seconds to define the index of the batch.
+        # Then, split the time delta by max_aggregated_duration_in_batch to define the index of the batch.
         df[SystemColumns.BATCH_ID_COL] = df[SystemColumns.SESSION_ID_COL] + '_' + (
             df.groupby(SystemColumns.SESSION_ID_COL)[TIMESTAMP_COLUMN_NAME]
-            .transform(lambda x: ((x - x.min()).dt.total_seconds() // batch_duration_seconds).astype(int).astype(str))
+            .transform(
+                lambda x: ((x - x.min()).dt.total_seconds() // max_aggregated_duration_in_batch).astype(int).astype(
+                    str))
         )
 
         return df
@@ -200,7 +204,6 @@ class DatasetCreator(ABC):
 
     def get_dataset_file_name(self, dir_path: str) -> str:
         return f"{dir_path}\\{self.get_name()}_{self.__dataset_reader.get_name()}_{self.__target_calculator.get_name()}.csv"
-
 
     @abstractmethod
     def _add_energy_necessary_columns(self, df: pd.DataFrame, batch_duration_seconds: int) -> pd.DataFrame:
