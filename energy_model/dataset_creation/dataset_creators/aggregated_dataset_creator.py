@@ -3,7 +3,8 @@ from overrides import override
 
 from energy_model.configs.columns import ProcessColumns, SystemColumns
 from energy_model.dataset_creation.dataset_creation_config import DEFAULT_FILTERING_SINGLE_PROCESS
-from energy_model.dataset_creation.dataset_creators.energy_per_second_dataset_creator import EnergyPerSecondDatasetCreator
+from energy_model.dataset_creation.dataset_creators.energy_per_second_dataset_creator import \
+    EnergyPerSecondDatasetCreator
 from energy_model.dataset_creation.raw_telemetry_readers.raw_telemetry_reader import RawTelemetryReader
 from energy_model.dataset_creation.target_calculators.target_calculator import TargetCalculator
 
@@ -13,6 +14,7 @@ class AggregatedDatasetCreator(EnergyPerSecondDatasetCreator):
     This class represents the basic reading from elastic for the sake of dataset creation.
     Aggregations on every process telemetry per batch.
     """
+
     def __init__(self, target_calculator: TargetCalculator, dataset_reader: RawTelemetryReader,
                  batch_time_intervals: list[int] = None, single_process_only: bool = DEFAULT_FILTERING_SINGLE_PROCESS):
         super().__init__(target_calculator=target_calculator, dataset_reader=dataset_reader,

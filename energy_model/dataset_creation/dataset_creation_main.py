@@ -37,6 +37,7 @@ def print_dataset_creator_type() -> DatasetCreatorType:
     print("2. Aggregate - Each batch contains a single sample per process where the telemetry is summed.")
     print("3. Energy based Aggregate - Same aggregations as option 2, but the energy usage of the system equals to the battery drain.")
     print("4. Processes Ratio - If a batch contains more than one process, calculate the impact of this process on the energy usage of the entire batch.")
+    print("5. With Window Aggregations - Sum samples in a sliding window in each batch.")
     return DatasetCreatorType(int(input("Please enter your choice: ")))
 
 

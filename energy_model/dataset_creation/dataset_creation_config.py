@@ -26,8 +26,8 @@ COLUMNS_TO_SUM = [SystemColumns.CPU_SYSTEM_COL, ProcessColumns.CPU_PROCESS_COL,
 
 class AggregationName(str, Enum):
     SUM = "sum"
-    FIRST_SAMPLE = "first"
-    LAST_SAMPLE = "last"
+    FIRST_SAMPLE = "first" # get the value of the first row in the relevant column
+    LAST_SAMPLE = "last" # get the value of the last row in the relevant column
 
 class RawTelemetryReaderType(Enum):
     ProcessOfInterest = 1
@@ -38,6 +38,7 @@ class DatasetCreatorType(Enum):
     WithAggregation = 2
     WithEnergyAggregation = 3
     WithProcessRatio = 4
+    WithWindowAggregation = 5
 
 class TargetCalculatorType(Enum):
     SystemBased = 1
