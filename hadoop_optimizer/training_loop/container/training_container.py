@@ -15,6 +15,7 @@ from DTOs.hadoop.drl.training.episode_context import EpisodeContext
 from DTOs.logging.consts import LoggerName, IndexName
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 from application_logging.logging_utils import get_measurement_logger
+from common.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 from elastic_reader.consts import TimePickerInputStrategy
 from elastic_reader.elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
 from hadoop_optimizer.common.env_composition_config.env_builder import build_env
@@ -107,8 +108,20 @@ class TrainingContainer(containers.DeclarativeContainer):
         truncated_penalty=config.drl.reward.truncated_penalty
     )
 
-    # todo: think about what to do with the telemetry aggregator, is it necessary?
-    telemetry_aggregator = Mock()
+    _telemetry_aggregator: Provider[TelemetryAggregator] = providers.Singleton(
+        TelemetryAggregator,
+        time_windows_seconds=config.drl.state.time_windows_seconds,
+        split_by=config.drl.state.split_by,
+    )
+
+    telemetry_aggregator: Provider[TelemetryAggregator] = providers.Callable(
+        lambda leverage_telemetry_in_state, telemetry_aggregator,
+               mock: telemetry_aggregator() if leverage_telemetry_in_state else mock(),
+        config.drl.state.leverage_telemetry_in_state,
+        _telemetry_aggregator.provider,
+        providers.Factory(Mock),
+    )
+
     training_client: Provider[CachedHadoopJobPerformanceEvaluatorClient] = providers.Factory(
         CachedHadoopJobPerformanceEvaluatorClient,
         elastic_url=config.elastic.url,

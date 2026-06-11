@@ -9,6 +9,7 @@ from DTOs.logging.consts import IndexName
 from elastic_reader.elastic_reader_parameters import ES_URL, ES_PASS, ES_USER
 from hadoop_optimizer.training_loop.container.training_container import TrainingContainer
 
+MINUTE = 60
 MODELS_DIR_NAME = "models"
 INTERMEDIATE_MODELS_NAMES_DIR_NAME = "intermediate_models"
 FINAL_MODEL_PREFIX = "trained_"
@@ -66,6 +67,9 @@ if __name__ == '__main__':
     container.config.drl.storage.models_base_dir.from_value(os.path.dirname(os.path.abspath(__file__)))
     container.config.drl.storage.save_freq.from_value(100)
     container.config.drl.env.max_episode_steps.from_value(50)
+    container.config.drl.state.split_by.from_value("hostname")
+    container.config.drl.state.leverage_telemetry_in_state.from_value(False)
+    container.config.drl.state.time_windows_seconds.from_value([1 * MINUTE, 5 * MINUTE, 10 * MINUTE, 20 * MINUTE])
     container.config.drl.cached_results.search_since.from_value(datetime(year=2026, month=5, day=29))
     container.config.drl.cached_results.force_real_execution_probability.from_value(0.001)
     container.config.drl.cached_results.utilization_policy.max_param_diff_percent.from_value(27)

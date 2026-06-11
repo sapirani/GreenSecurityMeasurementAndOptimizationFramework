@@ -20,13 +20,13 @@ MINUTE = 60
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Starting Elastic reader in the background")
+    print("Starting Elastic Reader Service in the background")
     elastic_reader_service = app.container.elastic_reader_service()
     elastic_reader_service.start_in_background()
     try:
         yield
     finally:
-        print("Stopping Elastic reader service")
+        print("Stopping Elastic Reader Service")
         elastic_reader_service.stop()
 
 
@@ -67,6 +67,7 @@ if __name__ == '__main__':
     container.config.elastic.indices_to_read_from.from_value([IndexName.PROCESS_METRICS, IndexName.SYSTEM_METRICS])
     container.config.drl.env.max_episode_steps.from_value(100)
     container.config.drl.state.split_by.from_value("hostname")
+    container.config.drl.state.leverage_telemetry_in_state.from_value(False)
     container.config.drl.state.time_windows_seconds.from_value([1 * MINUTE, 5 * MINUTE, 10 * MINUTE, 20 * MINUTE])
     container.wire(modules=[__name__])
     app.container = container

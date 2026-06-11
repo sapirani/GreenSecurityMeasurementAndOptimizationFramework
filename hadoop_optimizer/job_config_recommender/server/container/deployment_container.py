@@ -1,4 +1,5 @@
 from datetime import datetime
+from unittest.mock import Mock
 
 import gymnasium as gym
 from dependency_injector import containers, providers
@@ -31,16 +32,24 @@ class DeploymentContainer(containers.DeclarativeContainer):
         ))
     )
 
-    telemetry_aggregator: Provider[TelemetryAggregator] = providers.Singleton(
+    _telemetry_aggregator: Provider[TelemetryAggregator] = providers.Singleton(
         TelemetryAggregator,
         time_windows_seconds=config.drl.state.time_windows_seconds,
         split_by=config.drl.state.split_by,
     )
 
+    telemetry_aggregator: Provider[TelemetryAggregator] = providers.Callable(
+        lambda leverage_telemetry_in_state, telemetry_aggregator, mock: telemetry_aggregator() if leverage_telemetry_in_state else mock(),
+        config.drl.state.leverage_telemetry_in_state,
+        _telemetry_aggregator.provider,
+        providers.Factory(Mock),
+    )
+
     elastic_reader_service: Provider[ElasticReaderService] = providers.Singleton(
+        ElasticReaderService,
+        consumers=providers.List(telemetry_aggregator),
         aggregation_strategy=AggregationStrategy.CALCULATE,
         time_picker_input=drl_time_picker_input,
-        consumers=[telemetry_aggregator],
         indices_to_read_from=config.elastic.indices_to_read_from,
     )
 
