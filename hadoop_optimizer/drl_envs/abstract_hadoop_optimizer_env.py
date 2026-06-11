@@ -156,7 +156,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         self._current_hadoop_config = self._get_next_execution_config(action)
 
         self._extra_step_init()
-        self._compute_reward(self._current_hadoop_config, terminated, truncated)
+        self._compute_reward(self._current_hadoop_config, terminated=terminated, truncated=truncated)
 
         # TODO: CONSIDER RETURNING MORE DEBUGGING INFO, such as the current cluster load
         info.update({CURRENT_JOB_CONFIG_KEY: self._current_hadoop_config.model_dump()})
@@ -207,7 +207,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         pass
 
     @abstractmethod
-    def _compute_reward(self, job_config: HadoopJobExecutionConfig, terminated: bool, truncated: bool) -> float:
+    def _compute_reward(self, job_config: HadoopJobExecutionConfig, *, terminated: bool, truncated: bool) -> float:
         """
         This function is applied whenever a step is performed
         :param job_config: the current job config to run, measure its performance and compute reward accordingly

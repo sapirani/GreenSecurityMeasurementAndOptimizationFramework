@@ -150,15 +150,14 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         assert self.__episodic_job_descriptor is not None
         return SupportedJobsConfig.extract_job_properties(self.__episodic_job_descriptor)
 
-    def _compute_reward(self, job_config: HadoopJobExecutionConfig, terminated: bool, truncated: bool) -> float:
+    def _compute_reward(self, job_config: HadoopJobExecutionConfig, *, terminated: bool, truncated: bool) -> float:
         self.__current_step_performance = self.__run_job_and_measure_performance(job_config, is_last_step=terminated)
         assert self.__current_step_performance is not None
 
         self.__current_step_reward = self.reward_calculator.compute_reward(
             self.__current_step_performance,
-            # TODO: SHOULD IT BE ONLY terminated? AS TRUNCATED IS NOT INTENTIONAL BY THE AGENT.
-            #  MAYBE HAVE A SEPARATE REWARD FOR THE CASE OF TRUNCATED?
-            terminated or truncated
+            is_last_step=terminated,
+            is_truncated=truncated
         )
 
         self.__log_results(

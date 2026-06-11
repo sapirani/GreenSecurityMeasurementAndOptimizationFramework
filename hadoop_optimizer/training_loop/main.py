@@ -79,6 +79,7 @@ if __name__ == '__main__':
     container.config.drl.reward.epsilon.from_value(2)
     container.config.drl.reward.tau.from_value(0.05)
     container.config.drl.reward.delta.from_value(0.95)
+    container.config.drl.reward.truncated_penalty.from_value(-150.0)
     container.config.elastic.username.from_value(ES_USER)
     container.config.elastic.password.from_value(ES_PASS)
     container.config.elastic.url.from_value(ES_URL)

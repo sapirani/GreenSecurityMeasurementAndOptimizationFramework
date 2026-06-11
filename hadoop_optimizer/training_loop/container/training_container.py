@@ -104,6 +104,7 @@ class TrainingContainer(containers.DeclarativeContainer):
         epsilon=config.drl.reward.epsilon,
         tau=config.drl.reward.tau,
         delta=config.drl.reward.delta,
+        truncated_penalty=config.drl.reward.truncated_penalty
     )
 
     # todo: think about what to do with the telemetry aggregator, is it necessary?

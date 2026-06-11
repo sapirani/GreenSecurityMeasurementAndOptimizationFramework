@@ -25,6 +25,7 @@ class RewardCalculator:
             epsilon: float,
             tau: float = 0.5,
             delta: float = 0.5,
+            truncated_penalty: float = -150.0
     ):
         if not (alpha > 0 and beta > 0 and lambda_ > 0 and epsilon > 0 and
                 tau > 0 and delta > 0):
@@ -40,6 +41,7 @@ class RewardCalculator:
         self.__epsilon = epsilon
         self.__tau = tau
         self.__delta = delta
+        self.truncated_penalty = truncated_penalty
 
     def update_baseline_performance(self, baseline_job_performance: JobExecutionPerformance):
         self.baseline_performance = baseline_job_performance
@@ -59,7 +61,15 @@ class RewardCalculator:
 
         return self.__delta * runtime_gain + self.__tau * energy_gain
 
-    def compute_reward(self, job_performance: JobExecutionPerformance, is_last_step: bool) -> float:
+    def compute_reward(
+            self,
+            job_performance: JobExecutionPerformance,
+            is_last_step: bool,
+            is_truncated: bool,
+    ) -> float:
+        if is_truncated:
+            return self.truncated_penalty
+
         step_gain = self.__compute_step_gain(job_performance)
         is_last_step = int(is_last_step)
 
