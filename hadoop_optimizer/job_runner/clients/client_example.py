@@ -1,10 +1,10 @@
 from human_id import generate_id
 
+from DTOs.hadoop.drl.training.episode_context import EpisodeContext
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_types import JobType
 from hadoop_optimizer.job_runner.clients.job_performance_evaluator_client import HadoopJobPerformanceEvaluatorClient
-from DTOs.hadoop.drl.training.episode_context import EpisodeContext
 
 
 def main():
@@ -16,7 +16,7 @@ def main():
                 job_descriptor=job_descriptor,
                 execution_configuration=HadoopJobExecutionConfig(),
                 session_id=selected_id,
-                episode_context=EpisodeContext(episode_num=1, episode_step=1, is_baseline=True)
+                episode_context=EpisodeContext(episode_num=1, episode_step=1)
             )
         )
 

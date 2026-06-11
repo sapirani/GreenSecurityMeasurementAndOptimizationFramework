@@ -37,18 +37,14 @@ def get_scanner_extras(
         None,
         ge=0,
         description="The index of the current step withing the episode, must be >0"
-    ),
-    is_baseline: Optional[bool] = Query(
-        None,
-        description="Whether this run establishes the baseline performance for the current episode or not"
     )
 ) -> Optional[EpisodeContext]:
-    fields = [episode_num, episode_step, is_baseline]
+    fields = [episode_num, episode_step]
 
     if all(f is None for f in fields):
         return None
     if all(f is not None for f in fields):
-        return EpisodeContext(episode_num=episode_num, episode_step=episode_step, is_baseline=is_baseline)
+        return EpisodeContext(episode_num=episode_num, episode_step=episode_step)
 
     raise HTTPException(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

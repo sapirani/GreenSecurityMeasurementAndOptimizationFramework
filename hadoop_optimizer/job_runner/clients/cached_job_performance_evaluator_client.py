@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from DTOs.hadoop.consts import DocumentID, SimilarityScore
 from DTOs.hadoop.drl.training.cached_results_utilization_policy import CachedResultsUtilizationPolicy
+from DTOs.hadoop.drl.training.episode_context import EpisodeContext
 from DTOs.hadoop.drl.training.training_step_results import TrainingStepResults
 from enum import Enum
 from elasticsearch_dsl import Search, Q
@@ -16,7 +17,6 @@ from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
 from DTOs.range import Range
-from hadoop_optimizer.drl_envs.training.training_env import EpisodeContext
 from hadoop_optimizer.job_runner.clients.job_performance_evaluator_client import HadoopJobPerformanceEvaluatorClient
 from hadoop_optimizer.common.utils import get_full_field_name, is_enum_argument
 

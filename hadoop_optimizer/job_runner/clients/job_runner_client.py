@@ -3,10 +3,10 @@ from urllib.parse import urljoin
 
 import requests
 
+from DTOs.hadoop.drl.training.episode_context import EpisodeContext
 from DTOs.hadoop.drl.training.training_run_job_response import TrainingJobRunResponse
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
-from hadoop_optimizer.drl_envs.training.training_env import EpisodeContext
 from hadoop_optimizer.job_runner.clients.consts import DEFAULT_CHOOSE_CONFIG_ENDPOINT_NAME, DEFAULT_SERVER_PORT, \
     DEFAULT_SERVER_IP, SESSION_ID_PARAM_NAME
 
