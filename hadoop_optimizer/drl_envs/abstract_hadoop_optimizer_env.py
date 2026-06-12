@@ -67,6 +67,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         self._last_action: Optional[Dict[str, Any]] = None
         self.step_count = 0
         self.episode_counter = 0
+        self._cumulative_reward = 0
 
     @property
     def job_config_space(self) -> spaces.Dict:
@@ -133,6 +134,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         super().reset(seed=seed)
         self.step_count = 0
         self.episode_counter += 1
+        self._cumulative_reward = 0
 
         self._episodic_job_properties = self._init_episodic_job(options)
 
@@ -156,7 +158,9 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         self._current_hadoop_config = self._get_next_execution_config(action)
 
         self._extra_step_init()
-        self._compute_reward(self._current_hadoop_config, terminated=terminated, truncated=truncated)
+        self._cumulative_reward += self._compute_reward(
+            self._current_hadoop_config, terminated=terminated, truncated=truncated
+        )
 
         # TODO: CONSIDER RETURNING MORE DEBUGGING INFO, such as the current cluster load
         info.update({CURRENT_JOB_CONFIG_KEY: self._current_hadoop_config.model_dump()})

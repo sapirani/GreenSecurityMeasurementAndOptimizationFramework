@@ -57,6 +57,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         print("Episodic Baseline Performance:", self.reward_calculator.baseline_performance)
         print("Current Job Performance:", self.__current_step_performance)
         print("Current Step Reward:", self.__current_step_reward)
+        print("Episodic Cumulative Reward:", self._cumulative_reward + self.__current_step_reward)
 
     def __get_episode_context(
             self,
@@ -76,10 +77,14 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             job_config: HadoopJobExecutionConfig,
             job_performance: JobExecutionPerformance,
             step_reward: Optional[float] = None,
+            current_cumulative_reward: Optional[float] = None,
             *,
             is_baseline: bool = False,
             is_last_step: bool = False,
     ):
+        """
+        :param current_cumulative_reward: episodic reward (excluding the current step reward)
+        """
         assert self.__episodic_job_descriptor is not None
         if is_baseline and step_reward:
             raise ValueError("Reward values are not expected when logging the baseline performance")
@@ -98,6 +103,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             training_metadata=TrainingMetadata(episode_context=episode_context, progress_context=progress_context),
             job_performance=job_performance,
             step_reward=step_reward,
+            cumulative_reward=current_cumulative_reward
         )
 
         self.training_results_logger.info(
@@ -164,6 +170,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             job_config,
             self.__current_step_performance,
             self.__current_step_reward,
+            self._cumulative_reward,
             is_baseline=False,
             is_last_step=terminated,
         )
