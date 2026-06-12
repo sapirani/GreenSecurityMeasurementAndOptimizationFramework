@@ -44,7 +44,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
 
     def __init__(self, telemetry_aggregator: TelemetryAggregator):
         super().__init__()
-        self.render_mode = RenderMode.HUMAN  # must be defined for successful rendering in training
+        self.render_mode = RenderMode.HUMAN
         # TODO: SUPPORT CURRENT CLUSTER LOAD
         self.observation_space: spaces.Dict = spaces.Dict({
             JOB_PROPERTIES_KEY: self.job_properties_space,

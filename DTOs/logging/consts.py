@@ -1,3 +1,6 @@
+from enum import Enum
+
+
 class LoggerName:
     SYSTEM_METRICS = "system_metrics"
     PROCESS_METRICS = "process_metrics"
@@ -6,7 +9,7 @@ class LoggerName:
     DRL_TRAINING = "drl_training"
 
 
-class IndexName:
+class IndexName(str, Enum):
     SYSTEM_METRICS = "system_metrics"
     PROCESS_METRICS = "process_metrics"
     APPLICATION_FLOW = "application_flow"
