@@ -170,7 +170,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
                     getattr(training_step.job_config, field_name),
                     space_ranges[field_name],
                 )
-                for field_name, field in HadoopJobExecutionConfig.model_fields.items()
+                for field_name, field in HadoopJobExecutionConfig.model_fields.items() if field_name in space_ranges
             )
             similarity_scores[_id] = similarity_score / len(HadoopJobExecutionConfig.model_fields)
 
