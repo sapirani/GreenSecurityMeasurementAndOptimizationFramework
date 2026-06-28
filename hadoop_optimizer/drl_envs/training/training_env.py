@@ -47,7 +47,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
 
     def _extra_step_init(self):
         assert self.__episodic_job_descriptor is not None
-        self.training_progress_tracker.update_training_progress(self.__episodic_job_descriptor)
+        self.training_progress_tracker.update_training_progress(self.__episodic_job_descriptor, self.episode_counter)
 
     def _custom_rendering(self):
         assert self.__episodic_job_descriptor is not None
