@@ -15,7 +15,7 @@ from DTOs.hadoop.drl.training.episode_context import EpisodeContext
 from DTOs.logging.consts import LoggerName, IndexName
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 from application_logging.logging_utils import get_measurement_logger
-from common.drl_telemetry.telemetry_aggregator import TelemetryAggregator
+from hadoop_optimizer.common.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 from elastic_reader.consts import TimePickerInputStrategy
 from elastic_reader.elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
 from hadoop_optimizer.common.env_composition_config.env_builder import build_env
