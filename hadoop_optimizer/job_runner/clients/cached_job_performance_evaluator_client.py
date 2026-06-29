@@ -327,9 +327,13 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             **self.model_dump_with_full_names(config)
         }
 
+        full_name_similarity_ranges = {
+            CachedHadoopJobPerformanceEvaluatorClient.full_field_name(k): v for k, v in similarity_ranges.items()
+        }
+
         for field_name, value in query_fields.items():
-            if field_name in similarity_ranges:
-                similarity_range = similarity_ranges[field_name]
+            if field_name in full_name_similarity_ranges:
+                similarity_range = full_name_similarity_ranges[field_name]
                 filters.append(
                     Q(
                         "range",
