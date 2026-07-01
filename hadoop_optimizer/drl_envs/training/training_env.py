@@ -77,13 +77,13 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             job_config: HadoopJobExecutionConfig,
             job_performance: JobExecutionPerformance,
             step_reward: Optional[float] = None,
-            current_episodic_reward: Optional[float] = None,
+            cumulative_reward: Optional[float] = None,
             *,
             is_baseline: bool = False,
             is_last_step: bool = False,
     ):
         """
-        :param current_episodic_reward: episodic reward (including the current step reward)
+        :param cumulative_reward: episodic reward (including the current step reward)
         """
         assert self.__episodic_job_descriptor is not None
         if is_baseline and step_reward:
@@ -103,7 +103,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             training_metadata=TrainingMetadata(episode_context=episode_context, progress_context=progress_context),
             job_performance=job_performance,
             step_reward=step_reward,
-            current_episodic_reward=current_episodic_reward
+            cumulative_reward=cumulative_reward
         )
 
         self.training_results_logger.info(

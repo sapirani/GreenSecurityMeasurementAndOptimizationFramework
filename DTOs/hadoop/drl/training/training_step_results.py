@@ -13,7 +13,7 @@ class TrainingStepResults(BaseModel):
     training_metadata: TrainingMetadata
     job_performance: JobExecutionPerformance
     step_reward: Optional[float] = None
-    current_episodic_reward: Optional[float] = None
+    cumulative_reward: Optional[float] = None
 
     model_config = {
         "frozen": True  # ensures that this class is immutable
@@ -21,7 +21,7 @@ class TrainingStepResults(BaseModel):
 
     @model_validator(mode="after")
     def validate_rewards(self):
-        if (self.step_reward is None) != (self.current_episodic_reward is None):
+        if (self.step_reward is None) != (self.cumulative_reward is None):
             raise ValueError(
                 "Step Reward and Cumulative Reward must both be set or both be None"
             )
