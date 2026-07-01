@@ -170,7 +170,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
     def render(self) -> RenderFrame | list[RenderFrame] | None:
         print(f"****************** "
               f"Current Episode: {self.episode_counter}, Current Step: {self.step_count} "
-              f"(at {datetime.now().strftime('%d/%m/%Y %H:%M:%S')})"
+              f"(at {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}) "
               f"******************")
 
         self._custom_rendering()
