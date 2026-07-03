@@ -110,8 +110,6 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         if similarity_scores.keys() != similar_execution_results.keys():
             raise ValueError("Must received the same Document IDs in both similarity scores and execution results")
 
-        print("Similarity Scores:", similarity_scores)
-
         document_ids, weights = self._compute_similarity_weights(
             similarity_scores,
             self.cached_results_utilization_policy.similarity_temperature
