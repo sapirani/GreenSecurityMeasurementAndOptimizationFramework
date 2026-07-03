@@ -46,15 +46,12 @@ class JobExecutionPerformance(BaseModel):
                 self.similarity_weights.items(),
                 key=lambda item: item[1],
                 reverse=True,
-            )[:3]
+            )
 
             weights_str = ", ".join(
                 f"{doc_id}: {weight:.3f}"
                 for doc_id, weight in top_weights
             )
-
-            if len(self.similarity_weights) > 3:
-                weights_str += ", ..."
 
             parts.append(f"similarity_weights={{ {weights_str} }}")
 
