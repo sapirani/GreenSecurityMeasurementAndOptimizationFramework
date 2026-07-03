@@ -18,8 +18,8 @@ class JobExecutionPerformance(BaseModel):
         "frozen": True  # ensures that this class is immutable
     }
 
-    def __str__(self):
-        return f"running_time_sec={self.running_time_sec}, energy_use_mwh={self.energy_use_mwh}"
+    # def __str__(self):
+    #     return f"running_time_sec={self.running_time_sec}, energy_use_mwh={self.energy_use_mwh}"
 
     @model_validator(mode="after")
     def validate_simulation_fields(self):
