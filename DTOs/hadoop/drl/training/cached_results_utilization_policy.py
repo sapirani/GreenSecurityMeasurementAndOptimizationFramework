@@ -17,7 +17,7 @@ class CachedResultsUtilizationPolicy(BaseModel):
         ge=0,
     )
 
-    similarity_factor: float = Field(
-        default=5,
+    similarity_temperature: float = Field(
+        default=0.25,
         ge=0,
     )

@@ -61,14 +61,17 @@ class CachedHadoopJobPerformanceEvaluatorClient:
     @staticmethod
     def _compute_similarity_weights(
             similarity_scores: Dict[DocumentID, float],
-            factor: float
+            temperature: float = 1.0
     ) -> Tuple[List[DocumentID], np.ndarray]:
 
         ids = list(similarity_scores)
         values = np.array([similarity_scores[_id] for _id in ids], dtype=float)
 
+        # higher temperature = smoother distribution
+        scaled = values / max(temperature, 1e-8)
+
         # Note: to prevent high values, we reduce the maximum score from all exponents
-        weights = np.exp(factor * values - np.max(values))
+        weights = np.exp(scaled - np.max(scaled))
         weights /= weights.sum()
 
         return ids, weights
@@ -100,7 +103,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
 
         document_ids, weights = self._compute_similarity_weights(
             similarity_scores,
-            self.cached_results_utilization_policy.similarity_factor
+            self.cached_results_utilization_policy.similarity_temperature
         )
 
         running_times_sec = np.array(
