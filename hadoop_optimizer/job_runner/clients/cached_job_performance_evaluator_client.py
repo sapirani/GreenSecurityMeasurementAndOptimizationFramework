@@ -177,7 +177,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
                 )
                 for field_name, field in HadoopJobExecutionConfig.model_fields.items() if field_name in space_ranges
             )
-            similarity_scores[_id] = similarity_score / len(HadoopJobExecutionConfig.model_fields)
+            similarity_scores[_id] = similarity_score / len(similarity_scores)
 
         return similarity_scores
 
