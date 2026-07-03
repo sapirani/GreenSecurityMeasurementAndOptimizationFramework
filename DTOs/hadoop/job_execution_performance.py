@@ -18,8 +18,47 @@ class JobExecutionPerformance(BaseModel):
         "frozen": True  # ensures that this class is immutable
     }
 
-    # def __str__(self):
-    #     return f"running_time_sec={self.running_time_sec}, energy_use_mwh={self.energy_use_mwh}"
+    def __str__(self) -> str:
+        parts = [
+            f"running_time_sec={self.running_time_sec:.2f}",
+            f"energy_use_mwh={self.energy_use_mwh:.2f}",
+            f"simulated={self.simulated}",
+        ]
+
+        if self.std_running_time_sec is not None:
+            parts.append(f"std_running_time_sec={self.std_running_time_sec:.2f}")
+
+        if self.std_energy_mwh is not None:
+            parts.append(f"std_energy_mwh={self.std_energy_mwh:.2f}")
+
+        if self.selected_running_time_sec_noise is not None:
+            parts.append(
+                f"selected_running_time_sec_noise={self.selected_running_time_sec_noise:.2f}"
+            )
+
+        if self.selected_energy_use_mwh_noise is not None:
+            parts.append(
+                f"selected_energy_use_mwh_noise={self.selected_energy_use_mwh_noise:.2f}"
+            )
+
+        if self.similarity_weights:
+            top_weights = sorted(
+                self.similarity_weights.items(),
+                key=lambda item: item[1],
+                reverse=True,
+            )[:3]
+
+            weights_str = ", ".join(
+                f"{doc_id}: {weight:.3f}"
+                for doc_id, weight in top_weights
+            )
+
+            if len(self.similarity_weights) > 3:
+                weights_str += ", ..."
+
+            parts.append(f"similarity_weights={{ {weights_str} }}")
+
+        return f"JobExecutionPerformance({', '.join(parts)})"
 
     @model_validator(mode="after")
     def validate_simulation_fields(self):

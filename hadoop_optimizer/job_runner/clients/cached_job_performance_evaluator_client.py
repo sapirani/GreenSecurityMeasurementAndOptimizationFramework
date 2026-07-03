@@ -64,8 +64,17 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             temperature: float = 1.0
     ) -> Tuple[List[DocumentID], np.ndarray]:
 
+        if temperature <= 0:
+            raise ValueError("Temperature must be > 0")
+
         ids = list(similarity_scores)
         values = np.array([similarity_scores[_id] for _id in ids], dtype=float)
+
+        min_v = values.min()
+        max_v = values.max()
+
+        if max_v > min_v:
+            values = (values - min_v) / (max_v - min_v)
 
         # higher temperature = smoother distribution
         scaled = values / max(temperature, 1e-8)
