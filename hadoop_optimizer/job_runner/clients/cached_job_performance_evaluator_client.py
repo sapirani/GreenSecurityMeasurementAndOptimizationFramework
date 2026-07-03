@@ -167,6 +167,12 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             similar_training_steps: Dict[DocumentID, TrainingStepResults],
             space_ranges: Dict[str, Range],
     ) -> Dict[DocumentID, SimilarityScore]:
+        supported_field_names = sorted(set(HadoopJobExecutionConfig.model_fields).intersection(set(space_ranges)))
+
+        if not supported_field_names:
+            print("WARNING: no supported fields for computing similarity scores")
+            return {}
+
         similarity_scores = {}
         for _id, training_step in similar_training_steps.items():
             similarity_score = sum(
@@ -175,9 +181,9 @@ class CachedHadoopJobPerformanceEvaluatorClient:
                     getattr(training_step.job_config, field_name),
                     space_ranges[field_name],
                 )
-                for field_name, field in HadoopJobExecutionConfig.model_fields.items() if field_name in space_ranges
+                for field_name in supported_field_names
             )
-            similarity_scores[_id] = similarity_score / len(similarity_scores)
+            similarity_scores[_id] = similarity_score / len(supported_field_names)
 
         return similarity_scores
 
