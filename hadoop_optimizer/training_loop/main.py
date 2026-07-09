@@ -61,7 +61,8 @@ if __name__ == '__main__':
     container.config.drl.resume_from_path.from_value(
         Path(os.path.dirname(os.path.abspath(__file__))) /
         Path(MODELS_DIR_NAME) /
-        Path("trained_ppo.zip")
+        Path("2026-07-04_look-possible-world") /
+        Path("trained_PPO.zip")
     )
     container.config.drl.train_id.from_value(generate_id(word_count=3))
     container.config.drl.storage.models_base_dir.from_value(os.path.dirname(os.path.abspath(__file__)))
