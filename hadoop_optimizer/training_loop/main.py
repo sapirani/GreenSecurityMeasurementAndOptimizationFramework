@@ -53,6 +53,7 @@ def main(
         #  WHERE THE PRETRAINED MODEL STOPPED
     )
     drl_training_model.save(os.path.join(training_base_dir, f"{FINAL_MODEL_PREFIX + model_name}"))
+    drl_training_model.save(os.path.join(training_base_dir, MODELS_DIR_NAME, model_name))
 
 
 if __name__ == '__main__':
@@ -61,12 +62,11 @@ if __name__ == '__main__':
     container.config.drl.resume_from_path.from_value(
         Path(os.path.dirname(os.path.abspath(__file__))) /
         Path(MODELS_DIR_NAME) /
-        Path("2026-07-04_look-possible-world") /
         Path("trained_PPO.zip")
     )
     container.config.drl.train_id.from_value(generate_id(word_count=3))
     container.config.drl.storage.models_base_dir.from_value(os.path.dirname(os.path.abspath(__file__)))
-    container.config.drl.storage.save_freq.from_value(100)
+    container.config.drl.storage.save_freq.from_value(2048)
     container.config.drl.env.max_episode_steps.from_value(50)
     container.config.drl.state.split_by.from_value("hostname")
     container.config.drl.state.leverage_telemetry_in_state.from_value(False)
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     container.config.drl.cached_results.utilization_policy.min_required_similar_samples.from_value(3)
     container.config.drl.cached_results.utilization_policy.results_noise_scale.from_value(0.3)
     container.config.drl.cached_results.utilization_policy.similarity_temperature.from_value(0.5)
-    container.config.drl.learning_total_timestamps.from_value(20000)
+    container.config.drl.learning_total_timestamps.from_value(120000)
     container.config.drl.reward.alpha.from_value(1)
     container.config.drl.reward.beta.from_value(1)
     container.config.drl.reward.lambda_.from_value(50)
