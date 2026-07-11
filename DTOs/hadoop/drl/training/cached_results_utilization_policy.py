@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 
 
 class CachedResultsUtilizationPolicy(BaseModel):
+    # TODO: CONSIDER MAX DIFF PERCENT PER CONFIG PARAM (e.g., to support high diff in vcores but low diff in memory)
     max_param_diff_percent: float = Field(
         default=27,
         ge=0,
