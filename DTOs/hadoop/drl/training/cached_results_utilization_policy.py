@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 
 class CachedResultsUtilizationPolicy(BaseModel):
     max_param_diff_percent: float = Field(
-        default=20,
+        default=27,
         ge=0,
         le=100,
     )
