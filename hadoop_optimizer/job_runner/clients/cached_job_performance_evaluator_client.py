@@ -205,7 +205,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
                 (simulated_performance.std_running_time_sec / runtime_avg) * 100 >
                 self.cached_results_utilization_policy.running_time_max_deviation_percent
         ) or (
-                (simulated_performance.energy_use_mwh / energy_avg) * 100 >
+                (simulated_performance.std_energy_mwh / energy_avg) * 100 >
                 self.cached_results_utilization_policy.energy_max_deviation_percent
         )
 
@@ -289,7 +289,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             return simulated_performance.model_copy(update={
                 "running_time_sec": real_performance.running_time_sec,
                 "energy_use_mwh": real_performance.energy_use_mwh,
-                "simulated": True,
+                "simulated": False,
             })
 
         return simulated_performance
