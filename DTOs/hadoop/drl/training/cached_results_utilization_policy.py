@@ -29,6 +29,6 @@ class CachedResultsUtilizationPolicy(BaseModel):
     )
 
     energy_max_deviation_percent: float = Field(
-        default=10,
+        default=18,
         ge=0,
     )

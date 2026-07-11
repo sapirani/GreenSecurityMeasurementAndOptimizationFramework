@@ -78,7 +78,7 @@ if __name__ == '__main__':
     container.config.drl.cached_results.utilization_policy.results_noise_scale.from_value(0.3)
     container.config.drl.cached_results.utilization_policy.similarity_temperature.from_value(0.5)
     container.config.drl.cached_results.utilization_policy.running_time_max_deviation_percent.from_value(10)
-    container.config.drl.cached_results.utilization_policy.energy_max_deviation_percent.from_value(10)
+    container.config.drl.cached_results.utilization_policy.energy_max_deviation_percent.from_value(18)
     container.config.drl.learning_total_timestamps.from_value(120000)
     container.config.drl.reward.alpha.from_value(1)
     container.config.drl.reward.beta.from_value(1)
