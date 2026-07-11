@@ -22,11 +22,13 @@ from hadoop_optimizer.common.utils import get_full_field_name, is_enum_argument
 
 MAX_SIMILAR_RESULTS = 10000
 
+
 class CachedHadoopJobPerformanceEvaluatorClient:
     """
     This class fetches previously performed experiments from Elasticsearch, to avoid waisting time when running
     similar jobs all over again
     """
+
     def __init__(
             self,
             elastic_url: str,
@@ -47,7 +49,6 @@ class CachedHadoopJobPerformanceEvaluatorClient:
     def __enter__(self):
         self.start()
         return self
-
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.stop()
@@ -194,14 +195,28 @@ class CachedHadoopJobPerformanceEvaluatorClient:
 
         return similarity_scores
 
+    def _uses_highly_deviated_results(self, simulated_performance: JobExecutionPerformance) -> bool:
+        if not simulated_performance.simulated:
+            return False
+
+        runtime_avg = simulated_performance.running_time_sec - simulated_performance.selected_running_time_sec_noise
+        energy_avg = simulated_performance.energy_use_mwh - simulated_performance.selected_energy_use_mwh_noise
+        return (
+                (simulated_performance.std_running_time_sec / runtime_avg) * 100 >
+                self.cached_results_utilization_policy.running_time_max_deviation_percent
+        ) or (
+                (simulated_performance.energy_use_mwh / energy_avg) * 100 >
+                self.cached_results_utilization_policy.energy_max_deviation_percent
+        )
+
     def run_job(
-        self,
-        job_descriptor: JobDescriptor,
-        execution_configuration: HadoopJobExecutionConfig,
-        session_id: str,
-        episode_context: EpisodeContext,
-        space_ranges: Dict[str, Range],
-        cached_results_utilization_policy: Optional[CachedResultsUtilizationPolicy]
+            self,
+            job_descriptor: JobDescriptor,
+            execution_configuration: HadoopJobExecutionConfig,
+            session_id: str,
+            episode_context: EpisodeContext,
+            space_ranges: Dict[str, Range],
+            cached_results_utilization_policy: Optional[CachedResultsUtilizationPolicy]
     ) -> JobExecutionPerformance:
         """
         If there are enough results of similar samples from Elasticsearch - use them as cache to simulate the result
@@ -255,11 +270,29 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             space_ranges
         )
 
-        return self._calc_simulated_job_performance(
+        simulated_performance = self._calc_simulated_job_performance(
             similar_execution_results,
             similarity_scores,
             cached_results_utilization_policy.results_noise_scale
         )
+
+        if self._uses_highly_deviated_results(simulated_performance):
+            print("Executing the requested job due to high deviation in similar simulated jobs")
+            real_performance = self.job_performance_evaluator_client.run_job(
+                job_descriptor=job_descriptor,
+                execution_configuration=execution_configuration,
+                session_id=session_id,
+                episode_context=episode_context,
+            )
+
+            # Return real results along with simulation metadata to investigate cases with large deviations.
+            return simulated_performance.model_copy(update={
+                "running_time_sec": real_performance.running_time_sec,
+                "energy_use_mwh": real_performance.energy_use_mwh,
+                "simulated": True,
+            })
+
+        return simulated_performance
 
     @staticmethod
     def _calc_similarity_interval(
@@ -277,7 +310,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
     def params_similarity_ranges(
             execution_configuration: HadoopJobExecutionConfig,
             space_ranges: Dict[str, Range],
-            max_param_diff_percent: float   # TODO: consider an extension where each param defines its own max diff
+            max_param_diff_percent: float  # TODO: consider an extension where each param defines its own max diff
     ) -> Dict[str, Range]:
         """
         Returs, for each config parameter, the range of values that are considered "similar" enough to

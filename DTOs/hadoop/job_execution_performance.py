@@ -6,7 +6,6 @@ from pydantic import BaseModel, model_validator
 class JobExecutionPerformance(BaseModel):
     running_time_sec: float
     energy_use_mwh: float
-    # TODO: CHANGE TO IS_SIMULATED?
     simulated: bool = False
     std_running_time_sec: Optional[float] = None
     std_energy_mwh: Optional[float] = None
@@ -67,18 +66,19 @@ class JobExecutionPerformance(BaseModel):
             self.selected_energy_use_mwh_noise,
         ]
 
+        has_any_simulated_field = any(v is not None for v in simulation_fields)
+        has_all_simulated_field = all(v is not None for v in simulation_fields)
+
         if self.simulated:
-            # must ALL be present (not None)
-            if any(v is None for v in simulation_fields):
+            if not has_all_simulated_field:
                 raise ValueError(
                     "When simulated=True, all simulation fields must be provided"
                 )
 
         else:
-            # must ALL be None
-            if any(v is not None for v in simulation_fields):
+            if has_any_simulated_field and not has_all_simulated_field:
                 raise ValueError(
-                    "When simulated=False, simulation fields must be None"
+                    "When simulated=False, either all simulation fields should be provided or none of them"
                 )
 
         return self

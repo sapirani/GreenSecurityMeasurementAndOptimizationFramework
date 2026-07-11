@@ -137,6 +137,8 @@ class TrainingContainer(containers.DeclarativeContainer):
         min_required_similar_samples=config.drl.cached_results.utilization_policy.min_required_similar_samples,
         results_noise_scale=config.drl.cached_results.utilization_policy.results_noise_scale,
         similarity_temperature=config.drl.cached_results.utilization_policy.similarity_temperature,
+        running_time_max_deviation_percent=config.drl.cached_results.utilization_policy.running_time_max_deviation_percent,
+        energy_max_deviation_percent=config.drl.cached_results.utilization_policy.energy_max_deviation_percent,
     )
 
     base_env: Provider[gym.Env] = providers.Factory(

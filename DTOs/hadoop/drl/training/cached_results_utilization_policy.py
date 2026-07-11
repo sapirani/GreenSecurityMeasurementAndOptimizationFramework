@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 
 class CachedResultsUtilizationPolicy(BaseModel):
     max_param_diff_percent: float = Field(
-        default=27,
+        default=20,
         ge=0,
         le=100,
     )
@@ -19,5 +19,15 @@ class CachedResultsUtilizationPolicy(BaseModel):
 
     similarity_temperature: float = Field(
         default=0.25,
+        ge=0,
+    )
+
+    running_time_max_deviation_percent: float = Field(
+        default=10,
+        ge=0,
+    )
+
+    energy_max_deviation_percent: float = Field(
+        default=10,
         ge=0,
     )
