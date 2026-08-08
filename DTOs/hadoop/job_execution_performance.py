@@ -58,19 +58,6 @@ class JobExecutionPerformance(BaseModel):
 
         return f"JobExecutionPerformance({', '.join(parts)})"
 
-    @model_validator(mode='before')
-    @classmethod
-    def copy_username_to_display_name(cls, data: Any) -> Any:
-        # Ensure data is a dictionary (it could be an object if using model_validate)
-        if isinstance(data, dict):
-            # Create a shallow copy to safely mutate the input payload
-            data = data.copy()
-            if data["simulated"]:
-                if "running_time_sec_by_similar_jobs" not in data or "energy_use_mwh_by_similar_jobs" not in data:
-                    data["running_time_sec_by_similar_jobs"] = data["running_time_sec"]
-                    data["energy_use_mwh_by_similar_jobs"] = data["energy_use_mwh"]
-        return data
-
     @model_validator(mode="after")
     def validate_simulation_fields(self):
         simulation_fields = [
@@ -85,6 +72,10 @@ class JobExecutionPerformance(BaseModel):
         has_all_simulated_field = all(v is not None for v in simulation_fields)
 
         if self.simulated:
+            if self.running_time_sec_by_similar_jobs is not None and self.energy_use_mwh_by_similar_jobs is not None:
+                object.__setattr__(self,"running_time_sec_by_similar_jobs", self.running_time_sec)
+                object.__setattr__(self,"energy_use_mwh_by_similar_jobs", self.energy_use_mwh)
+
             if not has_all_simulated_field:
                 raise ValueError("When simulated=True, all simulation fields must be provided")
 
