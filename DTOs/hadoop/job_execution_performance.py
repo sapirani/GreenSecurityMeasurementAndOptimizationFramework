@@ -58,6 +58,23 @@ class JobExecutionPerformance(BaseModel):
 
         return f"JobExecutionPerformance({', '.join(parts)})"
 
+    @model_validator(mode="before")
+    @classmethod
+    def populate_similar_job_values(cls, data):
+        if isinstance(data, dict) and data.get("simulated", cls.model_fields["simulated"].default):
+            data = data.copy()
+
+            data.setdefault(
+                "running_time_sec_by_similar_jobs",
+                data["running_time_sec"],
+            )
+            data.setdefault(
+                "energy_use_mwh_by_similar_jobs",
+                data["energy_use_mwh"],
+            )
+
+        return data
+
     @model_validator(mode="after")
     def validate_simulation_fields(self):
         simulation_fields = [
@@ -72,10 +89,6 @@ class JobExecutionPerformance(BaseModel):
         has_all_simulated_field = all(v is not None for v in simulation_fields)
 
         if self.simulated:
-            if self.running_time_sec_by_similar_jobs is not None and self.energy_use_mwh_by_similar_jobs is not None:
-                setattr(self,"running_time_sec_by_similar_jobs", self.running_time_sec)
-                setattr(self,"energy_use_mwh_by_similar_jobs", self.energy_use_mwh)
-
             if not has_all_simulated_field:
                 raise ValueError("When simulated=True, all simulation fields must be provided")
 
