@@ -18,6 +18,7 @@ class EnvWrappersParams:
     max_action: np.float32 = 1
     min_obs: np.float32 = -1
     max_obs: np.float32 = 1
+    truncated_penalty: float = -150.0
 
     @classmethod
     def from_config(cls, config: Configuration):

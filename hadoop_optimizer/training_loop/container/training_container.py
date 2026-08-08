@@ -105,7 +105,7 @@ class TrainingContainer(containers.DeclarativeContainer):
         epsilon=config.drl.reward.epsilon,
         tau=config.drl.reward.tau,
         delta=config.drl.reward.delta,
-        truncated_penalty=config.drl.reward.truncated_penalty
+        truncated_penalty=config.drl.env.truncated_penalty
     )
 
     _telemetry_aggregator: Provider[TelemetryAggregator] = providers.Singleton(

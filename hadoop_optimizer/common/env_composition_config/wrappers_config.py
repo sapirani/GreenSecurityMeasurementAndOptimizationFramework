@@ -14,7 +14,10 @@ def get_env_wrappers(wrappers_params: EnvWrappersParams):
     # NOTE: the first wrapper is applied last
     return [
         EnvWrapperSpec(OrderEnforcing),
-        EnvWrapperSpec(TimeLimitWrapper, dict(max_episode_steps=wrappers_params.max_episode_steps)),
+        EnvWrapperSpec(TimeLimitWrapper, dict(
+            truncated_penalty=wrappers_params.truncated_penalty,
+            max_episode_steps=wrappers_params.max_episode_steps
+        )),
         EnvWrapperSpec(ResetEnforcer),
         EnvWrapperSpec(DictLeafsAsNumpy),
         EnvWrapperSpec(FlattenObservation),
