@@ -1,4 +1,4 @@
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 from DTOs.hadoop.consts import DocumentID
 from pydantic import BaseModel, model_validator
 
@@ -7,6 +7,8 @@ class JobExecutionPerformance(BaseModel):
     running_time_sec: float
     energy_use_mwh: float
     simulated: bool = False
+    running_time_sec_by_similar_jobs: Optional[float] = None
+    energy_use_mwh_by_similar_jobs: Optional[float] = None
     std_running_time_sec: Optional[float] = None
     std_energy_mwh: Optional[float] = None
     selected_running_time_sec_noise: Optional[float] = None
@@ -56,6 +58,19 @@ class JobExecutionPerformance(BaseModel):
 
         return f"JobExecutionPerformance({', '.join(parts)})"
 
+    @model_validator(mode='before')
+    @classmethod
+    def copy_username_to_display_name(cls, data: Any) -> Any:
+        # Ensure data is a dictionary (it could be an object if using model_validate)
+        if isinstance(data, dict):
+            # Create a shallow copy to safely mutate the input payload
+            data = data.copy()
+            if data["simulated"]:
+                if "running_time_sec_by_similar_jobs" not in data or "energy_use_mwh_by_similar_jobs" not in data:
+                    data["running_time_sec_by_similar_jobs"] = data["running_time_sec"]
+                    data["energy_use_mwh_by_similar_jobs"] = data["energy_use_mwh"]
+        return data
+
     @model_validator(mode="after")
     def validate_simulation_fields(self):
         simulation_fields = [
@@ -71,9 +86,7 @@ class JobExecutionPerformance(BaseModel):
 
         if self.simulated:
             if not has_all_simulated_field:
-                raise ValueError(
-                    "When simulated=True, all simulation fields must be provided"
-                )
+                raise ValueError("When simulated=True, all simulation fields must be provided")
 
         else:
             if has_any_simulated_field and not has_all_simulated_field:
