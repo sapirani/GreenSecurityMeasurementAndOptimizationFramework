@@ -73,8 +73,8 @@ class JobExecutionPerformance(BaseModel):
 
         if self.simulated:
             if self.running_time_sec_by_similar_jobs is not None and self.energy_use_mwh_by_similar_jobs is not None:
-                object.__setattr__(self,"running_time_sec_by_similar_jobs", self.running_time_sec)
-                object.__setattr__(self,"energy_use_mwh_by_similar_jobs", self.energy_use_mwh)
+                setattr(self,"running_time_sec_by_similar_jobs", self.running_time_sec)
+                setattr(self,"energy_use_mwh_by_similar_jobs", self.energy_use_mwh)
 
             if not has_all_simulated_field:
                 raise ValueError("When simulated=True, all simulation fields must be provided")
