@@ -79,7 +79,7 @@ class SparseStepInterpreter(StateInterpreter):
         return spaces.Box(
             low=0, high=1,
             shape=(n_logtypes * 2 + total_steps,),
-            dtype=np.float64,
+            dtype=np.float32,
         )
 
     def normalize(self, state):
@@ -110,7 +110,7 @@ class KLDivergenceInterpreter(StateInterpreter):
         return spaces.Box(
             low=0, high=3,
             shape=(n_logtypes * 2 + 3,),
-            dtype=np.float64,
+            dtype=np.float32,
         )
 
     def normalize(self, state):
@@ -152,7 +152,7 @@ class AccumulatedLogVolumeInterpreter(StateInterpreter):
         return spaces.Box(
             low=0, high=1,
             shape=(n_logtypes * 2 + extra,),
-            dtype=np.float64,
+            dtype=np.float32,
         )
 
     def normalize(self, state):
@@ -198,7 +198,7 @@ class AlertAwareInterpreter(AccumulatedLogVolumeInterpreter):
         return spaces.Box(
             low=0, high=1,
             shape=(n_logtypes * 2 + base_extra + alert_extra,),
-            dtype=np.float64,
+            dtype=np.float32,
         )
 
     def build_state(self, ctx: StateContext) -> np.ndarray:
