@@ -134,7 +134,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         relevant_rows = self._get_cached_baseline(time_range)
         actual_num_of_measurements = relevant_rows.groupby(['start_time', 'end_time', 'search_name']).size().values[0] if not relevant_rows.empty else 0
         needed_measurements = num_of_measurements - actual_num_of_measurements
-        
+
         # check if some search is missing
         running_dict = {}
         existing_searches = set()
@@ -148,6 +148,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
 
         if self.use_energy or self.use_alert :
             if sum(running_dict.values()) > 0:
+                logger.warning(f"⚠️  BASELINE RE-RUN DETECTED: {sum(running_dict.values())} measurements needed for {running_dict}")
                 logger.info(f"Need to run baseline for {running_dict}")
                 empty_monitored_files(get_system_monitor_path(self.unwrapped.splunk_tools.splunk_host))
                 empty_monitored_files(get_security_monitor_path(self.unwrapped.splunk_tools.splunk_host))
