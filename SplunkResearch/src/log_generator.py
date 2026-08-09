@@ -57,7 +57,7 @@ class LogGenerator:
         self.logs_to_delete = {}
 
         # Persistent process pool for _process_batch
-        self._executor = concurrent.futures.ProcessPoolExecutor()
+        self._executor = concurrent.futures.ProcessPoolExecutor(max_workers=2)
         atexit.register(self._executor.shutdown, wait=False)
         # logger.info(f"LogGenerator initialization completed in {time.time() - start_time:.3f} seconds")
         

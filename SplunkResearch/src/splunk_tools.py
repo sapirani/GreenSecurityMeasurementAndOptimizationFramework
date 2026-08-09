@@ -618,7 +618,7 @@ class SplunkTools(object):
 
     def update_all_searches(self, update_func, update_arg):
         searches_names = self.active_saved_searches
-        with Pool() as pool:
+        with Pool(processes=9) as pool:
             pool.starmap(update_func, [(search_name, update_arg) for search_name in searches_names])
             
         
