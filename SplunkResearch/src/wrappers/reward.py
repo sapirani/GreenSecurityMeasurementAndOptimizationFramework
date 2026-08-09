@@ -216,7 +216,11 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         relevant_rows = pd.DataFrame(relevant_rows)
 
         if relevant_rows.empty:
-            return relevant_rows, {}
+            empty_metrics = {
+                'duration': 0, 'cpu': 0, 'read_count': 0, 'write_count': 0,
+                'read_bytes': 0, 'write_bytes': 0, 'memory_mb': 0, 'alert': 0
+            }
+            return relevant_rows, empty_metrics
 
         grouped = relevant_rows.groupby('search_name')
         return self.process_metrics(grouped)
@@ -226,7 +230,11 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         relevant_rows = self.get_baseline_data(time_range)
 
         if relevant_rows.empty:
-            return relevant_rows, {}
+            empty_metrics = {
+                'duration': 0, 'cpu': 0, 'read_count': 0, 'write_count': 0,
+                'read_bytes': 0, 'write_bytes': 0, 'memory_mb': 0, 'alert': 0
+            }
+            return relevant_rows, empty_metrics
 
         grouped = relevant_rows.groupby('search_name')
         return self.process_metrics(grouped)
