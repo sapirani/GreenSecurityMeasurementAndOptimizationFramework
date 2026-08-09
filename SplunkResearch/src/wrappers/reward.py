@@ -402,7 +402,7 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 cached_baseline_data.groupby('search_name')
             )
 
-            alerts_diff = {rule: raw_metrics[rule]['alert'] - baseline_raw_metrics.get(rule, {}).get('alert', 0) for rule in expected_alerts}
+            alerts_diff = {rule: raw_metrics.get(rule, {}).get('alert', 0) - baseline_raw_metrics.get(rule, {}).get('alert', 0) for rule in expected_alerts}
             if (not self.is_mock or self.measuring) and self.use_energy and self.use_alert:
                 self._validate_alert_consistency(alerts_diff, diversity_logs, time_window.start_epoch, time_window.end_epoch)
 
