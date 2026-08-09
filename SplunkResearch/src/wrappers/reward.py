@@ -214,12 +214,20 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 time_range))
         relevant_rows = self.convert_metrics(time_range, rules_metrics)
         relevant_rows = pd.DataFrame(relevant_rows)
+
+        if relevant_rows.empty:
+            return relevant_rows, {}
+
         grouped = relevant_rows.groupby('search_name')
         return self.process_metrics(grouped)
     
     def get_baseline_reward_values(self, time_range: TimeWindow) -> Tuple[pd.DataFrame, Dict]:
         """Get baseline reward values"""
         relevant_rows = self.get_baseline_data(time_range)
+
+        if relevant_rows.empty:
+            return relevant_rows, {}
+
         grouped = relevant_rows.groupby('search_name')
         return self.process_metrics(grouped)
     
@@ -250,12 +258,22 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
                 'write_bytes': group['write_bytes'].mean(),
                 'memory_mb': group['memory_mb'].mean(),
                 'alert': group['alert'].mean()}
-                
+
             if raw_metrics[search_name]['alert'] != round(raw_metrics[search_name]['alert']):
                 logger.info(f"Alert value is not an integer: {search_name}, {raw_metrics[search_name]['alert']}, {group['alert']}")
                 max_idx = group['alert'].idxmax()
                 for col in ['alert', 'duration', 'cpu', 'read_count', 'write_count', 'read_bytes', 'write_bytes']:
                     raw_metrics[search_name][col] = group[col].loc[max_idx]
+
+            # Per-rule metrics logging (enhanced)
+            metrics = raw_metrics[search_name]
+            logger.info(f"[PER-RULE] {search_name:50s} | "
+                       f"CPU={metrics['cpu']:7.3f}s | "
+                       f"Duration={metrics['duration']:7.3f}s | "
+                       f"Alerts={metrics['alert']:6.0f} | "
+                       f"Memory={metrics['memory_mb']:7.1f}MB | "
+                       f"ReadB={metrics['read_bytes']/1024/1024:6.1f}MB | "
+                       f"WriteB={metrics['write_bytes']/1024/1024:6.1f}MB")
 
         combined_metrics = {
             'duration': sum([metric['duration'] for metric in raw_metrics.values()]),
