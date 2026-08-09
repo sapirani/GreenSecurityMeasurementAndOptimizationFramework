@@ -101,13 +101,6 @@ def parse_arguments():
     # Flags
     parser.add_argument('--random-agent', action='store_true',
                         help='Use random agent instead of trained model')
-    parser.add_argument('--manual-policy', type=str,
-                        choices=['only_4662', 'all_relevant'],
-                        help='Run a fixed manual policy instead of loading a trained model. '
-                             'Implies eval_post_training mode and skips model loading.')
-    parser.add_argument('--manual-diversity', type=float,
-                        help='Diversity value in [0,1] for manual policies that take it '
-                             '(used by all_relevant). Default: 1.0')
     parser.add_argument('--test-experiment', action='store_true',
                         help='Run in test mode (disables injection)')
     parser.add_argument('--eval-during-training', action=BooleanOptionalAction,
@@ -220,18 +213,6 @@ def create_overrides_from_args(args, model_path=None):
     # Flags
     if args.random_agent:
         overrides['use_random_agent'] = True
-    if args.manual_policy is not None:
-        overrides['manual_policy'] = args.manual_policy
-        # Manual policies are evaluation-only — force the eval pipeline
-        overrides['experiment.mode'] = 'eval_post_training'
-        # Tag the experiment dir so manual-policy runs are easy to find
-        if args.manual_policy == 'all_relevant':
-            div = args.manual_diversity if args.manual_diversity is not None else 1.0
-            overrides['experiment_name'] = f"manual_{args.manual_policy}_d{div:.3f}"
-        else:
-            overrides['experiment_name'] = f"manual_{args.manual_policy}"
-    if args.manual_diversity is not None:
-        overrides['manual_diversity'] = args.manual_diversity
     if args.eval_during_training is not None:
         overrides['callbacks.eval.enabled'] = args.eval_during_training
 
@@ -251,7 +232,6 @@ def print_experiment_summary(args, overrides):
     gamma = overrides.get('reward.gamma', config.get('reward.gamma', 0.2))
     hosts = overrides.get('environment.hosts_percentage', config.get('environment.hosts_percentage', 100))
     action_type = overrides.get('environment.action_type', config.get('environment.action_type', 'Action8'))
-    is_mock = overrides.get('environment.is_mock', config.get('environment.is_mock', True))
 
     logger.info("="*80)
     logger.info("Starting Green Security Optimization Experiment")
@@ -262,13 +242,6 @@ def print_experiment_summary(args, overrides):
     logger.info(f"Reward weights - Alpha (energy): {alpha}, "
                 f"Beta (alert): {beta}, Gamma (dist): {gamma}")
     logger.info(f"Hosts: {hosts}%, Action type: {action_type}")
-
-    # Enhanced logging: REAL vs MOCK mode
-    execution_mode = "🔴 REAL SPLUNK EXECUTION (no ML predictions)" if not is_mock else "🟡 MOCK MODE (ML predictions for agent rewards)"
-    logger.info(f"Execution Mode: {execution_mode}")
-    logger.info(f"  - Baseline measurements: REAL SPLUNK (always)")
-    logger.info(f"  - Agent rewards: {'REAL SPLUNK' if not is_mock else 'ML PREDICTIONS'}")
-
     logger.info("="*80)
 
 
@@ -290,11 +263,7 @@ def main():
     model_path = None
     mode = args.mode if args.mode is not None else config.get('experiment.mode', 'train')
 
-    # Manual-policy runs override mode to eval_post_training and skip model loading
-    if args.manual_policy is not None:
-        mode = 'eval_post_training'
-
-    if args.model_name and mode != 'train' and args.manual_policy is None:
+    if args.model_name and mode != 'train':
         # Only set model_path for retrain/eval modes
         base_dir = config.get('paths.splunk_research_dir')
         exp_dir = f"{base_dir}/host_{host}_experiments"

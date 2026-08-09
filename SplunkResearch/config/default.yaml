@@ -257,7 +257,7 @@ environment:
   # Additional percentage for log generation
   additional_percentage: 1.0
   # Use mock mode (no real rule execution)
-  is_mock: false
+  is_mock: true
 
   # Log distribution settings
   log_types:
