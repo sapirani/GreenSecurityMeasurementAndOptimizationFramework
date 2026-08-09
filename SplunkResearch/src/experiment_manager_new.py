@@ -761,6 +761,17 @@ class ExperimentManager:
 
             raise
         finally:
+            # Clean up injected logs before closing (prevent bleed into next experiment)
+            if env is not None:
+                try:
+                    logger.info("Cleaning up injected logs from experiment")
+                    clean_env(env.unwrapped.splunk_tools,
+                             (env.unwrapped.time_manager.first_start_datetime,
+                              datetime.datetime.now().strftime("%m/%d/%Y:%H:%M:%S")),
+                             host=env.unwrapped.splunk_tools.splunk_host)
+                except Exception as e:
+                    logger.warning(f"Error during log cleanup: {e}")
+
             # Restore original signal handlers
             signal.signal(signal.SIGTERM, old_sigterm)
             signal.signal(signal.SIGINT, old_sigint)
