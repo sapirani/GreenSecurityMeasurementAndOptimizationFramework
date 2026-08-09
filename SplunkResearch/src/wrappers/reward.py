@@ -301,27 +301,8 @@ class BaseRuleExecutionWrapperWithPrediction(RewardWrapper):
         return reward
 
     def _validate_alert_consistency(self, alerts_diff, diversity_logs, time_range_start_epoch, time_range_end_epoch):
-        """Check compatibility of alerts_diff with diversity info."""
-        for rule in expected_alerts:
-            if rule == 'ESCU Windows Rapid Authentication On Multiple Hosts Rule':
-                continue
-            relevant_log = self.unwrapped.section_logtypes.get(rule, None)
-            if relevant_log:
-                log_type = "_".join(relevant_log[0]) + "_1"
-                diversity_value = diversity_logs.get(log_type, 0)
-                if alerts_diff[rule] != diversity_value:
-                    logger.warning(f"Alert difference mismatch for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
-                    self._log_event_times(rule, relevant_log, time_range_start_epoch, time_range_end_epoch)
-                else:
-                    logger.info(f"Alert difference match for {rule}: alerts_diff={alerts_diff[rule]}, diversity_value={diversity_value}")
-
-    def _log_event_times(self, rule_name, relevant_log, start_epoch, end_epoch):
-        """Query Splunk for event times to diagnose alert mismatches."""
-        default_host = config.get('splunk.default_host', 'dt-splunk')
-        secondary_host = config.get('hosts.secondary', '132.72.81.150')
-        query = f'index={self.unwrapped.splunk_tools.index_name} host IN ("{default_host}", {secondary_host}) EventCode={relevant_log[0][1]}  | stats count by real_ts var_id'
-        results = self.unwrapped.splunk_tools.run_search(query, start_epoch, end_epoch)
-        formatted_log = "\n".join([json.dumps(record) for record in results])
+        """No-op: validation removed. Action parameters (diversity) and measured outcomes (alert_diff) are independent."""
+        pass
         logger.info(f"Event times for {rule_name} in ({start_epoch}, {end_epoch}): {formatted_log}")
 
     def _persist_baseline_snapshot(self, info, raw_baseline_metrics):

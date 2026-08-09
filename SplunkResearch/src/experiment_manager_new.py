@@ -356,6 +356,10 @@ class ExperimentManager:
         if overrides is None:
             overrides = {}
 
+        manual_policy = overrides.get('manual_policy')
+        if manual_policy:
+            return self._create_manual_policy_model(env, overrides)
+
         mode = overrides.get('experiment.mode', config.get('experiment.mode', 'train'))
         model_path = overrides.get('model_path')
 
@@ -363,6 +367,26 @@ class ExperimentManager:
             return self._create_new_model(env, overrides)
         else:
             return self._load_existing_model(env, overrides)
+
+    def _create_manual_policy_model(self, env: gym.Env, overrides: dict):
+        """Create a fixed-action ManualPolicyModel for baseline evaluation."""
+        from manual_policies import ManualPolicyModel, build_manual_policy_action
+
+        manual_policy = overrides.get('manual_policy')
+        diversity_value = float(overrides.get('manual_diversity', 1.0))
+
+        base_env = env.unwrapped
+        top_logtypes = base_env.top_logtypes
+        relevant_logtypes = base_env.relevant_logtypes
+
+        action_vec = build_manual_policy_action(
+            manual_policy, top_logtypes, relevant_logtypes, diversity_value
+        )
+        logger.info(
+            f"Manual policy '{manual_policy}' (diversity={diversity_value}): "
+            f"action vector = {action_vec.tolist()}"
+        )
+        return ManualPolicyModel(action_vec, env.observation_space, env.action_space)
 
     def _get_model_class(self, model_type: str):
         """Get model class based on type"""
