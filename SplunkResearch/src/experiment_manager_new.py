@@ -746,7 +746,9 @@ class ExperimentManager:
                 empty_monitored_files(get_security_monitor_path(host))
 
             if "test_experiment" not in experiment_name:
-                if not is_mock or get_config('experiment.mode') == 'eval_post_training' or eval_enabled:
+                # Skip cleanup for manual policies since they don't inject logs
+                is_manual_policy = 'manual_policy' in overrides
+                if (not is_mock or get_config('experiment.mode') == 'eval_post_training' or eval_enabled) and not is_manual_policy:
                     # clean and warm up the env
                     logger.info("Cleaning and warming up the environment")
                     if not isinstance(env, SubprocVecEnv):
@@ -805,7 +807,9 @@ class ExperimentManager:
             raise
         finally:
             # Clean up injected logs before closing (prevent bleed into next experiment)
-            if env is not None:
+            # Skip cleanup for manual policies since they don't actually inject logs
+            is_manual_policy = 'manual_policy' in overrides
+            if env is not None and not is_manual_policy:
                 try:
                     logger.info("Cleaning up injected logs from experiment")
                     clean_env(env.unwrapped.splunk_tools,
