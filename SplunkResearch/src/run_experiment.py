@@ -101,6 +101,13 @@ def parse_arguments():
     # Flags
     parser.add_argument('--random-agent', action='store_true',
                         help='Use random agent instead of trained model')
+    parser.add_argument('--manual-policy', type=str,
+                        choices=['only_4662', 'all_relevant'],
+                        help='Run a fixed manual policy instead of loading a trained model. '
+                             'Implies eval_post_training mode and skips model loading.')
+    parser.add_argument('--manual-diversity', type=float,
+                        help='Diversity value in [0,1] for manual policies that take it '
+                             '(default: 1.0 for only_4662, varies for all_relevant)')
     parser.add_argument('--test-experiment', action='store_true',
                         help='Run in test mode (disables injection)')
     parser.add_argument('--eval-during-training', action=BooleanOptionalAction,
@@ -213,6 +220,16 @@ def create_overrides_from_args(args, model_path=None):
     # Flags
     if args.random_agent:
         overrides['use_random_agent'] = True
+    if args.manual_policy is not None:
+        overrides['manual_policy'] = args.manual_policy
+        overrides['experiment.mode'] = 'eval_post_training'
+        if args.manual_diversity is not None:
+            overrides['manual_diversity'] = args.manual_diversity
+        if args.manual_policy == 'all_relevant':
+            div = args.manual_diversity if args.manual_diversity is not None else 1.0
+            overrides['experiment_name'] = f"manual_{args.manual_policy}_d{div:.3f}"
+        else:
+            overrides['experiment_name'] = f"manual_{args.manual_policy}"
     if args.eval_during_training is not None:
         overrides['callbacks.eval.enabled'] = args.eval_during_training
 
