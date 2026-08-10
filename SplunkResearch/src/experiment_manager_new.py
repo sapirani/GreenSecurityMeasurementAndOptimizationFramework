@@ -356,25 +356,6 @@ class ExperimentManager:
         if overrides is None:
             overrides = {}
 
-        # Check for manual policy first
-        if overrides.get('manual_policy'):
-            from policy import ManualPolicyModel, ManualPolicy
-            policy_name = overrides.get('manual_policy')
-            diversity = overrides.get('manual_diversity', 1.0)
-
-            # Create action dict based on policy name
-            if policy_name == 'only_4662':
-                # Only inject rule 4662, rest are zeros
-                action_dict = {4: diversity}  # Only rule 4662 (index 4)
-            elif policy_name == 'all_relevant':
-                # All relevant rules with same diversity
-                action_dict = {i: diversity for i in range(9)}  # All 9 rules
-            else:
-                raise ValueError(f"Unknown manual policy: {policy_name}")
-
-            manual_policy = ManualPolicy(action_dict, env.observation_space, env.action_space)
-            return ManualPolicyModel(manual_policy, env)
-
         mode = overrides.get('experiment.mode', config.get('experiment.mode', 'train'))
         model_path = overrides.get('model_path')
 
