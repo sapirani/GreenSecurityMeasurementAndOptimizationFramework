@@ -53,6 +53,7 @@ from wrappers.state import StateWrapper, create_state_wrapper
 from wrappers.action import *
 from callbacks import *
 from time_manager import TimeWrapper
+from policy import ManualPolicy, ManualPolicyModel
 import smtplib
 from email.message import EmailMessage
 from stable_baselines3.common.logger import configure
@@ -356,6 +357,10 @@ class ExperimentManager:
         if overrides is None:
             overrides = {}
 
+        # Check for manual policy first
+        if 'manual_policy' in overrides:
+            return self._create_manual_policy(env, overrides)
+
         mode = overrides.get('experiment.mode', config.get('experiment.mode', 'train'))
         model_path = overrides.get('model_path')
 
@@ -489,6 +494,44 @@ class ExperimentManager:
                 model_kwargs['use_sde'] = get_config('training.sac.use_sde', True)
 
         return model_cls(**model_kwargs)
+
+    def _create_manual_policy(self, env: gym.Env, overrides: dict = None):
+        """Create manual policy model"""
+        if overrides is None:
+            overrides = {}
+
+        manual_policy = overrides.get('manual_policy')
+        manual_diversity = overrides.get('manual_diversity', 1.0)
+
+        logger.info(f"Creating manual policy: {manual_policy} with diversity {manual_diversity}")
+
+        # Get action space from environment
+        action_space = env.action_space
+
+        # Build action dictionary based on policy type
+        action_dict = {}
+
+        if manual_policy == 'only_4662':
+            # Inject only rule index 8 (Windows AD Replication Request - 4662)
+            # Set action value based on diversity parameter
+            action_dict[8] = manual_diversity
+            logger.info(f"Manual policy only_4662: injecting rule 8 with value {manual_diversity}")
+        elif manual_policy == 'all_relevant':
+            # Inject all 9 rules with normalized diversity
+            # Distribute the diversity evenly across all rules
+            num_rules = action_space.shape[0] if hasattr(action_space, 'shape') else 9
+            for i in range(num_rules):
+                action_dict[i] = manual_diversity
+            logger.info(f"Manual policy all_relevant: injecting {num_rules} rules with diversity {manual_diversity}")
+        else:
+            raise ValueError(f"Unknown manual policy: {manual_policy}")
+
+        # Create ManualPolicy and wrap it in ManualPolicyModel
+        policy = ManualPolicy(action_dict, env.observation_space, env.action_space)
+        model = ManualPolicyModel(policy, env)
+
+        logger.info(f"Manual policy model created with action_dict: {action_dict}")
+        return model
 
     def _generate_experiment_id(self):
         """Generate unique experiment ID"""

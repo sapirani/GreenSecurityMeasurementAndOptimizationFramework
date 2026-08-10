@@ -73,10 +73,19 @@ class ManualPolicyModel:
     def __init__(self, policy, env):
         self.policy = policy
         self.env = TrainingEnv(env)
-        
+        self.logger = None
+
     def get_env(self):
         return self.env
-        
+
+    def set_env(self, env):
+        """Set the environment for the model"""
+        self.env = TrainingEnv(env)
+
+    def set_logger(self, logger):
+        """Set the logger for the model"""
+        self.logger = logger
+
     def predict(self, observation, state=None, episode_start=None, deterministic=False):
         return self.policy._predict(observation), state
 
