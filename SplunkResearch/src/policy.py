@@ -73,6 +73,7 @@ class ManualPolicyModel:
         self.policy = policy
         self.env = TrainingEnv(env)
         self.logger = None
+        self.num_timesteps = 0
 
     def get_env(self):
         return self.env
