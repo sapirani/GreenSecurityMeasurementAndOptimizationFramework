@@ -23,7 +23,6 @@ from stable_baselines3.common.distributions import (
     Distribution,
     MultiCategoricalDistribution,
     StateDependentNoiseDistribution,
-    DirichletDistribution,
     make_proba_distribution,
 )
 from stable_baselines3.common.torch_layers import (
