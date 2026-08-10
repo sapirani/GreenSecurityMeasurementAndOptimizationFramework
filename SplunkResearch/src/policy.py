@@ -41,12 +41,19 @@ from stable_baselines3.common.policies import BasePolicy
 class ManualPolicy(BasePolicy):
     def __init__(self, action_dict, observation_space, action_space):
         super().__init__(observation_space, action_space)
-        self.action = np.zeros(action_space.shape[0], dtype=np.int32)
+        # Get action space size - should be Box space with shape
+        if hasattr(action_space, 'shape'):
+            action_dim = action_space.shape[0] if len(action_space.shape) > 0 else 1
+        else:
+            action_dim = 18  # Default: 9 rules + 9 diversity values
+
+        self.action = np.zeros(action_dim, dtype=np.float32)
         for key, value in action_dict.items():
-            self.action[key] = value
+            if key < action_dim:
+                self.action[key] = value
 
     def _predict(self, observation, deterministic=False):
-        return self.action
+        return np.array(self.action, dtype=np.float32)
 
     def forward(self, obs):
         # This method is required by BasePolicy but not used in manual policies
