@@ -53,7 +53,11 @@ class ManualPolicy(BasePolicy):
                 self.action[key] = value
 
     def _predict(self, observation, deterministic=False):
-        return np.array(self.action, dtype=np.float32)
+        action = np.asarray(self.action, dtype=np.float32)
+        # Ensure it's at least 1D array
+        if action.ndim == 0:
+            action = action.reshape(1)
+        return action
 
     def forward(self, obs):
         # This method is required by BasePolicy but not used in manual policies
