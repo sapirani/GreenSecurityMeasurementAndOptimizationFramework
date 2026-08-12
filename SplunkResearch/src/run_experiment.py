@@ -225,11 +225,8 @@ def create_overrides_from_args(args, model_path=None):
         overrides['experiment.mode'] = 'eval_post_training'
         if args.manual_diversity is not None:
             overrides['manual_diversity'] = args.manual_diversity
-        if args.manual_policy == 'all_relevant':
-            div = args.manual_diversity if args.manual_diversity is not None else 1.0
-            overrides['experiment_name'] = f"manual_{args.manual_policy}_d{div:.3f}"
-        else:
-            overrides['experiment_name'] = f"manual_{args.manual_policy}"
+        div = args.manual_diversity if args.manual_diversity is not None else 1.0
+        overrides['experiment_name'] = f"manual_{args.manual_policy}_d{div:.3f}"
     if args.eval_during_training is not None:
         overrides['callbacks.eval.enabled'] = args.eval_during_training
 

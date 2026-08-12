@@ -507,22 +507,49 @@ class ExperimentManager:
 
         # Get action space from environment
         action_space = env.action_space
+        action_dim = action_space.shape[0] if hasattr(action_space, 'shape') else 35
+
+        # Action space structure (35 dims total):
+        # - Indices 0-25: Softmax distribution over top_logtypes (26 dims)
+        # - Indices 26-34: Diversity values for relevant_logtypes (9 dims)
+        num_top_logtypes = action_dim - 9
+        num_relevant_logtypes = 9
 
         # Build action dictionary based on policy type
         action_dict = {}
 
         if manual_policy == 'only_4662':
-            # Inject only rule index 8 (Windows AD Replication Request - 4662)
-            # Set action value based on diversity parameter
-            action_dict[8] = manual_diversity
-            logger.info(f"Manual policy only_4662: injecting rule 8 with value {manual_diversity}")
+            # Rule 4662 (Windows AD Replication)
+            # - top_logtypes index: 4 (for distribution)
+            # - relevant_logtypes index: 1 (for diversity)
+            top_4662_idx = 4
+            rel_4662_idx = 1
+
+            # Set distribution: high weight for rule 4662, low for others
+            action_dict[top_4662_idx] = 0.99
+            for i in range(num_top_logtypes):
+                if i != top_4662_idx:
+                    action_dict[i] = 0.01 / (num_top_logtypes - 1)
+
+            # Set diversity: only rule 4662 has diversity, others at 0
+            for i in range(num_relevant_logtypes):
+                if i == rel_4662_idx:
+                    action_dict[num_top_logtypes + i] = manual_diversity
+                else:
+                    action_dict[num_top_logtypes + i] = 0.0
+
+            logger.info(f"Manual policy only_4662: injecting rule 4662 (top_idx={top_4662_idx}, rel_idx={rel_4662_idx}) with diversity {manual_diversity}")
         elif manual_policy == 'all_relevant':
-            # Inject all 9 rules with normalized diversity
-            # Distribute the diversity evenly across all rules
-            num_rules = action_space.shape[0] if hasattr(action_space, 'shape') else 9
-            for i in range(num_rules):
-                action_dict[i] = manual_diversity
-            logger.info(f"Manual policy all_relevant: injecting {num_rules} rules with diversity {manual_diversity}")
+            # Inject all 9 rules with uniform distribution
+            uniform_dist = 1.0 / num_top_logtypes
+            for i in range(num_top_logtypes):
+                action_dict[i] = uniform_dist
+
+            # Set uniform diversity for all rules
+            for i in range(num_relevant_logtypes):
+                action_dict[num_top_logtypes + i] = manual_diversity
+
+            logger.info(f"Manual policy all_relevant: injecting {num_relevant_logtypes} rules with uniform distribution and diversity {manual_diversity}")
         else:
             raise ValueError(f"Unknown manual policy: {manual_policy}")
 
@@ -530,7 +557,7 @@ class ExperimentManager:
         policy = ManualPolicy(action_dict, env.observation_space, env.action_space)
         model = ManualPolicyModel(policy, env)
 
-        logger.info(f"Manual policy model created with action_dict: {action_dict}")
+        logger.info(f"Manual policy model created with action_dict size {len(action_dict)}, total dims {action_dim}")
         return model
 
     def _generate_experiment_id(self):
@@ -784,7 +811,9 @@ class ExperimentManager:
                 full_eval_overrides['environment.hosts_percentage'] = config.get('evaluation.full_eval.hosts_percentage', 100)
                 full_eval_overrides['reward.use_energy_reward'] = config.get('evaluation.full_eval.use_energy_reward', False)
                 full_eval_overrides['reward.use_alert_reward'] = config.get('evaluation.full_eval.use_alert_reward', False)
-                full_eval_overrides['environment.is_mock'] = config.get('evaluation.full_eval.is_mock', True)
+                # For manual policies, disable mock mode to actually execute Splunk rules
+                is_manual = 'manual_policy' in overrides
+                full_eval_overrides['environment.is_mock'] = False if is_manual else config.get('evaluation.full_eval.is_mock', True)
 
                 full_eval_env = self.create_environment(eval_env_config, full_eval_overrides)
                 results = self._run_evaluation(model, self.eval_env, eval_overrides, full_eval_env)

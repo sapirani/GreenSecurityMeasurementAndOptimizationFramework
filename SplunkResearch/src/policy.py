@@ -98,7 +98,19 @@ class ManualPolicyModel:
         self.logger = logger
 
     def predict(self, observation, state=None, episode_start=None, deterministic=False):
-        return self.policy._predict(observation), state
+        action = np.asarray(self.policy._predict(observation, deterministic=deterministic), dtype=np.float32)
+        if action.ndim == 1:
+            # evaluate_policy() (and DummyVecEnv) expect a batched action array of
+            # shape (n_envs, action_dim) — action[env_idx] must yield the full
+            # per-env action vector, not a scalar. Tile the fixed manual action
+            # across the observation's batch size (n_envs).
+            if isinstance(observation, dict):
+                sample_obs = next(iter(observation.values()))
+            else:
+                sample_obs = observation
+            n_envs = sample_obs.shape[0] if hasattr(sample_obs, "shape") and getattr(sample_obs, "ndim", 1) > 1 else 1
+            action = np.tile(action, (n_envs, 1))
+        return action, state
 
     def save(self, path):
         # Implement if you want to save manual policies
