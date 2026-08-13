@@ -142,9 +142,9 @@ class TrainingContainer(containers.DeclarativeContainer):
         n_epochs=10,
         gamma=1,
         ent_coef=0.01,  # encourage exploration
+        use_sde=True,
         policy_kwargs=dict(
             net_arch=[128, 128],
-            use_sde=True,
             squash_output=True
         ),
     )
