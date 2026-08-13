@@ -90,7 +90,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
     @property
     def job_properties_space(self) -> spaces.Dict:
         return spaces.Dict({
-            "input_size_gb": spaces.Box(low=0, high=20, shape=(), dtype=np.float32),
+            "input_size_gb": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
             "cpu_bound_scale": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
             "io_bound_scale": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
         })
