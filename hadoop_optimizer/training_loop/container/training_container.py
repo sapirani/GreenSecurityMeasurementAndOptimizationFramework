@@ -1,12 +1,10 @@
 from datetime import datetime
 from logging import Handler
-from pathlib import Path
-from typing import Optional, List, Type
 from unittest.mock import Mock
 import gymnasium as gym
 from dependency_injector import containers, providers
 from dependency_injector.providers import Provider
-from stable_baselines3 import PPO, TD3, SAC, A2C, DQN, DDPG
+from stable_baselines3 import PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.policies import ActorCriticPolicy
 
@@ -15,6 +13,7 @@ from DTOs.hadoop.drl.training.episode_context import EpisodeContext
 from DTOs.logging.consts import LoggerName, IndexName
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 from application_logging.logging_utils import get_measurement_logger
+from hadoop_optimizer.common.utils import get_drl_model
 from hadoop_optimizer.common.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 from elastic_reader.consts import TimePickerInputStrategy
 from elastic_reader.elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
@@ -26,37 +25,6 @@ from hadoop_optimizer.drl_envs.training.training_progress_tracker import Trainin
 from hadoop_optimizer.job_runner.clients.cached_job_performance_evaluator_client import CachedHadoopJobPerformanceEvaluatorClient
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
-
-ALGORITHMS: List[Type[BaseAlgorithm]] = [PPO, SAC, TD3, DDPG, A2C, DQN]
-
-def get_algorithm_class(resume_from_path: Path) -> Type[BaseAlgorithm]:
-    """
-    This function returns the relevant algorithm name for resuming a pretrained model.
-    Since storing the model is not leaving signs of the algorithm that was being used in the training process,
-    the convention here is that the file's name (where the model to resume is saved)
-    ** MUST include the name of the algorithm. **
-    """
-    for algo in ALGORITHMS:
-        if algo.__name__.lower() in resume_from_path.stem.lower():
-            return algo
-
-    raise ValueError(f"The file name must include the name of one of the supported algorithms: {ALGORITHMS}")
-
-
-def get_training_model(
-        resume_from_path: Optional[Path],
-        env: gym.Env,
-        default_drl_model: BaseAlgorithm
-) -> BaseAlgorithm:
-    if resume_from_path is not None:
-        if resume_from_path.exists():
-            print(f"Loading already trained model from {resume_from_path}")
-            return get_algorithm_class(resume_from_path).load(resume_from_path, env=env)
-        else:
-            raise ValueError(f"Resume path does not exist: {resume_from_path}")
-
-    print("Loading default model")
-    return default_drl_model
 
 
 class TrainingContainer(containers.DeclarativeContainer):
@@ -175,12 +143,14 @@ class TrainingContainer(containers.DeclarativeContainer):
         gamma=1,
         ent_coef=0.01,  # encourage exploration
         policy_kwargs=dict(
-            net_arch=[128, 128]
+            net_arch=[128, 128],
+            use_sde=True,
+            squash_output=True
         ),
     )
 
     drl_training_model = providers.Callable(
-        get_training_model,
+        get_drl_model,
         resume_from_path=config.drl.resume_from_path,
         env=training_env,
         default_drl_model=default_drl_model,

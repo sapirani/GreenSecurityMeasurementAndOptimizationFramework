@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Annotated
 
 import uvicorn
@@ -64,8 +65,9 @@ def choose_the_best_configuration_for_a_new_task_under_the_current_load(
 
 if __name__ == '__main__':
     container = DeploymentContainer()
+    container.config.drl.resume_from_path.from_value(None)
     container.config.elastic.indices_to_read_from.from_value([IndexName.PROCESS_METRICS, IndexName.SYSTEM_METRICS])
-    container.config.drl.env.max_episode_steps.from_value(100)
+    container.config.drl.env.max_episode_steps.from_value(50)
     container.config.drl.state.split_by.from_value("hostname")
     container.config.drl.state.leverage_telemetry_in_state.from_value(False)
     container.config.drl.state.time_windows_seconds.from_value([1 * MINUTE, 5 * MINUTE, 10 * MINUTE, 20 * MINUTE])

@@ -15,6 +15,7 @@ from hadoop_optimizer.common.env_composition_config.env_builder import build_env
 from hadoop_optimizer.common.env_composition_config.env_wrapper_spec import EnvWrappersParams
 from hadoop_optimizer.job_config_recommender.server.drl_deployment_manager import DRLDeploymentManager
 from hadoop_optimizer.drl_envs.deployment.deployment_env import OptimizerDeploymentEnv
+from hadoop_optimizer.common.utils import get_drl_model
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 
@@ -69,13 +70,11 @@ class DeploymentContainer(containers.DeclarativeContainer):
         wrappers_params=env_wrappers_params,
     )
 
-    # TODO: LOAD THE BEST MODEL INSTEAD OF INITIALIZING A NEW MODEL HERE, FOR EXAMPLE: PPO.load(<path>)
-    deployment_drl_model: Provider[BaseAlgorithm] = providers.Singleton(
-        PPO,
-        policy=ActorCriticPolicy,
+    deployment_drl_model = providers.Callable(
+        get_drl_model,
+        resume_from_path=config.drl.resume_from_path,
         env=deployment_env,
-        # TODO: REMOVE WHEN WE HAVE A REAL MODEL, IT INCREASES THE PREDICTION VARIANCE
-        policy_kwargs=dict(log_std_init=0.8)
+        default_drl_model=None,
     )
 
     drl_deployment_manager: Provider[DRLDeploymentManager] = providers.Factory(

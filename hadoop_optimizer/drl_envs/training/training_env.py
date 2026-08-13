@@ -178,6 +178,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         self.render()
         return self.__current_step_reward
 
+    # todo: inject a function that chooses the next job type
     @staticmethod
     def __select_episodic_job_type(np_random: np.random.Generator) -> JobType:
         # TODO: SELECT EPISODIC JOB BASED ON A SMART LOGIC TAILORED TO THE TRAINING PROGRESSION
@@ -185,6 +186,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         selected_job_index = np_random.integers(0, len(supported_jobs), dtype=int)
         return supported_jobs[selected_job_index]
 
+    # todo: inject a function that chooses the next input size
     @staticmethod
     def __select_input_size_gb(selected_job_type: JobType, np_random: np.random.Generator) -> float:
         # TODO: SELECT EPISODIC INPUT SIZE BASED ON A SMART LOGIC TAILORED TO THE TRAINING PROGRESSION
