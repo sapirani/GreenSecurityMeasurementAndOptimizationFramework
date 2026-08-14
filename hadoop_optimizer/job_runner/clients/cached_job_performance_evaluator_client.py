@@ -198,14 +198,17 @@ class CachedHadoopJobPerformanceEvaluatorClient:
     def _uses_highly_deviated_results(self, simulated_performance: JobExecutionPerformance) -> bool:
         if not simulated_performance.simulated:
             return False
+        assert simulated_performance.running_time_sec_by_similar_jobs is not None
+        assert simulated_performance.energy_use_mwh_by_similar_jobs is not None
 
-        runtime_avg = simulated_performance.running_time_sec - simulated_performance.selected_running_time_sec_noise
-        energy_avg = simulated_performance.energy_use_mwh - simulated_performance.selected_energy_use_mwh_noise
+        simulated_running_time_avg = simulated_performance.running_time_sec_by_similar_jobs
+        simulated_energy_use_avg = simulated_performance.energy_use_mwh_by_similar_jobs
+
         return (
-                (simulated_performance.std_running_time_sec / runtime_avg) * 100 >
+                (simulated_performance.std_running_time_sec / simulated_running_time_avg) * 100 >
                 self.cached_results_utilization_policy.running_time_max_deviation_percent
         ) or (
-                (simulated_performance.std_energy_mwh / energy_avg) * 100 >
+                (simulated_performance.std_energy_mwh / simulated_energy_use_avg) * 100 >
                 self.cached_results_utilization_policy.energy_max_deviation_percent
         )
 

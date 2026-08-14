@@ -4,11 +4,11 @@ from pydantic import BaseModel, model_validator
 
 
 class JobExecutionPerformance(BaseModel):
-    running_time_sec: float
-    energy_use_mwh: float
+    running_time_sec: float     # including noise when simulated=True
+    energy_use_mwh: float       # including noise when simulated=True
     simulated: bool = False
-    running_time_sec_by_similar_jobs: Optional[float] = None
-    energy_use_mwh_by_similar_jobs: Optional[float] = None
+    running_time_sec_by_similar_jobs: Optional[float] = None    # excluding noise
+    energy_use_mwh_by_similar_jobs: Optional[float] = None      # excluding noise
     std_running_time_sec: Optional[float] = None
     std_energy_mwh: Optional[float] = None
     selected_running_time_sec_noise: Optional[float] = None
@@ -66,11 +66,11 @@ class JobExecutionPerformance(BaseModel):
 
             data.setdefault(
                 "running_time_sec_by_similar_jobs",
-                data["running_time_sec"],
+                data["running_time_sec"] - data["selected_running_time_sec_noise"],
             )
             data.setdefault(
                 "energy_use_mwh_by_similar_jobs",
-                data["energy_use_mwh"],
+                data["energy_use_mwh"] - data["selected_energy_use_mwh_noise"],
             )
 
         return data
