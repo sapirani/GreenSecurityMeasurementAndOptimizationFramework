@@ -87,11 +87,11 @@ if __name__ == '__main__':
     container.config.drl.reward.epsilon.from_value(2)
     container.config.drl.reward.tau.from_value(0.05)
     container.config.drl.reward.delta.from_value(0.95)
-    container.config.drl.algorithm.hyperparameters.n_steps.from_value(128)
-    container.config.drl.algorithm.hyperparameters.batch_size.from_value(32)
-    container.config.drl.algorithm.hyperparameters.n_epochs.from_value(10)
+    container.config.drl.algorithm.hyperparameters.n_steps.from_value(512)
+    container.config.drl.algorithm.hyperparameters.batch_size.from_value(64)
+    container.config.drl.algorithm.hyperparameters.n_epochs.from_value(5)
     container.config.drl.algorithm.hyperparameters.gamma.from_value(1)
-    container.config.drl.algorithm.hyperparameters.ent_coef.from_value(0.01)   # encourage exploration
+    container.config.drl.algorithm.hyperparameters.ent_coef.from_value(0.001)   # encourage exploration
     container.config.elastic.username.from_value(ES_USER)
     container.config.elastic.password.from_value(ES_PASS)
     container.config.elastic.url.from_value(ES_URL)
