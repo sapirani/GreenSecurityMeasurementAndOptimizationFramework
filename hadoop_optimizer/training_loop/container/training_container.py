@@ -137,11 +137,11 @@ class TrainingContainer(containers.DeclarativeContainer):
         env=training_env,
         verbose=2,
         # TODO: REFINE THE FOLLOWING PARAMETERS:
-        n_steps=128,
-        batch_size=32,
-        n_epochs=10,
-        gamma=1,
-        ent_coef=0.01,  # encourage exploration
+        n_steps=config.drl.algorithm.hyperparameters.n_steps,
+        batch_size=config.drl.algorithm.hyperparameters.batch_size,
+        n_epochs=config.drl.algorithm.hyperparameters.n_epochs,
+        gamma=config.drl.algorithm.hyperparameters.gamma,
+        ent_coef=config.drl.algorithm.hyperparameters.ent_coef,
         use_sde=True,
         policy_kwargs=dict(
             net_arch=[128, 128],
