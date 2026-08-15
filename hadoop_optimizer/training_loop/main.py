@@ -92,6 +92,10 @@ if __name__ == '__main__':
     container.config.drl.algorithm.hyperparameters.n_epochs.from_value(5)
     container.config.drl.algorithm.hyperparameters.gamma.from_value(1)
     container.config.drl.algorithm.hyperparameters.ent_coef.from_value(0.001)   # encourage exploration
+    container.config.drl.algorithm.hyperparameters.use_sde.from_value(True)
+    container.config.drl.policy.hyperparameters.net_arch.from_value([128, 128])
+    container.config.drl.policy.hyperparameters.squash_output.from_value(True)
+    container.config.drl.policy.hyperparameters.log_std_init.from_value(-5)
     container.config.elastic.username.from_value(ES_USER)
     container.config.elastic.password.from_value(ES_PASS)
     container.config.elastic.url.from_value(ES_URL)

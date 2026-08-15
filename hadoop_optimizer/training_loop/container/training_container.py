@@ -142,10 +142,11 @@ class TrainingContainer(containers.DeclarativeContainer):
         n_epochs=config.drl.algorithm.hyperparameters.n_epochs,
         gamma=config.drl.algorithm.hyperparameters.gamma,
         ent_coef=config.drl.algorithm.hyperparameters.ent_coef,
-        use_sde=True,
+        use_sde=config.drl.algorithm.hyperparameters.use_sde,
         policy_kwargs=dict(
-            net_arch=[128, 128],
-            squash_output=True
+            net_arch=config.drl.policy.hyperparameters.net_arch,
+            squash_output=config.drl.policy.hyperparameters.squash_output,
+            log_std_init=config.drl.policy.hyperparameters.log_std_init,
         ),
     )
 
