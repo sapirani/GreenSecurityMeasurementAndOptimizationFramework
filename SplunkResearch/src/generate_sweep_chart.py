@@ -10,18 +10,18 @@ from datetime import datetime
 # Configuration
 base_dir = '/home/shouei/GreenSecurityMeasurementAndOptimizationFramework/SplunkResearch/host_132.72.80.159_experiments/runs'
 
-# Load only_4662 results
-only_4662_files = sorted(glob.glob(os.path.join(base_dir, 'manual_only_4662_*/results/full_eval_results_random_False.csv')))
-# Skip first file if it's incomplete (less than 50 episodes)
-only_4662_files = [f for f in only_4662_files if sum(1 for _ in open(f)) > 20]  # > 20 lines means > 19 data rows
+# Load only_4662 results (with diversity suffix)
+only_4662_files = sorted(glob.glob(os.path.join(base_dir, 'manual_only_4662_d*/results/full_eval_results_random_False.csv')))
 only_4662_data = []
-diversities_4662 = [0.0, 0.25, 0.50, 0.75, 1.0]
 
-for i, f in enumerate(only_4662_files[-5:]):  # Use last 5 files
+for f in only_4662_files:
     df = pd.read_csv(f)
-    df['policy'] = 'only_4662'
-    df['diversity'] = diversities_4662[i]
-    only_4662_data.append(df)
+    match = re.search(r'manual_only_4662_d([0-9.]+)', f)
+    if match:
+        diversity = float(match.group(1))
+        df['policy'] = 'only_4662'
+        df['diversity'] = diversity
+        only_4662_data.append(df)
 
 # Load all_relevant results
 all_relevant_files = sorted(glob.glob(os.path.join(base_dir, 'manual_all_relevant_d*/results/full_eval_results_random_False.csv')))
@@ -43,7 +43,12 @@ eval_data = []
 for i, f in enumerate(eval_files):
     df = pd.read_csv(f)
     df['policy'] = 'trained_agent'
-    df['diversity'] = i  # Just index them
+    # Extract hosts_number and additional_percentage from first row
+    hosts = int(df.iloc[0]['hosts_number'])
+    addit = df.iloc[0]['additional_percentage']
+    # Use tuple as diversity key for sorting/grouping (will be converted to string for display)
+    df['diversity'] = i
+    df['config_label'] = f"h{hosts}a{addit:.1f}"
     eval_data.append(df)
 
 # Combine all data
@@ -78,7 +83,13 @@ colors = {
 
 x_labels_4662 = [f'd={d:.2f}' for d in sorted(summary[summary['policy']=='only_4662']['diversity'].unique())]
 x_labels_relevant = [f'd={d:.3f}' for d in sorted(summary[summary['policy']=='all_relevant']['diversity'].unique())]
-x_labels_agent = [f'eval_{i}' for i in range(len(summary[summary['policy']=='trained_agent']))]
+# Extract config labels from eval data (h{hosts}a{additional})
+eval_configs = []
+for df in eval_data:
+    if not df.empty:
+        label = df.iloc[0].get('config_label', f'eval_{len(eval_configs)}')
+        eval_configs.append(label)
+x_labels_agent = eval_configs if eval_configs else [f'eval_{i}' for i in range(len(summary[summary['policy']=='trained_agent']))]
 
 # ===== Panel 1: CPU Overhead Ratio =====
 ax = axes[0]
