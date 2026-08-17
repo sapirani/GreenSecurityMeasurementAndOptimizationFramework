@@ -290,6 +290,10 @@ class Action(ActionWrapper):
             response.raise_for_status()
             if response.text:
                 logger.info(f"Splunk Response: {response.text}")
+            # Truncate on success only: the file is appended to every episode and is
+            # never otherwise cleared, so a failed POST leaves data to retry next
+            # flush while a successful one must not re-send the same bytes again.
+            open(log_file_path, 'w').close()
 
         except requests.exceptions.HTTPError as e:
             print(f"Splunk API Error: {e}", file=sys.stderr)

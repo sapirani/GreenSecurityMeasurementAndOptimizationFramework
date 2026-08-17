@@ -26,7 +26,7 @@ class SimpleConfig:
     live: bool = False                  # False = mock (predict), True = hit Splunk
     ip: int = 1                         # resolves SPLUNK_HOST_{ip} from .env (live only)
     splunk_port: int = 8089             # live only: Splunk management port
-    secondary_host: str = ""            # live only: host tag for injected events
+    secondary_host: str = "132.72.81.150"  # live only: host tag for injected events (matches legacy default)
 
     # --- time window (episode = window_size, step = action_duration) ---
     fake_start_datetime: str = "12/01/2024:00:00:00"

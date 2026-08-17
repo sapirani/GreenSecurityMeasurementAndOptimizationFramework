@@ -98,6 +98,10 @@ class LiveMeasurer:
                                  params=params, headers={"x-splunk-input-mode": "streaming"},
                                  data=fh, verify=False, timeout=60)
         resp.raise_for_status()
+        # Truncate on success only: the file is appended to across episodes and is
+        # never otherwise cleared, so a failed POST leaves data to retry next flush
+        # while a successful one must not re-send the same bytes again.
+        open(path, "w").close()
 
     # ------------------------------------------------------------------
     def measure(self, env) -> Measurement:
