@@ -6,6 +6,7 @@ class ExtendedEpisodeContext(BaseModel):
     episode_step: int = Field(ge=0, description="Step number within this episode")
     is_baseline: bool
     is_last_step: bool
+    is_truncated: bool
 
     @model_validator(mode="after")
     def check_invalid_combination(self):

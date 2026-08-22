@@ -2,6 +2,7 @@ from enum import Enum
 
 TERMINATE_ACTION_NAME = "terminate"
 CURRENT_JOB_CONFIG_KEY = "current_job_config"
+PERFORMANCE_RESULTS_KEY = "performance_results"
 NEXT_JOB_CONFIG_KEY = "next_job_config"
 JOB_PROPERTIES_KEY = "job_properties"
 DEFAULT_JOB_CONFIG_KEY = "default_config"

@@ -14,7 +14,8 @@ def get_elastic_bulk_handler(
         index_name: str,
         starting_time: float = time.time(),
         pipeline_name: Optional[str] = None,
-        max_queue_size: int = 10000
+        max_queue_size: int = 10000,
+        ignore_exceptions: bool = False,
 ) -> Handler:
     try:
         return ElasticSearchBulkHandler(
@@ -26,8 +27,11 @@ def get_elastic_bulk_handler(
             pipeline_name=pipeline_name,
             max_queue_size=max_queue_size
         )
-    except ConnectionError:
-        return None
+    except ConnectionError as e:
+        if ignore_exceptions:
+            return None
+        else:
+            raise e
 
 
 class ElasticSearchBulkHandler(AbstractElasticSearchHandler):

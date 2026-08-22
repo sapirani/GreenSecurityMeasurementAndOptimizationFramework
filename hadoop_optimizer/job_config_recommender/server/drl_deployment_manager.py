@@ -24,11 +24,11 @@ class DRLDeploymentManager:
                 self.deployment_env.render()
 
                 if terminated:
-                    return HadoopJobExecutionConfig.model_validate(info[CURRENT_JOB_CONFIG_KEY])
+                    return info[CURRENT_JOB_CONFIG_KEY]
 
                 if truncated:
                     raise EnvironmentTruncatedException(
-                        HadoopJobExecutionConfig.model_validate(info[CURRENT_JOB_CONFIG_KEY]),
+                        info[CURRENT_JOB_CONFIG_KEY],
                         info[ELAPSED_STEPS_KEY],
                         info[MAX_STEPS_KEY],
                     )

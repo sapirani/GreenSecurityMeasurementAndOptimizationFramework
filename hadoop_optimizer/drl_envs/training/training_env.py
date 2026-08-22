@@ -1,8 +1,5 @@
-from logging import Logger
-from typing import Any, Optional
-
+from typing import Any, Optional, Tuple, Dict
 import numpy as np
-
 from DTOs.hadoop.drl.job_properties import JobProperties
 from DTOs.hadoop.drl.training.cached_results_utilization_policy import CachedResultsUtilizationPolicy
 from DTOs.hadoop.drl.training.episode_context import EpisodeContext
@@ -13,6 +10,7 @@ from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
 from DTOs.hadoop.job_types import JobType
+from hadoop_optimizer.drl_envs.consts import PERFORMANCE_RESULTS_KEY
 from hadoop_optimizer.common.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 from hadoop_optimizer.common.supported_jobs.supported_jobs_config import SupportedJobsConfig
 from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOptimizerEnvInterface
@@ -28,7 +26,6 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             training_client: CachedHadoopJobPerformanceEvaluatorClient,
             reward_calculator: RewardCalculator,
             train_id: str,
-            training_results_logger: Logger,
             training_progress_tracker: TrainingProgressTracker,
             cached_results_utilization_policy: CachedResultsUtilizationPolicy
     ):
@@ -37,7 +34,6 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         self.training_client.start()
         self.reward_calculator = reward_calculator
         self.train_id = train_id
-        self.training_results_logger = training_results_logger
         self.training_progress_tracker = training_progress_tracker
         self.cached_results_utilization_policy = cached_results_utilization_policy
 
@@ -63,16 +59,18 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             self,
             *,
             is_baseline: bool = False,
-            is_last_step: bool = False
+            is_last_step: bool = False,
+            is_truncated: bool = False,
     ) -> ExtendedEpisodeContext:
         return ExtendedEpisodeContext(
             episode_num=self.episode_counter,
             episode_step=self.step_count,
             is_baseline=is_baseline,
             is_last_step=is_last_step,
+            is_truncated=is_truncated
         )
 
-    def __log_results(
+    def __build_training_results(
             self,
             job_config: HadoopJobExecutionConfig,
             job_performance: JobExecutionPerformance,
@@ -81,7 +79,8 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             *,
             is_baseline: bool = False,
             is_last_step: bool = False,
-    ):
+            is_truncated: bool = False
+    ) -> TrainingStepResults:
         """
         :param cumulative_reward: episodic reward (including the current step reward)
         """
@@ -94,7 +93,11 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             is_baseline=is_baseline
         )
 
-        episode_context = self.__get_episode_context(is_baseline=is_baseline, is_last_step=is_last_step)
+        episode_context = self.__get_episode_context(
+            is_baseline=is_baseline,
+            is_last_step=is_last_step,
+            is_truncated=is_truncated
+        )
 
         training_step_results = TrainingStepResults(
             training_id=self.train_id,
@@ -106,17 +109,15 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             cumulative_reward=cumulative_reward
         )
 
-        self.training_results_logger.info(
-            "Summarized Training Step Results",
-            extra=training_step_results.dict()
-        )
+        return training_step_results
 
     def __run_job_and_measure_performance(
             self,
             job_config: HadoopJobExecutionConfig,
             *,
             is_baseline: bool = False,
-            is_last_step: bool = False
+            is_last_step: bool = False,
+            is_truncated: bool = False
     ) -> JobExecutionPerformance:
         # TODO: IMPORTANT OPTIMIZATION OF CHECKING IF SOME RESULTS FOR THE SAME CONFIGURATION AND INPUT SIZE ALREADY
         #   EXIST IN THE TRAINING_DRL INDEX, AND RETURN THOSE RESULTS IMMEDIATELY
@@ -124,7 +125,11 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         #   (AS IF WE HAVE A VERY SIMILAR CONFIGURATION BUT NOT EXACTLY THE SAME IN THE DRL_TRAINING INDEX)
         #   THAT IS BEING MORE GRANULAR OVER STEPS.
         assert self.__episodic_job_descriptor is not None
-        episode_context = self.__get_episode_context(is_baseline=is_baseline, is_last_step=is_last_step)
+        episode_context = self.__get_episode_context(
+            is_baseline=is_baseline,
+            is_last_step=is_last_step,
+            is_truncated=is_truncated
+        )
 
         return self.training_client.run_job(
             job_descriptor=self.__episodic_job_descriptor,
@@ -136,7 +141,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             cached_results_utilization_policy=self.cached_results_utilization_policy,
         )
 
-    def _init_episodic_job(self, options: dict[str, Any] | None) -> JobProperties:
+    def _init_episodic_job(self, options: dict[str, Any] | None) -> Tuple[JobProperties, Dict[str, Any]]:
         if options:
             raise ValueError("Options are not expected in training mode")
 
@@ -149,15 +154,34 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             default_execution_configuration,
             is_baseline=True,
             is_last_step=False,
+            is_truncated=False
         )
-        self.__log_results(default_execution_configuration, job_performance, is_baseline=True)
+        training_results = self.__build_training_results(
+            default_execution_configuration,
+            job_performance,
+            is_baseline=True
+        )
         self.reward_calculator.update_baseline_performance(job_performance)
 
         assert self.__episodic_job_descriptor is not None
-        return SupportedJobsConfig.extract_job_properties(self.__episodic_job_descriptor)
+        return (
+            SupportedJobsConfig.extract_job_properties(self.__episodic_job_descriptor),
+            {PERFORMANCE_RESULTS_KEY: training_results}
+        )
 
-    def _compute_reward(self, job_config: HadoopJobExecutionConfig, *, terminated: bool, truncated: bool) -> float:
-        self.__current_step_performance = self.__run_job_and_measure_performance(job_config, is_last_step=terminated)
+    def _compute_reward(
+            self,
+            job_config:
+            HadoopJobExecutionConfig,
+            *,
+            terminated: bool,
+            truncated: bool
+    ) -> Tuple[float, Dict[str, Any]]:
+        self.__current_step_performance = self.__run_job_and_measure_performance(
+            job_config,
+            is_last_step=terminated,
+            is_truncated=truncated
+        )
         assert self.__current_step_performance is not None
 
         self.__current_step_reward = self.reward_calculator.compute_reward(
@@ -166,7 +190,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             is_truncated=truncated
         )
 
-        self.__log_results(
+        training_results = self.__build_training_results(
             job_config,
             self.__current_step_performance,
             self.__current_step_reward,
@@ -176,7 +200,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
         )
 
         self.render()
-        return self.__current_step_reward
+        return self.__current_step_reward, {PERFORMANCE_RESULTS_KEY: training_results}
 
     # todo: inject a function that chooses the next job type
     @staticmethod

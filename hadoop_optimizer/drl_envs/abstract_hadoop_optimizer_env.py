@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from datetime import datetime
-from typing import SupportsFloat, Any, Optional, Dict, Set
+from typing import SupportsFloat, Any, Optional, Dict, Set, Tuple
 
 import gymnasium as gym
 import numpy as np
-from gymnasium import spaces, Space
+from gymnasium import spaces
 from gymnasium.core import RenderFrame, ActType, ObsType
 
 from DTOs.hadoop.drl.job_properties import JobProperties
@@ -136,12 +135,12 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         self.episode_counter += 1
         self._cumulative_reward = 0
 
-        self._episodic_job_properties = self._init_episodic_job(options)
+        self._episodic_job_properties, info = self._init_episodic_job(options)
 
         # TODO: CONSIDER RETURNING DEBUGGING INFO, such as the current cluster load
         self._current_hadoop_config = HadoopJobExecutionConfig()
         self.episodic_telemetry = self.telemetry_aggregator.get_telemetry()
-        info = {DEFAULT_JOB_CONFIG_KEY: True}
+        info.update({DEFAULT_JOB_CONFIG_KEY: True})
         return self._construct_observation(), info
 
     def step(self, action: ActType) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
@@ -149,7 +148,6 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
             raise RuntimeError("Environment must be reset before calling the step function")
 
         truncated = False
-        info = {}
         reward = 0  # there is no meaning for the reward in the deployment environment
         self.step_count += 1
 
@@ -158,12 +156,13 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         self._current_hadoop_config = self._get_next_execution_config(action)
 
         self._extra_step_init()
-        self._cumulative_reward += self._compute_reward(
+        step_reward, info = self._compute_reward(
             self._current_hadoop_config, terminated=terminated, truncated=truncated
         )
+        self._cumulative_reward += step_reward
 
         # TODO: CONSIDER RETURNING MORE DEBUGGING INFO, such as the current cluster load
-        info.update({CURRENT_JOB_CONFIG_KEY: self._current_hadoop_config.model_dump()})
+        info.update({CURRENT_JOB_CONFIG_KEY: self._current_hadoop_config})
 
         return self._construct_observation(), reward, terminated, truncated, info
 
@@ -195,11 +194,12 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         return None
 
     @abstractmethod
-    def _init_episodic_job(self, options: dict[str, Any] | None) -> JobProperties:
+    def _init_episodic_job(self, options: dict[str, Any] | None) -> Tuple[JobProperties, Dict[str, Any]]:
         """
         This function performs all required initialization related to the episodic job.
         Note: seed can be accessed through self._np_random_seed
         :param options: additional parameters that are passed into the "reset" function of the environment
+        :return: job properties and extra information (if needed, otherwise an empty dictionary is returned).
         """
         pass
 

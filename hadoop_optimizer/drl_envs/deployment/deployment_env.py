@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Tuple, Dict
 
 from pydantic import ValidationError
 
@@ -10,7 +10,7 @@ from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOpti
 class OptimizerDeploymentEnv(AbstractOptimizerEnvInterface):
     DEFAULT_REWARD = 0
 
-    def _init_episodic_job(self, options: dict[str, Any] | None) -> JobProperties:
+    def _init_episodic_job(self, options: dict[str, Any] | None) -> Tuple[JobProperties, Dict[str, Any]]:
         """
         :param options: Should contain the job properties that we want to optimize its Hadoop config params
             through this episode
@@ -19,7 +19,7 @@ class OptimizerDeploymentEnv(AbstractOptimizerEnvInterface):
             raise ValueError("Expected to retrieve the job properties on reset")
 
         try:
-            return JobProperties.model_validate(options)
+            return JobProperties.model_validate(options), {}
         except ValidationError as e:
             raise ValueError("Received unexpected job properties") from e
 

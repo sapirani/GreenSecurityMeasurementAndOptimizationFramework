@@ -1,27 +1,24 @@
 from datetime import datetime
 import os
 from pathlib import Path
+from typing import List
 from dependency_injector.wiring import inject, Provide
 from human_id import generate_id
 from stable_baselines3.common.base_class import BaseAlgorithm
-from stable_baselines3.common.callbacks import CheckpointCallback
+from stable_baselines3.common.callbacks import BaseCallback
 from DTOs.logging.consts import IndexName
 from elastic_reader.elastic_reader_parameters import ES_URL, ES_PASS, ES_USER
-from hadoop_optimizer.training_loop.container.training_container import TrainingContainer
+from hadoop_optimizer.training_loop.container.training_container import TrainingContainer, MODELS_DIR_NAME
 
 MINUTE = 60
-MODELS_DIR_NAME = "models"
-INTERMEDIATE_MODELS_NAMES_DIR_NAME = "intermediate_models"
-FINAL_MODEL_PREFIX = "trained_"
 
 
 @inject
 def main(
         drl_training_model: BaseAlgorithm = Provide[TrainingContainer.drl_training_model],
-        models_base_dir: Path = Provide[TrainingContainer.config.drl.storage.models_base_dir],
-        train_id: str = Provide[TrainingContainer.config.drl.train_id],
         learning_total_timestamps: int = Provide[TrainingContainer.config.drl.learning_total_timestamps],
-        save_freq: int = Provide[TrainingContainer.config.drl.storage.save_freq],
+        training_callback: BaseCallback = Provide[TrainingContainer.training_callback],
+        final_model_saving_paths: List[str] = Provide[TrainingContainer.final_model_saving_paths],
 ) -> None:
     """
     This function runs a drl training and store the final + intermediate models.
@@ -30,30 +27,17 @@ def main(
     Note: the file names that store the models, must include the model name (e.g., PPO, A2C, etc.).
     The reason for this convention is that the automatic code that resumes the pretrained model must know its type
     """
-    model_name = drl_training_model.__class__.__name__
-
-    training_base_dir = os.path.join(
-        models_base_dir,
-        MODELS_DIR_NAME,
-        f"{datetime.now().strftime('%Y-%m-%d')}_{train_id}"
-    )
-
-    checkpoint_callback = CheckpointCallback(
-        save_freq=save_freq,
-        save_path=os.path.join(training_base_dir, INTERMEDIATE_MODELS_NAMES_DIR_NAME),
-        name_prefix=model_name
-    )
-
     drl_training_model.learn(
         total_timesteps=learning_total_timestamps,
         log_interval=1,
         progress_bar=True,
-        callback=checkpoint_callback
+        callback=training_callback
         # TODO: CONSIDER SETTING reset_num_timesteps TO FALSE TO START THE INTERNAL COUNTING FROM THE SAME POINT
         #  WHERE THE PRETRAINED MODEL STOPPED
     )
-    drl_training_model.save(os.path.join(training_base_dir, f"{FINAL_MODEL_PREFIX + model_name}"))
-    drl_training_model.save(os.path.join(training_base_dir, MODELS_DIR_NAME, model_name))
+
+    for saving_path in final_model_saving_paths:
+        drl_training_model.save(saving_path)
 
 
 if __name__ == '__main__':
@@ -69,6 +53,7 @@ if __name__ == '__main__':
     container.config.drl.storage.save_freq.from_value(2048)
     container.config.drl.env.max_episode_steps.from_value(50)
     container.config.drl.env.truncated_penalty.from_value(-150.0)
+    container.config.drl.env.training.from_value(container.training_results_logger())
     container.config.drl.state.split_by.from_value("hostname")
     container.config.drl.state.leverage_telemetry_in_state.from_value(False)
     container.config.drl.state.time_windows_seconds.from_value([1 * MINUTE, 5 * MINUTE, 10 * MINUTE, 20 * MINUTE])

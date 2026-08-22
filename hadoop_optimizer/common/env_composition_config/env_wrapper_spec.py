@@ -1,4 +1,6 @@
+from abc import ABC
 from dataclasses import dataclass, field, fields
+from logging import Logger
 from typing import Callable, Dict, Any
 
 import numpy as np
@@ -12,14 +14,7 @@ class EnvWrapperSpec:
 
 
 @dataclass(frozen=True)
-class EnvWrappersParams:
-    max_episode_steps: int
-    min_action: np.float32 = 0
-    max_action: np.float32 = 1
-    min_obs: np.float32 = -1
-    max_obs: np.float32 = 1
-    truncated_penalty: float = -150.0
-
+class DIConfigParams(ABC):
     @classmethod
     def from_config(cls, config: Configuration):
         params = {}
@@ -28,4 +23,17 @@ class EnvWrappersParams:
             if field_name in config:
                 params[field_name] = config[field_name]
 
-        return cls(**params)
+        return cls(**params) # noqa
+
+@dataclass(frozen=True)
+class EnvWrappersParams(DIConfigParams):
+    max_episode_steps: int
+    min_action: np.float32 = 0
+    max_action: np.float32 = 1
+    min_obs: np.float32 = -1
+    max_obs: np.float32 = 1
+    truncated_penalty: float = -150.0
+
+@dataclass(frozen=True)
+class TrainingEnvWrapperParams(DIConfigParams):
+    logger: Logger

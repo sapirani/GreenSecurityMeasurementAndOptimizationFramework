@@ -7,6 +7,7 @@ class LoggerName:
     APPLICATION_FLOW = "application_flow"
     METRICS_AGGREGATIONS = "metrics_aggregations"
     DRL_TRAINING = "drl_training"
+    DRL_DEBUGGING = "drl_debugging"
 
 
 class IndexName(str, Enum):
@@ -15,6 +16,7 @@ class IndexName(str, Enum):
     APPLICATION_FLOW = "application_flow"
     METRICS_AGGREGATIONS = "metrics_aggregations"
     DRL_TRAINING = "drl_training"
+    DRL_DEBUGGING = "drl_debugging"
 
 
 SCANNER_FINISHED_MESSAGE = "The scanner has finished measuring"
