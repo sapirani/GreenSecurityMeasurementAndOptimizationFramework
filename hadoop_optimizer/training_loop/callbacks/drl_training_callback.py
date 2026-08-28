@@ -83,7 +83,7 @@ class PPODebugCallback(BaseCallback):
 
         if metrics:
             self.debugging_logger.info(
-                "PPO Training Update Statistics",
+                "PPO Training Update Completed",
                 extra={
                     "training_id": self.train_id,
                     "global_step": self.num_timesteps,
@@ -136,7 +136,7 @@ class PPODebugCallback(BaseCallback):
                 )
 
                 self.debugging_logger.info(
-                    "Training Rollout Internal Parameters",
+                    "PPO Training Transition",
                     extra={
                         "training_id": self.train_id,
                         "env_index": env_idx,
@@ -154,11 +154,11 @@ class PPODebugCallback(BaseCallback):
                         # ------------------------------------------------
                         "state_t_value": float(rollout_buffer.values[step, env_idx]),   # V(s_t)
                         # Joint log-probability assigned to the sampled action.
-                        # Higher means the sampled action was more likely under the policy.
+                        # Higher value means that the sampled action was more likely under the policy.
                         # Interpret alongside action_mean and action_std.
                         "action_log_prob": float(rollout_buffer.log_probs[step, env_idx]),
                         "advantage": float(rollout_buffer.advantages[step, env_idx]),
-                        "critic_return_target": float(rollout_buffer.returns[step, env_idx]),
+                        "critic_target_value": float(rollout_buffer.returns[step, env_idx]),
 
                         # ------------------------------------------------
                         # Policy distribution
@@ -191,9 +191,14 @@ class PPODebugCallback(BaseCallback):
         # Aggregate PPO quantities across steps and environments
         # ------------------------------------------------------------
         self._add_statistics(statistics, "reward", rollout_buffer.rewards)
-        self._add_statistics(statistics, "critic_value_estimate", rollout_buffer.values)
+        # Whether the actions taken were better (positive number) or worse (negative number) than what critic expected
         self._add_statistics(statistics, "advantage", rollout_buffer.advantages)
-        self._add_statistics(statistics, "critic_return_target", rollout_buffer.returns)
+        # Critic's predicted state value V(s) for each state in the rollout
+        self._add_statistics(statistics, "critic_value_estimate", rollout_buffer.values)
+        # GAE-based return target to train the critic toward the expected future return from each state
+        self._add_statistics(statistics, "critic_target_value", rollout_buffer.returns)
+        # Whether actions taken were likely to be chosen by the policy. Higher = more likely
+        # Basically, it may be inferred from the action mean, action std, and the actual action taken
         self._add_statistics(statistics, "joint_action_log_prob", rollout_buffer.log_probs)
 
         # ------------------------------------------------------------
@@ -211,16 +216,10 @@ class PPODebugCallback(BaseCallback):
             )
 
         # ------------------------------------------------------------
-        # Critic error
-        # ------------------------------------------------------------
-        value_target_error = rollout_buffer.returns - rollout_buffer.values
-        self._add_statistics(statistics, "critic_value_target_error", value_target_error)
-
-        # ------------------------------------------------------------
         # Critic explained variance
         #
-        # 1.0  → excellent value prediction
-        # 0.0  → no better than predicting the mean
+        # 1.0  → excellent value prediction - critic predictions explain the variation in the return targets very well
+        # 0.0  → no better than predicting the mean of the target values
         # < 0  → worse than predicting the mean
         # ------------------------------------------------------------
         statistics["critic_explained_variance"] = float(
@@ -229,18 +228,18 @@ class PPODebugCallback(BaseCallback):
 
         # ------------------------------------------------------------
         # Advantage properties
+        # Roughly say: whether the actions taken were better or worse than what critic expected
         # ------------------------------------------------------------
         advantages = rollout_buffer.advantages
         statistics["advantage_positive_fraction"] = float(np.mean(advantages > 0))  # actions were better than expected
         statistics["advantage_negative_fraction"] = float(np.mean(advantages < 0))  # actions were worse than expected
         statistics["advantage_zero_fraction"] = float(np.mean(advantages == 0))     # actions were as good as expected
 
-
         entropy_np = entropy.cpu().numpy()
         self._add_statistics(statistics, "entropy", entropy_np)
 
         self.debugging_logger.info(
-            "Training Rollout Statistics",
+            "PPO Training Rollout Statistics",
             extra=statistics,
         )
 

@@ -28,22 +28,22 @@ class SupportedJobsConfig:
         if job_descriptor.job_type == JobType.word_count:
             return JobProperties(
                 input_size_gb=job_descriptor.input_size_gb,
-                cpu_bound_scale=0.6,  # moderate CPU
-                io_bound_scale=0.5,  # heavy I/O
+                cpu_bound_scale=0.6,
+                io_bound_scale=0.5,
             )
 
         elif job_descriptor.job_type == JobType.anagrams:
             return JobProperties(
                 input_size_gb=job_descriptor.input_size_gb,
-                cpu_bound_scale=0.9,  # heavy CPU (sorting words)
-                io_bound_scale=0.9,  # moderate I/O
+                cpu_bound_scale=0.9,
+                io_bound_scale=0.9,
             )
 
         elif job_descriptor.job_type == JobType.line_statistics:
             return JobProperties(
                 input_size_gb=job_descriptor.input_size_gb,
-                cpu_bound_scale=0.4,  # very light CPU
-                io_bound_scale=0.25,  # almost pure I/O
+                cpu_bound_scale=0.4,
+                io_bound_scale=0.25,
             )
 
         else:

@@ -166,7 +166,6 @@ class TrainingContainer(containers.DeclarativeContainer):
         policy=ActorCriticPolicy,
         env=training_env,
         verbose=2,
-        # TODO: REFINE THE FOLLOWING PARAMETERS:
         n_steps=config.drl.algorithm.hyperparameters.n_steps,
         batch_size=config.drl.algorithm.hyperparameters.batch_size,
         n_epochs=config.drl.algorithm.hyperparameters.n_epochs,
