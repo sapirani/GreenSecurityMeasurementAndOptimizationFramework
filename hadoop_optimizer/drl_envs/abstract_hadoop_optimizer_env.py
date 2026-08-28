@@ -1,15 +1,18 @@
 from abc import ABC, abstractmethod
-from typing import SupportsFloat, Any, Optional, Dict, Set
+from datetime import datetime
+from typing import SupportsFloat, Any, Optional, Dict, Set, Tuple
 
-from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
-from DTOs.hadoop.drl_training.job_properties import JobProperties
-from hadoop_optimizer.drl_envs.consts import TERMINATE_ACTION_NAME, CURRENT_JOB_CONFIG_KEY, NEXT_JOB_CONFIG_KEY, \
-    JOB_PROPERTIES_KEY, DEFAULT_JOB_CONFIG_KEY, RenderMode
-from hadoop_optimizer.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 import gymnasium as gym
-from gymnasium.core import RenderFrame, ActType, ObsType
 import numpy as np
 from gymnasium import spaces
+from gymnasium.core import RenderFrame, ActType, ObsType
+
+from DTOs.hadoop.drl.job_properties import JobProperties
+from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
+from DTOs.range import Range
+from hadoop_optimizer.common.drl_telemetry.telemetry_aggregator import TelemetryAggregator
+from hadoop_optimizer.drl_envs.consts import TERMINATE_ACTION_NAME, CURRENT_JOB_CONFIG_KEY, NEXT_JOB_CONFIG_KEY, \
+    JOB_PROPERTIES_KEY, DEFAULT_JOB_CONFIG_KEY, RenderMode
 
 
 # TODO: THINK ABOUT THE CORRECT TREATMENT OPTION FOR THE LAST STEP (TO BEST ALIGN WITH THE MARKOV PROPERTY):
@@ -40,7 +43,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
 
     def __init__(self, telemetry_aggregator: TelemetryAggregator):
         super().__init__()
-        self.render_mode = RenderMode.HUMAN  # must be defined for successful rendering in training
+        self.render_mode = RenderMode.HUMAN
         # TODO: SUPPORT CURRENT CLUSTER LOAD
         self.observation_space: spaces.Dict = spaces.Dict({
             JOB_PROPERTIES_KEY: self.job_properties_space,
@@ -63,6 +66,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         self._last_action: Optional[Dict[str, Any]] = None
         self.step_count = 0
         self.episode_counter = 0
+        self._cumulative_reward = 0
 
     @property
     def job_config_space(self) -> spaces.Dict:
@@ -85,10 +89,17 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
     @property
     def job_properties_space(self) -> spaces.Dict:
         return spaces.Dict({
-            "input_size_gb": spaces.Box(low=0, high=20, shape=(), dtype=np.float32),
+            "input_size_gb": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
             "cpu_bound_scale": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
             "io_bound_scale": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
         })
+
+    @staticmethod
+    def _get_space_ranges(space: spaces.Dict) -> Dict[str, Range]:
+        return {
+            config_name: Range(low=box_space.low, high=box_space.high)
+            for config_name, box_space in space.spaces.items()
+        }
 
     @property
     def supported_configurations(self) -> Set[str]:
@@ -122,13 +133,14 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         super().reset(seed=seed)
         self.step_count = 0
         self.episode_counter += 1
+        self._cumulative_reward = 0
 
-        self._episodic_job_properties = self._init_episodic_job(options)
+        self._episodic_job_properties, info = self._init_episodic_job(options)
 
         # TODO: CONSIDER RETURNING DEBUGGING INFO, such as the current cluster load
         self._current_hadoop_config = HadoopJobExecutionConfig()
         self.episodic_telemetry = self.telemetry_aggregator.get_telemetry()
-        info = {DEFAULT_JOB_CONFIG_KEY: True}
+        info.update({DEFAULT_JOB_CONFIG_KEY: True})
         return self._construct_observation(), info
 
     def step(self, action: ActType) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
@@ -136,7 +148,6 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
             raise RuntimeError("Environment must be reset before calling the step function")
 
         truncated = False
-        info = {}
         reward = 0  # there is no meaning for the reward in the deployment environment
         self.step_count += 1
 
@@ -145,16 +156,20 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         self._current_hadoop_config = self._get_next_execution_config(action)
 
         self._extra_step_init()
-        self._compute_reward(self._current_hadoop_config, terminated, truncated)
+        step_reward, info = self._compute_reward(
+            self._current_hadoop_config, terminated=terminated, truncated=truncated
+        )
+        self._cumulative_reward += step_reward
 
         # TODO: CONSIDER RETURNING MORE DEBUGGING INFO, such as the current cluster load
-        info.update({CURRENT_JOB_CONFIG_KEY: self._current_hadoop_config.model_dump()})
+        info.update({CURRENT_JOB_CONFIG_KEY: self._current_hadoop_config})
 
         return self._construct_observation(), reward, terminated, truncated, info
 
     def render(self) -> RenderFrame | list[RenderFrame] | None:
         print(f"****************** "
               f"Current Episode: {self.episode_counter}, Current Step: {self.step_count} "
+              f"(at {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}) "
               f"******************")
 
         self._custom_rendering()
@@ -179,11 +194,12 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         return None
 
     @abstractmethod
-    def _init_episodic_job(self, options: dict[str, Any] | None) -> JobProperties:
+    def _init_episodic_job(self, options: dict[str, Any] | None) -> Tuple[JobProperties, Dict[str, Any]]:
         """
         This function performs all required initialization related to the episodic job.
         Note: seed can be accessed through self._np_random_seed
         :param options: additional parameters that are passed into the "reset" function of the environment
+        :return: job properties and extra information (if needed, otherwise an empty dictionary is returned).
         """
         pass
 
@@ -195,7 +211,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         pass
 
     @abstractmethod
-    def _compute_reward(self, job_config: HadoopJobExecutionConfig, terminated: bool, truncated: bool) -> float:
+    def _compute_reward(self, job_config: HadoopJobExecutionConfig, *, terminated: bool, truncated: bool) -> float:
         """
         This function is applied whenever a step is performed
         :param job_config: the current job config to run, measure its performance and compute reward accordingly

@@ -15,7 +15,10 @@ from DTOs.raw_results_dtos.iteration_info import IterationMetadata, IterationRaw
 from elastic_reader.elastic_reader_parameters import ES_USER, ES_PASS, ES_URL
 from user_input.elastic_reader_input.abstract_date_picker import ReadingMode, TimePickerChosenInput
 
-
+# TODO: INJECT URL AND CREDENTIALS INSTEAD OF IMPORTING DIRECTLY FROM THE PARAMETERS FILE
+# TODO: CONSIDER MAKING THIS CLASS MORE GENERIC TO SUPPORT OTHER INDICES FOR REAL, WHICH RETURNS
+#  IterationRawResults THAT IS COMPRISED ONLT OF PROCESS, SYSTEM AND METADATA.
+# TODO: MAYBE INJECT THE ENTIRE Elasticsearch CLIENT
 class ElasticReader:
     def __init__(
             self,
