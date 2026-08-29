@@ -27,6 +27,9 @@ from hadoop_optimizer.drl_envs.training.reward.reward_calculator import RewardCa
 from hadoop_optimizer.drl_envs.training.training_env import OptimizerTrainingEnv
 from hadoop_optimizer.drl_envs.training.training_progress_tracker import TrainingProgressTracker
 from hadoop_optimizer.job_runner.clients.cached_job_performance_evaluator_client import CachedHadoopJobPerformanceEvaluatorClient
+from hadoop_optimizer.optimization_mode.rl_mode import RLMode
+from optimization_mode import OptimizationMode
+from optimization_mode.contextual_bandit_mode import ContextualBanditMode
 from training_loop.callbacks.drl_training_callback import PPODebugCallback
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
@@ -133,9 +136,21 @@ class TrainingContainer(containers.DeclarativeContainer):
         energy_max_deviation_percent=config.drl.cached_results.utilization_policy.energy_max_deviation_percent,
     )
 
+    contextual_bandit_mode = providers.Factory(ContextualBanditMode)
+    rl_mode = providers.Factory(RLMode)
+
+    optimization_mode = providers.Selector(
+        config.drl.mode,
+        **{
+            OptimizationMode.CONTEXTUAL_BANDIT: contextual_bandit_mode,
+            OptimizationMode.RL: rl_mode,
+        },
+    )
+
     base_env: Provider[gym.Env] = providers.Factory(
         OptimizerTrainingEnv,
         telemetry_aggregator=telemetry_aggregator,
+        optimization_mode=optimization_mode,
         training_client=training_client,
         reward_calculator=reward_calculator,
         train_id=config.drl.train_id,

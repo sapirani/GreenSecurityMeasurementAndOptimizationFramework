@@ -1,18 +1,17 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import SupportsFloat, Any, Optional, Dict, Set, Tuple
+from typing import SupportsFloat, Any, Optional, Dict, Tuple
 
 import gymnasium as gym
-import numpy as np
 from gymnasium import spaces
 from gymnasium.core import RenderFrame, ActType, ObsType
 
 from DTOs.hadoop.drl.job_properties import JobProperties
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
-from DTOs.range import Range
 from hadoop_optimizer.common.drl_telemetry.telemetry_aggregator import TelemetryAggregator
-from hadoop_optimizer.drl_envs.consts import TERMINATE_ACTION_NAME, CURRENT_JOB_CONFIG_KEY, NEXT_JOB_CONFIG_KEY, \
-    JOB_PROPERTIES_KEY, DEFAULT_JOB_CONFIG_KEY, RenderMode
+from hadoop_optimizer.drl_envs.consts import CURRENT_JOB_CONFIG_KEY, JOB_PROPERTIES_KEY, DEFAULT_JOB_CONFIG_KEY, \
+    RenderMode
+from hadoop_optimizer.optimization_mode.abstract_optimization_mode import AbstractOptimizationMode
 
 
 # TODO: THINK ABOUT THE CORRECT TREATMENT OPTION FOR THE LAST STEP (TO BEST ALIGN WITH THE MARKOV PROPERTY):
@@ -41,21 +40,15 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         (in terms of minimal running time and energy consumption), while performing minimal number of steps.
     """
 
-    def __init__(self, telemetry_aggregator: TelemetryAggregator):
+    def __init__(self, telemetry_aggregator: TelemetryAggregator, optimization_mode: AbstractOptimizationMode):
         super().__init__()
         self.render_mode = RenderMode.HUMAN
+        self.optimization_mode = optimization_mode
         # TODO: SUPPORT CURRENT CLUSTER LOAD
-        self.observation_space: spaces.Dict = spaces.Dict({
-            JOB_PROPERTIES_KEY: self.job_properties_space,
-            CURRENT_JOB_CONFIG_KEY: self.job_config_space,
-        })
+        self.observation_space: spaces.Dict = self.optimization_mode.get_observation_space()
 
         # TODO: consider actions as delta increments (not absolute configuration)
-        self.action_space = spaces.Dict({
-            NEXT_JOB_CONFIG_KEY: self.job_config_space,
-            TERMINATE_ACTION_NAME: spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
-        })
-
+        self.action_space = self.optimization_mode.get_action_space()
         self.telemetry_aggregator = telemetry_aggregator  # TODO: LEVERAGE TELEMETRY MANAGER INSIDE THE OBSERVATION SPACE
         # TODO: THINK ABOUT WHAT TO DO WITH TELEMETRY IN THE TRAINING ENV
         #  (AS IT SHOULD BE THE SAME ACROSS THE EPISODE, BUT EACH STEP AFFECTS IT BY ITSELF)
@@ -67,62 +60,6 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         self.step_count = 0
         self.episode_counter = 0
         self._cumulative_reward = 0
-
-    @property
-    def job_config_space(self) -> spaces.Dict:
-        """
-        Note: this space is the major part of the action space. It *must* suit the resource capabilities of the server
-        in which the tasks are executed at.
-        Do not ask for more resources (e.g., large amount of CPU cores) than what is configured in the server as
-        the limits.
-        """
-        # TODO: extend this implementation with all the flags:
-        return spaces.Dict({
-            "number_of_mappers": spaces.Box(low=1, high=15, shape=(), dtype=np.float32),
-            "number_of_reducers": spaces.Box(low=1, high=15, shape=(), dtype=np.float32),
-            "map_memory_mb": spaces.Box(low=256, high=4096, shape=(), dtype=np.float32),
-            "should_compress": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
-            "map_vcores": spaces.Box(low=1, high=5, shape=(), dtype=np.float32),
-            "reduce_vcores": spaces.Box(low=1, high=5, shape=(), dtype=np.float32),
-        })
-
-    @property
-    def job_properties_space(self) -> spaces.Dict:
-        return spaces.Dict({
-            "input_size_gb": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
-            "cpu_bound_scale": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
-            "io_bound_scale": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
-        })
-
-    @staticmethod
-    def _get_space_ranges(space: spaces.Dict) -> Dict[str, Range]:
-        return {
-            config_name: Range(low=box_space.low, high=box_space.high)
-            for config_name, box_space in space.spaces.items()
-        }
-
-    @property
-    def supported_configurations(self) -> Set[str]:
-        return set(self.job_config_space.keys())
-
-    def _construct_observation(
-            self,
-    ) -> Dict[str, Any]:
-        # TODO: return full observation (job properties, load, updated hadoop configuration)
-        return {
-            JOB_PROPERTIES_KEY: self._episodic_job_properties.model_dump(),
-            CURRENT_JOB_CONFIG_KEY: self._current_hadoop_config.model_dump(include=self.supported_configurations),
-        }
-
-    @staticmethod
-    def _get_next_execution_config(action: ActType) -> HadoopJobExecutionConfig:
-        """ Apply action to modify next hadoop configuration """
-        # TODO: if actions become deltas: start from self._current_hadoop_config, instead of using default configuration
-        default_config = HadoopJobExecutionConfig()
-        return default_config.model_copy(
-            update=action[NEXT_JOB_CONFIG_KEY],
-            deep=True,
-        )
 
     def reset(
             self,
@@ -136,15 +73,21 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         self._cumulative_reward = 0
 
         self._episodic_job_properties, info = self._init_episodic_job(options)
+        assert self._episodic_job_properties is not None
 
         # TODO: CONSIDER RETURNING DEBUGGING INFO, such as the current cluster load
         self._current_hadoop_config = HadoopJobExecutionConfig()
         self.episodic_telemetry = self.telemetry_aggregator.get_telemetry()
         info.update({DEFAULT_JOB_CONFIG_KEY: True})
-        return self._construct_observation(), info
+
+        observation = self.optimization_mode.construct_observation(
+            self._episodic_job_properties,
+            self._current_hadoop_config
+        )
+        return observation, info
 
     def step(self, action: ActType) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
-        if self._current_hadoop_config is None:
+        if self._current_hadoop_config is None or self._episodic_job_properties is None:
             raise RuntimeError("Environment must be reset before calling the step function")
 
         truncated = False
@@ -152,8 +95,8 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         self.step_count += 1
 
         self._last_action = action.copy()
-        terminated = action[TERMINATE_ACTION_NAME]
-        self._current_hadoop_config = self._get_next_execution_config(action)
+        terminated = self.optimization_mode.should_terminate(action)
+        self._current_hadoop_config = self.optimization_mode.parse_action_to_config(action)
 
         self._extra_step_init()
         step_reward, info = self._compute_reward(
@@ -164,7 +107,11 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         # TODO: CONSIDER RETURNING MORE DEBUGGING INFO, such as the current cluster load
         info.update({CURRENT_JOB_CONFIG_KEY: self._current_hadoop_config})
 
-        return self._construct_observation(), reward, terminated, truncated, info
+        observation = self.optimization_mode.construct_observation(
+            self._episodic_job_properties,
+            self._current_hadoop_config
+        )
+        return observation, reward, terminated, truncated, info
 
     def render(self) -> RenderFrame | list[RenderFrame] | None:
         print(f"****************** "

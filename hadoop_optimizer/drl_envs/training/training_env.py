@@ -17,19 +17,21 @@ from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOpti
 from hadoop_optimizer.drl_envs.training.reward.reward_calculator import RewardCalculator
 from hadoop_optimizer.drl_envs.training.training_progress_tracker import TrainingProgressTracker
 from hadoop_optimizer.job_runner.clients.cached_job_performance_evaluator_client import CachedHadoopJobPerformanceEvaluatorClient
+from optimization_mode.abstract_optimization_mode import AbstractOptimizationMode
 
 
 class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
     def __init__(
             self,
             telemetry_aggregator: TelemetryAggregator,
+            optimization_mode: AbstractOptimizationMode,
             training_client: CachedHadoopJobPerformanceEvaluatorClient,
             reward_calculator: RewardCalculator,
             train_id: str,
             training_progress_tracker: TrainingProgressTracker,
             cached_results_utilization_policy: CachedResultsUtilizationPolicy
     ):
-        super().__init__(telemetry_aggregator)
+        super().__init__(telemetry_aggregator, optimization_mode)
         self.training_client = training_client
         self.training_client.start()
         self.reward_calculator = reward_calculator
@@ -136,7 +138,7 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             execution_configuration=job_config,
             session_id=self.train_id,
             episode_context=EpisodeContext.from_episode_context(episode_context),
-            space_ranges=self._get_space_ranges(self.job_config_space),
+            space_ranges=self.optimization_mode.get_space_ranges(self.optimization_mode.job_config_space),
             # TODO: Consider making the following policy adaptive as the training progress
             cached_results_utilization_policy=self.cached_results_utilization_policy,
         )
