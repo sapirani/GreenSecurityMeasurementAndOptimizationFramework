@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Set
+from typing import Any, Dict, Set, Optional
 import numpy as np
 from gymnasium import spaces
 from gymnasium.core import ActType
@@ -10,6 +10,18 @@ from hadoop_optimizer.drl_envs.consts import NEXT_JOB_CONFIG_KEY
 
 
 class AbstractOptimizationMode(ABC):
+
+    def __init__(self):
+        self._episodic_job_properties: Optional[JobProperties] = None
+
+    def episode_reset(self, new_job_properties: JobProperties):
+        self._episodic_job_properties = new_job_properties
+
+    def get_episodic_job_properties(self) -> JobProperties:
+        if not self._episodic_job_properties:
+            raise ValueError("Episodic job properties not set. Must call reset function first.")
+
+        return self._episodic_job_properties
 
     @property
     def job_config_space(self) -> spaces.Dict:
@@ -67,11 +79,7 @@ class AbstractOptimizationMode(ABC):
         pass
 
     @abstractmethod
-    def construct_observation(
-            self,
-            episodic_job_properties: JobProperties,
-            current_hadoop_config: HadoopJobExecutionConfig
-    ) -> Dict[str, Any]:
+    def construct_observation(self, current_hadoop_config: HadoopJobExecutionConfig) -> Dict[str, Any]:
         pass
 
 

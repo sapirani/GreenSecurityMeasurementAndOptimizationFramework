@@ -21,13 +21,9 @@ class ContextualBanditMode(AbstractOptimizationMode):
             NEXT_JOB_CONFIG_KEY: self.job_config_space,
         })
 
-    def construct_observation(
-            self,
-            episodic_job_properties: JobProperties,
-            current_hadoop_config: HadoopJobExecutionConfig
-    ) -> Dict[str, Any]:
+    def construct_observation(self, current_hadoop_config: HadoopJobExecutionConfig) -> Dict[str, Any]:
         return {
-            JOB_PROPERTIES_KEY: episodic_job_properties.model_dump()
+            JOB_PROPERTIES_KEY: self.get_episodic_job_properties().model_dump()
         }
 
     def should_terminate(self, action: ActType):

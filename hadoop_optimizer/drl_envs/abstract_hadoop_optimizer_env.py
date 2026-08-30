@@ -1,16 +1,13 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import SupportsFloat, Any, Optional, Dict, Tuple
-
 import gymnasium as gym
 from gymnasium import spaces
 from gymnasium.core import RenderFrame, ActType, ObsType
-
 from DTOs.hadoop.drl.job_properties import JobProperties
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from hadoop_optimizer.common.drl_telemetry.telemetry_aggregator import TelemetryAggregator
-from hadoop_optimizer.drl_envs.consts import CURRENT_JOB_CONFIG_KEY, JOB_PROPERTIES_KEY, DEFAULT_JOB_CONFIG_KEY, \
-    RenderMode
+from hadoop_optimizer.drl_envs.consts import CURRENT_JOB_CONFIG_KEY, DEFAULT_JOB_CONFIG_KEY, RenderMode
 from hadoop_optimizer.optimization_mode.abstract_optimization_mode import AbstractOptimizationMode
 
 
@@ -55,7 +52,6 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         self.episodic_telemetry = None
 
         self._current_hadoop_config = HadoopJobExecutionConfig()
-        self._episodic_job_properties: Optional[JobProperties] = None
         self._last_action: Optional[Dict[str, Any]] = None
         self.step_count = 0
         self.episode_counter = 0
@@ -72,22 +68,19 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         self.episode_counter += 1
         self._cumulative_reward = 0
 
-        self._episodic_job_properties, info = self._init_episodic_job(options)
-        assert self._episodic_job_properties is not None
+        episodic_job_properties, info = self._init_episodic_job(options)
+        self.optimization_mode.episode_reset(episodic_job_properties)
 
         # TODO: CONSIDER RETURNING DEBUGGING INFO, such as the current cluster load
         self._current_hadoop_config = HadoopJobExecutionConfig()
         self.episodic_telemetry = self.telemetry_aggregator.get_telemetry()
         info.update({DEFAULT_JOB_CONFIG_KEY: True})
 
-        observation = self.optimization_mode.construct_observation(
-            self._episodic_job_properties,
-            self._current_hadoop_config
-        )
+        observation = self.optimization_mode.construct_observation(self._current_hadoop_config)
         return observation, info
 
     def step(self, action: ActType) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
-        if self._current_hadoop_config is None or self._episodic_job_properties is None:
+        if self._current_hadoop_config is None:
             raise RuntimeError("Environment must be reset before calling the step function")
 
         truncated = False
@@ -107,10 +100,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         # TODO: CONSIDER RETURNING MORE DEBUGGING INFO, such as the current cluster load
         info.update({CURRENT_JOB_CONFIG_KEY: self._current_hadoop_config})
 
-        observation = self.optimization_mode.construct_observation(
-            self._episodic_job_properties,
-            self._current_hadoop_config
-        )
+        observation = self.optimization_mode.construct_observation(self._current_hadoop_config)
         return observation, reward, terminated, truncated, info
 
     def render(self) -> RenderFrame | list[RenderFrame] | None:
@@ -122,7 +112,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         self._custom_rendering()
 
         print("Episodic Job Properties:")
-        print(self._episodic_job_properties)
+        print(self.optimization_mode.get_episodic_job_properties())
         print()
 
         print("Episodic Telemetry:")
