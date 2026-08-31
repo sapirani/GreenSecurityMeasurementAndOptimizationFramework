@@ -85,7 +85,7 @@ class TrainingContainer(containers.DeclarativeContainer):
     training_debugging_logger = providers.Singleton(
         get_measurement_logger,
         logger_name=LoggerName.DRL_DEBUGGING,
-        logger_handler=training_elastic_handler
+        logger_handler=training_debugger_elastic_handler
     )
 
     training_progress_tracker: Provider[TrainingProgressTracker] = providers.Singleton(
