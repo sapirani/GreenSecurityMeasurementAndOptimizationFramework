@@ -22,7 +22,7 @@ from hadoop_optimizer.common.drl_telemetry.telemetry_aggregator import Telemetry
 from elastic_reader.consts import TimePickerInputStrategy
 from elastic_reader.elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
 from hadoop_optimizer.common.env_composition_config.env_builder import build_env
-from hadoop_optimizer.common.env_composition_config.env_wrapper_spec import EnvWrappersParams
+from hadoop_optimizer.common.env_composition_config.env_wrapper_spec import EnvWrappersParams, TrainingEnvWrapperParams
 from hadoop_optimizer.drl_envs.training.reward.reward_calculator import RewardCalculator
 from hadoop_optimizer.drl_envs.training.training_env import OptimizerTrainingEnv
 from hadoop_optimizer.drl_envs.training.training_progress_tracker import TrainingProgressTracker
@@ -164,8 +164,8 @@ class TrainingContainer(containers.DeclarativeContainer):
     )
 
     training_env_wrappers_params: Provider[EnvWrappersParams] = providers.Factory(
-        EnvWrappersParams.from_config,
-        training_results_logger
+        TrainingEnvWrapperParams,
+        logger=training_results_logger
     )
 
     training_env: Provider[gym.Env] = providers.Singleton(
