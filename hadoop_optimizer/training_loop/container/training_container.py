@@ -22,12 +22,15 @@ from hadoop_optimizer.common.drl_telemetry.telemetry_aggregator import Telemetry
 from elastic_reader.consts import TimePickerInputStrategy
 from elastic_reader.elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
 from hadoop_optimizer.common.env_composition_config.env_builder import build_env
-from hadoop_optimizer.common.env_composition_config.env_wrapper_spec import EnvWrappersParams
+from hadoop_optimizer.common.env_composition_config.env_wrapper_spec import EnvWrappersParams, TrainingEnvWrapperParams
 from hadoop_optimizer.drl_envs.training.reward.reward_calculator import RewardCalculator
 from hadoop_optimizer.drl_envs.training.training_env import OptimizerTrainingEnv
 from hadoop_optimizer.drl_envs.training.training_progress_tracker import TrainingProgressTracker
 from hadoop_optimizer.job_runner.clients.cached_job_performance_evaluator_client import CachedHadoopJobPerformanceEvaluatorClient
-from training_loop.callbacks.drl_training_callback import PPODebugCallback
+from hadoop_optimizer.optimization_mode.rl_mode import RLMode
+from hadoop_optimizer.optimization_mode import OptimizationMode
+from hadoop_optimizer.optimization_mode.contextual_bandit_mode import ContextualBanditMode
+from hadoop_optimizer.training_loop.callbacks.drl_training_callback import PPODebugCallback
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 
@@ -133,9 +136,21 @@ class TrainingContainer(containers.DeclarativeContainer):
         energy_max_deviation_percent=config.drl.cached_results.utilization_policy.energy_max_deviation_percent,
     )
 
+    contextual_bandit_mode = providers.Factory(ContextualBanditMode)
+    rl_mode = providers.Factory(RLMode)
+
+    optimization_mode = providers.Selector(
+        config.drl.mode,
+        **{
+            OptimizationMode.CONTEXTUAL_BANDIT: contextual_bandit_mode,
+            OptimizationMode.RL: rl_mode,
+        },
+    )
+
     base_env: Provider[gym.Env] = providers.Factory(
         OptimizerTrainingEnv,
         telemetry_aggregator=telemetry_aggregator,
+        optimization_mode=optimization_mode,
         training_client=training_client,
         reward_calculator=reward_calculator,
         train_id=config.drl.train_id,
@@ -149,8 +164,8 @@ class TrainingContainer(containers.DeclarativeContainer):
     )
 
     training_env_wrappers_params: Provider[EnvWrappersParams] = providers.Factory(
-        EnvWrappersParams.from_config,
-        config.drl.env.training
+        TrainingEnvWrapperParams,
+        logger=training_results_logger
     )
 
     training_env: Provider[gym.Env] = providers.Singleton(

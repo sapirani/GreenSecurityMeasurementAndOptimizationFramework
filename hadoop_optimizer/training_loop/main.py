@@ -9,6 +9,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 from DTOs.logging.consts import IndexName
 from elastic_reader.elastic_reader_parameters import ES_URL, ES_PASS, ES_USER
 from hadoop_optimizer.training_loop.container.training_container import TrainingContainer, MODELS_DIR_NAME
+from hadoop_optimizer.optimization_mode import OptimizationMode
 
 MINUTE = 60
 
@@ -49,11 +50,11 @@ if __name__ == '__main__':
         Path("trained_PPO.zip")
     )
     container.config.drl.train_id.from_value(generate_id(word_count=3))
+    container.config.drl.mode.from_value(OptimizationMode.CONTEXTUAL_BANDIT)
     container.config.drl.storage.models_base_dir.from_value(os.path.dirname(os.path.abspath(__file__)))
     container.config.drl.storage.save_freq.from_value(2048)
     container.config.drl.env.max_episode_steps.from_value(50)
     container.config.drl.env.truncated_penalty.from_value(-150.0)
-    container.config.drl.env.training.from_value(container.training_results_logger())
     container.config.drl.state.split_by.from_value("hostname")
     container.config.drl.state.leverage_telemetry_in_state.from_value(False)
     container.config.drl.state.time_windows_seconds.from_value([1 * MINUTE, 5 * MINUTE, 10 * MINUTE, 20 * MINUTE])
@@ -76,7 +77,7 @@ if __name__ == '__main__':
     container.config.drl.algorithm.hyperparameters.batch_size.from_value(64)
     container.config.drl.algorithm.hyperparameters.n_epochs.from_value(5)
     container.config.drl.algorithm.hyperparameters.gamma.from_value(1)
-    container.config.drl.algorithm.hyperparameters.ent_coef.from_value(0.005)   # encourage exploration
+    container.config.drl.algorithm.hyperparameters.ent_coef.from_value(0.01)   # encourage exploration
     container.config.drl.algorithm.hyperparameters.use_sde.from_value(True)
     container.config.drl.policy.hyperparameters.net_arch.from_value([128, 128])
     container.config.drl.policy.hyperparameters.squash_output.from_value(True)

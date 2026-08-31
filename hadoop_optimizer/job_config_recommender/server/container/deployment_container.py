@@ -4,10 +4,6 @@ from unittest.mock import Mock
 import gymnasium as gym
 from dependency_injector import containers, providers
 from dependency_injector.providers import Provider
-from stable_baselines3 import PPO
-from stable_baselines3.common.base_class import BaseAlgorithm
-from stable_baselines3.common.policies import ActorCriticPolicy
-
 from elastic_reader.consts import TimePickerInputStrategy, AggregationStrategy
 from elastic_reader.elastic_reader_service import ElasticReaderService
 from hadoop_optimizer.common.drl_telemetry.telemetry_aggregator import TelemetryAggregator
@@ -16,6 +12,9 @@ from hadoop_optimizer.common.env_composition_config.env_wrapper_spec import EnvW
 from hadoop_optimizer.job_config_recommender.server.drl_deployment_manager import DRLDeploymentManager
 from hadoop_optimizer.drl_envs.deployment.deployment_env import OptimizerDeploymentEnv
 from hadoop_optimizer.common.utils import get_drl_model
+from hadoop_optimizer.optimization_mode.rl_mode import RLMode
+from hadoop_optimizer.optimization_mode import OptimizationMode
+from hadoop_optimizer.optimization_mode.contextual_bandit_mode import ContextualBanditMode
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 
@@ -54,9 +53,21 @@ class DeploymentContainer(containers.DeclarativeContainer):
         indices_to_read_from=config.elastic.indices_to_read_from,
     )
 
+    contextual_bandit_mode = providers.Factory(ContextualBanditMode)
+    rl_mode = providers.Factory(RLMode)
+
+    optimization_mode = providers.Selector(
+        config.drl.mode,
+        **{
+            OptimizationMode.CONTEXTUAL_BANDIT: contextual_bandit_mode,
+            OptimizationMode.RL: rl_mode,
+        },
+    )
+
     base_env: Provider[gym.Env] = providers.Factory(
         OptimizerDeploymentEnv,
-        telemetry_aggregator=telemetry_aggregator
+        telemetry_aggregator=telemetry_aggregator,
+        optimization_mode=optimization_mode
     )
 
     env_wrappers_params: Provider[EnvWrappersParams] = providers.Factory(
