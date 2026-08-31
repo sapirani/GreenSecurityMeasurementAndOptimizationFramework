@@ -29,6 +29,7 @@ class ActionTypesDecoder(gym.ActionWrapper):
                 next_job_config[field_name] = field_info.annotation(np.round(next_job_config[field_name]))
 
         decoded_action[NEXT_JOB_CONFIG_KEY] = next_job_config
-        decoded_action[TERMINATE_ACTION_NAME] = bool(np.round(action[TERMINATE_ACTION_NAME]))
+        if TERMINATE_ACTION_NAME in decoded_action:
+            decoded_action[TERMINATE_ACTION_NAME] = bool(np.round(action[TERMINATE_ACTION_NAME]))
 
         return decoded_action
