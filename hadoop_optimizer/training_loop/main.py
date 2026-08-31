@@ -55,7 +55,6 @@ if __name__ == '__main__':
     container.config.drl.storage.save_freq.from_value(2048)
     container.config.drl.env.max_episode_steps.from_value(50)
     container.config.drl.env.truncated_penalty.from_value(-150.0)
-    container.config.drl.env.training.from_value(container.training_results_logger())
     container.config.drl.state.split_by.from_value("hostname")
     container.config.drl.state.leverage_telemetry_in_state.from_value(False)
     container.config.drl.state.time_windows_seconds.from_value([1 * MINUTE, 5 * MINUTE, 10 * MINUTE, 20 * MINUTE])

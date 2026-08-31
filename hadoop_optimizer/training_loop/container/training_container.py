@@ -165,7 +165,7 @@ class TrainingContainer(containers.DeclarativeContainer):
 
     training_env_wrappers_params: Provider[EnvWrappersParams] = providers.Factory(
         EnvWrappersParams.from_config,
-        config.drl.env.training
+        training_results_logger
     )
 
     training_env: Provider[gym.Env] = providers.Singleton(
