@@ -34,6 +34,7 @@ class PPODebugCallback(BaseCallback):
         model = cast(PPO, self.model)
 
         config = {
+            "training_id": self.train_id,
             "algorithm": type(model).__name__,
             "policy": type(model.policy).__name__,
             "learning_rate": model.policy.optimizer.param_groups[0]["lr"],
