@@ -41,13 +41,6 @@ class CachedHadoopJobPerformanceEvaluatorClient:
     ):
         self.job_performance_evaluator_client = job_performance_evaluator_client or HadoopJobPerformanceEvaluatorClient()
         self.default_results_utilization_policy = cached_results_utilization_policy or CachedResultsUtilizationPolicy()
-        print("inside init:")
-        print("similarity_temperature:", self.default_results_utilization_policy.similarity_temperature)
-        print("energy_max_deviation_percent:", self.default_results_utilization_policy.energy_max_deviation_percent)
-        print("running_time_max_deviation_percent:", self.default_results_utilization_policy.running_time_max_deviation_percent)
-        print("results_noise_scale:", self.default_results_utilization_policy.results_noise_scale)
-        print("max_param_diff_percent:", self.default_results_utilization_policy.max_param_diff_percent)
-        print("min_required_similar_samples:", self.default_results_utilization_policy.min_required_similar_samples)
 
         self.search_since = search_since or datetime.min
         self.force_real_execution_probability = force_real_execution_probability
@@ -103,8 +96,8 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         variance = float(np.average((values - mean) ** 2, weights=weights))
         return mean, math.sqrt(variance)
 
+    @staticmethod
     def _calc_simulated_job_performance(
-            self,
             similar_execution_results: Dict[DocumentID, JobExecutionPerformance],
             similarity_scores: Dict[DocumentID, SimilarityScore],
             results_noise_scale: float,
@@ -120,7 +113,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         if similarity_scores.keys() != similar_execution_results.keys():
             raise ValueError("Must received the same Document IDs in both similarity scores and execution results")
 
-        document_ids, weights = self._compute_similarity_weights(
+        document_ids, weights = CachedHadoopJobPerformanceEvaluatorClient._compute_similarity_weights(
             similarity_scores,
             similarity_temperature
         )
@@ -135,8 +128,14 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             dtype=float
         )
 
-        mean_running_time_sec, std_running_time_sec = self._weighted_mean_std(running_times_sec, weights)
-        mean_energy_mwh, std_energy_mwh = self._weighted_mean_std(energies_mwh, weights)
+        mean_running_time_sec, std_running_time_sec = CachedHadoopJobPerformanceEvaluatorClient._weighted_mean_std(
+            running_times_sec,
+            weights
+        )
+        mean_energy_mwh, std_energy_mwh = CachedHadoopJobPerformanceEvaluatorClient._weighted_mean_std(
+            energies_mwh,
+            weights
+        )
 
         # TODO: CONSIDER LOGGING LARGE STANDARD DEVIATIONS AS WARNINGS
         # TODO: CONSIDER RUNNING THE JOB WITHOUT SIMULATIONS IF THE STANDARD DEVIATION IS TOO LARGE
@@ -218,14 +217,6 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         simulated_running_time_avg = simulated_performance.running_time_sec_by_similar_jobs
         simulated_energy_use_avg = simulated_performance.energy_use_mwh_by_similar_jobs
 
-        print("simulated_running_time_avg", simulated_running_time_avg)
-        print("simulated_performance.std_running_time_sec", simulated_performance.std_running_time_sec)
-        print("running_time_max_deviation_percent:", running_time_max_deviation_percent)
-
-        print("simulated_energy_use_avg:", simulated_energy_use_avg)
-        print("simulated_performance.std_running_time_sec:", simulated_performance.std_running_time_sec)
-        print("energy_max_deviation_percent:", energy_max_deviation_percent)
-
         return (
                 (simulated_performance.std_running_time_sec / simulated_running_time_avg) * 100 >
                 running_time_max_deviation_percent
@@ -258,26 +249,8 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             4.  requests.exceptions.HTTPError: 503 gateway timeout (when job execution has passed time limit)
             5.  RuntimeError: in case that the caller did not call start beforehand / use the contextmanager
         """
-        print("inside run job, before:")
-        print("similarity_temperature:", cached_results_utilization_policy.similarity_temperature)
-        print("energy_max_deviation_percent:", cached_results_utilization_policy.energy_max_deviation_percent)
-        print("running_time_max_deviation_percent:",
-              cached_results_utilization_policy.running_time_max_deviation_percent)
-        print("results_noise_scale:", cached_results_utilization_policy.results_noise_scale)
-        print("max_param_diff_percent:", cached_results_utilization_policy.max_param_diff_percent)
-        print("min_required_similar_samples:", cached_results_utilization_policy.min_required_similar_samples)
-
         cached_results_utilization_policy = cached_results_utilization_policy or self.default_results_utilization_policy
         assert cached_results_utilization_policy
-
-        print("inside run job, after:")
-        print("similarity_temperature:", self.default_results_utilization_policy.similarity_temperature)
-        print("energy_max_deviation_percent:", self.default_results_utilization_policy.energy_max_deviation_percent)
-        print("running_time_max_deviation_percent:",
-              self.default_results_utilization_policy.running_time_max_deviation_percent)
-        print("results_noise_scale:", self.default_results_utilization_policy.results_noise_scale)
-        print("max_param_diff_percent:", self.default_results_utilization_policy.max_param_diff_percent)
-        print("min_required_similar_samples:", self.default_results_utilization_policy.min_required_similar_samples)
 
         similar_training_steps = self._find_similar_training_steps(
             job_descriptor,

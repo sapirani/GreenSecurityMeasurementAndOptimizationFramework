@@ -117,15 +117,6 @@ class TrainingContainer(containers.DeclarativeContainer):
         providers.Factory(Mock),
     )
 
-    training_client: Provider[CachedHadoopJobPerformanceEvaluatorClient] = providers.Factory(
-        CachedHadoopJobPerformanceEvaluatorClient,
-        elastic_url=config.elastic.url,
-        elastic_user=config.elastic.username,
-        elastic_password=config.elastic.password,
-        search_since=config.drl.cached_results.search_since,
-        force_real_execution_probability=config.drl.cached_results.force_real_execution_probability,
-    )
-
     cached_results_utilization_policy: Provider[CachedResultsUtilizationPolicy] = providers.Factory(
         CachedResultsUtilizationPolicy,
         max_param_diff_percent=config.drl.cached_results.utilization_policy.max_param_diff_percent,
@@ -134,6 +125,16 @@ class TrainingContainer(containers.DeclarativeContainer):
         similarity_temperature=config.drl.cached_results.utilization_policy.similarity_temperature,
         running_time_max_deviation_percent=config.drl.cached_results.utilization_policy.running_time_max_deviation_percent,
         energy_max_deviation_percent=config.drl.cached_results.utilization_policy.energy_max_deviation_percent,
+    )
+
+    training_client: Provider[CachedHadoopJobPerformanceEvaluatorClient] = providers.Factory(
+        CachedHadoopJobPerformanceEvaluatorClient,
+        elastic_url=config.elastic.url,
+        elastic_user=config.elastic.username,
+        elastic_password=config.elastic.password,
+        cached_results_utilization_policy=cached_results_utilization_policy,
+        search_since=config.drl.cached_results.search_since,
+        force_real_execution_probability=config.drl.cached_results.force_real_execution_probability,
     )
 
     contextual_bandit_mode = providers.Factory(ContextualBanditMode)
