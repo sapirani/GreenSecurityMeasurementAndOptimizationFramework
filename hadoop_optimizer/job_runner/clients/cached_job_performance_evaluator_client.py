@@ -41,6 +41,14 @@ class CachedHadoopJobPerformanceEvaluatorClient:
     ):
         self.job_performance_evaluator_client = job_performance_evaluator_client or HadoopJobPerformanceEvaluatorClient()
         self.cached_results_utilization_policy = cached_results_utilization_policy or CachedResultsUtilizationPolicy()
+        print("inside init:")
+        print("similarity_temperature:", self.cached_results_utilization_policy.similarity_temperature)
+        print("energy_max_deviation_percent:", self.cached_results_utilization_policy.energy_max_deviation_percent)
+        print("running_time_max_deviation_percent:", self.cached_results_utilization_policy.running_time_max_deviation_percent)
+        print("results_noise_scale:", self.cached_results_utilization_policy.results_noise_scale)
+        print("max_param_diff_percent:", self.cached_results_utilization_policy.max_param_diff_percent)
+        print("min_required_similar_samples:", self.cached_results_utilization_policy.min_required_similar_samples)
+
         self.search_since = search_since or datetime.min
         self.force_real_execution_probability = force_real_execution_probability
 
@@ -244,8 +252,26 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             4.  requests.exceptions.HTTPError: 503 gateway timeout (when job execution has passed time limit)
             5.  RuntimeError: in case that the caller did not call start beforehand / use the contextmanager
         """
+        print("inside run job, before:")
+        print("similarity_temperature:", cached_results_utilization_policy.similarity_temperature)
+        print("energy_max_deviation_percent:", cached_results_utilization_policy.energy_max_deviation_percent)
+        print("running_time_max_deviation_percent:",
+              cached_results_utilization_policy.running_time_max_deviation_percent)
+        print("results_noise_scale:", cached_results_utilization_policy.results_noise_scale)
+        print("max_param_diff_percent:", cached_results_utilization_policy.max_param_diff_percent)
+        print("min_required_similar_samples:", cached_results_utilization_policy.min_required_similar_samples)
+
         cached_results_utilization_policy = cached_results_utilization_policy or self.cached_results_utilization_policy
         assert cached_results_utilization_policy
+
+        print("inside run job, after:")
+        print("similarity_temperature:", self.cached_results_utilization_policy.similarity_temperature)
+        print("energy_max_deviation_percent:", self.cached_results_utilization_policy.energy_max_deviation_percent)
+        print("running_time_max_deviation_percent:",
+              self.cached_results_utilization_policy.running_time_max_deviation_percent)
+        print("results_noise_scale:", self.cached_results_utilization_policy.results_noise_scale)
+        print("max_param_diff_percent:", self.cached_results_utilization_policy.max_param_diff_percent)
+        print("min_required_similar_samples:", self.cached_results_utilization_policy.min_required_similar_samples)
 
         similar_training_steps = self._find_similar_training_steps(
             job_descriptor,
