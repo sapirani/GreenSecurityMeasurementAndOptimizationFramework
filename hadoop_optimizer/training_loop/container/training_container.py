@@ -187,7 +187,7 @@ class TrainingContainer(containers.DeclarativeContainer):
         gamma=providers.Selector(
             config.drl.mode,
             **{
-                OptimizationMode.CONTEXTUAL_BANDIT: 0.0,
+                OptimizationMode.CONTEXTUAL_BANDIT: providers.Object(0.0),
                 OptimizationMode.RL: config.drl.algorithm.hyperparameters.gamma,
             },
         ),
