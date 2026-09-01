@@ -122,7 +122,8 @@ class PPODebugCallback(BaseCallback):
             per_dim_log_prob = distribution.distribution.log_prob(actions)
 
         # Restore [n_steps, n_envs, ...]
-        entropy = entropy.reshape(rollout_buffer.buffer_size, rollout_buffer.n_envs)
+        if entropy is not None:
+            entropy = entropy.reshape(rollout_buffer.buffer_size, rollout_buffer.n_envs)
         action_mean = action_mean.reshape(rollout_buffer.buffer_size, rollout_buffer.n_envs, -1)
         action_std = action_std.reshape(rollout_buffer.buffer_size, rollout_buffer.n_envs, -1)
         per_dim_log_prob = per_dim_log_prob.reshape(rollout_buffer.buffer_size, rollout_buffer.n_envs, -1)
@@ -169,7 +170,7 @@ class PPODebugCallback(BaseCallback):
                         "action_std": action_std[step, env_idx].cpu().tolist(),
                         # Entropy measures the spread/uncertainty of the policy distribution.
                         # Higher entropy generally means more exploration.
-                        "entropy": float(entropy[step, env_idx]),
+                        "entropy": None if entropy is None else float(entropy[step, env_idx]),
 
                         # ------------------------------------------------
                         # Training position
@@ -236,8 +237,9 @@ class PPODebugCallback(BaseCallback):
         statistics["advantage_negative_fraction"] = float(np.mean(advantages < 0))  # actions were worse than expected
         statistics["advantage_zero_fraction"] = float(np.mean(advantages == 0))     # actions were as good as expected
 
-        entropy_np = entropy.cpu().numpy()
-        self._add_statistics(statistics, "entropy", entropy_np)
+        if entropy is not None:
+            entropy_np = entropy.cpu().numpy()
+            self._add_statistics(statistics, "entropy", entropy_np)
 
         self.debugging_logger.info(
             "PPO Training Rollout Statistics",

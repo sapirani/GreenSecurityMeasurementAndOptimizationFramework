@@ -184,9 +184,16 @@ class TrainingContainer(containers.DeclarativeContainer):
         n_steps=config.drl.algorithm.hyperparameters.n_steps,
         batch_size=config.drl.algorithm.hyperparameters.batch_size,
         n_epochs=config.drl.algorithm.hyperparameters.n_epochs,
-        gamma=config.drl.algorithm.hyperparameters.gamma,
+        gamma=providers.Selector(
+            config.drl.mode,
+            **{
+                OptimizationMode.CONTEXTUAL_BANDIT: 0.0,
+                OptimizationMode.RL: config.drl.algorithm.hyperparameters.gamma,
+            },
+        ),
         ent_coef=config.drl.algorithm.hyperparameters.ent_coef,
         use_sde=config.drl.algorithm.hyperparameters.use_sde,
+        sde_sample_freq=config.drl.algorithm.hyperparameters.sde_sample_freq,
         policy_kwargs=providers.Dict(
             net_arch=config.drl.policy.hyperparameters.net_arch,
             squash_output=config.drl.policy.hyperparameters.squash_output,

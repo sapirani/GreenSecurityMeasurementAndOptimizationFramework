@@ -204,6 +204,14 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         simulated_running_time_avg = simulated_performance.running_time_sec_by_similar_jobs
         simulated_energy_use_avg = simulated_performance.energy_use_mwh_by_similar_jobs
 
+        print("simulated_running_time_avg", simulated_running_time_avg)
+        print("simulated_performance.std_running_time_sec", simulated_performance.std_running_time_sec)
+        print("running_time_max_deviation_percent:", self.cached_results_utilization_policy.running_time_max_deviation_percent)
+
+        print("simulated_energy_use_avg:", simulated_energy_use_avg)
+        print("simulated_performance.std_running_time_sec:", simulated_performance.std_running_time_sec)
+        print("energy_max_deviation_percent:", self.cached_results_utilization_policy.energy_max_deviation_percent)
+
         return (
                 (simulated_performance.std_running_time_sec / simulated_running_time_avg) * 100 >
                 self.cached_results_utilization_policy.running_time_max_deviation_percent
