@@ -40,14 +40,14 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             force_real_execution_probability: float = 0.001
     ):
         self.job_performance_evaluator_client = job_performance_evaluator_client or HadoopJobPerformanceEvaluatorClient()
-        self.cached_results_utilization_policy = cached_results_utilization_policy or CachedResultsUtilizationPolicy()
+        self.default_results_utilization_policy = cached_results_utilization_policy or CachedResultsUtilizationPolicy()
         print("inside init:")
-        print("similarity_temperature:", self.cached_results_utilization_policy.similarity_temperature)
-        print("energy_max_deviation_percent:", self.cached_results_utilization_policy.energy_max_deviation_percent)
-        print("running_time_max_deviation_percent:", self.cached_results_utilization_policy.running_time_max_deviation_percent)
-        print("results_noise_scale:", self.cached_results_utilization_policy.results_noise_scale)
-        print("max_param_diff_percent:", self.cached_results_utilization_policy.max_param_diff_percent)
-        print("min_required_similar_samples:", self.cached_results_utilization_policy.min_required_similar_samples)
+        print("similarity_temperature:", self.default_results_utilization_policy.similarity_temperature)
+        print("energy_max_deviation_percent:", self.default_results_utilization_policy.energy_max_deviation_percent)
+        print("running_time_max_deviation_percent:", self.default_results_utilization_policy.running_time_max_deviation_percent)
+        print("results_noise_scale:", self.default_results_utilization_policy.results_noise_scale)
+        print("max_param_diff_percent:", self.default_results_utilization_policy.max_param_diff_percent)
+        print("min_required_similar_samples:", self.default_results_utilization_policy.min_required_similar_samples)
 
         self.search_since = search_since or datetime.min
         self.force_real_execution_probability = force_real_execution_probability
@@ -107,7 +107,8 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             self,
             similar_execution_results: Dict[DocumentID, JobExecutionPerformance],
             similarity_scores: Dict[DocumentID, SimilarityScore],
-            results_noise_scale: float
+            results_noise_scale: float,
+            similarity_temperature: float
     ) -> JobExecutionPerformance:
         """
         Uses weighting that is proportional to the similarity score of each configuration relative to the
@@ -121,7 +122,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
 
         document_ids, weights = self._compute_similarity_weights(
             similarity_scores,
-            self.cached_results_utilization_policy.similarity_temperature
+            similarity_temperature
         )
 
         running_times_sec = np.array(
@@ -203,7 +204,12 @@ class CachedHadoopJobPerformanceEvaluatorClient:
 
         return similarity_scores
 
-    def _uses_highly_deviated_results(self, simulated_performance: JobExecutionPerformance) -> bool:
+    @staticmethod
+    def _uses_highly_deviated_results(
+            simulated_performance: JobExecutionPerformance,
+            running_time_max_deviation_percent: float,
+            energy_max_deviation_percent: float
+    ) -> bool:
         if not simulated_performance.simulated:
             return False
         assert simulated_performance.running_time_sec_by_similar_jobs is not None
@@ -214,18 +220,18 @@ class CachedHadoopJobPerformanceEvaluatorClient:
 
         print("simulated_running_time_avg", simulated_running_time_avg)
         print("simulated_performance.std_running_time_sec", simulated_performance.std_running_time_sec)
-        print("running_time_max_deviation_percent:", self.cached_results_utilization_policy.running_time_max_deviation_percent)
+        print("running_time_max_deviation_percent:", running_time_max_deviation_percent)
 
         print("simulated_energy_use_avg:", simulated_energy_use_avg)
         print("simulated_performance.std_running_time_sec:", simulated_performance.std_running_time_sec)
-        print("energy_max_deviation_percent:", self.cached_results_utilization_policy.energy_max_deviation_percent)
+        print("energy_max_deviation_percent:", energy_max_deviation_percent)
 
         return (
                 (simulated_performance.std_running_time_sec / simulated_running_time_avg) * 100 >
-                self.cached_results_utilization_policy.running_time_max_deviation_percent
+                running_time_max_deviation_percent
         ) or (
                 (simulated_performance.std_energy_mwh / simulated_energy_use_avg) * 100 >
-                self.cached_results_utilization_policy.energy_max_deviation_percent
+                energy_max_deviation_percent
         )
 
     def run_job(
@@ -261,17 +267,17 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         print("max_param_diff_percent:", cached_results_utilization_policy.max_param_diff_percent)
         print("min_required_similar_samples:", cached_results_utilization_policy.min_required_similar_samples)
 
-        cached_results_utilization_policy = cached_results_utilization_policy or self.cached_results_utilization_policy
+        cached_results_utilization_policy = cached_results_utilization_policy or self.default_results_utilization_policy
         assert cached_results_utilization_policy
 
         print("inside run job, after:")
-        print("similarity_temperature:", self.cached_results_utilization_policy.similarity_temperature)
-        print("energy_max_deviation_percent:", self.cached_results_utilization_policy.energy_max_deviation_percent)
+        print("similarity_temperature:", self.default_results_utilization_policy.similarity_temperature)
+        print("energy_max_deviation_percent:", self.default_results_utilization_policy.energy_max_deviation_percent)
         print("running_time_max_deviation_percent:",
-              self.cached_results_utilization_policy.running_time_max_deviation_percent)
-        print("results_noise_scale:", self.cached_results_utilization_policy.results_noise_scale)
-        print("max_param_diff_percent:", self.cached_results_utilization_policy.max_param_diff_percent)
-        print("min_required_similar_samples:", self.cached_results_utilization_policy.min_required_similar_samples)
+              self.default_results_utilization_policy.running_time_max_deviation_percent)
+        print("results_noise_scale:", self.default_results_utilization_policy.results_noise_scale)
+        print("max_param_diff_percent:", self.default_results_utilization_policy.max_param_diff_percent)
+        print("min_required_similar_samples:", self.default_results_utilization_policy.min_required_similar_samples)
 
         similar_training_steps = self._find_similar_training_steps(
             job_descriptor,
@@ -310,10 +316,15 @@ class CachedHadoopJobPerformanceEvaluatorClient:
         simulated_performance = self._calc_simulated_job_performance(
             similar_execution_results,
             similarity_scores,
-            cached_results_utilization_policy.results_noise_scale
+            cached_results_utilization_policy.results_noise_scale,
+            cached_results_utilization_policy.similarity_temperature
         )
 
-        if self._uses_highly_deviated_results(simulated_performance):
+        if self._uses_highly_deviated_results(
+                simulated_performance,
+                cached_results_utilization_policy.running_time_max_deviation_percent,
+                cached_results_utilization_policy.energy_max_deviation_percent
+        ):
             print("Executing the requested job due to high deviation in similar simulated jobs")
             real_performance = self.job_performance_evaluator_client.run_job(
                 job_descriptor=job_descriptor,
