@@ -2,11 +2,13 @@ from logging import Logger
 from typing import cast, Any
 import torch as th
 import numpy as np
+import torch.nn as nn
 from gymnasium import spaces
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3 import PPO
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.utils import explained_variance
+
 
 
 # todo: make it more generic (not tailored to ppo with actor critic)
@@ -22,6 +24,7 @@ class PPODebugCallback(BaseCallback):
         self.debugging_logger = logger
         self.train_id = train_id
         self._last_logged_update = -1
+        self._rollout_num = 0
 
     def _on_step(self) -> bool:
         return True
@@ -39,11 +42,13 @@ class PPODebugCallback(BaseCallback):
             "policy": type(model.policy).__name__,
             "learning_rate": model.policy.optimizer.param_groups[0]["lr"],
             "n_steps": int(model.n_steps),
+            "n_envs": model.n_envs,
             "batch_size": model.batch_size,
             "n_epochs": model.n_epochs,
             "gamma": model.gamma,
             "gae_lambda": model.gae_lambda,
             "clip_range": self._resolve_schedule(model.clip_range),
+            "clip_range_vf": self._resolve_schedule(model.clip_range_vf),
             "ent_coef": model.ent_coef,
             "vf_coef": model.vf_coef,
             "max_grad_norm": model.max_grad_norm,
@@ -53,8 +58,8 @@ class PPODebugCallback(BaseCallback):
             "observation_space": self._serialize_space(cast(spaces.Box, model.observation_space)),
             "action_space": self._serialize_space(cast(spaces.Box, model.action_space)),
             "policy_architecture": str(model.policy),
-            "policy_features_extractor": str(model.policy.features_extractor),
-            "policy_mlp_extractor": str(model.policy.mlp_extractor),
+            "actor_policy_network": self._network_summary(model.policy.mlp_extractor.policy_net, model.policy.action_net),
+            "critic_value_network": self._network_summary(model.policy.mlp_extractor.value_net, model.policy.value_net),
         }
 
         self.debugging_logger.info(
@@ -72,7 +77,6 @@ class PPODebugCallback(BaseCallback):
         """
         model = cast(PPO, self.model)
         current_update = self.model._n_updates
-        rollout_num = current_update // model.n_epochs
 
         if current_update <= 0 or current_update == self._last_logged_update:
             return
@@ -84,12 +88,12 @@ class PPODebugCallback(BaseCallback):
 
         if metrics:
             self.debugging_logger.info(
-                "PPO Training Update Completed",
+                "PPO Training - Update Completed",
                 extra={
                     "training_id": self.train_id,
                     "global_step": self.num_timesteps,
                     "update_num": current_update,
-                    "rollout_num": rollout_num,
+                    "rollout_num": self._rollout_num,
                     **metrics,
                 },
             )
@@ -100,6 +104,8 @@ class PPODebugCallback(BaseCallback):
         """
         Runs after n_steps (before gradients update)
         """
+
+        self._rollout_num += 1
 
         model = cast(PPO, self.model)
         policy = cast(ActorCriticPolicy, model.policy)
@@ -187,6 +193,7 @@ class PPODebugCallback(BaseCallback):
         statistics: dict[str, Any] = {
             "training_id": self.train_id,
             "global_step": self.num_timesteps,
+            "rollout_num": self._rollout_num,
         }
 
         # ------------------------------------------------------------
@@ -242,7 +249,7 @@ class PPODebugCallback(BaseCallback):
             self._add_statistics(statistics, "entropy", entropy_np)
 
         self.debugging_logger.info(
-            "PPO Training Rollout Statistics",
+            "PPO Training - Rollout Statistics",
             extra=statistics,
         )
 
@@ -268,10 +275,34 @@ class PPODebugCallback(BaseCallback):
 
     @staticmethod
     def _resolve_schedule(schedule):
+        if schedule is None:
+            return None
+
         try:
             return float(schedule(1.0))
         except Exception:
             return str(schedule)
+
+    @staticmethod
+    def _network_summary(hidden_module, output_module):
+        layers = []
+
+        for layer in hidden_module.children():
+            if isinstance(layer, nn.Linear):
+                layers.append(
+                    f"Linear({layer.in_features}->{layer.out_features})"
+                )
+            else:
+                layers.append(type(layer).__name__)
+
+        if isinstance(output_module, nn.Linear):
+            layers.append(
+                f"Linear({output_module.in_features}->{output_module.out_features})"
+            )
+        else:
+            layers.append(type(output_module).__name__)
+
+        return " → ".join(layers)
 
     @staticmethod
     def _serialize_space(space: spaces.Box) -> dict[str, Any]:
