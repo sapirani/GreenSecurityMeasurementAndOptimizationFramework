@@ -85,6 +85,8 @@ class TrainingContainer(containers.DeclarativeContainer):
         max_retries=2,
         initial_backoff=2,
         max_backoff=30,
+        add_metadata_fields=providers.Factory(set, ["training_id", "global_step", "rollout_num"]),
+        exception_index=IndexName.DRL_EXCEPTIONS,
     )
 
     training_debugging_logger = providers.Singleton(

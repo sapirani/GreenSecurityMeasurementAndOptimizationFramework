@@ -115,6 +115,9 @@ class PPODebugCallback(BaseCallback):
                 },
             )
 
+            for handler in self.debugging_logger.handlers:
+                handler.flush()
+
             self._last_logged_update = current_update
 
     def _on_rollout_end(self):
