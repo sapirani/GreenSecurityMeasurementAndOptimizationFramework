@@ -144,6 +144,7 @@ class TrainingConfig(BaseModel):
                 delta=config.reward.delta(),
             ),
             algorithm=AlgorithmConfig(
+                learning_rate=config.algorithm.hyperparameters.learning_rate(),
                 n_steps=config.algorithm.hyperparameters.n_steps(),
                 batch_size=config.algorithm.hyperparameters.batch_size(),
                 n_epochs=config.algorithm.hyperparameters.n_epochs(),
