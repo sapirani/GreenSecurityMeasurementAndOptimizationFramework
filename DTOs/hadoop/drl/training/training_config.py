@@ -94,7 +94,7 @@ class TrainingConfig(BaseModel):
             train_id=config.train_id(),
             mode=config.mode(),
             model_initialization=ModelInitializationConfig(
-                pretrained_model_path=config.storage.resume_from_path(),
+                pretrained_model_path=config.resume_from_path(),
             ),
             environment=EnvironmentConfig(
                 max_episode_steps=config.env.max_episode_steps(),
