@@ -62,6 +62,7 @@ class PPODebugCallback(BaseCallback):
             "device": str(model.device),
             "observation_space": self._serialize_space(cast(spaces.Box, model.observation_space)),
             "action_space": self._serialize_space(cast(spaces.Box, model.action_space)),
+            "policy_config": self.training_config.policy.model_dump(),
             "policy_architecture": str(model.policy),
             "actor_policy_network": self._network_summary(model.policy.mlp_extractor.policy_net, model.policy.action_net),
             "critic_value_network": self._network_summary(model.policy.mlp_extractor.value_net, model.policy.value_net),
