@@ -66,7 +66,7 @@ if __name__ == '__main__':
     container.config.drl.mode.from_value(OptimizationMode.CONTEXTUAL_BANDIT)
     container.config.drl.verbosity.from_value(Verbosity.VERBOSE)
     container.config.drl.storage.models_base_dir.from_value(os.path.dirname(os.path.abspath(__file__)))
-    container.config.drl.storage.save_freq.from_value(2048)
+    container.config.drl.storage.save_freq.from_value(4096)
     container.config.drl.env.max_episode_steps.from_value(50)
     container.config.drl.env.truncated_penalty.from_value(-150.0)
     container.config.drl.state.split_by.from_value("hostname")
@@ -88,11 +88,12 @@ if __name__ == '__main__':
     container.config.drl.reward.tau.from_value(0.05)
     container.config.drl.reward.delta.from_value(0.95)
     container.config.drl.algorithm.hyperparameters.learning_rate.from_value(0.0003)
-    container.config.drl.algorithm.hyperparameters.n_steps.from_value(512)
-    container.config.drl.algorithm.hyperparameters.batch_size.from_value(64)
+    container.config.drl.algorithm.hyperparameters.n_steps.from_value(2048)
+    container.config.drl.algorithm.hyperparameters.batch_size.from_value(256)
     container.config.drl.algorithm.hyperparameters.n_epochs.from_value(5)
     container.config.drl.algorithm.hyperparameters.gamma.from_value(1)  # automatically converted to 0 in contextual bandit mode
-    container.config.drl.algorithm.hyperparameters.ent_coef.from_value(0.01)   # encourage exploration
+    container.config.drl.algorithm.hyperparameters.gae_lambda.from_value(0.95)  # automatically converted to 0 in contextual bandit mode
+    container.config.drl.algorithm.hyperparameters.ent_coef.from_value(0.001)   # encourage exploration
     container.config.drl.algorithm.hyperparameters.use_sde.from_value(True)
     # Resample the gSDE noise matrix every <sde_sample_freq> steps.
     # -1 would keep the same noise matrix for the entire rollout.
@@ -105,4 +106,5 @@ if __name__ == '__main__':
     container.config.elastic.url.from_value(ES_URL)
     container.config.elastic.indices_to_read_from.from_value([IndexName.PROCESS_METRICS, IndexName.SYSTEM_METRICS])
     container.wire(modules=[__name__])
+
     main()

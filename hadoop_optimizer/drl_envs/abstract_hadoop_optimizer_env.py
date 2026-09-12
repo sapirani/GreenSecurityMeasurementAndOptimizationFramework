@@ -92,7 +92,6 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
             raise RuntimeError("Environment must be reset before calling the step function")
 
         truncated = False
-        reward = 0  # there is no meaning for the reward in the deployment environment
         self.step_count += 1
 
         self._last_action = action.copy()
@@ -109,7 +108,7 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         info.update({CURRENT_JOB_CONFIG_KEY: self._current_hadoop_config})
 
         observation = self.optimization_mode.construct_observation(self._current_hadoop_config)
-        return observation, reward, terminated, truncated, info
+        return observation, step_reward, terminated, truncated, info
 
     def render(self) -> RenderFrame | list[RenderFrame] | None:
         if self.verbosity == Verbosity.VERBOSE:

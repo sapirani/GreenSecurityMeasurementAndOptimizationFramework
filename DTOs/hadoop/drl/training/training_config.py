@@ -62,6 +62,7 @@ class AlgorithmConfig(BaseModel):
     ent_coef: float
     use_sde: bool
     sde_sample_freq: int
+    gae_lambda: float
 
 
 class PolicyConfig(BaseModel):
@@ -87,10 +88,12 @@ class TrainingConfig(BaseModel):
     @classmethod
     def from_config(cls, config: Configuration) -> "TrainingConfig":
         gamma = config.algorithm.hyperparameters.gamma()
+        gae_lambda = config.algorithm.hyperparameters.gae_lambda()
         max_episode_steps = config.env.max_episode_steps()
 
         if config.mode() == OptimizationMode.CONTEXTUAL_BANDIT:
             gamma = 0
+            gae_lambda = 0
             max_episode_steps = 1
 
         return cls(
@@ -152,6 +155,7 @@ class TrainingConfig(BaseModel):
                 ent_coef=config.algorithm.hyperparameters.ent_coef(),
                 use_sde=config.algorithm.hyperparameters.use_sde(),
                 sde_sample_freq=config.algorithm.hyperparameters.sde_sample_freq(),
+                gae_lambda=gae_lambda
             ),
             policy=PolicyConfig(
                 net_arch=config.policy.hyperparameters.net_arch(),

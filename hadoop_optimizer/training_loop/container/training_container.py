@@ -199,6 +199,13 @@ class TrainingContainer(containers.DeclarativeContainer):
                 OptimizationMode.RL: config.drl.algorithm.hyperparameters.gamma,
             },
         ),
+        gae_lambda=providers.Selector(
+            config.drl.mode,
+            **{
+                OptimizationMode.CONTEXTUAL_BANDIT: providers.Object(0.0),
+                OptimizationMode.RL: config.drl.algorithm.hyperparameters.gae_lambda,
+            },
+        ),
         ent_coef=config.drl.algorithm.hyperparameters.ent_coef,
         use_sde=config.drl.algorithm.hyperparameters.use_sde,
         sde_sample_freq=config.drl.algorithm.hyperparameters.sde_sample_freq,
