@@ -51,7 +51,6 @@ class PPODebugCallback(BaseCallback):
             },
             "cached_results_config": self.training_config.cached_results.model_dump(),
             "environment": self.training_config.environment.model_dump(),
-            "learning_rate": model.policy.optimizer.param_groups[0]["lr"],
             "n_envs": model.n_envs,
             "gae_lambda": model.gae_lambda,
             "clip_range": self._resolve_schedule(model.clip_range),

@@ -87,6 +87,7 @@ if __name__ == '__main__':
     container.config.drl.reward.epsilon.from_value(2)
     container.config.drl.reward.tau.from_value(0.05)
     container.config.drl.reward.delta.from_value(0.95)
+    container.config.drl.algorithm.hyperparameters.learning_rate.from_value(0.0003)
     container.config.drl.algorithm.hyperparameters.n_steps.from_value(512)
     container.config.drl.algorithm.hyperparameters.batch_size.from_value(64)
     container.config.drl.algorithm.hyperparameters.n_epochs.from_value(5)

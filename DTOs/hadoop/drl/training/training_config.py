@@ -54,6 +54,7 @@ class RewardConfig(BaseModel):
 
 
 class AlgorithmConfig(BaseModel):
+    learning_rate: float
     n_steps: int
     batch_size: int
     n_epochs: int
