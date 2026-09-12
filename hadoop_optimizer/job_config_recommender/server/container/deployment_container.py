@@ -19,6 +19,8 @@ from user_input.elastic_reader_input.abstract_date_picker import TimePickerChose
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 
 
+# todo: fix deployment injections
+# todo: define the new debugging index as lookup index (automatically)
 class DeploymentContainer(containers.DeclarativeContainer):
     config = providers.Configuration()
 

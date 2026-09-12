@@ -6,6 +6,8 @@ from dependency_injector.wiring import inject, Provide
 from human_id import generate_id
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.callbacks import BaseCallback
+
+from DTOs.hadoop.drl.training.verbosity import Verbosity
 from DTOs.logging.consts import IndexName
 from elastic_reader.elastic_reader_parameters import ES_URL, ES_PASS, ES_USER
 from hadoop_optimizer.training_loop.container.training_container import TrainingContainer, MODELS_DIR_NAME
@@ -28,6 +30,7 @@ def main(
     Note: the file names that store the models, must include the model name (e.g., PPO, A2C, etc.).
     The reason for this convention is that the automatic code that resumes the pretrained model must know its type
     """
+    print("Start Learning")
     drl_training_model.learn(
         total_timesteps=learning_total_timestamps,
         log_interval=1,
@@ -40,17 +43,28 @@ def main(
     for saving_path in final_model_saving_paths:
         drl_training_model.save(saving_path)
 
+    print("Finished Learning")
+
 
 if __name__ == '__main__':
     container = TrainingContainer()
     # Use a path to a pretrained model, or None if you want to start training all over again
-    container.config.drl.resume_from_path.from_value(
-        Path(os.path.dirname(os.path.abspath(__file__))) /
-        Path(MODELS_DIR_NAME) /
-        Path("trained_PPO.zip")
-    )
+    # container.config.drl.resume_from_path.from_value(
+    #     Path(os.path.dirname(os.path.abspath(__file__))) /
+    #     Path(MODELS_DIR_NAME) /
+    #     Path("trained_PPO.zip")
+    # )
+
+    # container.config.drl.resume_from_path.from_value(
+    # Path(os.path.dirname(os.path.abspath(__file__))) /
+    # Path(MODELS_DIR_NAME) /
+    # Path("2026-08-09_hear-local-father") /
+    # Path("intermediate_models") /
+    # Path("PPO_12288_steps.zip")
+    # )
     container.config.drl.train_id.from_value(generate_id(word_count=3))
     container.config.drl.mode.from_value(OptimizationMode.CONTEXTUAL_BANDIT)
+    container.config.drl.verbosity.from_value(Verbosity.VERBOSE)
     container.config.drl.storage.models_base_dir.from_value(os.path.dirname(os.path.abspath(__file__)))
     container.config.drl.storage.save_freq.from_value(2048)
     container.config.drl.env.max_episode_steps.from_value(50)

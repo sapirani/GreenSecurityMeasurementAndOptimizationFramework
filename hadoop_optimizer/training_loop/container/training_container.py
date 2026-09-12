@@ -158,6 +158,7 @@ class TrainingContainer(containers.DeclarativeContainer):
         train_id=config.drl.train_id,
         training_progress_tracker=training_progress_tracker,
         cached_results_utilization_policy=cached_results_utilization_policy,
+        verbosity=config.drl.verbosity
     )
 
     env_wrappers_params: Provider[EnvWrappersParams] = providers.Factory(
@@ -182,7 +183,7 @@ class TrainingContainer(containers.DeclarativeContainer):
         PPO,
         policy=ActorCriticPolicy,
         env=training_env,
-        verbose=2,
+        verbose=config.drl.verbosity,
         n_steps=config.drl.algorithm.hyperparameters.n_steps,
         batch_size=config.drl.algorithm.hyperparameters.batch_size,
         n_epochs=config.drl.algorithm.hyperparameters.n_epochs,

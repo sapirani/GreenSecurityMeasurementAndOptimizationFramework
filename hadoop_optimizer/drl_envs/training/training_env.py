@@ -6,6 +6,7 @@ from DTOs.hadoop.drl.training.episode_context import EpisodeContext
 from DTOs.hadoop.drl.training.extended_episode_context import ExtendedEpisodeContext
 from DTOs.hadoop.drl.training.training_metadata import TrainingMetadata
 from DTOs.hadoop.drl.training.training_step_results import TrainingStepResults
+from DTOs.hadoop.drl.training.verbosity import Verbosity
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
@@ -29,9 +30,10 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             reward_calculator: RewardCalculator,
             train_id: str,
             training_progress_tracker: TrainingProgressTracker,
-            cached_results_utilization_policy: CachedResultsUtilizationPolicy
+            cached_results_utilization_policy: CachedResultsUtilizationPolicy,
+            verbosity: Verbosity = Verbosity.ONLY_INFO,
     ):
-        super().__init__(telemetry_aggregator, optimization_mode)
+        super().__init__(telemetry_aggregator, optimization_mode, verbosity)
         self.training_client = training_client
         self.training_client.start()
         self.reward_calculator = reward_calculator

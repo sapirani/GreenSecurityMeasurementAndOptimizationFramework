@@ -5,6 +5,7 @@ import gymnasium as gym
 from gymnasium import spaces
 from gymnasium.core import RenderFrame, ActType, ObsType
 from DTOs.hadoop.drl.job_properties import JobProperties
+from DTOs.hadoop.drl.training.verbosity import Verbosity
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from hadoop_optimizer.common.drl_telemetry.telemetry_aggregator import TelemetryAggregator
 from hadoop_optimizer.drl_envs.consts import CURRENT_JOB_CONFIG_KEY, DEFAULT_JOB_CONFIG_KEY, RenderMode
@@ -37,8 +38,15 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         (in terms of minimal running time and energy consumption), while performing minimal number of steps.
     """
 
-    def __init__(self, telemetry_aggregator: TelemetryAggregator, optimization_mode: AbstractOptimizationMode):
+    def __init__(
+            self,
+            telemetry_aggregator: TelemetryAggregator,
+            optimization_mode: AbstractOptimizationMode,
+            verbosity: Verbosity = Verbosity.ONLY_INFO,
+    ):
         super().__init__()
+        self.verbosity = verbosity
+
         self.render_mode = RenderMode.HUMAN
         self.optimization_mode = optimization_mode
         # TODO: SUPPORT CURRENT CLUSTER LOAD
@@ -104,29 +112,30 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         return observation, reward, terminated, truncated, info
 
     def render(self) -> RenderFrame | list[RenderFrame] | None:
-        print(f"****************** "
-              f"Current Episode: {self.episode_counter}, Current Step: {self.step_count} "
-              f"(at {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}) "
-              f"******************")
+        if self.verbosity == Verbosity.VERBOSE:
+            print(f"****************** "
+                  f"Current Episode: {self.episode_counter}, Current Step: {self.step_count} "
+                  f"(at {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}) "
+                  f"******************")
 
-        self._custom_rendering()
+            self._custom_rendering()
 
-        print("Episodic Job Properties:")
-        print(self.optimization_mode.get_episodic_job_properties())
-        print()
+            print("Episodic Job Properties:")
+            print(self.optimization_mode.get_episodic_job_properties())
+            print()
 
-        print("Episodic Telemetry:")
-        print(self.episodic_telemetry.to_string())
-        print()
+            print("Episodic Telemetry:")
+            print(self.episodic_telemetry.to_string())
+            print()
 
-        print("Selected Action:")
-        print(self._last_action)
-        print()
+            print("Selected Action:")
+            print(self._last_action)
+            print()
 
-        print(f"------------ Current Hadoop Config (step {self.step_count}) ------------")
-        print(self._current_hadoop_config)
-        print()
-        print()
+            print(f"------------ Current Hadoop Config (step {self.step_count}) ------------")
+            print(self._current_hadoop_config)
+            print()
+            print()
 
         return None
 
