@@ -8,6 +8,7 @@ from gymnasium import spaces
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3 import PPO
 from stable_baselines3.common.policies import ActorCriticPolicy
+from DTOs.hadoop.drl.training.training_config import TrainingConfig
 
 
 # todo: make it more generic (not tailored to ppo with actor critic)
@@ -16,6 +17,7 @@ class PPODebugCallback(BaseCallback):
             self,
             logger: Logger,
             train_id: str,
+            training_config: TrainingConfig,
             verbose: int = 0,
     ):
         super().__init__(verbose)
@@ -24,6 +26,7 @@ class PPODebugCallback(BaseCallback):
         self.train_id = train_id
         self._last_logged_update = -1
         self._rollout_num = 0
+        self.training_config = training_config
 
     def _on_step(self) -> bool:
         return True
@@ -38,17 +41,21 @@ class PPODebugCallback(BaseCallback):
         config = {
             "training_id": self.train_id,
             "algorithm": type(model).__name__,
+            "train_mode": self.training_config.mode,
+            "algorithm_config": self.training_config.algorithm.model_dump(),
+            "model_initialization": self.training_config.model_initialization.model_dump(),
             "policy": type(model.policy).__name__,
+            "reward": {
+                "energy_importance": self.training_config.reward.tau,
+                "runnning_time_importance": self.training_config.reward.delta
+            },
+            "cached_results_config": self.training_config.cached_results.model_dump(),
+            "environment": self.training_config.environment.model_dump(),
             "learning_rate": model.policy.optimizer.param_groups[0]["lr"],
-            "n_steps": int(model.n_steps),
             "n_envs": model.n_envs,
-            "batch_size": model.batch_size,
-            "n_epochs": model.n_epochs,
-            "gamma": model.gamma,
             "gae_lambda": model.gae_lambda,
             "clip_range": self._resolve_schedule(model.clip_range),
             "clip_range_vf": self._resolve_schedule(model.clip_range_vf),
-            "ent_coef": model.ent_coef,
             "vf_coef": model.vf_coef,
             "max_grad_norm": model.max_grad_norm,
             "normalize_advantage": model.normalize_advantage,

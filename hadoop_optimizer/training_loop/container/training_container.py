@@ -12,6 +12,7 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 
 from DTOs.hadoop.drl.training.cached_results_utilization_policy import CachedResultsUtilizationPolicy
 from DTOs.hadoop.drl.training.episode_context import EpisodeContext
+from DTOs.hadoop.drl.training.training_config import TrainingConfig
 from DTOs.logging.consts import LoggerName, IndexName
 from application_logging.handlers.elastic_bulk_handler import get_elastic_bulk_handler
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
@@ -219,6 +220,11 @@ class TrainingContainer(containers.DeclarativeContainer):
         train_id=config.drl.train_id,
     )
 
+    training_config = providers.Factory(
+        TrainingConfig.from_config,
+        config=config.drl.provider,
+    )
+
     checkpoint_callback = providers.Factory(
         CheckpointCallback,
         save_freq=config.drl.storage.save_freq,
@@ -236,6 +242,7 @@ class TrainingContainer(containers.DeclarativeContainer):
         PPODebugCallback,
         logger=training_debugging_logger,
         train_id=config.drl.train_id,
+        training_config=training_config
     )
 
     training_callback = providers.Factory(
