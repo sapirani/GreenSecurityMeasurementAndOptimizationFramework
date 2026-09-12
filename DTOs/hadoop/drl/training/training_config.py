@@ -86,9 +86,11 @@ class TrainingConfig(BaseModel):
     @classmethod
     def from_config(cls, config: Configuration) -> "TrainingConfig":
         gamma = config.algorithm.hyperparameters.gamma()
+        max_episode_steps = config.env.max_episode_steps()
 
         if config.mode() == OptimizationMode.CONTEXTUAL_BANDIT:
             gamma = 0
+            max_episode_steps = 1
 
         return cls(
             train_id=config.train_id(),
@@ -97,7 +99,7 @@ class TrainingConfig(BaseModel):
                 pretrained_model_path=config.resume_from_path(),
             ),
             environment=EnvironmentConfig(
-                max_episode_steps=config.env.max_episode_steps(),
+                max_episode_steps=max_episode_steps,
                 truncated_penalty=config.env.truncated_penalty(),
             ),
             state=StateConfig(
