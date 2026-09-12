@@ -17,10 +17,16 @@ class AbstractElasticSearchHandler(logging.Handler, ABC):
             elastic_url: str,
             index_name: str,
             start_timestamp: Optional[float] = None,
-            pipeline_name: Optional[str] = None
+            pipeline_name: Optional[str] = None,
+            request_timeout: int = 10,
     ):
         super().__init__()
-        self.es = Elasticsearch(elastic_url, basic_auth=(elastic_username, elastic_password))
+        self.es = Elasticsearch(
+            elastic_url,
+            basic_auth=(elastic_username, elastic_password),
+            request_timeout=request_timeout
+        )
+
         self.index_name = index_name
         self.start_date = None
         if start_timestamp:

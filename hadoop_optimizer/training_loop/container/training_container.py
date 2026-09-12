@@ -81,6 +81,10 @@ class TrainingContainer(containers.DeclarativeContainer):
         elastic_url=config.elastic.url,
         index_name=IndexName.DRL_DEBUGGING,
         ignore_exceptions=False,
+        request_timeout=30,
+        max_retries=2,
+        initial_backoff=2,
+        max_backoff=30,
     )
 
     training_debugging_logger = providers.Singleton(

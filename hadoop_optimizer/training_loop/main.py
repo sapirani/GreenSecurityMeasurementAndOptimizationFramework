@@ -92,7 +92,7 @@ if __name__ == '__main__':
     container.config.drl.algorithm.hyperparameters.batch_size.from_value(64)
     container.config.drl.algorithm.hyperparameters.n_epochs.from_value(5)
     container.config.drl.algorithm.hyperparameters.gamma.from_value(1)  # automatically converted to 0 in contextual bandit mode
-    container.config.drl.algorithm.hyperparameters.ent_coef.from_value(0.1)   # encourage exploration
+    container.config.drl.algorithm.hyperparameters.ent_coef.from_value(0.01)   # encourage exploration
     container.config.drl.algorithm.hyperparameters.use_sde.from_value(True)
     # Resample the gSDE noise matrix every <sde_sample_freq> steps.
     # -1 would keep the same noise matrix for the entire rollout.
