@@ -1,3 +1,4 @@
+import math
 from logging import Logger
 from typing import cast, Any
 import torch as th
@@ -7,8 +8,6 @@ from gymnasium import spaces
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3 import PPO
 from stable_baselines3.common.policies import ActorCriticPolicy
-from stable_baselines3.common.utils import explained_variance
-
 
 
 # todo: make it more generic (not tailored to ppo with actor critic)
@@ -87,6 +86,18 @@ class PPODebugCallback(BaseCallback):
         }
 
         if metrics:
+            # ------------------------------------------------------------
+            # Critic explained variance
+            #
+            # 1.0  → excellent value prediction - critic predictions explain the variation in the return targets very well
+            # 0.0  → no better than predicting the mean of the target values
+            # < 0  → worse than predicting the mean
+            # ------------------------------------------------------------
+            if math.isnan(metrics["train/explained_variance"]):
+                metrics["train/explained_variance"] = 10    # max value is 1 - so now we know it was nan
+
+            del metrics["train/clip_range"]
+
             self.debugging_logger.info(
                 "PPO Training - Update Completed",
                 extra={
@@ -223,17 +234,6 @@ class PPODebugCallback(BaseCallback):
                 f"action_{action_idx}_log_prob",
                 per_dim_log_prob[..., action_idx].detach().cpu().numpy()
             )
-
-        # ------------------------------------------------------------
-        # Critic explained variance
-        #
-        # 1.0  → excellent value prediction - critic predictions explain the variation in the return targets very well
-        # 0.0  → no better than predicting the mean of the target values
-        # < 0  → worse than predicting the mean
-        # ------------------------------------------------------------
-        statistics["critic_explained_variance"] = float(
-            explained_variance(rollout_buffer.values.flatten(), rollout_buffer.returns.flatten())
-        )
 
         # ------------------------------------------------------------
         # Advantage properties
