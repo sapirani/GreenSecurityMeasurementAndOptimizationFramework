@@ -3,12 +3,10 @@ from logging import Logger
 from typing import cast, Any
 import torch as th
 import numpy as np
-import torch.nn as nn
-from gymnasium import spaces
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3 import PPO
 from stable_baselines3.common.policies import ActorCriticPolicy
-from DTOs.hadoop.drl.training.training_config import TrainingConfig
+from DTOs.hadoop.drl.training.training_config import TrainingConfig, UserDefinedTrainingParams, PPOModelConfig
 
 
 # todo: make it more generic (not tailored to ppo with actor critic)
@@ -17,7 +15,7 @@ class PPODebugCallback(BaseCallback):
             self,
             logger: Logger,
             train_id: str,
-            training_config: TrainingConfig,
+            user_defined_training_params: UserDefinedTrainingParams,
             verbose: int = 0,
     ):
         super().__init__(verbose)
@@ -26,7 +24,7 @@ class PPODebugCallback(BaseCallback):
         self.train_id = train_id
         self._last_logged_update = -1
         self._rollout_num = 0
-        self.training_config = training_config
+        self.user_defined_training_params = user_defined_training_params
 
     def _on_step(self) -> bool:
         return True
@@ -38,33 +36,14 @@ class PPODebugCallback(BaseCallback):
 
         model = cast(PPO, self.model)
 
+        training_config = TrainingConfig(
+            training_id=self.train_id,
+            drl_config=PPOModelConfig.from_model(model),
+            user_defined_params=self.user_defined_training_params,
+        )
+
         config = {
-            "training_id": self.train_id,
-            "algorithm": type(model).__name__,
-            "train_mode": self.training_config.mode,
-            "algorithm_config": self.training_config.algorithm.model_dump(),
-            "model_initialization": self.training_config.model_initialization.model_dump(),
-            "policy": type(model.policy).__name__,
-            "reward": {
-                "energy_importance": self.training_config.reward.tau,
-                "runnning_time_importance": self.training_config.reward.delta
-            },
-            "cached_results_config": self.training_config.cached_results.model_dump(),
-            "environment": self.training_config.environment.model_dump(),
-            "n_envs": model.n_envs,
-            "clip_range": self._resolve_schedule(model.clip_range),
-            "clip_range_vf": self._resolve_schedule(model.clip_range_vf),
-            "vf_coef": model.vf_coef,
-            "max_grad_norm": model.max_grad_norm,
-            "normalize_advantage": model.normalize_advantage,
-            "target_kl": getattr(model, "target_kl", None),
-            "device": str(model.device),
-            "observation_space": self._serialize_space(cast(spaces.Box, model.observation_space)),
-            "action_space": self._serialize_space(cast(spaces.Box, model.action_space)),
-            "policy_config": self.training_config.policy.model_dump(),
-            "policy_architecture": str(model.policy),
-            "actor_policy_network": self._network_summary(model.policy.mlp_extractor.policy_net, model.policy.action_net),
-            "critic_value_network": self._network_summary(model.policy.mlp_extractor.value_net, model.policy.value_net),
+            **training_config.model_dump(by_alias=True)
         }
 
         self.debugging_logger.info(
@@ -281,44 +260,3 @@ class PPODebugCallback(BaseCallback):
         output[f"{prefix}_p50"] = float(np.percentile(values, 50))
         output[f"{prefix}_p75"] = float(np.percentile(values, 75))
         output[f"{prefix}_p99"] = float(np.percentile(values, 99))
-
-    @staticmethod
-    def _resolve_schedule(schedule):
-        if schedule is None:
-            return None
-
-        try:
-            return float(schedule(1.0))
-        except Exception:
-            return str(schedule)
-
-    @staticmethod
-    def _network_summary(hidden_module, output_module):
-        layers = []
-
-        for layer in hidden_module.children():
-            if isinstance(layer, nn.Linear):
-                layers.append(
-                    f"Linear({layer.in_features}->{layer.out_features})"
-                )
-            else:
-                layers.append(type(layer).__name__)
-
-        if isinstance(output_module, nn.Linear):
-            layers.append(
-                f"Linear({output_module.in_features}->{output_module.out_features})"
-            )
-        else:
-            layers.append(type(output_module).__name__)
-
-        return " → ".join(layers)
-
-    @staticmethod
-    def _serialize_space(space: spaces.Box) -> dict[str, Any]:
-        return {
-            "type": type(space).__name__,
-            "shape": space.shape,
-            "dtype": str(space.dtype),
-            "low": space.low.tolist(),
-            "high": space.high.tolist(),
-        }

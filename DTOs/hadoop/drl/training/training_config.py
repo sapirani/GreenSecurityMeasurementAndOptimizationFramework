@@ -1,10 +1,12 @@
 from datetime import datetime
-from typing import Optional
-
+from typing import Optional, cast, Any, Dict
 from typing import List
-
 from dependency_injector.providers import Configuration
-from pydantic import BaseModel, ConfigDict, computed_field
+from gymnasium import spaces
+from pydantic import BaseModel, ConfigDict, computed_field, Field
+from stable_baselines3 import PPO
+import torch.nn as nn
+from stable_baselines3.common.policies import BasePolicy, ActorCriticPolicy
 
 from hadoop_optimizer.optimization_mode import OptimizationMode
 
@@ -16,11 +18,6 @@ class ModelInitializationConfig(BaseModel):
     @property
     def is_pretrained(self) -> bool:
         return self.pretrained_model_path is not None
-
-
-class EnvironmentConfig(BaseModel):
-    max_episode_steps: int
-    truncated_penalty: float
 
 
 class StateConfig(BaseModel):
@@ -45,66 +42,162 @@ class CachedResultsConfig(BaseModel):
 
 
 class RewardConfig(BaseModel):
+    truncated_penalty: float
     alpha: float
     beta: float
     lambda_: float
     epsilon: float
-    tau: float
-    delta: float
+    tau: float = Field(alias="energy_importance")
+    delta: float = Field(alias="running_time_importance")
 
 
-class AlgorithmConfig(BaseModel):
+class PPOAlgorithmConfig(BaseModel):
+    algorithm_name: str
+
+    observation_space: Dict[str, Any]
+    action_space: Dict[str, Any]
+
     learning_rate: float
     n_steps: int
     batch_size: int
     n_epochs: int
     gamma: float
     ent_coef: float
+    vf_coef: float
     use_sde: bool
     sde_sample_freq: int
     gae_lambda: float
 
+    n_envs: int
+    device: str
+
+    clip_range: Optional[float] # todo: save the schedule somehow when we start to use it
+    clip_range_vf: Optional[float]
+    max_grad_norm: float
+    normalize_advantage: bool
+    target_kl: Optional[float]
+
+    @classmethod
+    def from_model(cls, model) -> "PPOAlgorithmConfig":
+        return cls(
+            algorithm_name=type(model).__name__,
+            observation_space=cls._serialize_space(cast(spaces.Box, model.observation_space)),
+            action_space=cls._serialize_space(cast(spaces.Box, model.action_space)),
+            learning_rate=model.lr_schedule(1.0),
+            n_steps=model.n_steps,
+            batch_size=model.batch_size,
+            n_epochs=model.n_epochs,
+            gamma=model.gamma,
+            ent_coef=model.ent_coef,
+            vf_coef=model.vf_coef,
+            clip_range=cls._initial_schedule_value(model.clip_range),
+            clip_range_vf=cls._initial_schedule_value(model.clip_range_vf),
+            max_grad_norm=model.max_grad_norm,
+            normalize_advantage=model.normalize_advantage,
+            target_kl=getattr(model, "target_kl", None),
+            use_sde=model.use_sde,
+            sde_sample_freq=model.sde_sample_freq,
+            gae_lambda=model.gae_lambda,
+            n_envs=model.n_envs,
+            device=str(model.device),
+        )
+
+    @staticmethod
+    def _serialize_space(space: spaces.Box) -> dict[str, Any]:
+        return {
+            "type": type(space).__name__,
+            "shape": space.shape,
+            "dtype": str(space.dtype),
+            "low": space.low.tolist(),
+            "high": space.high.tolist(),
+        }
+
+    @staticmethod
+    def _initial_schedule_value(schedule):
+        if schedule is None:
+            return None
+
+        return float(schedule(1.0))
+
 
 class PolicyConfig(BaseModel):
-    net_arch: List[int]
+    policy_name: str
+    policy_architecture: str
+    actor_policy_network: str
+    critic_value_network: str
     squash_output: bool
     log_std_init: float
 
+    @classmethod
+    def from_policy(cls, policy: ActorCriticPolicy) -> "PolicyConfig":
+        return cls(
+            policy_name=type(policy).__name__,
+            policy_architecture=str(policy),
+            actor_policy_network=cls._network_summary(policy.mlp_extractor.policy_net, policy.action_net),
+            critic_value_network=cls._network_summary(policy.mlp_extractor.value_net, policy.value_net),
+            squash_output=policy.squash_output,
+            log_std_init=policy.log_std_init,
+        )
 
-class TrainingConfig(BaseModel):
+    @staticmethod
+    def _network_summary(hidden_module, output_module) -> str:
+        layers = []
+
+        for layer in hidden_module.children():
+            if isinstance(layer, nn.Linear):
+                layers.append(
+                    f"Linear({layer.in_features}->{layer.out_features})"
+                )
+            else:
+                layers.append(type(layer).__name__)
+
+        if isinstance(output_module, nn.Linear):
+            layers.append(
+                f"Linear({output_module.in_features}->{output_module.out_features})"
+            )
+        else:
+            layers.append(type(output_module).__name__)
+
+        return " → ".join(layers)
+
+
+class PPOModelConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    train_id: str
-    mode: str
-    model_initialization: ModelInitializationConfig
-    environment: EnvironmentConfig
-    state: StateConfig
-    cached_results: CachedResultsConfig
-    learning_total_timestamps: int
-    reward: RewardConfig
-    algorithm: AlgorithmConfig
+    model: PPOAlgorithmConfig
     policy: PolicyConfig
 
     @classmethod
-    def from_config(cls, config: Configuration) -> "TrainingConfig":
-        gamma = config.algorithm.hyperparameters.gamma()
-        gae_lambda = config.algorithm.hyperparameters.gae_lambda()
+    def from_model(cls, model: PPO) -> "PPOModelConfig":
+
+        return cls(
+            model=PPOAlgorithmConfig.from_model(model),
+            policy=PolicyConfig.from_policy(model.policy),
+        )
+
+
+class UserDefinedTrainingParams(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    mode: OptimizationMode
+    model_initialization: ModelInitializationConfig
+    state: StateConfig
+    cached_results: CachedResultsConfig
+    learning_total_timestamps: int
+    max_episode_steps: int
+    reward: RewardConfig
+
+    @classmethod
+    def from_config(cls, config: Configuration) -> "UserDefinedTrainingParams":
         max_episode_steps = config.env.max_episode_steps()
 
         if config.mode() == OptimizationMode.CONTEXTUAL_BANDIT:
-            gamma = 0
-            gae_lambda = 0
             max_episode_steps = 1
 
         return cls(
-            train_id=config.train_id(),
             mode=config.mode(),
             model_initialization=ModelInitializationConfig(
                 pretrained_model_path=config.resume_from_path(),
-            ),
-            environment=EnvironmentConfig(
-                max_episode_steps=max_episode_steps,
-                truncated_penalty=config.env.truncated_penalty(),
             ),
             state=StateConfig(
                 split_by=config.state.split_by(),
@@ -138,28 +231,22 @@ class TrainingConfig(BaseModel):
                 ),
             ),
             learning_total_timestamps=config.learning_total_timestamps(),
+            max_episode_steps=max_episode_steps,
             reward=RewardConfig(
                 alpha=config.reward.alpha(),
                 beta=config.reward.beta(),
                 lambda_=config.reward.lambda_(),
                 epsilon=config.reward.epsilon(),
-                tau=config.reward.tau(),
-                delta=config.reward.delta(),
-            ),
-            algorithm=AlgorithmConfig(
-                learning_rate=config.algorithm.hyperparameters.learning_rate(),
-                n_steps=config.algorithm.hyperparameters.n_steps(),
-                batch_size=config.algorithm.hyperparameters.batch_size(),
-                n_epochs=config.algorithm.hyperparameters.n_epochs(),
-                gamma=gamma,
-                ent_coef=config.algorithm.hyperparameters.ent_coef(),
-                use_sde=config.algorithm.hyperparameters.use_sde(),
-                sde_sample_freq=config.algorithm.hyperparameters.sde_sample_freq(),
-                gae_lambda=gae_lambda
-            ),
-            policy=PolicyConfig(
-                net_arch=config.policy.hyperparameters.net_arch(),
-                squash_output=config.policy.hyperparameters.squash_output(),
-                log_std_init=config.policy.hyperparameters.log_std_init(),
+                energy_importance=config.reward.tau(),
+                running_time_importance=config.reward.delta(),
+                truncated_penalty=config.env.truncated_penalty(),
             ),
         )
+
+
+class TrainingConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    training_id: str
+    drl_config: PPOModelConfig
+    user_defined_params: UserDefinedTrainingParams
