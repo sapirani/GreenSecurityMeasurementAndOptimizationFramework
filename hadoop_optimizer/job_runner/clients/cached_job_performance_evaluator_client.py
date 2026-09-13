@@ -10,7 +10,7 @@ from DTOs.hadoop.drl.training.cached_results_utilization_policy import CachedRes
 from DTOs.hadoop.drl.training.episode_context import EpisodeContext
 from DTOs.hadoop.drl.training.training_step_results import TrainingStepResults
 from enum import Enum
-from elasticsearch_dsl import Search, Q
+from elasticsearch.dsl import Search, Q
 from DTOs.logging.consts import IndexName
 from typing import Optional, Dict, List, Union, Tuple
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
