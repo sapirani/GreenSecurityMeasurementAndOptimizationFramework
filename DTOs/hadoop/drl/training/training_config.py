@@ -122,21 +122,27 @@ class PPOAlgorithmConfig(BaseModel):
 
 class PolicyConfig(BaseModel):
     policy_name: str
+    optimizer_type: str
     policy_architecture: str
     actor_policy_network: str
     critic_value_network: str
+    action_distribution: str
     squash_output: bool
     log_std_init: float
+    ortho_init: Optional[bool]
 
     @classmethod
     def from_policy(cls, policy: ActorCriticPolicy) -> "PolicyConfig":
         return cls(
             policy_name=type(policy).__name__,
+            optimizer_type=type(policy.optimizer).__name__,
             policy_architecture=str(policy),
             actor_policy_network=cls._network_summary(policy.mlp_extractor.policy_net, policy.action_net),
             critic_value_network=cls._network_summary(policy.mlp_extractor.value_net, policy.value_net),
+            action_distribution=type(policy.action_dist).__name__,
             squash_output=policy.squash_output,
             log_std_init=policy.log_std_init,
+            ortho_init = getattr(policy, "ortho_init", None),
         )
 
     @staticmethod
