@@ -10,6 +10,7 @@ from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList
 from stable_baselines3.common.policies import ActorCriticPolicy
 
+from DTOs.elasticsearch.connection_config import ElasticsearchConnectionConfig
 from DTOs.hadoop.drl.training.cached_results_utilization_policy import CachedResultsUtilizationPolicy
 from DTOs.hadoop.drl.training.episode_context import EpisodeContext
 from DTOs.hadoop.drl.training.training_config import UserDefinedTrainingParams
@@ -134,6 +135,14 @@ class TrainingContainer(containers.DeclarativeContainer):
         energy_max_deviation_percent=config.drl.cached_results.utilization_policy.energy_max_deviation_percent,
     )
 
+    connection_config: Provider[ElasticsearchConnectionConfig] = providers.Factory(
+        ElasticsearchConnectionConfig,
+        request_timeout=30,
+        max_retries=2,
+        initial_backoff=2,
+        max_backoff=30,
+    )
+
     training_client: Provider[CachedHadoopJobPerformanceEvaluatorClient] = providers.Factory(
         CachedHadoopJobPerformanceEvaluatorClient,
         elastic_url=config.elastic.url,
@@ -142,6 +151,7 @@ class TrainingContainer(containers.DeclarativeContainer):
         cached_results_utilization_policy=cached_results_utilization_policy,
         search_since=config.drl.cached_results.search_since,
         force_real_execution_probability=config.drl.cached_results.force_real_execution_probability,
+        connection_config=connection_config
     )
 
     contextual_bandit_mode = providers.Factory(ContextualBanditMode)

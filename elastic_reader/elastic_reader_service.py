@@ -2,6 +2,8 @@ import threading
 import traceback
 from datetime import datetime
 from typing import Optional, List, Iterator
+
+from DTOs.elasticsearch.connection_config import ElasticsearchConnectionConfig
 from DTOs.logging.consts import IndexName
 from DTOs.raw_results_dtos.iteration_info import IterationRawResults
 from elastic_reader.aggregation_manager import AggregationManager
@@ -19,7 +21,8 @@ class ElasticReaderService:
             time_picker_input: Optional[TimePickerChosenInput] = None,
             indices_to_read_from: Optional[List[IndexName]] = None,
             aggregation_manager: Optional[AggregationManager] = None,
-            should_terminate_event: Optional[threading.Event] = None
+            should_terminate_event: Optional[threading.Event] = None,
+            connection_config: ElasticsearchConnectionConfig = ElasticsearchConnectionConfig()
     ):
         self.consumers = consumers
         self.aggregation_strategy = aggregation_strategy
@@ -36,6 +39,7 @@ class ElasticReaderService:
         self.indices_to_read_from = indices_to_read_from or [IndexName.PROCESS_METRICS, IndexName.SYSTEM_METRICS]
 
         self.elastic_reader_thread = None
+        self.connection_config = connection_config
 
     def __enter__(self):
         self.start_in_background()
@@ -111,7 +115,8 @@ class ElasticReaderService:
         reader = ElasticReader(
             self.time_picker_input,
             self.indices_to_read_from,
-            should_terminate_event=self.should_terminate_event
+            should_terminate_event=self.should_terminate_event,
+            connection_config=self.connection_config
         )
 
         try:

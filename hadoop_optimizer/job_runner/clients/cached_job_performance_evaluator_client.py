@@ -5,6 +5,7 @@ import numpy as np
 from elasticsearch import Elasticsearch
 from pydantic import BaseModel
 
+from DTOs.elasticsearch.connection_config import ElasticsearchConnectionConfig
 from DTOs.hadoop.consts import DocumentID, SimilarityScore
 from DTOs.hadoop.drl.training.cached_results_utilization_policy import CachedResultsUtilizationPolicy
 from DTOs.hadoop.drl.training.episode_context import EpisodeContext
@@ -37,15 +38,24 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             job_performance_evaluator_client: Optional[HadoopJobPerformanceEvaluatorClient] = None,
             cached_results_utilization_policy: Optional[CachedResultsUtilizationPolicy] = None,
             search_since: Optional[datetime] = None,
-            force_real_execution_probability: float = 0.001
+            force_real_execution_probability: float = 0.001,
+            connection_config: ElasticsearchConnectionConfig = ElasticsearchConnectionConfig(),
     ):
-        self.job_performance_evaluator_client = job_performance_evaluator_client or HadoopJobPerformanceEvaluatorClient()
+        self.job_performance_evaluator_client = (
+                job_performance_evaluator_client or
+                HadoopJobPerformanceEvaluatorClient(connection_config=connection_config)
+        )
         self.default_results_utilization_policy = cached_results_utilization_policy or CachedResultsUtilizationPolicy()
 
         self.search_since = search_since or datetime.min
         self.force_real_execution_probability = force_real_execution_probability
 
-        self.es_client = Elasticsearch(elastic_url, basic_auth=(elastic_user, elastic_password), verify_certs=False)
+        self.es_client = Elasticsearch(
+            elastic_url,
+            basic_auth=(elastic_user, elastic_password),
+            verify_certs=False,
+            **connection_config.model_dump(),
+        )
 
     def __enter__(self):
         self.start()
