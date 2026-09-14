@@ -156,7 +156,13 @@ class AbstractOptimizerEnvInterface(gym.Env, ABC):
         pass
 
     @abstractmethod
-    def _compute_reward(self, job_config: HadoopJobExecutionConfig, *, terminated: bool, truncated: bool) -> float:
+    def _compute_reward(
+            self,
+            job_config: HadoopJobExecutionConfig,
+            *,
+            terminated: bool,
+            truncated: bool
+    ) -> Tuple[float, Dict[str, Any]]:
         """
         This function is applied whenever a step is performed
         :param job_config: the current job config to run, measure its performance and compute reward accordingly

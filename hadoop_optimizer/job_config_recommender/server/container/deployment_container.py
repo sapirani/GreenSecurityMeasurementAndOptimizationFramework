@@ -80,7 +80,7 @@ class DeploymentContainer(containers.DeclarativeContainer):
     deployment_env: Provider[gym.Env] = providers.Factory(
         build_env,
         base_env=base_env,
-        wrappers_params=env_wrappers_params,
+        basic_wrappers_params=env_wrappers_params,
     )
 
     deployment_drl_model = providers.Callable(
