@@ -67,6 +67,7 @@ class TrainingContainer(containers.DeclarativeContainer):
         elastic_url=config.elastic.url,
         index_name=IndexName.DRL_TRAINING,
         ignore_exceptions=False,
+        request_timeout=30,
     )
 
     training_results_logger = providers.Singleton(
