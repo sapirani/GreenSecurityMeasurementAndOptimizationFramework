@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 from typing import Optional, cast, Any, Dict
 from typing import List
 from dependency_injector.providers import Configuration
@@ -6,13 +7,12 @@ from gymnasium import spaces
 from pydantic import BaseModel, ConfigDict, computed_field, Field
 from stable_baselines3 import PPO
 import torch.nn as nn
-from stable_baselines3.common.policies import BasePolicy, ActorCriticPolicy
-
+from stable_baselines3.common.policies import ActorCriticPolicy
 from hadoop_optimizer.optimization_mode import OptimizationMode
 
 
 class ModelInitializationConfig(BaseModel):
-    pretrained_model_path: Optional[str]
+    pretrained_model_path: Optional[Path]
 
     @computed_field
     @property
