@@ -10,8 +10,10 @@ from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList
 from stable_baselines3.common.policies import ActorCriticPolicy
 
+from DTOs.elasticsearch.connection_config import ElasticsearchConnectionConfig
 from DTOs.hadoop.drl.training.cached_results_utilization_policy import CachedResultsUtilizationPolicy
 from DTOs.hadoop.drl.training.episode_context import EpisodeContext
+from DTOs.hadoop.drl.training.training_config import UserDefinedTrainingParams
 from DTOs.logging.consts import LoggerName, IndexName
 from application_logging.handlers.elastic_bulk_handler import get_elastic_bulk_handler
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
@@ -22,12 +24,15 @@ from hadoop_optimizer.common.drl_telemetry.telemetry_aggregator import Telemetry
 from elastic_reader.consts import TimePickerInputStrategy
 from elastic_reader.elastic_consumers.elastic_aggregations_logger import ElasticAggregationsLogger
 from hadoop_optimizer.common.env_composition_config.env_builder import build_env
-from hadoop_optimizer.common.env_composition_config.env_wrapper_spec import EnvWrappersParams
+from hadoop_optimizer.common.env_composition_config.env_wrapper_spec import EnvWrappersParams, TrainingEnvWrapperParams
 from hadoop_optimizer.drl_envs.training.reward.reward_calculator import RewardCalculator
 from hadoop_optimizer.drl_envs.training.training_env import OptimizerTrainingEnv
 from hadoop_optimizer.drl_envs.training.training_progress_tracker import TrainingProgressTracker
 from hadoop_optimizer.job_runner.clients.cached_job_performance_evaluator_client import CachedHadoopJobPerformanceEvaluatorClient
-from training_loop.callbacks.drl_training_callback import PPODebugCallback
+from hadoop_optimizer.optimization_mode.rl_mode import RLMode
+from hadoop_optimizer.optimization_mode import OptimizationMode
+from hadoop_optimizer.optimization_mode.contextual_bandit_mode import ContextualBanditMode
+from hadoop_optimizer.training_loop.callbacks.drl_training_callback import PPODebugCallback
 from user_input.elastic_reader_input.abstract_date_picker import TimePickerChosenInput, ReadingMode
 from user_input.elastic_reader_input.time_picker_input_factory import get_time_picker_input
 
@@ -62,6 +67,7 @@ class TrainingContainer(containers.DeclarativeContainer):
         elastic_url=config.elastic.url,
         index_name=IndexName.DRL_TRAINING,
         ignore_exceptions=False,
+        request_timeout=30,
     )
 
     training_results_logger = providers.Singleton(
@@ -77,12 +83,18 @@ class TrainingContainer(containers.DeclarativeContainer):
         elastic_url=config.elastic.url,
         index_name=IndexName.DRL_DEBUGGING,
         ignore_exceptions=False,
+        request_timeout=30,
+        max_retries=2,
+        initial_backoff=2,
+        max_backoff=30,
+        add_metadata_fields=providers.Factory(set, ["training_id", "global_step", "rollout_num"]),
+        exception_index=IndexName.DRL_EXCEPTIONS,
     )
 
     training_debugging_logger = providers.Singleton(
         get_measurement_logger,
         logger_name=LoggerName.DRL_DEBUGGING,
-        logger_handler=training_elastic_handler
+        logger_handler=training_debugger_elastic_handler
     )
 
     training_progress_tracker: Provider[TrainingProgressTracker] = providers.Singleton(
@@ -114,15 +126,6 @@ class TrainingContainer(containers.DeclarativeContainer):
         providers.Factory(Mock),
     )
 
-    training_client: Provider[CachedHadoopJobPerformanceEvaluatorClient] = providers.Factory(
-        CachedHadoopJobPerformanceEvaluatorClient,
-        elastic_url=config.elastic.url,
-        elastic_user=config.elastic.username,
-        elastic_password=config.elastic.password,
-        search_since=config.drl.cached_results.search_since,
-        force_real_execution_probability=config.drl.cached_results.force_real_execution_probability,
-    )
-
     cached_results_utilization_policy: Provider[CachedResultsUtilizationPolicy] = providers.Factory(
         CachedResultsUtilizationPolicy,
         max_param_diff_percent=config.drl.cached_results.utilization_policy.max_param_diff_percent,
@@ -133,14 +136,46 @@ class TrainingContainer(containers.DeclarativeContainer):
         energy_max_deviation_percent=config.drl.cached_results.utilization_policy.energy_max_deviation_percent,
     )
 
+    connection_config: Provider[ElasticsearchConnectionConfig] = providers.Factory(
+        ElasticsearchConnectionConfig,
+        request_timeout=30,
+        max_retries=2,
+        initial_backoff=2,
+        max_backoff=30,
+    )
+
+    training_client: Provider[CachedHadoopJobPerformanceEvaluatorClient] = providers.Factory(
+        CachedHadoopJobPerformanceEvaluatorClient,
+        elastic_url=config.elastic.url,
+        elastic_user=config.elastic.username,
+        elastic_password=config.elastic.password,
+        cached_results_utilization_policy=cached_results_utilization_policy,
+        search_since=config.drl.cached_results.search_since,
+        force_real_execution_probability=config.drl.cached_results.force_real_execution_probability,
+        connection_config=connection_config
+    )
+
+    contextual_bandit_mode = providers.Factory(ContextualBanditMode)
+    rl_mode = providers.Factory(RLMode)
+
+    optimization_mode = providers.Selector(
+        config.drl.mode,
+        **{
+            OptimizationMode.CONTEXTUAL_BANDIT: contextual_bandit_mode,
+            OptimizationMode.RL: rl_mode,
+        },
+    )
+
     base_env: Provider[gym.Env] = providers.Factory(
         OptimizerTrainingEnv,
         telemetry_aggregator=telemetry_aggregator,
+        optimization_mode=optimization_mode,
         training_client=training_client,
         reward_calculator=reward_calculator,
         train_id=config.drl.train_id,
         training_progress_tracker=training_progress_tracker,
         cached_results_utilization_policy=cached_results_utilization_policy,
+        verbosity=config.drl.verbosity
     )
 
     env_wrappers_params: Provider[EnvWrappersParams] = providers.Factory(
@@ -149,8 +184,8 @@ class TrainingContainer(containers.DeclarativeContainer):
     )
 
     training_env_wrappers_params: Provider[EnvWrappersParams] = providers.Factory(
-        EnvWrappersParams.from_config,
-        config.drl.env.training
+        TrainingEnvWrapperParams,
+        logger=training_results_logger
     )
 
     training_env: Provider[gym.Env] = providers.Singleton(
@@ -165,13 +200,28 @@ class TrainingContainer(containers.DeclarativeContainer):
         PPO,
         policy=ActorCriticPolicy,
         env=training_env,
-        verbose=2,
+        verbose=config.drl.verbosity,
+        learning_rate=config.drl.algorithm.hyperparameters.learning_rate,
         n_steps=config.drl.algorithm.hyperparameters.n_steps,
         batch_size=config.drl.algorithm.hyperparameters.batch_size,
         n_epochs=config.drl.algorithm.hyperparameters.n_epochs,
-        gamma=config.drl.algorithm.hyperparameters.gamma,
+        gamma=providers.Selector(
+            config.drl.mode,
+            **{
+                OptimizationMode.CONTEXTUAL_BANDIT: providers.Object(0.0),
+                OptimizationMode.RL: config.drl.algorithm.hyperparameters.gamma,
+            },
+        ),
+        gae_lambda=providers.Selector(
+            config.drl.mode,
+            **{
+                OptimizationMode.CONTEXTUAL_BANDIT: providers.Object(0.0),
+                OptimizationMode.RL: config.drl.algorithm.hyperparameters.gae_lambda,
+            },
+        ),
         ent_coef=config.drl.algorithm.hyperparameters.ent_coef,
         use_sde=config.drl.algorithm.hyperparameters.use_sde,
+        sde_sample_freq=config.drl.algorithm.hyperparameters.sde_sample_freq,
         policy_kwargs=providers.Dict(
             net_arch=config.drl.policy.hyperparameters.net_arch,
             squash_output=config.drl.policy.hyperparameters.squash_output,
@@ -196,6 +246,11 @@ class TrainingContainer(containers.DeclarativeContainer):
         train_id=config.drl.train_id,
     )
 
+    user_defined_training_params = providers.Factory(
+        UserDefinedTrainingParams.from_config,
+        config=config.drl.provider,
+    )
+
     checkpoint_callback = providers.Factory(
         CheckpointCallback,
         save_freq=config.drl.storage.save_freq,
@@ -213,6 +268,7 @@ class TrainingContainer(containers.DeclarativeContainer):
         PPODebugCallback,
         logger=training_debugging_logger,
         train_id=config.drl.train_id,
+        user_defined_training_params=user_defined_training_params
     )
 
     training_callback = providers.Factory(
