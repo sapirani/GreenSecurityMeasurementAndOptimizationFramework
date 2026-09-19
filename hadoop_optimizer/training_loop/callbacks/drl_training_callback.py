@@ -42,13 +42,9 @@ class PPODebugCallback(BaseCallback):
             user_defined_params=self.user_defined_training_params,
         )
 
-        config = {
-            **training_config.model_dump(by_alias=True)
-        }
-
         self.debugging_logger.info(
             "Training Hyperparameters",
-            extra=config
+            extra=training_config.model_dump(by_alias=True)
         )
 
         for handler in self.debugging_logger.handlers:
