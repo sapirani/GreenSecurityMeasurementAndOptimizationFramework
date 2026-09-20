@@ -3,7 +3,7 @@ from typing import Optional
 
 from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
 
-LAST_REWARD_MIN_IMPORTANCE_FACTOR = 0
+LAST_REWARD_MIN_IMPORTANCE_FACTOR = 1
 
 
 class RewardCalculator:

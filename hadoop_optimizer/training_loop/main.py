@@ -84,7 +84,7 @@ if __name__ == '__main__':
     container.config.drl.reward.alpha.from_value(1)
     container.config.drl.reward.beta.from_value(1)
     container.config.drl.reward.lambda_.from_value(1.25)
-    container.config.drl.reward.epsilon.from_value(2)
+    container.config.drl.reward.epsilon.from_value(1.125)
     container.config.drl.reward.tau.from_value(0.05)
     container.config.drl.reward.delta.from_value(0.95)
     container.config.drl.algorithm.hyperparameters.target_kl.from_value(0.03)
