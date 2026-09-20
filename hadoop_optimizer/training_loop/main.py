@@ -83,10 +83,11 @@ if __name__ == '__main__':
     container.config.drl.learning_total_timestamps.from_value(120000)
     container.config.drl.reward.alpha.from_value(1)
     container.config.drl.reward.beta.from_value(1)
-    container.config.drl.reward.lambda_.from_value(50)
+    container.config.drl.reward.lambda_.from_value(1)
     container.config.drl.reward.epsilon.from_value(2)
     container.config.drl.reward.tau.from_value(0.05)
     container.config.drl.reward.delta.from_value(0.95)
+    container.config.drl.algorithm.hyperparameters.target_kl.from_value(0.03)
     container.config.drl.algorithm.hyperparameters.learning_rate.from_value(0.0003)
     container.config.drl.algorithm.hyperparameters.n_steps.from_value(2048)
     container.config.drl.algorithm.hyperparameters.batch_size.from_value(256)
@@ -98,7 +99,7 @@ if __name__ == '__main__':
     # Resample the gSDE noise matrix every <sde_sample_freq> steps.
     # -1 would keep the same noise matrix for the entire rollout.
     container.config.drl.algorithm.hyperparameters.sde_sample_freq.from_value(1)
-    container.config.drl.policy.hyperparameters.net_arch.from_value([128, 128])
+    container.config.drl.policy.hyperparameters.net_arch.from_value(dict(pi=[64, 64], vf=[64, 64]))
     container.config.drl.policy.hyperparameters.squash_output.from_value(True)
     container.config.drl.policy.hyperparameters.log_std_init.from_value(-0.5)
     container.config.elastic.username.from_value(ES_USER)
