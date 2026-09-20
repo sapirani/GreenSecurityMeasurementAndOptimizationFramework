@@ -44,7 +44,7 @@ class PPODebugCallback(BaseCallback):
 
         self.debugging_logger.info(
             "Training Hyperparameters",
-            extra=training_config.model_dump(by_alias=True)
+            extra=training_config.model_dump(by_alias=True, mode="json")
         )
 
         for handler in self.debugging_logger.handlers:
