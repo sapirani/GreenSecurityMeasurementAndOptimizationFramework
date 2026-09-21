@@ -78,7 +78,7 @@ class PPOAlgorithmConfig(BaseModel):
     target_kl: Optional[float]
 
     @classmethod
-    def from_model(cls, model) -> "PPOAlgorithmConfig":
+    def from_model(cls, model: PPO) -> "PPOAlgorithmConfig":
         return cls(
             algorithm_name=type(model).__name__,
             observation_space=cls._serialize_space(cast(spaces.Box, model.observation_space)),
