@@ -242,7 +242,8 @@ class CachedHadoopJobPerformanceEvaluatorClient:
             session_id: str,
             episode_context: EpisodeContext,
             space_ranges: Dict[str, Range],
-            cached_results_utilization_policy: Optional[CachedResultsUtilizationPolicy]
+            cached_results_utilization_policy: Optional[CachedResultsUtilizationPolicy],
+            suppress_real_execution: bool = False,
     ) -> JobExecutionPerformance:
         """
         If there are enough results of similar samples from Elasticsearch - use them as cache to simulate the result
@@ -282,7 +283,7 @@ class CachedHadoopJobPerformanceEvaluatorClient:
                 episode_context=episode_context,
             )
 
-        if random.random() < self.force_real_execution_probability:
+        if not suppress_real_execution and random.random() < self.force_real_execution_probability:
             return self.job_performance_evaluator_client.run_job(
                 job_descriptor=job_descriptor,
                 execution_configuration=execution_configuration,
