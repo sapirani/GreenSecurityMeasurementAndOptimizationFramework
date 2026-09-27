@@ -79,6 +79,13 @@ class PPODebugCallback(BaseCallback):
 
             del metrics["train/clip_range"]
 
+            loss = (
+                    metrics["train/policy_gradient_loss"] +
+                    model.ent_coef * metrics["train/entropy_loss"] +
+                    model.vf_coef * metrics["train/value_loss"]
+            )
+
+
             self.debugging_logger.info(
                 "PPO Training - Update Completed",
                 extra={
@@ -86,6 +93,7 @@ class PPODebugCallback(BaseCallback):
                     "global_step": self.num_timesteps,
                     "update_num": current_update,
                     "rollout_num": self._rollout_num,
+                    "mean_loss": loss,
                     **metrics,
                 },
             )
