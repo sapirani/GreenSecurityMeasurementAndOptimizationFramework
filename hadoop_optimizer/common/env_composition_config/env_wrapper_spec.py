@@ -13,7 +13,7 @@ class EnvWrapperSpec:
 @dataclass(frozen=True)
 class EnvWrappersParams:
     max_episode_steps: int
-    min_action: np.float32 = 0
+    min_action: np.float32 = -1
     max_action: np.float32 = 1
     min_obs: np.float32 = -1
     max_obs: np.float32 = 1

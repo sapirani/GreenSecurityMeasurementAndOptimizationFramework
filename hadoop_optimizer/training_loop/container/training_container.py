@@ -196,12 +196,23 @@ class TrainingContainer(containers.DeclarativeContainer):
         extended_env_wrappers=get_training_wrappers,
     )
 
+    lr_schedule = providers.Callable(
+        lambda initial_learning_rate, final_learning_rate:
+        (
+            lambda progress_remaining:
+                final_learning_rate +
+                (initial_learning_rate - final_learning_rate) * progress_remaining
+        ),
+        initial_learning_rate=config.drl.algorithm.hyperparameters.initial_learning_rate,
+        final_learning_rate=config.drl.algorithm.hyperparameters.final_learning_rate,
+    )
+
     default_drl_model: Provider[BaseAlgorithm] = providers.Singleton(
         PPO,
         policy=ActorCriticPolicy,
         env=training_env,
         verbose=config.drl.verbosity,
-        learning_rate=config.drl.algorithm.hyperparameters.learning_rate,
+        learning_rate=lr_schedule,
         target_kl=config.drl.algorithm.hyperparameters.target_kl,
         n_steps=config.drl.algorithm.hyperparameters.n_steps,
         batch_size=config.drl.algorithm.hyperparameters.batch_size,
