@@ -36,9 +36,13 @@ class AbstractOptimizationMode(ABC):
             "number_of_mappers": spaces.Box(low=1, high=15, shape=(), dtype=np.float32),
             "number_of_reducers": spaces.Box(low=1, high=15, shape=(), dtype=np.float32),
             "map_memory_mb": spaces.Box(low=256, high=4096, shape=(), dtype=np.float32),
+            "reduce_memory_mb": spaces.Box(low=256, high=4096, shape=(), dtype=np.float32),
             "should_compress": spaces.Box(low=0, high=1, shape=(), dtype=np.float32),
             "map_vcores": spaces.Box(low=1, high=5, shape=(), dtype=np.float32),
             "reduce_vcores": spaces.Box(low=1, high=5, shape=(), dtype=np.float32),
+            "shuffle_copies": spaces.Box(low=1, high=10, shape=(), dtype=np.float32),
+            "sort_buffer_mb": spaces.Box(low=50, high=512, shape=(), dtype=np.float32),
+            "io_sort_factor": spaces.Box(low=2, high=20, shape=(), dtype=np.float32),
         })
 
     @property
