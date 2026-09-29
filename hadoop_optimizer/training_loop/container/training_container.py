@@ -289,11 +289,12 @@ class TrainingContainer(containers.DeclarativeContainer):
     )
 
     final_model_saving_paths = providers.Callable(
-        lambda training_base_dir, model_name: [
+        lambda training_base_dir, models_base_dir, model_name: [
             os.path.join(training_base_dir, f"{FINAL_MODEL_PREFIX}{model_name}"),
-            os.path.join(training_base_dir, MODELS_DIR_NAME, model_name),
+            os.path.join(models_base_dir, MODELS_DIR_NAME, model_name),
         ],
         training_base_dir=training_base_dir,
+        models_base_dir=config.drl.storage.models_base_dir,
         model_name=providers.Callable(
             lambda model: model.__class__.__name__,
             model=drl_training_model,
