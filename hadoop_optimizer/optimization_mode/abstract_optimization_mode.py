@@ -41,7 +41,7 @@ class AbstractOptimizationMode(ABC):
             "map_vcores": spaces.Box(low=1, high=5, shape=(), dtype=np.float32),
             "reduce_vcores": spaces.Box(low=1, high=5, shape=(), dtype=np.float32),
             "shuffle_copies": spaces.Box(low=1, high=10, shape=(), dtype=np.float32),
-            "sort_buffer_mb": spaces.Box(low=50, high=512, shape=(), dtype=np.float32),
+            "sort_buffer_mb": spaces.Box(low=25, high=200, shape=(), dtype=np.float32),
             "io_sort_factor": spaces.Box(low=2, high=20, shape=(), dtype=np.float32),
         })
 
