@@ -8,7 +8,7 @@ from hadoop_optimizer.common.env_composition_config.wrappers_config import get_b
 def build_env(
         base_env: gym.Env,
         basic_wrappers_params: EnvWrappersParams,
-        extended_wrappers_params: Optional[EnvWrappersParams],
+        extended_wrappers_params: Optional[EnvWrappersParams] = None,
         extended_env_wrappers: Optional[Callable[[EnvWrappersParams], List[EnvWrapperSpec]]] = None,
 ) -> gym.Env:
     if extended_env_wrappers is None:

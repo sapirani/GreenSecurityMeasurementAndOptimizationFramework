@@ -29,7 +29,11 @@ class ElasticAggregationsLogger(AbstractElasticConsumer):
                 ES_USER,
                 ES_PASS, ES_URL,
                 IndexName.METRICS_AGGREGATIONS,
-                pipeline_name=custom_pipeline_name
+                pipeline_name=custom_pipeline_name,
+                request_timeout=30,
+                max_retries=2,
+                initial_backoff=2,
+                max_backoff=30,
             ),
         )
 

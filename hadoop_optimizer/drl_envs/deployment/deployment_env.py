@@ -26,11 +26,17 @@ class OptimizerDeploymentEnv(AbstractOptimizerEnvInterface):
     def _extra_step_init(self):
         pass
 
-    def _compute_reward(self, job_config: HadoopJobExecutionConfig, *, terminated: bool, truncated: bool) -> float:
+    def _compute_reward(
+            self,
+            job_config: HadoopJobExecutionConfig,
+            *,
+            terminated: bool,
+            truncated: bool
+    ) -> Tuple[float, Dict[str, Any]]:
         """
         :return: some default reward, since there is no need to compute rewards in the deployment phase
         """
-        return OptimizerDeploymentEnv.DEFAULT_REWARD
+        return OptimizerDeploymentEnv.DEFAULT_REWARD, {}
 
     def _custom_rendering(self):
         pass

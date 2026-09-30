@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
+from DTOs.elasticsearch.connection_config import ElasticsearchConnectionConfig
 from DTOs.hadoop.drl.training.episode_context import EpisodeContext
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
@@ -18,6 +19,7 @@ class HadoopJobPerformanceEvaluatorClient:
     def __init__(
             self,
             hadoop_job_runner_client: Optional[HadoopJobRunnerClient] = None,
+            connection_config: ElasticsearchConnectionConfig = ElasticsearchConnectionConfig(),
     ):
         self.hadoop_job_runner_client = hadoop_job_runner_client or HadoopJobRunnerClient()
 
@@ -41,6 +43,7 @@ class HadoopJobPerformanceEvaluatorClient:
             aggregation_strategy=AggregationStrategy.CALCULATE,
             time_picker_input=time_picker_input,
             indices_to_read_from=indices_to_read_from,
+            connection_config=connection_config,
         )
 
     def __enter__(self):

@@ -71,6 +71,7 @@ def run_selected_job_within_the_digital_twin_environment(
         )
     ]
 ) -> TrainingJobRunResponse:
+    print(job_execution_config)
 
     job_definition = SupportedJobsConfig.extract_job_definition(job_descriptor)
     selected_job = HadoopJob(

@@ -15,6 +15,7 @@ from DTOs.logging.consts import IndexName
 from hadoop_optimizer.common.erros import EnvironmentTruncatedException, StateNotReadyException
 from hadoop_optimizer.job_config_recommender.server.container.deployment_container import DeploymentContainer
 from hadoop_optimizer.job_config_recommender.server.drl_deployment_manager import DRLDeploymentManager
+from optimization_mode import OptimizationMode
 
 MINUTE = 60
 
@@ -65,8 +66,9 @@ def choose_the_best_configuration_for_a_new_task_under_the_current_load(
 
 if __name__ == '__main__':
     container = DeploymentContainer()
-    container.config.drl.resume_from_path.from_value(Path("PPO_12288_steps.zip"))
+    container.config.drl.resume_from_path.from_value(Path("PPO_3_steps.zip"))
     container.config.elastic.indices_to_read_from.from_value([IndexName.PROCESS_METRICS, IndexName.SYSTEM_METRICS])
+    container.config.drl.mode.from_value(OptimizationMode.CONTEXTUAL_BANDIT)
     container.config.drl.env.max_episode_steps.from_value(50)
     container.config.drl.state.split_by.from_value("hostname")
     container.config.drl.state.leverage_telemetry_in_state.from_value(False)

@@ -7,6 +7,7 @@ class LoggerName:
     APPLICATION_FLOW = "application_flow"
     METRICS_AGGREGATIONS = "metrics_aggregations"
     DRL_TRAINING = "drl_training"
+    DRL_EXCEPTIONS = "drl_exceptions"
     DRL_DEBUGGING = "drl_debugging"
 
 
@@ -16,6 +17,7 @@ class IndexName(str, Enum):
     APPLICATION_FLOW = "application_flow"
     METRICS_AGGREGATIONS = "metrics_aggregations"
     DRL_TRAINING = "drl_training"
+    DRL_EXCEPTIONS = "drl_exceptions"
     DRL_DEBUGGING = "drl_debugging"
 
 

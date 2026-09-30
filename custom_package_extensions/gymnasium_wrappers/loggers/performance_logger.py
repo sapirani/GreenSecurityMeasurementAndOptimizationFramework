@@ -3,7 +3,7 @@ from typing import SupportsFloat, Any, cast
 import gymnasium as gym
 from gymnasium.core import WrapperActType, WrapperObsType, ObsType, ActType, Env
 from DTOs.hadoop.drl.training.training_step_results import TrainingStepResults
-from drl_envs.consts import PERFORMANCE_RESULTS_KEY
+from hadoop_optimizer.drl_envs.consts import PERFORMANCE_RESULTS_KEY
 
 
 class PerformanceLoggerWrapper(gym.Wrapper):

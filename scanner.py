@@ -843,7 +843,8 @@ def main(user_args):
             elastic_url,
             IndexName.SYSTEM_METRICS,
             starting_time,
-            user_args.elastic_pipeline_system
+            user_args.elastic_pipeline_system,
+            request_timeout=30,
         )
     )
 
@@ -856,7 +857,8 @@ def main(user_args):
             elastic_url,
             IndexName.PROCESS_METRICS,
             starting_time,
-            user_args.elastic_pipeline_processes
+            user_args.elastic_pipeline_processes,
+            request_timeout=30
         )
     )
 
@@ -868,7 +870,8 @@ def main(user_args):
             elastic_password,
             elastic_url,
             IndexName.APPLICATION_FLOW,
-            starting_time
+            starting_time,
+            request_timeout=30,
         )
     )
 
