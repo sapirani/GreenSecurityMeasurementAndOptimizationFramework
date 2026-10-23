@@ -1,10 +1,10 @@
 import math
 import os.path
+from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
 import pandas as pd
-from datetime import datetime
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, KFold
 from sklearn.pipeline import Pipeline
@@ -72,7 +72,6 @@ class ModelSelector:
         print(f"Best estimator from grid based {score_method} :")
         print(best_estimator)
         y_pred_test = best_estimator.predict(x_test)
-        y_pred_test = pd.Series(y_pred_test).reset_index(drop=True)
 
         results = self.__model_evaluator.evaluate(y_test, y_pred_test)
         self.__model_evaluator.print_results(results)

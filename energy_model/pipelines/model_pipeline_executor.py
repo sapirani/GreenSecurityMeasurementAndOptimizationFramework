@@ -4,7 +4,6 @@ import pandas as pd
 from sklearn.model_selection import KFold
 
 from energy_model.configs.defaults_configs import DEFAULT_CV_SPLITS_N
-from energy_model.dataset_processing.scalers.data_scaler import DataScaler
 from energy_model.evaluation.model_evaluator import ModelEvaluator
 from energy_model.models.model import Model
 from energy_model.pipelines.pipeline_utils import extract_x_y
@@ -34,21 +33,14 @@ class ModelPipelineExecutor:
 
         return splits
 
-    def build_scaler(self, X: pd.DataFrame) -> DataScaler:
-        scaler = DataScaler()
-        scaler.fit(X)
-        return scaler
-
-    def build_model(self, X_train: pd.DataFrame, y_train: pd.Series, scaler: DataScaler, hyper_parameters: dict[str, Any] =  None) -> Model:
-        X_train_scaled = scaler.transform(X_train)
+    def build_model(self, X_train: pd.DataFrame, y_train: pd.Series, hyper_parameters: dict[str, Any] = None) -> Model:
         model = Model(hyper_parameters)
-        model.fit(X_train_scaled, y_train)
+        model.fit(X_train, y_train)
         return model
 
-    def evaluate_model(self, model: Model, X_test: pd.DataFrame, y_test: pd.Series, scaler: DataScaler) \
+    def evaluate_model(self, model: Model, X_test: pd.DataFrame, y_test: pd.Series) \
             -> dict[str, float]:
-        X_test_scaled = scaler.transform(X_test)
-        y_pred = pd.Series(model.predict(X_test_scaled)).reset_index(drop=True)
+        y_pred = pd.Series(model.predict(X_test)).reset_index(drop=True)
 
         negative_predictions_mask = y_pred.lt(0)
         if negative_predictions_mask.any():

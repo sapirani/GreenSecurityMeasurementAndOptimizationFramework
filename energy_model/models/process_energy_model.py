@@ -102,17 +102,10 @@ class ProcessEnergyModel(AbstractEnergyModel):
                                                                     ProcessColumns.ENERGY_USAGE_PROCESS_COL,
                                                                     best_model_metric_name=BEST_PROCESS_MODEL_METRIC,
                                                                     hyper_parameters={
-                                                                      "loss": "squared_error",
-                                                                      "learning_rate": 0.06,
-                                                                      "max_iter": 300,
-                                                                      "max_depth": 11,
-                                                                      "min_samples_leaf": 20,
-                                                                      "l2_regularization": 0.05,
-                                                                      "max_bins": 255,
-                                                                      "early_stopping": True,
-                                                                      "validation_fraction": 0.1,
-                                                                      "n_iter_no_change": 20,
-                                                                      "random_state": 42})
+                                                                        "max_iter": 400,
+                                                                        "max_depth": 8,
+                                                                        "l2_regularization": 0.1,
+                                                                        "quantile": 0.5})
 
         # Save elements to future use
         self._model = process_model

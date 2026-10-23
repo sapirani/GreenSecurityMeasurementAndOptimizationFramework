@@ -22,12 +22,11 @@ class SystemEnergyModel(AbstractEnergyModel):
         system_model, system_scaler = self._run_pipeline_executor(system_only_df, SystemColumns.ENERGY_USAGE_SYSTEM_COL,
                                                                   best_model_metric_name=BEST_SYSTEM_MODEL_METRIC,
                                                                   hyper_parameters={
-                                                                      "loss": "squared_error",
-                                                                      "max_depth": 16,
-                                                                      "min_samples_leaf": 10,
-                                                                      "max_iter": 400,
-                                                                      "l2_regularization": 0.1
-                                                                  })
+                                                                      "max_iter": 800,
+                                                                      "max_depth": 5,
+                                                                      "l2_regularization": 0.3,
+                                                                      "quantile": 0.5}
+                                                                  )
 
         self._model = system_model
         self._scaler = system_scaler
