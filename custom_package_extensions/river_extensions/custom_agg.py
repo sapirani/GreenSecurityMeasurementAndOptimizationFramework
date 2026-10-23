@@ -2,7 +2,7 @@ import pandas as pd
 from river import stats, utils
 from river.feature_extraction import Agg
 
-from hadoop_optimizer.drl_telemetry.consts.general import ALL_HOSTS
+from hadoop_optimizer.common.drl_telemetry.consts.general import ALL_HOSTS
 from custom_package_extensions.river_extensions.timezone_aware_time_rolling import TimezoneAwareTimeRolling
 
 

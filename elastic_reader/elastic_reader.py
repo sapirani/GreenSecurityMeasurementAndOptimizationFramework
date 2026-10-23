@@ -7,6 +7,8 @@ from elasticsearch import Elasticsearch
 from elasticsearch.dsl.response import Hit
 from elasticsearch.dsl import Search
 import time
+
+from DTOs.elasticsearch.connection_config import ElasticsearchConnectionConfig
 from DTOs.logging.consts import IndexName, SCANNER_FINISHED_MESSAGE
 from elastic_reader.consts import MAX_INDEXING_TIME_SECONDS, PULL_PAGE_SIZE, \
     NON_GRACEFUL_TERMINATION_DETECTION_WINDOW_SECONDS, PULL_INTERVAL_SECONDS, IndexRetrievalOrder
@@ -15,14 +17,18 @@ from DTOs.raw_results_dtos.iteration_info import IterationMetadata, IterationRaw
 from elastic_reader.elastic_reader_parameters import ES_USER, ES_PASS, ES_URL
 from user_input.elastic_reader_input.abstract_date_picker import ReadingMode, TimePickerChosenInput
 
-
+# TODO: INJECT URL AND CREDENTIALS INSTEAD OF IMPORTING DIRECTLY FROM THE PARAMETERS FILE
+# TODO: CONSIDER MAKING THIS CLASS MORE GENERIC TO SUPPORT OTHER INDICES FOR REAL, WHICH RETURNS
+#  IterationRawResults THAT IS COMPRISED ONLT OF PROCESS, SYSTEM AND METADATA.
+# TODO: MAYBE INJECT THE ENTIRE Elasticsearch CLIENT
 class ElasticReader:
     def __init__(
             self,
             time_picker_input: TimePickerChosenInput,
             indices: list[IndexName],
             *,
-            should_terminate_event: Optional[threading.Event] = None
+            should_terminate_event: Optional[threading.Event] = None,
+            connection_config: ElasticsearchConnectionConfig = ElasticsearchConnectionConfig(),
     ):
         self.time_picker_input = time_picker_input
         self.indices = indices
@@ -30,7 +36,12 @@ class ElasticReader:
             self.indices.append(IndexName.APPLICATION_FLOW)
 
         self.should_terminate_event = should_terminate_event
-        self.es = Elasticsearch(ES_URL, basic_auth=(ES_USER, ES_PASS), verify_certs=False)
+        self.es = Elasticsearch(
+            ES_URL,
+            basic_auth=(ES_USER, ES_PASS),
+            verify_certs=False,
+            **connection_config.model_dump()
+        )
 
         self.__ongoing_iteration_metadata: Optional[IterationMetadata] = None
         self.__previous_metadata_set = set()
