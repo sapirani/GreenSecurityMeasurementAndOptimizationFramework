@@ -12,6 +12,7 @@ def get_elastic_logging_handler(
         start_timestamp: Optional[float] = None,
         pipeline_name: Optional[str] = None,
         ignore_exceptions: bool = False,
+        request_timeout: int = 10,
 ) -> Optional[Handler]:
     try:
         return ElasticSearchLogHandler(
@@ -20,7 +21,8 @@ def get_elastic_logging_handler(
             elastic_url=elastic_url,
             index_name=index_name,
             start_timestamp=start_timestamp,
-            pipeline_name=pipeline_name
+            pipeline_name=pipeline_name,
+            request_timeout=request_timeout,
         )
     except ConnectionError as e:
         if ignore_exceptions:

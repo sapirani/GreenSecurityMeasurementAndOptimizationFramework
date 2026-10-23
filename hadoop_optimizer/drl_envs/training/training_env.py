@@ -6,6 +6,7 @@ from DTOs.hadoop.drl.training.episode_context import EpisodeContext
 from DTOs.hadoop.drl.training.extended_episode_context import ExtendedEpisodeContext
 from DTOs.hadoop.drl.training.training_metadata import TrainingMetadata
 from DTOs.hadoop.drl.training.training_step_results import TrainingStepResults
+from DTOs.hadoop.drl.training.verbosity import Verbosity
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
 from DTOs.hadoop.job_descriptor import JobDescriptor
 from DTOs.hadoop.job_execution_performance import JobExecutionPerformance
@@ -17,19 +18,22 @@ from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOpti
 from hadoop_optimizer.drl_envs.training.reward.reward_calculator import RewardCalculator
 from hadoop_optimizer.drl_envs.training.training_progress_tracker import TrainingProgressTracker
 from hadoop_optimizer.job_runner.clients.cached_job_performance_evaluator_client import CachedHadoopJobPerformanceEvaluatorClient
+from hadoop_optimizer.optimization_mode.abstract_optimization_mode import AbstractOptimizationMode
 
 
 class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
     def __init__(
             self,
             telemetry_aggregator: TelemetryAggregator,
+            optimization_mode: AbstractOptimizationMode,
             training_client: CachedHadoopJobPerformanceEvaluatorClient,
             reward_calculator: RewardCalculator,
             train_id: str,
             training_progress_tracker: TrainingProgressTracker,
-            cached_results_utilization_policy: CachedResultsUtilizationPolicy
+            cached_results_utilization_policy: CachedResultsUtilizationPolicy,
+            verbosity: Verbosity = Verbosity.ONLY_INFO,
     ):
-        super().__init__(telemetry_aggregator)
+        super().__init__(telemetry_aggregator, optimization_mode, verbosity)
         self.training_client = training_client
         self.training_client.start()
         self.reward_calculator = reward_calculator
@@ -117,7 +121,8 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             *,
             is_baseline: bool = False,
             is_last_step: bool = False,
-            is_truncated: bool = False
+            is_truncated: bool = False,
+            suppress_real_execution: bool = False
     ) -> JobExecutionPerformance:
         # TODO: IMPORTANT OPTIMIZATION OF CHECKING IF SOME RESULTS FOR THE SAME CONFIGURATION AND INPUT SIZE ALREADY
         #   EXIST IN THE TRAINING_DRL INDEX, AND RETURN THOSE RESULTS IMMEDIATELY
@@ -136,9 +141,10 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             execution_configuration=job_config,
             session_id=self.train_id,
             episode_context=EpisodeContext.from_episode_context(episode_context),
-            space_ranges=self._get_space_ranges(self.job_config_space),
+            space_ranges=self.optimization_mode.get_space_ranges(self.optimization_mode.job_config_space),
             # TODO: Consider making the following policy adaptive as the training progress
             cached_results_utilization_policy=self.cached_results_utilization_policy,
+            suppress_real_execution=suppress_real_execution,
         )
 
     def _init_episodic_job(self, options: dict[str, Any] | None) -> Tuple[JobProperties, Dict[str, Any]]:
@@ -154,7 +160,8 @@ class OptimizerTrainingEnv(AbstractOptimizerEnvInterface):
             default_execution_configuration,
             is_baseline=True,
             is_last_step=False,
-            is_truncated=False
+            is_truncated=False,
+            suppress_real_execution=True,
         )
         training_results = self.__build_training_results(
             default_execution_configuration,
