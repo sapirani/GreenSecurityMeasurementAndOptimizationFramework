@@ -26,7 +26,7 @@ from datetime import timezone
 from random import randint
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple, Any, Optional
-from utils.general_consts import LoggerName
+from DTOs.logging.consts import LoggerName
 from application_logging.handlers.elastic_handler import get_elastic_logging_handler
 
 load_dotenv('/home/shouei/GreenSecurity-FirstExperiment/SplunkResearch/src/.env')

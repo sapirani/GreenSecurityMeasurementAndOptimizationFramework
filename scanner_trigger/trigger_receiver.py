@@ -3,6 +3,7 @@ import os
 import socket
 import subprocess
 import signal
+import shlex
 from typing import Optional, List
 
 import logging
@@ -10,7 +11,8 @@ import logging
 from scanner_trigger import logging_configuration
 BUFFER_SIZE = 4192
 
-SCANNER_TERMINATION_WAITING_SECONDS = 30
+STOP_MEASUREMENT_MAX_RETRIES = 10
+RETRY_INTERVAL_SECONDS = 15
 
 DEFAULT_SCANNER_PATH = r"scanner.py"
 DEFAULT_PYTHON_PATH = r"python3"
@@ -33,31 +35,72 @@ def start_measurement(python_path: str, scanner_path: str, nice: int, start_args
         popen_args = ["nice", "-n", str(nice)] + popen_args
 
     scanner_process = subprocess.Popen(popen_args)
+    logging.debug(f"Started scanner process, pid = {scanner_process.pid}")
 
 
 def stop_measurement():
     global scanner_process
 
-    if not scanner_process:
+    if scanner_process is None:
         logging.warning("Tried to stop a scanner process that does not exist anymore")
         return
 
-    if os.name == 'nt':  # Check if the OS is Windows
-        logging.debug("Sending Windows style SIGNIT to the scanner")
-        scanner_process.send_signal(signal.CTRL_C_EVENT)  # CTRL_C_EVENT on Windows
-    else:
-        logging.debug("Sending LINUX style SIGNIT to the scanner")
-        scanner_process.send_signal(signal.SIGINT)  # SIGINT on UNIX-like systems
-
     try:
-        logging.debug(f"Waiting for scanner to terminate for {SCANNER_TERMINATION_WAITING_SECONDS} seconds")
-        scanner_process.wait(SCANNER_TERMINATION_WAITING_SECONDS)
-    except subprocess.TimeoutExpired:
-        logging.warning(f"Scanner did not terminate after {SCANNER_TERMINATION_WAITING_SECONDS} seconds, skipping ...")
-    except KeyboardInterrupt:
-        pass
+        for retry_num in range(STOP_MEASUREMENT_MAX_RETRIES):
+            # It may have exited while we weren't looking.
+            return_code = scanner_process.poll()
+            if return_code is not None:
+                if return_code != 0:
+                    logging.warning(f"Scanner exited with error, return code: {return_code}")
+                return
 
-    scanner_process = None
+            logging.debug(
+                f"Sending SIGINT to scanner "
+                f"(pid={scanner_process.pid}, "
+                f"attempt={retry_num + 1}/{STOP_MEASUREMENT_MAX_RETRIES})"
+            )
+
+            if os.name == "nt":
+                scanner_process.send_signal(signal.CTRL_C_EVENT)
+            else: # POSIX
+                scanner_process.send_signal(signal.SIGINT)
+
+            try:
+                logging.debug(
+                    f"Waiting for scanner to terminate for "
+                    f"{RETRY_INTERVAL_SECONDS} seconds "
+                    f"(pid={scanner_process.pid})"
+                )
+
+                return_code = scanner_process.wait(RETRY_INTERVAL_SECONDS)
+
+                if return_code == 0:
+                    logging.info(f"Scanner exited successfully")
+                else:
+                    logging.warning(f"Scanner exited with error, return code: {return_code}")
+                return
+
+            except subprocess.TimeoutExpired:
+                logging.warning(
+                    f"Scanner did not terminate after "
+                    f"{RETRY_INTERVAL_SECONDS} seconds "
+                    f"(pid={scanner_process.pid}), "
+                    f"retrying ({retry_num + 1}/"
+                    f"{STOP_MEASUREMENT_MAX_RETRIES})"
+                )
+
+        logging.error(
+            f"Scanner did not terminate after "
+            f"{STOP_MEASUREMENT_MAX_RETRIES} attempts "
+            f"(pid={scanner_process.pid})"
+        )
+
+    except KeyboardInterrupt:
+        logging.info("Received KeyboardInterrupt while stopping scanner")
+        raise
+
+    finally:
+        scanner_process = None
 
 
 def main(host: str, port: int, python_path: str, scanner_path: str, nice: int):
@@ -74,7 +117,7 @@ def main(host: str, port: int, python_path: str, scanner_path: str, nice: int):
                 logging.debug(f"Received a message: {message}")
 
                 if b"start_measurement" in message:
-                    start_measurements_args = message.decode().split()
+                    start_measurements_args = shlex.split(message.decode())
                     start_measurements_args.remove("start_measurement")
                     start_measurement(python_path, scanner_path, nice, start_measurements_args)
 

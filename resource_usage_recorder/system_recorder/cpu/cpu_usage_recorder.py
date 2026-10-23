@@ -9,7 +9,7 @@ from operating_systems.abstract_operating_system import AbstractOSFuncs
 from statistics import mean
 
 from resource_usage_recorder import MetricResult, MetricRecorder
-from utils.general_consts import LoggerName
+from DTOs.logging.consts import LoggerName
 from dataclasses import dataclass
 
 

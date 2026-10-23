@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, Any
 
 from DTOs.aggregated_results_dtos.abstract_aggregation_results import AbstractAggregationResult
 from DTOs.process_info import ProcessMetadata
@@ -10,6 +10,7 @@ from DTOs.aggregation_types import AggregationType
 class AggregatedProcessResults:
     process_metadata: ProcessMetadata
     aggregation_results: Dict[AggregationType, AbstractAggregationResult]
+    process_extras: Dict[str, Any]
 
     def merge(self, other: 'AggregatedProcessResults') -> None:
         if self.process_metadata != other.process_metadata:
@@ -21,3 +22,4 @@ class AggregatedProcessResults:
                              f"Overlapping aggregations: {overlapping_aggregations}.")
 
         self.aggregation_results.update(other.aggregation_results)
+        self.process_extras.update(other.process_extras)

@@ -2,20 +2,25 @@ import gymnasium as gym
 import numpy as np
 from gymnasium.core import WrapperActType, ActType
 from DTOs.hadoop.hadoop_job_execution_config import HadoopJobExecutionConfig
+from hadoop_optimizer.drl_envs.abstract_hadoop_optimizer_env import AbstractOptimizerEnvInterface
 from hadoop_optimizer.drl_envs.consts import NEXT_JOB_CONFIG_KEY, TERMINATE_ACTION_NAME
-from hadoop_optimizer.drl_envs.deployment_env import OptimizerDeploymentEnv
 
 
 class ActionTypesDecoder(gym.ActionWrapper):
+    """
+    Decodes the numeric action space into the actual typing of the configuration parameter.
+    Note: enums are not supported for now.
+    # TODO: SUPPORT ENUM DECODING
+    """
     def action(self, action: WrapperActType) -> ActType:
-        assert isinstance(self.unwrapped, OptimizerDeploymentEnv), \
+        assert isinstance(self.unwrapped, AbstractOptimizerEnvInterface), \
             "This action decoder wrapper is dedicated for the OptimizerDeploymentEnv"
 
         decoded_action = {}
         next_job_config = action[NEXT_JOB_CONFIG_KEY]
 
         for field_name, field_info in HadoopJobExecutionConfig.model_fields.items():
-            if field_name not in self.unwrapped.supported_configurations:
+            if field_name not in self.unwrapped.optimization_mode.supported_configurations:
                 continue
 
             if field_info.annotation is float:
@@ -24,6 +29,7 @@ class ActionTypesDecoder(gym.ActionWrapper):
                 next_job_config[field_name] = field_info.annotation(np.round(next_job_config[field_name]))
 
         decoded_action[NEXT_JOB_CONFIG_KEY] = next_job_config
-        decoded_action[TERMINATE_ACTION_NAME] = bool(np.round(action[TERMINATE_ACTION_NAME]))
+        if TERMINATE_ACTION_NAME in decoded_action:
+            decoded_action[TERMINATE_ACTION_NAME] = bool(np.round(action[TERMINATE_ACTION_NAME]))
 
         return decoded_action

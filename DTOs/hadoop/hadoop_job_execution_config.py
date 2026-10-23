@@ -184,7 +184,7 @@ class HadoopJobExecutionConfig(BaseModel):
     )
 
     map_min_heap_size_mb: int = Field(
-        default=2,
+        default=128,
         gt=0,
         alias="mhm",
         title=Groups.MEMORY.value,
@@ -193,7 +193,7 @@ class HadoopJobExecutionConfig(BaseModel):
     )
 
     map_max_heap_size_mb: int = Field(
-        default=256,
+        default=384,
         gt=0,
         alias="mhM",
         title=Groups.MEMORY.value,
@@ -212,7 +212,7 @@ class HadoopJobExecutionConfig(BaseModel):
     )
 
     reduce_min_heap_size_mb: int = Field(
-        default=2,
+        default=128,
         gt=0,
         alias="rhm",
         title=Groups.MEMORY.value,
@@ -221,7 +221,7 @@ class HadoopJobExecutionConfig(BaseModel):
     )
 
     reduce_max_heap_size_mb: int = Field(
-        default=256,
+        default=384,
         gt=0,
         alias="rhM",
         title=Groups.MEMORY.value,
