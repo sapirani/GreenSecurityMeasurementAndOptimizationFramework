@@ -26,7 +26,7 @@ from initialization_helper import *
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from resource_usage_recorder import MetricResult
+from DTOs.scanner_counters.metric_results import MetricResult
 from resource_usage_recorder.system_recorder.cpu.cpu_usage_recorder import SystemCpuUsageRecorder
 from resource_usage_recorder.system_recorder.disk.disk_usage_recorder import SystemDiskUsageRecorder
 from resource_usage_recorder.system_recorder.memory.memory_usage_recorder import SystemMemoryUsageRecorder

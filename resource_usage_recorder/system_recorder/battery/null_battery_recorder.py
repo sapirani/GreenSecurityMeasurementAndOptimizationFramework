@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import TextIO, Optional
 
-from resource_usage_recorder import MetricResult
+from DTOs.scanner_counters.metric_results import MetricResult
 from resource_usage_recorder.system_recorder.battery.abstract_battery_usage_recorder import AbstractBatteryUsageRecorder
 
 

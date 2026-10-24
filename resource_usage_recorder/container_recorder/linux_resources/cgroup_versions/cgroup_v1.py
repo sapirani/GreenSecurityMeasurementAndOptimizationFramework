@@ -1,7 +1,12 @@
 import os
+from typing import Dict
 
+import psutil
+
+from DTOs.scanner_counters.system.disk_results import SystemDiskResults
 from resource_usage_recorder.container_recorder.linux_resources.cgroup_versions.abstract_cgroup_version import \
     CgroupMetricReader
+from utils.general_consts import KB, NANOSECONDS_IN_MILLISECONDS
 
 CGROUP_V1_NAME = "V1"
 
@@ -35,6 +40,27 @@ class CgroupMetricReaderV1(CgroupMetricReader):
     # Within each period, the cgroup's CPU usage is limited according to its quota.
     # The format of the file is a single integer value in microseconds.
     __CPU_CF_PERIOD_FILE_NAME = r"cpu/cpu.cfs_period_us"
+
+    # Reports the number of read and write I/O operations per device
+    # for the cgroup, as tracked by the I/O throttling controller.
+    # Each line contains:
+    # major:minor operation value
+    # Supported operations include Read, Write, Sync, and Async.
+    __DISK_IO_SERVICED_FILE_NAME_V1 = "blkio.throttle.io_serviced"
+
+    # Reports the total number of bytes read and written per device
+    # for the cgroup, as tracked by the I/O throttling controller.
+    # Each line contains:
+    # major:minor operation value
+    # Values are in bytes.
+    __DISK_IO_SERVICE_BYTES_FILE_NAME_V1 = "blkio.throttle.io_service_bytes"
+
+    # Reports the cumulative I/O service time per device and operation.
+    # Each line contains:
+    # major:minor operation value
+    # Values are in nanoseconds and can be converted to milliseconds.
+    # Availability depends on kernel configuration and I/O accounting support.
+    __DISK_IO_SERVICE_TIME_FILE_NAME_V1 = "blkio.io_service_time"
 
     __NO_QUOTA_LIMIT = -1
 
@@ -73,3 +99,62 @@ class CgroupMetricReaderV1(CgroupMetricReader):
     def is_container_memory_limited(self, limit: str) -> bool:
         limit_number = int(limit)
         return limit_number >= 2 ** 60
+
+    def get_disk_io_path(self) -> str:
+        """Return the cgroups v1 disk I/O statistics path."""
+        return os.path.join(self._base_cgroup_dir, self.__DISK_IO_SERVICED_FILE_NAME_V1)
+
+    def get_total_disk_counters(self) -> SystemDiskResults:
+        """
+        Read cumulative disk I/O counters from cgroups v1.
+
+        Counts and byte totals come from the blkio throttle statistics.
+        Read/write times come from blkio.io_service_time and are converted
+        from nanoseconds to milliseconds.
+
+        Note: accurate per-operation timing may require additional instrumentation,
+        depending on the kernel and scheduler configuration.
+        Specifically, further implementation of this function may utilize eBPF,
+        with the appropriate kernel capabilities and permissions (BPF and PERFMON).
+        """
+        stats = {"Read": 0, "Write": 0}
+        byte_stats = {"Read": 0, "Write": 0}
+        time_stats = {"Read": 0, "Write": 0}
+
+        def read_stats(filename: str, target: Dict[str, int]) -> None:
+            path = os.path.join(self._base_cgroup_dir, filename)
+            with open(path) as f:
+                for line in f:
+                    parts = line.split()
+
+                    # Expected format: major:minor operation value
+                    if len(parts) != 3:
+                        continue
+
+                    operation = parts[1]
+                    if operation in target:
+                        target[operation] += int(parts[2])
+
+        read_stats(self.__DISK_IO_SERVICED_FILE_NAME_V1, stats)
+        read_stats(self.__DISK_IO_SERVICE_BYTES_FILE_NAME_V1, byte_stats)
+        try:
+            read_stats(self.__DISK_IO_SERVICE_TIME_FILE_NAME_V1, time_stats)
+            time_stats["Read"] //= NANOSECONDS_IN_MILLISECONDS
+            time_stats["Write"] //= NANOSECONDS_IN_MILLISECONDS
+        except FileNotFoundError:
+            print(
+                "Warning: blkio.io_service_time is unavailable, ensure the relevant schedulers are used "
+                "(e.g., CFQ and BFQ); falling back to system-wide psutil counters."
+            )
+            psutil_counters = psutil.disk_io_counters()
+            time_stats["Read"] = psutil_counters.read_time
+            time_stats["Write"] = psutil_counters.write_time
+
+        return SystemDiskResults(
+            disk_read_count=stats["Read"],
+            disk_write_count=stats["Write"],
+            disk_read_kb=byte_stats["Read"] / KB,
+            disk_write_kb=byte_stats["Write"] / KB,
+            disk_read_time=time_stats["Read"],
+            disk_write_time=time_stats["Write"],
+        )

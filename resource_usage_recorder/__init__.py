@@ -1,17 +1,7 @@
-import dataclasses
 from abc import ABC, abstractmethod
-from typing import List, Union, Set
-from dataclasses import dataclass
+from typing import List, Union
 
-
-@dataclass
-class MetricResult:
-    def to_dict(self):
-        return dataclasses.asdict(self)
-
-    @classmethod
-    def get_columns(cls) -> Set[str]:
-        return {f.name for f in dataclasses.fields(cls)}
+from DTOs.scanner_counters.metric_results import MetricResult
 
 
 class MetricRecorder(ABC):

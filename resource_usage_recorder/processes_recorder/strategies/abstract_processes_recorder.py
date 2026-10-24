@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Tuple, Callable, Iterable, Optional
 import psutil
 
-from resource_usage_recorder import MetricResult
+from DTOs.scanner_counters.metric_results import MetricResult
 from resource_usage_recorder.processes_recorder.process_network_usage_recorder import ProcessNetworkUsageRecorder
 from utils.general_consts import MB, KB, NUMBER_OF_CORES
 from DTOs.logging.consts import LoggerName

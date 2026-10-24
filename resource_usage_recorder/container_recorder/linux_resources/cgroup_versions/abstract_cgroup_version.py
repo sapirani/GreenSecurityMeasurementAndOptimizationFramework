@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from DTOs.scanner_counters.system.disk_results import SystemDiskResults
 # Contains details on the cgroup of the container.
 # The file format is one or more lines, where each line indicates a hierarchy, its controllers, and the cgroup path for the process:
 # hierarchy-ID : controllers : cgroup-path -> WHERE:
@@ -52,4 +53,13 @@ class CgroupMetricReader(ABC):
 
     @abstractmethod
     def get_memory_limit_path(self) -> str:
+        pass
+
+    @abstractmethod
+    def get_disk_io_path(self) -> str:
+        pass
+
+    #TODO: SUPPORT eBPF (as the disk read and write time may not be accurate using cgroups)
+    @abstractmethod
+    def get_total_disk_counters(self) -> SystemDiskResults:
         pass
