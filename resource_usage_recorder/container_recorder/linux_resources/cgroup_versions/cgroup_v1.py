@@ -106,6 +106,22 @@ class CgroupMetricReaderV1(CgroupMetricReader):
         """Return the cgroups v1 disk I/O statistics path."""
         return os.path.join(self._base_cgroup_dir, self.__DISK_IO_SERVICED_FILE_NAME_V1)
 
+    def read_stats(self, filename: str) -> Dict[str, int]:
+        target = {}
+        path = os.path.join(self._base_cgroup_dir, self.__DISK_IO_CGROUP_DIR_NAME, filename)
+        with open(path) as f:
+            for line in f:
+                parts = line.strip().split()
+
+                # Expected format: major:minor operation value
+                if len(parts) != 3:
+                    print("Warning! unexpected file format")
+
+                operation = parts[1]
+                if operation in target:
+                    target[operation] += int(parts[2])
+        return target
+
     def get_total_disk_counters(self) -> SystemDiskResults:
         """
         Read cumulative disk I/O counters from cgroups v1.
@@ -119,28 +135,13 @@ class CgroupMetricReaderV1(CgroupMetricReader):
         Specifically, further implementation of this function may utilize eBPF,
         with the appropriate kernel capabilities and permissions (BPF and PERFMON).
         """
-        stats = {"Read": 0, "Write": 0}
-        byte_stats = {"Read": 0, "Write": 0}
+
         time_stats = {"Read": 0, "Write": 0}
 
-        def read_stats(filename: str, target: Dict[str, int]) -> None:
-            path = os.path.join(self._base_cgroup_dir, self.__DISK_IO_CGROUP_DIR_NAME, filename)
-            with open(path) as f:
-                for line in f:
-                    parts = line.split()
-
-                    # Expected format: major:minor operation value
-                    if len(parts) != 3:
-                        continue
-
-                    operation = parts[1]
-                    if operation in target:
-                        target[operation] += int(parts[2])
-
-        read_stats(self.__DISK_IO_SERVICED_FILE_NAME_V1, stats)
-        read_stats(self.__DISK_IO_SERVICE_BYTES_FILE_NAME_V1, byte_stats)
+        stats = self.read_stats(self.__DISK_IO_SERVICED_FILE_NAME_V1)
+        byte_stats = self.read_stats(self.__DISK_IO_SERVICE_BYTES_FILE_NAME_V1)
         try:
-            read_stats(self.__DISK_IO_SERVICE_TIME_FILE_NAME_V1, time_stats)
+            time_stats = self.read_stats(self.__DISK_IO_SERVICE_TIME_FILE_NAME_V1)
             time_stats["Read"] //= NANOSECONDS_IN_MILLISECONDS
             time_stats["Write"] //= NANOSECONDS_IN_MILLISECONDS
         except FileNotFoundError:
