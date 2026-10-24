@@ -115,7 +115,7 @@ class CgroupMetricReaderV1(CgroupMetricReader):
 
                 # Expected format: major:minor operation value
                 if len(parts) != 3:
-                    print("Warning! unexpected file format")
+                    print(f"Warning! unexpected file format, line parts: {parts}")
 
                 operation = parts[1]
                 if operation in target:
