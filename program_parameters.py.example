@@ -1,3 +1,4 @@
+from tasks.programs.confidential_computing_tasks.encryption_type import EncryptionType
 from utils.general_consts import *
 
 # ======= Scanner Parameters =======

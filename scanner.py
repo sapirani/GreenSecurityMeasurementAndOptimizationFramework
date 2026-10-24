@@ -26,7 +26,7 @@ from initialization_helper import *
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from resource_usage_recorder import MetricResult
+from DTOs.scanner_counters.metric_results import MetricResult
 from resource_usage_recorder.system_recorder.cpu.cpu_usage_recorder import SystemCpuUsageRecorder
 from resource_usage_recorder.system_recorder.disk.disk_usage_recorder import SystemDiskUsageRecorder
 from resource_usage_recorder.system_recorder.memory.memory_usage_recorder import SystemMemoryUsageRecorder
@@ -232,7 +232,7 @@ def continuously_measure():
 
     system_cpu_monitor = SystemCpuUsageRecorder(running_os, done_scanning_event, is_inside_container)
     system_memory_monitor = SystemMemoryUsageRecorder(running_os, is_inside_container)
-    system_disk_usage_recorder = SystemDiskUsageRecorder()
+    system_disk_usage_recorder = SystemDiskUsageRecorder(is_inside_container=is_inside_container)
     system_network_usage_recorder = SystemNetworkUsageRecorder()
 
     with processes_resource_usage_recorder:

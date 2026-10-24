@@ -7,7 +7,7 @@ from scapy.arch import get_if_addr
 from scapy.interfaces import get_working_ifaces
 from scapy.sendrecv import sniff
 
-from resource_usage_recorder import MetricResult
+from DTOs.scanner_counters.metric_results import MetricResult
 
 
 @dataclass

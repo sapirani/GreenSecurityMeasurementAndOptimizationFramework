@@ -1,24 +1,8 @@
-from dataclasses import dataclass
-
 import psutil
+
+from DTOs.scanner_counters.system.network_results import SystemNetworkResults
 from utils.general_consts import KB
-from resource_usage_recorder import MetricResult, MetricRecorder
-
-
-@dataclass
-class SystemNetworkResults(MetricResult):
-    packets_sent: int
-    packets_received: int
-    network_kb_sent: float
-    network_kb_received: float
-
-    def delta(self, previous_disk_io: 'SystemNetworkResults') -> 'SystemNetworkResults':
-        return SystemNetworkResults(
-            packets_sent=self.packets_sent - previous_disk_io.packets_sent,
-            packets_received=self.packets_received - previous_disk_io.packets_received,
-            network_kb_sent=round(self.network_kb_sent - previous_disk_io.network_kb_sent, 3),
-            network_kb_received=round(self.network_kb_received - previous_disk_io.network_kb_received, 3)
-        )
+from resource_usage_recorder import MetricRecorder
 
 
 class SystemNetworkUsageRecorder(MetricRecorder):
@@ -40,4 +24,3 @@ class SystemNetworkUsageRecorder(MetricRecorder):
         current_results = total_results.delta(self._previous_network_io)
         self._previous_network_io = total_results
         return current_results
-

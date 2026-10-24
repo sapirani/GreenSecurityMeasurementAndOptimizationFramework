@@ -1,17 +1,9 @@
-from dataclasses import dataclass
-
-
 import psutil
 
+from DTOs.scanner_counters.system.memory_results import SystemMemoryResults
 from operating_systems.abstract_operating_system import AbstractOSFuncs
 from utils.general_consts import GB
-from resource_usage_recorder import MetricResult, MetricRecorder
-
-
-@dataclass
-class SystemMemoryResults(MetricResult):
-    total_memory_gb: float
-    total_memory_percent: float
+from resource_usage_recorder import MetricRecorder
 
 
 class SystemMemoryUsageRecorder(MetricRecorder):

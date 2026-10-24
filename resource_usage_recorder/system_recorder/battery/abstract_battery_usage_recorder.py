@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import TextIO, Optional
 
-from resource_usage_recorder import MetricResult, MetricRecorder
+from resource_usage_recorder import MetricRecorder
+from DTOs.scanner_counters.metric_results import MetricResult
 
 
 class AbstractBatteryUsageRecorder(MetricRecorder, ABC):

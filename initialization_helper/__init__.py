@@ -6,13 +6,13 @@ from initialization_helper.initialization_factories import running_os_factory, p
 from program_parameters import *
 
 # ======= Get Operating System Type =======
-from resource_usage_recorder import MetricResult
+from DTOs.scanner_counters.metric_results import MetricResult
 from resource_usage_recorder.processes_recorder.strategies.abstract_processes_recorder import ProcessMetrics
 from resource_usage_recorder.system_recorder.battery.battery_usage_recorder import SystemBatteryResults
-from resource_usage_recorder.system_recorder.cpu.cpu_usage_recorder import SystemCPUResults
-from resource_usage_recorder.system_recorder.disk.disk_usage_recorder import SystemDiskResults
-from resource_usage_recorder.system_recorder.memory.memory_usage_recorder import SystemMemoryResults
-from resource_usage_recorder.system_recorder.network.network_usage_recorder import SystemNetworkResults
+from DTOs.scanner_counters.system.cpu_results import SystemCPUResults
+from DTOs.scanner_counters.system.disk_results import SystemDiskResults
+from DTOs.scanner_counters.system.memory_results import SystemMemoryResults
+from DTOs.scanner_counters.system.network_results import SystemNetworkResults
 
 running_os = running_os_factory(is_inside_container=is_inside_container)
 program = program_to_scan_factory(main_program_to_scan)
