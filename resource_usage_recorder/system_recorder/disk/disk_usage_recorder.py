@@ -10,8 +10,9 @@ from resource_usage_recorder import MetricRecorder
 #   APPROPRIATE RECORDER
 class SystemDiskUsageRecorder(MetricRecorder):
     def __init__(self, is_inside_container: bool):
-        self._previous_disk_io = self._get_total_results()
+        super().__init__()
         self._is_inside_container = is_inside_container
+        self._previous_disk_io = self._get_total_results()
 
         self._container_disk_reader = None
         if self._is_inside_container:
