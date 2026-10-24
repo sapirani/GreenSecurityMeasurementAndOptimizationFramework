@@ -232,7 +232,7 @@ def continuously_measure():
 
     system_cpu_monitor = SystemCpuUsageRecorder(running_os, done_scanning_event, is_inside_container)
     system_memory_monitor = SystemMemoryUsageRecorder(running_os, is_inside_container)
-    system_disk_usage_recorder = SystemDiskUsageRecorder()
+    system_disk_usage_recorder = SystemDiskUsageRecorder(is_inside_container=is_inside_container)
     system_network_usage_recorder = SystemNetworkUsageRecorder()
 
     with processes_resource_usage_recorder:
