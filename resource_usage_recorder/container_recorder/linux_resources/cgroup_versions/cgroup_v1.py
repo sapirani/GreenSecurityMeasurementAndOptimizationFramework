@@ -153,7 +153,7 @@ class CgroupMetricReaderV1(CgroupMetricReader):
             time_stats["Read"] = psutil_counters.read_time
             time_stats["Write"] = psutil_counters.write_time
 
-        x =  SystemDiskResults(
+        return SystemDiskResults(
             disk_read_count=stats["Read"],
             disk_write_count=stats["Write"],
             disk_read_kb=byte_stats["Read"] / KB,
@@ -161,8 +161,3 @@ class CgroupMetricReaderV1(CgroupMetricReader):
             disk_read_time=time_stats["Read"],
             disk_write_time=time_stats["Write"],
         )
-
-        print("***********************")
-        print(x)
-        print("***********************")
-        return x
