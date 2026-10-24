@@ -62,6 +62,8 @@ class CgroupMetricReaderV1(CgroupMetricReader):
     # Availability depends on kernel configuration and I/O accounting support.
     __DISK_IO_SERVICE_TIME_FILE_NAME_V1 = "blkio.io_service_time"
 
+    __DISK_IO_CGROUP_DIR_NAME = "blkio"
+
     __NO_QUOTA_LIMIT = -1
 
     def get_version(self) -> str:
@@ -122,7 +124,7 @@ class CgroupMetricReaderV1(CgroupMetricReader):
         time_stats = {"Read": 0, "Write": 0}
 
         def read_stats(filename: str, target: Dict[str, int]) -> None:
-            path = os.path.join(self._base_cgroup_dir, filename)
+            path = os.path.join(self._base_cgroup_dir, self.__DISK_IO_CGROUP_DIR_NAME, filename)
             with open(path) as f:
                 for line in f:
                     parts = line.split()
